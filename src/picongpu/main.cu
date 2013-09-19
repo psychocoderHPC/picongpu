@@ -152,9 +152,10 @@ int main(int argc, char **argv)
     typedef Frame<CastToArray, particle> FrameType;
     FrameType frame;
     PMACC_AUTO(par, frame[255]);
+
     ForEach<particle, SetDefaultValue<void> >()(byRef(par));
     std::cout << "sizeof=" << sizeof (FrameType) << std::endl;
-
+    par[horst_]+=10;
     std::cout << "value=" << frame[255][horst_] << " -" << std::endl;
     std::cout << traits::HasIdentifier<typename FrameType::ParticleType, horst<aDouble> >::value << "- true" << std::endl;
     std::cout << traits::HasIdentifier<typename FrameType::ParticleType, horst<> >::value << "- true" << std::endl;

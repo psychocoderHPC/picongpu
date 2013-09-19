@@ -64,7 +64,7 @@ protected pmath::MapTuple<typename CreateMap<T_ValueTypeSeq, T_CreatePairOperato
     typedef Frame<T_CreatePairOperator, ValueTypeSeq, MethodsList, AttributeList> ThisType;
     typedef pmath::MapTuple<typename CreateMap<ValueTypeSeq, T_CreatePairOperator>::type, pmath::AlignedData> BaseType;
 
-    typedef pmacc::Particle<ThisType, MethodsList> ParticleType;
+    typedef pmacc::Particle<ThisType> ParticleType;
 
     HDINLINE ParticleType operator[](const uint32_t idx)
     {

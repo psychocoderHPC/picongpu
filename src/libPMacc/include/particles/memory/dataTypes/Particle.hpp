@@ -35,11 +35,11 @@ namespace bmpl = boost::mpl;
 namespace pmath = PMacc::math;
 namespace pmacc = PMacc;
 
-template<typename T_FrameType, typename T_MethodsList>
-struct Particle : public bmpl::inherit<T_MethodsList>::type
+template<typename T_FrameType>
+struct Particle : public bmpl::inherit<typename T_FrameType::MethodsList>::type
 {
     typedef T_FrameType FrameType;
-    typedef T_MethodsList MethodsList;
+    typedef typename FrameType::MethodsList MethodsList;
     typedef typename FrameType::ValueTypeSeq ValueTypeSeq;
 
     FrameType& frame;
@@ -79,11 +79,10 @@ namespace traits
 {
 
 template<typename T_Key,
-typename T_FrameType,
-typename T_MethodsList
+typename T_FrameType
 >
 struct HasIdentifier<
-PMacc::Particle<T_FrameType, T_MethodsList>,
+PMacc::Particle<T_FrameType>,
 T_Key
 >
 {
