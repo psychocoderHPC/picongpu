@@ -42,10 +42,10 @@ public:
 
     enum
     {
-        Dim = DIM3,
+        Dim = simDim,
         /* Exchanges in 2D=9 and in 3D=27
          */
-        Exchanges = 27
+        Exchanges = BACK
     };
 
     TaskFieldReceiveAndInsertExchange(Field &buffer, uint32_t exchange) :

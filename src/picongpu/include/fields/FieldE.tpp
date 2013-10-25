@@ -67,7 +67,7 @@ fieldB( NULL )
     const DataSpace<simDim> endGuard( UpperMargin( ).vec( ) );
 
     /*receive from all directions*/
-    for ( uint32_t i = 1; i < 27; ++i )
+    for ( uint32_t i = 1; i < BACK; ++i )
     {
         DataSpace<simDim> relativMask = Mask::getRelativeDirections<simDim > ( i );
         /*guarding cells depend on direction
@@ -143,9 +143,9 @@ void FieldE::laserManipulation( uint32_t currentStep )
 
 
     __cudaKernel( kernelLaserE )
-        ( dim3( fieldE->getGridLayout( ).getDataSpaceWithoutGuarding( ).x( ) / SuperCellSize::x,
-                fieldE->getGridLayout( ).getDataSpaceWithoutGuarding( ).z( ) / SuperCellSize::z ),
-          dim3( SuperCellSize::x, SuperCellSize::z ) )
+        ( dim3( fieldE->getGridLayout( ).getDataSpaceWithoutGuarding( ).x( ) / SuperCellSize::x /*,
+                fieldE->getGridLayout( ).getDataSpaceWithoutGuarding( ).z( ) / SuperCellSize::z */),
+          dim3( SuperCellSize::x /*, SuperCellSize::z*/ ) )
         ( this->getDeviceDataBox( ), laser->getLaserManipulator( currentStep ) );
 }
 

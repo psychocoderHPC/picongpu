@@ -22,7 +22,7 @@
 #pragma once
 
 
-#define SIMDIM DIM3
+#define SIMDIM DIM2
 
 const uint32_t simDim = SIMDIM;
 

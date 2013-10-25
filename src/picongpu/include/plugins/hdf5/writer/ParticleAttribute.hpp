@@ -86,8 +86,8 @@ struct ParticleAttribute
          */
         DataSpace<simDim> globalSlideOffset = DataSpace<simDim>(
                                                                 0,
-                                                                params.get()->window.slides * params.get()->window.localFullSize.y(),
-                                                                0);
+                                                                params.get()->window.slides * params.get()->window.localFullSize.y()
+                                                                /*,0*/);
 
         Dimensions splashDomainOffset(0, 0, 0);
         Dimensions splashGlobalDomainOffset(0, 0, 0);

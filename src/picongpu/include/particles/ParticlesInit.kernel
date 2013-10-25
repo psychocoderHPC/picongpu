@@ -54,9 +54,9 @@ template<unsigned int Dim>
 DINLINE float_X calcRealDensity(const DataSpace<Dim>& offset, const DataSpace<Dim>& cellIdx)
 {
     float_X value = gasProfile::calcNormedDensitiy(
-                                                   float3_X((cellIdx.x() + offset.x()) * CELL_WIDTH,
-                                                            (cellIdx.y() + offset.y()) * CELL_HEIGHT,
-                                                            (cellIdx.z() + offset.z()) * CELL_DEPTH))
+                                                   float2_X((cellIdx.x() + offset.x()) * CELL_WIDTH,
+                                                            (cellIdx.y() + offset.y()) * CELL_HEIGHT /*,
+                                                            (cellIdx.z() + offset.z()) * CELL_DEPTH */) )
         * GAS_DENSITY;
     return value;
 }
@@ -133,7 +133,7 @@ __global__ void kernelFillGridWithParticles(ParBox pb,
     /*multiply density factor to calculated manipulated middle density*/
     const float_X realDensity = densityFactor * calcRealDensity(gpuCelloffset, idx - SuperCellSize::getDataSpace());
     const float_X realElPerCell = realDensity
-        * CELL_WIDTH * CELL_HEIGHT * CELL_DEPTH;
+        * CELL_WIDTH * CELL_HEIGHT /* * CELL_DEPTH*/;
 
     __shared__ int finished;
     if (linearThreadIdx == 0)
@@ -174,8 +174,8 @@ __global__ void kernelFillGridWithParticles(ParBox pb,
             finished = 1; //clear flag
         __syncthreads();
 
-        float3_X pos = initMethods.getPosition(rng,
-                                               totalNumParsPerCell,
+        float2_X pos = initMethods.getPosition(rng,
+                                               totalNumParsPerCell ,
                                                totalNumParsPerCell - numParsPerCell);
         //pos.x() = 1.0 - rng();
         //pos.y() = 1.0 - rng();

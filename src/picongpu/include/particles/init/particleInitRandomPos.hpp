@@ -43,13 +43,13 @@ namespace picongpu
              * @return float3_X with components between [0.0, 1.0)
              */
             template <class UNIRNG>
-            DINLINE float3_X getPosition( UNIRNG& rng,
+            DINLINE float2_X getPosition( UNIRNG& rng,
                                            const uint32_t totalNumParsPerCell,
                                            const uint32_t curParticle )
             {
-                return float3_X( rng(),
-                                    rng(),
-                                    rng() );
+                return float2_X( rng(),
+                                    rng() /*,
+                                    rng() */ );
             }
 
             /** If the particles to initialize (numParsPerCell) end up with a 

@@ -86,7 +86,7 @@ __global__ void kernelEnergy(E_DataBox fieldE, B_DataBox fieldB, float* gEnergy,
     const float_X myE2 = e.x() * e.x() + e.y() * e.y() + e.z() * e.z();
     const float_X myB2 = b.x() * b.x() + b.y() * b.y() + b.z() * b.z();
 
-    const float_X volume = CELL_WIDTH * CELL_HEIGHT * CELL_DEPTH;
+    const float_X volume = CELL_WIDTH * CELL_HEIGHT /* * CELL_DEPTH*/ ;
     const float_X myEn = ((EPS0 * myE2) + (myB2 * (float_X(1.0) / MUE0))) * (volume * float_X(0.5));
 
     //atomicAddWrapper(&sh_sumE2, myE2);

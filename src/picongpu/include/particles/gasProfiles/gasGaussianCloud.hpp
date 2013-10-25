@@ -35,17 +35,17 @@ namespace picongpu
          * @param y as distance in propagation direction (unit: meters / UNIT_LENGTH)
          * @return float_X between 0.0 and 1.0
          */
-        DINLINE float_X calcNormedDensitiy( float3_X pos )
+        DINLINE float_X calcNormedDensitiy( float2_X pos )
         {
             if (pos.y() < VACUUM_Y) return float_X(0.0);
 
             const float3_X exponent = float3_X( math::abs((pos.x() - GAS_CENTER_X)/GAS_SIGMA_X),
-                                                 math::abs((pos.y() - GAS_CENTER_Y)/GAS_SIGMA_Y),
-                                                 math::abs((pos.z() - GAS_CENTER_Z)/GAS_SIGMA_Z) );
+                                                 math::abs((pos.y() - GAS_CENTER_Y)/GAS_SIGMA_Y) /*,
+                                                 math::abs((pos.z() - GAS_CENTER_Z)/GAS_SIGMA_Z) */);
 
             const float_X density = math::exp(GAS_FACTOR * __powf(exponent.x(), GAS_POWER))
-                                * math::exp(GAS_FACTOR * __powf(exponent.y(), GAS_POWER))
-                                * math::exp(GAS_FACTOR * __powf(exponent.z(), GAS_POWER));
+                                * math::exp(GAS_FACTOR * __powf(exponent.y(), GAS_POWER)) /*
+                                * math::exp(GAS_FACTOR * __powf(exponent.z(), GAS_POWER))*/;
             return density;
         }
     }

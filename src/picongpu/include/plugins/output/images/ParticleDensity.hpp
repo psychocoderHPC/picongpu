@@ -95,9 +95,9 @@ kernelParticleDensity(ParBox pb,
     const DataSpace<simDim> realCell(blockOffset + threadId); //delete guard from cell idx
 
 
-    uint32_t globalCell = realCell[sliceDim] + globalOffset;
+   // uint32_t globalCell = realCell[sliceDim] + globalOffset;
 
-    if (globalCell == slice)
+   // if (globalCell == slice)
     {
         isValid = true;
         isImageThread = true;
@@ -142,9 +142,9 @@ kernelParticleDensity(ParBox pb,
         {
             int cellIdx = particle[localCellIdx_];
             // we only draw the first slice of cells in the super cell (z == 0)
-            const DataSpace<DIM3> particleCellId(DataSpaceOperations<DIM3>::template map<Block > (cellIdx));
-            uint32_t globalParticleCell = particleCellId[sliceDim] + globalOffset + blockOffset[sliceDim];
-            if (globalParticleCell == slice)
+            const DataSpace<simDim> particleCellId(DataSpaceOperations<simDim>::template map<Block > (cellIdx));
+         //   uint32_t globalParticleCell = particleCellId[sliceDim] + globalOffset + blockOffset[sliceDim];
+        //    if (globalParticleCell == slice)
             {
                 const DataSpace<DIM2> reducedCell(particleCellId[transpose.x()], particleCellId[transpose.y()]);
                 atomicAddWrapper(&(counter(reducedCell)), particle[weighting_] / NUM_EL_PER_PARTICLE);
@@ -210,7 +210,7 @@ public:
         const DataSpace<simDim> localSize(cellDescription->getGridLayout().getDataSpaceWithoutGuarding());
         VirtualWindow window(MovingWindow::getInstance().getVirtualWindow(currentStep));
 
-        sliceOffset = (int) ((float) (window.globalWindowSize[sliceDim]) * slicePoint) + window.globalSimulationOffset[sliceDim];
+        sliceOffset = 0; // (int) ((float) (window.globalWindowSize[sliceDim]) * slicePoint) + window.globalSimulationOffset[sliceDim];
 
         if (!doDrawing())
         {
@@ -241,7 +241,7 @@ public:
              img->getDeviceBuffer().getDataBox(),
              transpose,
              sliceOffset,
-             (SubGrid<simDim>::getInstance().getSimulationBox().getGlobalOffset())[sliceDim], sliceDim
+             0 , sliceDim
              );
 
 
@@ -256,7 +256,7 @@ public:
         PMACC_AUTO(resultBox, gather(hostBox, header));
         
         // units
-        const float_64 cellVolume = CELL_WIDTH * CELL_HEIGHT * CELL_DEPTH;
+        const float_64 cellVolume = CELL_WIDTH * CELL_HEIGHT /* * CELL_DEPTH*/ ;
         const float_64 unitVolume = UNIT_LENGTH * UNIT_LENGTH * UNIT_LENGTH;
         // that's a hack, but works for all species
         //const float_64 charge = typeCast<float_64>(
@@ -282,10 +282,10 @@ public:
             DataConnector::getInstance().registerObserver(this, notifyFrequency);
 
             VirtualWindow window(MovingWindow::getInstance().getVirtualWindow(0));
-            sliceOffset = (int) ((float) (window.globalWindowSize[sliceDim]) * slicePoint) + window.globalSimulationOffset[sliceDim];
+            sliceOffset = 0; // (int) ((float) (window.globalWindowSize[sliceDim]) * slicePoint) + window.globalSimulationOffset[sliceDim];
             const DataSpace<simDim> gpus = GridController<simDim>::getInstance().getGpuNodes();
 
-            float_32 cellSize[3] = {CELL_WIDTH, CELL_HEIGHT, CELL_DEPTH};
+            float_32 cellSize[3] = {CELL_WIDTH, CELL_HEIGHT /*, CELL_DEPTH*/};
             header.update(*cellDescription, window, transpose, 0, cellSize, gpus);
 
             img = new GridBuffer<Type_, DIM2 > (header.node.maxSize);
@@ -301,9 +301,10 @@ private:
         PMACC_AUTO(simBox, SubGrid<simDim>::getInstance().getSimulationBox());
         const DataSpace<simDim> globalRootCellPos(simBox.getGlobalOffset());
         const DataSpace<simDim> localSize(simBox.getLocalSize());
-        const bool tmp = globalRootCellPos[sliceDim] + localSize[sliceDim] > sliceOffset &&
-            globalRootCellPos[sliceDim] <= sliceOffset;
-        return tmp;
+       /* const bool tmp = globalRootCellPos[sliceDim] + localSize[sliceDim] > sliceOffset &&
+            globalRootCellPos[sliceDim] <= sliceOffset;*/
+        
+        return true;
     }
 
 

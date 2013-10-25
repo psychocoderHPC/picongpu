@@ -28,7 +28,7 @@ namespace picongpu
 {
     // normed gas parameter
     const float_X VACUUM_Y = float_X(SI::VACUUM_Y_SI / UNIT_LENGTH); // unit: meter
-    const float_X GAS_DENSITY = float_X(SI::GAS_DENSITY_SI*UNIT_LENGTH*UNIT_LENGTH*UNIT_LENGTH);
+    const float_X GAS_DENSITY = float_X(SI::GAS_DENSITY_SI*UNIT_LENGTH*UNIT_LENGTH /**UNIT_LENGTH*/);
     
     PMACC_CASSERT_MSG( Please_select_gasNone_for_vacuum__leave_GAS_DENSITY_greater_than_0, ((GAS_DENSITY)>0.0f) );
 

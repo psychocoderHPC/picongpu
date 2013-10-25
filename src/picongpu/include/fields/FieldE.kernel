@@ -41,7 +41,7 @@ namespace picongpu
     __global__ void kernelLaserE(EBox fieldE, LaserManipulator lMan)
     {
         uint32_t xOffset = (blockIdx.x * blockDim.x) + threadIdx.x;
-        uint32_t zOffset = (blockIdx.y * blockDim.y) + threadIdx.y;
+        //uint32_t zOffset = (blockIdx.y * blockDim.y) + threadIdx.y;
 
         /** Calculate how many neighbors to the left we have
          * to initialize the laser in the E-Field
@@ -71,8 +71,8 @@ namespace picongpu
              * 
              *  \todo What about the B-Field in the second plane?
              */
-            fieldE[zOffset + TILE_DEPTH][MappingDesc::SuperCellSize::y][xOffset + TILE_WIDTH] =
-                lMan.getManipulation( DataSpace<simDim > ( xOffset, yOffset, zOffset ) );
+            fieldE /*[zOffset + TILE_DEPTH]*/[MappingDesc::SuperCellSize::y][xOffset + TILE_WIDTH] =
+                lMan.getManipulation( DataSpace<simDim > ( xOffset, yOffset ) );
     }
 
 }

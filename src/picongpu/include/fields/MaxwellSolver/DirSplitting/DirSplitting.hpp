@@ -48,10 +48,10 @@ private:
     template<typename CursorE, typename CursorB, typename GridSize>
     void propagate(CursorE cursorE, CursorB cursorB, GridSize gridSize) const
     {
-        typedef PMacc::math::CT::Size_t<TILE_WIDTH,TILE_HEIGHT,TILE_DEPTH> BlockDim;
+        typedef PMacc::math::CT::Size_t<TILE_WIDTH,TILE_HEIGHT /*,TILE_DEPTH*/ > BlockDim;
         
         algorithm::kernel::ForeachBlock<BlockDim> foreach;
-        foreach(zone::SphericZone<3>(PMacc::math::Size_t<3>(BlockDim::x::value, gridSize.y(), gridSize.z())),
+        foreach(zone::SphericZone<simDim>(PMacc::math::Size_t<simDim>(BlockDim::x::value, gridSize.y() /*, gridSize.z()*/ )),
                 cursor::make_NestedCursor(cursorE),
                 cursor::make_NestedCursor(cursorB),
                 DirSplittingKernel<BlockDim>((int)gridSize.x()));
@@ -61,7 +61,7 @@ public:
         
     void update_beforeCurrent(uint32_t currentStep) const
     {
-        typedef PMacc::math::CT::Size_t<TILE_WIDTH,TILE_HEIGHT,TILE_DEPTH> GuardDim;
+        typedef PMacc::math::CT::Size_t<TILE_WIDTH,TILE_HEIGHT/*,TILE_DEPTH*/> GuardDim;
     
         DataConnector &dc = DataConnector::getInstance();
         
@@ -76,7 +76,7 @@ public:
         using namespace cursor::tools;
         using namespace PMacc::math::tools;
         
-        PMacc::math::Size_t<3> gridSize = fieldE_coreBorder.size();
+        PMacc::math::Size_t<simDim> gridSize = fieldE_coreBorder.size();
         
         propagate(fieldE_coreBorder.origin(),
                   fieldB_coreBorder.origin(),
@@ -85,7 +85,7 @@ public:
         __setTransactionEvent(fieldE.asyncCommunication(__getTransactionEvent()));
         __setTransactionEvent(fieldB.asyncCommunication(__getTransactionEvent()));
         
-        typedef PMacc::math::CT::Int<1,2,0> Orientation_Y;
+        typedef PMacc::math::CT::Int<1,2/*,0*/> Orientation_Y;
         propagate(twistVectorFieldAxes<Orientation_Y>(fieldE_coreBorder.origin()),
                   twistVectorFieldAxes<Orientation_Y>(fieldB_coreBorder.origin()),
                   twistVectorAxes<Orientation_Y>(gridSize));
@@ -93,7 +93,7 @@ public:
         __setTransactionEvent(fieldE.asyncCommunication(__getTransactionEvent()));
         __setTransactionEvent(fieldB.asyncCommunication(__getTransactionEvent()));       
         
-        typedef PMacc::math::CT::Int<2,0,1> Orientation_Z;
+        typedef PMacc::math::CT::Int<2,0/*,1*/> Orientation_Z;
         propagate(twistVectorFieldAxes<Orientation_Z>(fieldE_coreBorder.origin()),
                   twistVectorFieldAxes<Orientation_Z>(fieldB_coreBorder.origin()),
                   twistVectorAxes<Orientation_Z>(gridSize));

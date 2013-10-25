@@ -56,8 +56,8 @@ namespace picongpu
 
             static const int lowerMargin = supp / 2;
             static const int upperMargin = ( supp + 1 ) / 2;
-            typedef PMacc::math::CT::Int<lowerMargin, lowerMargin, lowerMargin> LowerMargin;
-            typedef PMacc::math::CT::Int<upperMargin, upperMargin, upperMargin> UpperMargin;
+            typedef PMacc::math::CT::Int<lowerMargin, lowerMargin /*, lowerMargin*/> LowerMargin;
+            typedef PMacc::math::CT::Int<upperMargin, upperMargin /*, upperMargin*/> UpperMargin;
 
             HDINLINE ComputeEnergyDensityPerFrame( ) /* const float3_X cellSize, const float_X deltaTime ) :
             cellSize( cellSize ), deltaTime( deltaTime ) */
@@ -123,7 +123,7 @@ namespace picongpu
                 typedef float_X WeightingType;
 
                 const float_X weighting = particle[weighting_];
-                const float3_X pos = particle[position_];
+                const float2_X pos = particle[position_];
                 const float3_X mom = particle[momentum_];
 #if(ENABLE_RADIATION == 1)
                 const float3_X mom_mt1 = particle[momentumPrev1_];
@@ -148,7 +148,7 @@ namespace picongpu
                     * ( math::abs2( mom_dt ) -
                         math::abs2( math::cross(mom, mom_dt) ) );
 #endif
-                const float_X particleChargeDensity = charge / ( CELL_WIDTH * CELL_HEIGHT * CELL_DEPTH );
+                const float_X particleChargeDensity = charge / ( CELL_WIDTH * CELL_HEIGHT /* * CELL_DEPTH*/ );
 
                 /** Shift to the cell the particle belongs to */
                 PMACC_AUTO( fieldTmpShiftToParticle, tmpBox.shift( localCell ) );
@@ -156,22 +156,22 @@ namespace picongpu
                 /** loop around local super cell position (regarding shape)
                  *  \todo take care of non-yee cells
                  */
-                for( int k = -lowerMargin; k <= upperMargin; ++k )
+              //  for( int k = -lowerMargin; k <= upperMargin; ++k )
                 {
-                    const float_X assignZ = AssignmentFunction( )( float_X( k ) - pos.z( ) );
+                //    const float_X assignZ = AssignmentFunction( )( float_X( k ) - pos.z( ) );
                     for( int j = -lowerMargin; j <= upperMargin; ++j )
                     {
                         const float_X assignY = AssignmentFunction( )( float_X( j ) - pos.y( ) );
                         for( int i = -lowerMargin; i <= upperMargin; ++i )
                         {
-                            DataSpace<simDim> offsetToBaseCell( i, j, k );
-
+                            //DataSpace<simDim> offsetToBaseCell( i, j, k );
+                            DataSpace<simDim> offsetToBaseCell( i, j );
                             const float_X assignX = AssignmentFunction( )( float_X( i ) - pos.x( ) );
 
                             /** multiply charge, devide by cell volume and multiply by
                              *  energy of this particle
                              */
-                            const float_X assignComb = assignX * assignY * assignZ;
+                            const float_X assignComb = assignX * assignY; // * assignZ;
 
                             if( calcType == ComputeEnergyDensityOptions::calcDensity )
                                 atomicAddWrapper( &(fieldTmpShiftToParticle( offsetToBaseCell ).x()),

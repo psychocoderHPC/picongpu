@@ -70,14 +70,15 @@ struct AssignedTrilinearInterpolation
     template<class AssignmentFunction,int Begin,int End,class Cursor >
         static HDINLINE
         typename ::PMacc::result_of::Functor<AssignedTrilinearInterpolation, Cursor>::type
-        interpolate(const Cursor& cursor, const float3_X & pos)
+        interpolate(const Cursor& cursor, const float2_X & pos)
     {
         typedef typename ::PMacc::result_of::Functor<AssignedTrilinearInterpolation, Cursor>::type type;
 
-        type result_z = type(0.0);
+      /*  type result_z = type(0.0);
 #pragma unroll 4
         for (float_X z = Begin; z <= End; z += float_X(1.0))
         {
+       */
             type result_y = type(0.0);
 #pragma unroll 4
             for (float_X y = Begin; y <= End; y += float_X(1.0))
@@ -87,14 +88,16 @@ struct AssignedTrilinearInterpolation
                 for (float_X x = Begin; x <= End; x += float_X(1.0))
                     //a form factor is the "amount of particle" that is affected by this cell
                     //so we have to sum over: cell_value * form_factor
-                    result_x += *cursor(x, y, z) * AssignmentFunction()(x - pos.x());
+                    result_x += *cursor(x, y /*, z*/ ) * AssignmentFunction()(x - pos.x());
 
                 result_y += result_x * AssignmentFunction()(y - pos.y());
             }
-
+            return result_y;
+            /*
             result_z += result_y * AssignmentFunction()(z - pos.z());
         }
         return result_z;
+             */
     }
 };
 

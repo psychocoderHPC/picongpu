@@ -73,7 +73,7 @@ public:
 };
 
 template<class BufferType>
-class RestartParticleLoader<BufferType, DIM3>
+class RestartParticleLoader<BufferType, simDim>
 {
 private:
 
@@ -84,8 +84,8 @@ private:
                                  Dimensions &dataSize,
                                  CollectionType&,
                                  std::string name,
-                                 DataSpace<DIM3> globalDomainOffset,
-                                 DataSpace<DIM3> localDomainSize)
+                                 DataSpace<simDim> globalDomainOffset,
+                                 DataSpace<simDim> localDomainSize)
     {
 
         VirtualWindow window = MovingWindow::getInstance().getVirtualWindow(simulationStep);
@@ -94,8 +94,9 @@ private:
          * ATTENTION: splash offset are globalSlideOffset + picongpu offsets
          */
         DataSpace<simDim> globalSlideOffset(0,
-                                            window.slides * window.localFullSize.y(),
-                                            0);
+                                            window.slides * window.localFullSize.y()
+                                            /*,
+                                            0*/);
 
         /* add offset to window from pic origin, because we had substract this before*/
         // globalSlideOffset.y()+= window.globalSimulationOffset.y();
@@ -107,15 +108,15 @@ private:
 
 
         Dimensions domain_offset(globalSlideOffset.x() + globalDomainOffset.x(),
-                                 globalSlideOffset.y() + globalDomainOffset.y(),
-                                 globalSlideOffset.z() + globalDomainOffset.z());
+                                 globalSlideOffset.y() + globalDomainOffset.y(),0
+                                 /*globalSlideOffset.z() + globalDomainOffset.z()*/);
 
 
 
         /*Dimensions domain_size(field_data[0], field_data[1], field_data[2]);*/
         Dimensions domain_size(localDomainSize.x(),
-                               localDomainSize.y(),
-                               localDomainSize.z()
+                               localDomainSize.y(),1
+                               /*localDomainSize.z()*/
                                );
 
         DomainCollector::DomDataClass data_class;
@@ -156,9 +157,9 @@ public:
                               DomainCollector& dataCollector,
                               std::string prefix,
                               BufferType& particles,
-                              DataSpace<DIM3> globalDomainOffset,
-                              DataSpace<DIM3> localDomainSize,
-                              DataSpace<DIM3> logicalToPhysicalOffset
+                              DataSpace<simDim> globalDomainOffset,
+                              DataSpace<simDim> localDomainSize,
+                              DataSpace<simDim> logicalToPhysicalOffset
                               )
     {
         // first, load all data arrays from hdf5 file
@@ -258,11 +259,11 @@ public:
 
         typename BufferType::FrameType * frame(NULL);
 
-        DataSpace<DIM3> superCellsCount = particles.getParticlesBuffer().getSuperCellsCount();
-        DataSpace<DIM3> superCellSize = particles.getParticlesBuffer().getSuperCellSize();
+        DataSpace<simDim> superCellsCount = particles.getParticlesBuffer().getSuperCellsCount();
+        DataSpace<simDim> superCellSize = particles.getParticlesBuffer().getSuperCellSize();
 
         // copy all read data to frames
-        DataSpace<DIM3> oldSuperCellPos(-1, -1, -1);
+        DataSpace<simDim> oldSuperCellPos(-1, -1 /*, -1*/);
         uint32_t localId = 0;
 
         //std::cout << "Read " << dim_pos.getScalarSize() << " particles" << std::endl;
@@ -272,7 +273,7 @@ public:
             // get super cell
 
             // gpu-global cell position
-            DataSpace<DIM3> cellPosOnGPU(cellPositions[0][i], cellPositions[1][i], cellPositions[2][i]);
+            DataSpace<simDim> cellPosOnGPU(cellPositions[0][i], cellPositions[1][i] /*, cellPositions[2][i]*/);
 
             /*
             cellPosOnGPU.x() += TILE_WIDTH * GUARD_SIZE;
@@ -280,19 +281,19 @@ public:
             cellPosOnGPU.z() += TILE_DEPTH * GUARD_SIZE;
              */
             // gpu-global super cell position
-            DataSpace<DIM3> superCellPos = (cellPosOnGPU / superCellSize);
+            DataSpace<simDim> superCellPos = (cellPosOnGPU / superCellSize);
 
             // get gpu-global super cell offset in cells
-            DataSpace<DIM3> superCellOffset = superCellPos * superCellSize; //without guarding (need to calculate cell in supercell)
+            DataSpace<simDim> superCellOffset = superCellPos * superCellSize; //without guarding (need to calculate cell in supercell)
             // cell position in super cell
-            DataSpace<DIM3> cellPosInSuperCell = cellPosOnGPU - superCellOffset;
+            DataSpace<simDim> cellPosInSuperCell = cellPosOnGPU - superCellOffset;
 
 
             superCellPos = superCellPos + GUARD_SIZE; //add GUARD supercells
 
             assert(superCellPos.x() < superCellsCount.x() &&
-                   superCellPos.y() < superCellsCount.y() &&
-                   superCellPos.z() < superCellsCount.z());
+                   superCellPos.y() < superCellsCount.y() /* &&
+                   superCellPos.z() < superCellsCount.z()*/);
 
 
 
@@ -307,13 +308,13 @@ public:
 
 
 
-            if (!((uint32_t) (cellPosInSuperCell.x()) < TILE_WIDTH && (uint32_t) (cellPosInSuperCell.y()) < TILE_HEIGHT &&
-                  (uint32_t) (cellPosInSuperCell.z()) < TILE_DEPTH))
+            if (!((uint32_t) (cellPosInSuperCell.x()) < TILE_WIDTH && (uint32_t) (cellPosInSuperCell.y()) < TILE_HEIGHT /*&&
+                  (uint32_t) (cellPosInSuperCell.z()) < TILE_DEPTH*/))
             {
-                std::cerr << "x=" << cellPosInSuperCell.x() << " y=" << cellPosInSuperCell.y() << " z=" << cellPosInSuperCell.z() << std::endl;
-                std::cerr << "ox=" << cellPosOnGPU.x() << " oy=" << cellPosOnGPU.y() << " oz=" << cellPosOnGPU.z() << std::endl;
-                assert((uint32_t) (cellPosInSuperCell.x()) < TILE_WIDTH && (uint32_t) (cellPosInSuperCell.y()) < TILE_HEIGHT &&
-                       (uint32_t) (cellPosInSuperCell.z()) < TILE_DEPTH);
+                //std::cerr << "x=" << cellPosInSuperCell.x() << " y=" << cellPosInSuperCell.y() << " z=" << cellPosInSuperCell.z() << std::endl;
+               // std::cerr << "ox=" << cellPosOnGPU.x() << " oy=" << cellPosOnGPU.y() << " oz=" << cellPosOnGPU.z() << std::endl;
+                assert((uint32_t) (cellPosInSuperCell.x()) < TILE_WIDTH && (uint32_t) (cellPosInSuperCell.y()) < TILE_HEIGHT /* &&
+                       (uint32_t) (cellPosInSuperCell.z()) < TILE_DEPTH*/);
             }
             PMacc::lcellId_t localCellId = cellPosInSuperCell.z() * superCellSize.x() * superCellSize.y() +
                 cellPosInSuperCell.y() * superCellSize.x() +
@@ -465,14 +466,14 @@ public:
         case PAR_ELECTRONS:
         {
             VirtualWindow window = MovingWindow::getInstance().getVirtualWindow(simulationStep);
-            DataSpace<DIM3> globalDomainOffset(gridPosition);
-            DataSpace<DIM3> logicalToPhysicalOffset(gridPosition - window.globalSimulationOffset);
+            DataSpace<simDim> globalDomainOffset(gridPosition);
+            DataSpace<simDim> logicalToPhysicalOffset(gridPosition - window.globalSimulationOffset);
 
             /*domains are allways positiv*/
             if (globalDomainOffset.y() == 0)
                 globalDomainOffset.y() = window.globalSimulationOffset.y();
 
-            DataSpace<DIM3> localDomainSize(window.localSize);
+            DataSpace<simDim> localDomainSize(window.localSize);
 
             std::cout << "Begin loading electrons" << std::endl;
             RestartParticleLoader<EBuffer, DIM>::loadParticles(
@@ -521,14 +522,14 @@ public:
         case PAR_IONS:
         {
             VirtualWindow window = MovingWindow::getInstance().getVirtualWindow(simulationStep);
-            DataSpace<DIM3> globalDomainOffset(gridPosition);
-            DataSpace<DIM3> logicalToPhysicalOffset(gridPosition - window.globalSimulationOffset);
+            DataSpace<simDim> globalDomainOffset(gridPosition);
+            DataSpace<simDim> logicalToPhysicalOffset(gridPosition - window.globalSimulationOffset);
 
             /*domains are allways positiv*/
             if (globalDomainOffset.y() == 0)
                 globalDomainOffset.y() = window.globalSimulationOffset.y();
 
-            DataSpace<DIM3> localDomainSize(window.localSize);
+            DataSpace<simDim> localDomainSize(window.localSize);
 
             std::cout << "Begin loading ions" << std::endl;
             RestartParticleLoader<IBuffer, DIM>::loadParticles(
@@ -619,20 +620,20 @@ private:
          * ATTENTION: splash offset are globalSlideOffset + picongpu offsets
          */
         DataSpace<simDim> globalSlideOffset(0,
-                                            window.slides * window.localFullSize.y(),
-                                            0);
+                                            window.slides * window.localFullSize.y()/*,
+                                            0*/);
 
         DataSpace<DIM> globalOffset(SubGrid<DIM>::getInstance().getSimulationBox().getGlobalOffset());
         Dimensions domain_offset(globalOffset.x() + globalSlideOffset.x(),
-                                 globalOffset.y() + globalSlideOffset.y(),
-                                 globalOffset.z() + globalSlideOffset.z());
+                                 globalOffset.y() + globalSlideOffset.y(),0/*,
+                                 globalOffset.z() + globalSlideOffset.z()*/);
 
         if (mpiPos[1] == 0)
             domain_offset[1] = domain_offset[1] + window.globalSimulationOffset.y();
 
         Dimensions domain_size(window.localSize.x(),
-                               window.localSize.y(),
-                               window.localSize.z()
+                               window.localSize.y(),1
+                               /*window.localSize.z()*/
                                );
         for (uint32_t i = 0; i < DIM; ++i)
         {

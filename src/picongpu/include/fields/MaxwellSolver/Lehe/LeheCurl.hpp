@@ -258,7 +258,7 @@ namespace picongpu
 
                 // Typedef an accessor to access mem[z][y][x]
                 // in (x,y,z) order :)
-                typedef DataSpace<DIM3> Space;
+                typedef DataSpace<simDim> Space;
                 
                 const float_X curl_x
                     = (

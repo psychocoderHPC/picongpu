@@ -58,13 +58,13 @@ const float_X posB_z_z = 0.0;
 
 struct YeeCell
 {
-    typedef ::PMacc::math::Vector<float3_X,DIM3> VectorVector;
+    typedef ::PMacc::math::Vector<float2_X,3> VectorVector;
 
        static HDINLINE VectorVector getEFieldPosition() 
     {
-        const float3_X posE_x(posE_x_x, posE_x_y, posE_x_z);
-        const float3_X posE_y(posE_y_x, posE_y_y, posE_y_z);
-        const float3_X posE_z(posE_z_x, posE_z_y, posE_z_z);
+        const float2_X posE_x(posE_x_x, posE_x_y /*, posE_x_z*/);
+        const float2_X posE_y(posE_y_x, posE_y_y /*, posE_y_z */);
+        const float2_X posE_z(posE_z_x, posE_z_y /*, posE_z_z*/);
 
         return VectorVector(posE_x, posE_y, posE_z);
     }
@@ -72,9 +72,9 @@ struct YeeCell
 
        static  HDINLINE VectorVector getBFieldPosition() 
     {
-        const float3_X posB_x(posB_x_x, posB_x_y, posB_x_z);
-        const float3_X posB_y(posB_y_x, posB_y_y, posB_y_z);
-        const float3_X posB_z(posB_z_x, posB_z_y, posB_z_z);
+        const float2_X posB_x(posB_x_x, posB_x_y /*, posB_x_z*/);
+        const float2_X posB_y(posB_y_x, posB_y_y /*, posB_y_z*/);
+        const float2_X posB_z(posB_z_x, posB_z_y /*, posB_z_z*/);
 
         return VectorVector(posB_x, posB_y, posB_z);
     }

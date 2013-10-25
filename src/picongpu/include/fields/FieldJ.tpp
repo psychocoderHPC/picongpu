@@ -192,7 +192,7 @@ void FieldJ::computeCurrent( ParticlesClass &parClass, uint32_t ) throw (std::in
     /** tune paramter to use more threads than cells in a supercell
      *  valid domain: 1 <= workerMultiplier
      */
-    const int workerMultiplier =2;
+    const int workerMultiplier =1;
     
     typedef currentSolver::CurrentSolver ParticleCurrentSolver;
     typedef ComputeCurrentPerFrame<ParticleCurrentSolver, Velocity, MappingDesc::SuperCellSize> FrameSolver;
@@ -203,11 +203,11 @@ void FieldJ::computeCurrent( ParticlesClass &parClass, uint32_t ) throw (std::in
         typename toTVec<GetMargin<currentSolver::CurrentSolver>::UpperMargin>::type
         > BlockArea;
 
-    StrideMapping<AREA, DIM3, MappingDesc> mapper( cellDescription );
+    StrideMapping<AREA, simDim, MappingDesc> mapper( cellDescription );
     typename ParticlesClass::ParticlesBoxType pBox = parClass.getDeviceParticlesBox( );
     FieldJ::DataBoxType jBox = this->fieldJ.getDeviceBuffer( ).getDataBox( );
     FrameSolver solver(
-                        float3_X( CELL_WIDTH, CELL_HEIGHT, CELL_DEPTH ),
+                        float2_X( CELL_WIDTH, CELL_HEIGHT /*, CELL_DEPTH*/ ),
                         DELTA_T );
     
     DataSpace<simDim> blockSize(mapper.getSuperCellSize( ));

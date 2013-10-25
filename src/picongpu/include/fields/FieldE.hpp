@@ -57,7 +57,7 @@ namespace picongpu
         typedef typename promoteType<float_64, FloatE>::ValueType UnitValueType;
         static const int numComponents = FloatE::dim;
         
-        static const uint32_t FloatEDim = simDim;
+        static const uint32_t FloatEDim = 3;
         typedef MappingDesc::SuperCellSize SuperCellSize;
         
         typedef DataBox<PitchedBox<FloatE, simDim> > DataBoxType;

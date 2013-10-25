@@ -49,7 +49,7 @@ public:
     HDINLINE float3_X getManipulation(DataSpace<simDim> iOffset)
     {
         const float_X posX = float_X(globalCentered.x() + iOffset.x()) * CELL_WIDTH;
-        const float_X posZ = float_X(globalCentered.z() + iOffset.z()) * CELL_DEPTH;
+        const float_X posZ = 0.f; //float_X(globalCentered.z() + iOffset.z()) * CELL_DEPTH;
 
         return laserProfile::laserTransversal(elong, phase, posX, posZ);
     }

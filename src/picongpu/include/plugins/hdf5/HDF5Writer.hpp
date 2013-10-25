@@ -96,7 +96,7 @@ class HDF5Writer : public ISimulationIO, public IPluginModule
 public:
 
     /* filter particles by global position*/
-    typedef bmpl::vector< PositionFilter3D<> > usedFilters;
+    typedef bmpl::vector< PositionFilter2D<> > usedFilters;
     typedef typename FilterFactory<usedFilters>::FilterType MyParticleFilter;
 
 private:
@@ -419,8 +419,8 @@ private:
          */
         DataSpace<simDim> globalSlideOffset = DataSpace<simDim>(
                                                                 0,
-                                                                params->window.slides * params->window.localFullSize.y(),
-                                                                0);
+                                                                params->window.slides * params->window.localFullSize.y()/*,
+                                                                0*/);
         Dimensions splashDomainOffset(0, 0, 0);
         Dimensions splashGlobalDomainOffset(0, 0, 0);
 
@@ -447,10 +447,10 @@ private:
                                                colType, /* data type */
                                                simDim, /* NDims of the field data (scalar, vector, ...) */
                                                /* source buffer, stride, data size, offset */
-                                               Dimensions(field_full[0] * nCompunents, field_full[1], field_full[2]),
+                                               Dimensions(field_full[0] * nCompunents, field_full[1], 1 /*field_full[2]*/ ),
                                                Dimensions(nCompunents, 1, 1),
-                                               Dimensions(field_no_guard[0], field_no_guard[1], field_no_guard[2]),
-                                               Dimensions(field_guard[0] * nCompunents + d, field_guard[1], field_guard[2]),
+                                               Dimensions(field_no_guard[0], field_no_guard[1],1 /* field_no_guard[2]*/),
+                                               Dimensions(field_guard[0] * nCompunents + d, field_guard[1], 0 /*field_guard[2]*/),
                                                str.str().c_str(), /* data set name */
                                                splashDomainOffset, /* offset in global domain */
                                                splashDomainSize, /* local size */

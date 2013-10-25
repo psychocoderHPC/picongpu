@@ -35,11 +35,11 @@ namespace picongpu
          * @param pos as 3D length vector offset to global left top front cell
          * @return float_X between 0.0 and 1.0
          */
-        DINLINE float_X calcNormedDensitiy( float3_X pos )
+        DINLINE float_X calcNormedDensitiy( float2_X pos )
         {
             if( pos.y() < VACUUM_Y ) return float_X(0.0);
 
-            const float_X r = math::abs( pos - float3_X(GAS_X, GAS_Y, GAS_Z) );
+            const float_X r = math::abs( pos - float2_X(GAS_X, GAS_Y /*, GAS_Z*/) );
 
             /* "shell": inner radius */
             if( r < GAS_RI )

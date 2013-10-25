@@ -40,7 +40,7 @@ struct ShiftCoordinateSystem
      * @param fieldPos vector with relative coordinates for shift ( value range [0.0;0.5] )
      */
     template<typename Cursor, typename Vector >
-        HDINLINE void operator()(Cursor& cursor, Vector& vector, const float3_X & fieldPos)
+        HDINLINE void operator()(Cursor& cursor, Vector& vector, const float2_X & fieldPos)
     {
 
         if (speciesParticleShape::ParticleShape::support % 2 == 0)
@@ -53,16 +53,16 @@ struct ShiftCoordinateSystem
              * 
              * (vector.x() < fieldPos.x()) is equal ((fieldPos == 0.5) && (vector<0.5))
              */
-            float3_X coordinate_shift(
+            float2_X coordinate_shift(
                                       -float_X(vector.x() < fieldPos.x()),
-                                      -float_X(vector.y() < fieldPos.y()),
-                                      -float_X(vector.z() < fieldPos.z())
+                                      -float_X(vector.y() < fieldPos.y()) /*,
+                                      -float_X(vector.z() < fieldPos.z())*/
                                       );
             cursor = cursor(
-                            PMacc::math::Int < 3 > (
+                            PMacc::math::Int < simDim > (
                                                coordinate_shift.x(),
-                                               coordinate_shift.y(),
-                                               coordinate_shift.z()
+                                               coordinate_shift.y() /*,
+                                               coordinate_shift.z()*/
                                                ));
             //same as: vector = vector - fieldPos - coordinate_shift;
             vector -= (fieldPos + coordinate_shift);
@@ -75,16 +75,16 @@ struct ShiftCoordinateSystem
              * if fieldPos < 0.5 and vector> 0.5 
              * shift curser+1 and new_vector=old_vector-1
              */
-            float3_X coordinate_shift(
+            float2_X coordinate_shift(
                                       float_X(vector.x() > float_X(0.5) && fieldPos.x() != float_X(0.5)),
-                                      float_X(vector.y() > float_X(0.5) && fieldPos.y() != float_X(0.5)),
-                                      float_X(vector.z() > float_X(0.5) && fieldPos.z() != float_X(0.5))
+                                      float_X(vector.y() > float_X(0.5) && fieldPos.y() != float_X(0.5)) /*,
+                                      float_X(vector.z() > float_X(0.5) && fieldPos.z() != float_X(0.5)) */
                                       );
             cursor = cursor(
-                            PMacc::math::Int < 3 > (
+                            PMacc::math::Int < simDim > (
                                                coordinate_shift.x(),
-                                               coordinate_shift.y(),
-                                               coordinate_shift.z()
+                                               coordinate_shift.y() /*,
+                                               coordinate_shift.z()*/
                                                ));
             //same as: vector = vector - fieldPos - coordinate_shift;
             vector -= (fieldPos + coordinate_shift);

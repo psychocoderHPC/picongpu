@@ -46,7 +46,7 @@ namespace po = boost::program_options;
 template<class FloatPos>
 struct SglParticle
 {
-    FloatPos position;
+    float2_X position;
     float3_X momentum;
     float_X mass;
     float_X weighting;
@@ -73,8 +73,8 @@ struct SglParticle
         friend std::ostream& operator<<(std::ostream& out, const SglParticle<T>& v)
     {
         const float3_64 pos( v.getGlobalCell().x() * SI::CELL_WIDTH_SI,
-                             v.getGlobalCell().y() * SI::CELL_HEIGHT_SI,
-                             v.getGlobalCell().z() * SI::CELL_DEPTH_SI   );
+                             v.getGlobalCell().y() * SI::CELL_HEIGHT_SI /*,
+                             v.getGlobalCell().z() * SI::CELL_DEPTH_SI */  );
         const float3_64 mom( typeCast<float_64>(v.momentum.x()) * UNIT_MASS * UNIT_SPEED,
                              typeCast<float_64>(v.momentum.y()) * UNIT_MASS * UNIT_SPEED,
                              typeCast<float_64>(v.momentum.z()) * UNIT_MASS * UNIT_SPEED );

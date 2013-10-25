@@ -42,7 +42,7 @@ struct VillaBune
     DINLINE void operator()(BoxJ& boxJ_par, /*box which is shifted to particles cell*/
                                const PosType pos,
                                const VelType velocity,
-                               const ChargeType charge, const float3_X& cellSize, const float_X deltaTime)
+                               const ChargeType charge, const float2_X& cellSize, const float_X deltaTime)
     {
 
         // normalize deltaPos to innerCell units [0.; 1.)
@@ -50,8 +50,8 @@ struct VillaBune
         //               dx_inCell = v.x() * dt / cellSize.x()
         const float3_X deltaPos(
                                 velocity.x() * deltaTime / cellSize.x(),
-                                velocity.y() * deltaTime / cellSize.y(),
-                                velocity.z() * deltaTime / cellSize.z());
+                                velocity.y() * deltaTime / cellSize.y() /*,
+                                velocity.z() * deltaTime / cellSize.z()*/);
 
         const PosType oldPos = (PosType) (typeCast<float_X > (pos) - deltaPos);
 
@@ -63,13 +63,13 @@ private:
     //if necessary
 
     template<class Buffer >
-    DINLINE void addCurrentSplitX(const float3_X& oldPos, const float3_X& newPos,
+    DINLINE void addCurrentSplitX(const float2_X& oldPos, const float2_X& newPos,
                                      const float_X charge, Buffer & mem, const float_X deltaTime)
     {
 
         if (math::float2int_rd(oldPos.x()) != math::float2int_rd(newPos.x()))
         {
-            const float3_X interPos = intersectXPlane(oldPos, newPos,
+            const float2_X interPos = intersectXPlane(oldPos, newPos,
                                                       max(math::float2int_rd(oldPos.x()), math::float2int_rd(newPos.x())));
             addCurrentSplitY(oldPos, interPos, charge, mem, deltaTime);
             addCurrentSplitY(interPos, newPos, charge, mem, deltaTime);
@@ -79,24 +79,25 @@ private:
     }
 
     template<class Buffer >
-    DINLINE void addCurrentToSingleCell(float3_X meanPos, const float3_X& deltaPos,
+    DINLINE void addCurrentToSingleCell(float2_X meanPos, const float2_X& deltaPos,
                                            const float_X charge, Buffer & memIn, const float_X deltaTime)
     {
         //shift to the cell meanPos belongs to
         //because meanPos may exceed the range [0,1)
-        DataSpace<DIM3> off(math::float2int_rd(meanPos.x()),
-                            math::float2int_rd(meanPos.y()),
-                            math::float2int_rd(meanPos.z()));
+        DataSpace<simDim> off(math::float2int_rd(meanPos.x()),
+                            math::float2int_rd(meanPos.y())
+                            /*,
+                            math::float2int_rd(meanPos.z())*/);
 
         PMACC_AUTO(mem, memIn.shift(off));
 
         //fit meanPos into the range [0,1)
         meanPos.x() -= math::floor(meanPos.x());
         meanPos.y() -= math::floor(meanPos.y());
-        meanPos.z() -= math::floor(meanPos.z());
+    //    meanPos.z() -= math::floor(meanPos.z());
 
         //for the formulas used in here see Villasenor/Buneman paper page 314
-        const float_X tmp = deltaPos.x() * deltaPos.y() * deltaPos.z() * (float_X(1.0) / float_X(12.0));
+        const float_X tmp = deltaPos.x() * deltaPos.y() /** deltaPos.z()*/ * (float_X(1.0) / float_X(12.0));
 
         // j = rho * v
         //   = rho * dr / dt
@@ -123,41 +124,41 @@ private:
         //   Q.x() = charge * deltaPos_real.x() / cellsize.x()
         //       = charge * deltaPos.x() / 1.0
         //
-        const float_X rho_dtX = charge * (float_X(1.0) / (CELL_HEIGHT * CELL_DEPTH * deltaTime));
-        const float_X rho_dtY = charge * (float_X(1.0) / (CELL_WIDTH * CELL_DEPTH * deltaTime));
+        const float_X rho_dtX = charge * (float_X(1.0) / (CELL_HEIGHT * /* CELL_DEPTH * */ deltaTime));
+        const float_X rho_dtY = charge * (float_X(1.0) / (CELL_WIDTH /* * CELL_DEPTH*/ * deltaTime));
         const float_X rho_dtZ = charge * (float_X(1.0) / (CELL_WIDTH * CELL_HEIGHT * deltaTime));
 
-        atomicAddWrapper(&(mem[1][1][0].x()), rho_dtX * (deltaPos.x() * meanPos.y() * meanPos.z() + tmp));
-        atomicAddWrapper(&(mem[1][0][0].x()), rho_dtX * (deltaPos.x() * (float_X(1.0) - meanPos.y()) * meanPos.z() - tmp));
-        atomicAddWrapper(&(mem[0][1][0].x()), rho_dtX * (deltaPos.x() * meanPos.y() * (float_X(1.0) - meanPos.z()) - tmp));
-        atomicAddWrapper(&(mem[0][0][0].x()), rho_dtX * (deltaPos.x() * (float_X(1.0) - meanPos.y()) * (float_X(1.0) - meanPos.z()) + tmp));
+        atomicAddWrapper(&(mem[1][0].x()), rho_dtX * (deltaPos.x() * meanPos.y() * meanPos.z() + tmp));
+        atomicAddWrapper(&(mem[0][0].x()), rho_dtX * (deltaPos.x() * (float_X(1.0) - meanPos.y()) * meanPos.z() - tmp));
+        atomicAddWrapper(&(mem[1][0].x()), rho_dtX * (deltaPos.x() * meanPos.y() * (float_X(1.0) - meanPos.z()) - tmp));
+        atomicAddWrapper(&(mem[0][0].x()), rho_dtX * (deltaPos.x() * (float_X(1.0) - meanPos.y()) * (float_X(1.0) - meanPos.z()) + tmp));
 
-        atomicAddWrapper(&(mem[1][0][1].y()), rho_dtY * (deltaPos.y() * meanPos.z() * meanPos.x() + tmp));
-        atomicAddWrapper(&(mem[0][0][1].y()), rho_dtY * (deltaPos.y() * (float_X(1.0) - meanPos.z()) * meanPos.x() - tmp));
-        atomicAddWrapper(&(mem[1][0][0].y()), rho_dtY * (deltaPos.y() * meanPos.z() * (float_X(1.0) - meanPos.x()) - tmp));
-        atomicAddWrapper(&(mem[0][0][0].y()), rho_dtY * (deltaPos.y() * (float_X(1.0) - meanPos.z()) * (float_X(1.0) - meanPos.x()) + tmp));
-
-        atomicAddWrapper(&(mem[0][1][1].z()), rho_dtZ * (deltaPos.z() * meanPos.x() * meanPos.y() + tmp));
-        atomicAddWrapper(&(mem[0][1][0].z()), rho_dtZ * (deltaPos.z() * (float_X(1.0) - meanPos.x()) * meanPos.y() - tmp));
-        atomicAddWrapper(&(mem[0][0][1].z()), rho_dtZ * (deltaPos.z() * meanPos.x() * (float_X(1.0) - meanPos.y()) - tmp));
-        atomicAddWrapper(&(mem[0][0][0].z()), rho_dtZ * (deltaPos.z() * (float_X(1.0) - meanPos.x()) * (float_X(1.0) - meanPos.y()) + tmp));
-
+        atomicAddWrapper(&(mem[0][1].y()), rho_dtY * (deltaPos.y() * meanPos.z() * meanPos.x() + tmp));
+        atomicAddWrapper(&(mem[0][1].y()), rho_dtY * (deltaPos.y() * (float_X(1.0) - meanPos.z()) * meanPos.x() - tmp));
+        atomicAddWrapper(&(mem[0][0].y()), rho_dtY * (deltaPos.y() * meanPos.z() * (float_X(1.0) - meanPos.x()) - tmp));
+        atomicAddWrapper(&(mem[0][0].y()), rho_dtY * (deltaPos.y() * (float_X(1.0) - meanPos.z()) * (float_X(1.0) - meanPos.x()) + tmp));
+/*
+        atomicAddWrapper(&(mem[1][1].z()), rho_dtZ * (deltaPos.z() * meanPos.x() * meanPos.y() + tmp));
+        atomicAddWrapper(&(mem[1][0].z()), rho_dtZ * (deltaPos.z() * (float_X(1.0) - meanPos.x()) * meanPos.y() - tmp));
+        atomicAddWrapper(&(mem[0][1].z()), rho_dtZ * (deltaPos.z() * meanPos.x() * (float_X(1.0) - meanPos.y()) - tmp));
+        atomicAddWrapper(&(mem[0][0].z()), rho_dtZ * (deltaPos.z() * (float_X(1.0) - meanPos.x()) * (float_X(1.0) - meanPos.y()) + tmp));
+*/
     }
 
     //calculates the intersection point of the [pos1,pos2] beam with an y,z-plane at position x0
 
-    DINLINE float3_X intersectXPlane(const float3_X& pos1, const float3_X& pos2, const float_X x0)
+    DINLINE float2_X intersectXPlane(const float2_X& pos1, const float2_X& pos2, const float_X x0)
     {
         const float_X t = (x0 - pos1.x()) / (pos2.x() - pos1.x());
 
-        return float3_X(x0, pos1.y() + t * (pos2.y() - pos1.y()), pos1.z() + t * (pos2.z() - pos1.z()));
+        return float2_X(x0, pos1.y() + t * (pos2.y() - pos1.y())/*, pos1.z() + t * (pos2.z() - pos1.z())*/);
     }
 
-    DINLINE float3_X intersectYPlane(const float3_X& pos1, const float3_X& pos2, const float_X y0)
+    DINLINE float2_X intersectYPlane(const float2_X& pos1, const float2_X& pos2, const float_X y0)
     {
         const float_X t = (y0 - pos1.y()) / (pos2.y() - pos1.y());
 
-        return float3_X(pos1.x() + t * (pos2.x() - pos1.x()), y0, pos1.z() + t * (pos2.z() - pos1.z()));
+        return float2_X(pos1.x() + t * (pos2.x() - pos1.x()), y0 /*, pos1.z() + t * (pos2.z() - pos1.z())*/);
     }
 
     DINLINE float3_X intersectZPlane(const float3_X& pos1, const float3_X& pos2, const float_X z0)
@@ -177,10 +178,10 @@ private:
 
         if (math::float2int_rd(oldPos.z()) != math::float2int_rd(newPos.z()))
         {
-            const float3_X interPos = intersectZPlane(oldPos, newPos,
+            const float2_X interPos = intersectZPlane(oldPos, newPos,
                                                       max(math::float2int_rd(oldPos.z()), math::float2int_rd(newPos.z())));
-            float3_X deltaPos = interPos - oldPos;
-            float3_X meanPos = oldPos + float_X(0.5) * deltaPos;
+            float2_X deltaPos = interPos - oldPos;
+            float2_X meanPos = oldPos + float_X(0.5) * deltaPos;
             addCurrentToSingleCell(meanPos, deltaPos, charge, mem, deltaTime);
 
             deltaPos = newPos - interPos;
@@ -188,8 +189,8 @@ private:
             addCurrentToSingleCell(meanPos, deltaPos, charge, mem, deltaTime);
             return;
         }
-        const float3_X deltaPos = newPos - oldPos;
-        const float3_X meanPos = oldPos + float_X(0.5) * deltaPos;
+        const float2_X deltaPos = newPos - oldPos;
+        const float2_X meanPos = oldPos + float_X(0.5) * deltaPos;
         addCurrentToSingleCell(meanPos, deltaPos, charge, mem, deltaTime);
     }
 
@@ -203,7 +204,7 @@ private:
 
         if (math::float2int_rd(oldPos.y()) != math::float2int_rd(newPos.y()))
         {
-            const float3_X interPos = intersectYPlane(oldPos, newPos,
+            const float2_X interPos = intersectYPlane(oldPos, newPos,
                                                       max(math::float2int_rd(oldPos.y()), math::float2int_rd(newPos.y())));
             addCurrentSplitZ(oldPos, interPos, charge, mem, deltaTime);
             addCurrentSplitZ(interPos, newPos, charge, mem, deltaTime);
@@ -222,8 +223,8 @@ namespace traits
 template<>
 struct GetMargin<picongpu::currentSolverVillaBune::VillaBune>
 {
-    typedef ::PMacc::math::CT::Int < 1, 1, 1 > LowerMargin;
-    typedef ::PMacc::math::CT::Int < 2, 2, 2 > UpperMargin;
+    typedef ::PMacc::math::CT::Int < 1, 1 /*, 1*/ > LowerMargin;
+    typedef ::PMacc::math::CT::Int < 2, 2 /*, 2*/ > UpperMargin;
 };
 
 } //namespace traits

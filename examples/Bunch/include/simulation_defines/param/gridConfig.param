@@ -42,17 +42,15 @@ namespace picongpu
     }
 
     //! Defines the size of the absorbing zone (in cells)
-    const uint32_t ABSORBER_CELLS[3][2] = {
+    const uint32_t ABSORBER_CELLS[2][2] = {
         {32, 32},  /*x direction [negative,positive]*/
-        {32, 32},  /*y direction [negative,positive]*/
-        {32, 32}   /*z direction [negative,positive]*/
+        {32, 32}
     }; //unit: number of cells
     
     //! Define the strange of the absober for any direction
-    const float_X ABSORBER_STRENGTH[3][2] = {
+    const float_X ABSORBER_STRENGTH[2][2] = {
         {1.0e-3, 1.0e-3}, /*x direction [negative,positive]*/
-        {1.0e-3, 1.0e-3}, /*y direction [negative,positive]*/
-        {1.0e-3, 1.0e-3}  /*z direction [negative,positive]*/
+        {1.0e-3, 1.0e-3}
     }; //unit: none 
 
     /** When to move the co-moving window.

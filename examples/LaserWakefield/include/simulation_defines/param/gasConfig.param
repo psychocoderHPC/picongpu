@@ -31,7 +31,7 @@ namespace picongpu
          * 
          * He (2e- / Atom ) with 1.e15 He / m^3
          *                      = 2.e15 e- / m^3 */
-        const double GAS_DENSITY_SI = 1.e25;
+        const double GAS_DENSITY_SI = 1.e25*SI::SPEED_OF_LIGHT_SI*SI::DELTA_T_SI;
 
         /** height of vacuum area on bottom border
          *      this vacuum is really important because of the laser initialization, 

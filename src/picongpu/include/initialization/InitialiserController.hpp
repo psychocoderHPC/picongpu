@@ -83,7 +83,8 @@ public:
         {
             std::cout << "max weighting " << NUM_EL_PER_PARTICLE << std::endl;
             std::cout << "courant=min(deltaCellSize)/dt/c > 1.77 ? "
-                << std::min(CELL_WIDTH, std::min(CELL_DEPTH, CELL_HEIGHT)) / SPEED_OF_LIGHT / DELTA_T << std::endl;
+                 << std::min(CELL_WIDTH, CELL_HEIGHT) / SPEED_OF_LIGHT / DELTA_T << std::endl;
+               // << std::min(CELL_WIDTH, std::min(CELL_DEPTH, CELL_HEIGHT)) / SPEED_OF_LIGHT / DELTA_T << std::endl;
             if (gasProfile::GAS_ENABLED)
                 std::cout << "omega_pe * dt <= 0.1 ? " << sqrt(GAS_DENSITY * Q_EL / M_EL * Q_EL / EPS0) * DELTA_T << std::endl;
             if (laserProfile::INIT_TIME > float_X(0.0))

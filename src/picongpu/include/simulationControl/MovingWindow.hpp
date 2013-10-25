@@ -98,9 +98,10 @@ public:
 
         VirtualWindow window(slideCounter);
         DataSpace<simDim> gridSize(SubGrid<simDim>::getInstance().getSimulationBox().getLocalSize());
-        const DataSpace<simDim> globalWindowSize = DataSpace<DIM3 > (simSize[0],
-                                                                     simSize[1] - gridSize.y() * slidingWindowActive,
-                                                                     simSize[2]);
+        const DataSpace<simDim> globalWindowSize = DataSpace<simDim > (simSize[0],
+                                                                     simSize[1] - gridSize.y() * slidingWindowActive
+                                                                    /*,
+                                                                     simSize[2]*/);
 
         window.globalWindowSize = globalWindowSize;
         window.globalSimulationSize = simSize;

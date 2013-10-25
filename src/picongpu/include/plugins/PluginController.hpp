@@ -61,7 +61,7 @@
 /// \todo rename PngModule to ImageModule or similar
 #include "plugins/PngModule.hpp"
 
-
+/*
 #include "plugins/FieldEnergy.hpp"
 #if(PIC_ENABLE_PNG==1)
 #include "plugins/ParticleDensity.hpp"
@@ -69,7 +69,7 @@
 #include "plugins/ParticleSpectrum.hpp"
 #include "plugins/TotalDivJ.hpp"
 #include "plugins/SliceFieldPrinterMulti.hpp"
-
+*/
 
 #include "plugins/output/images/Visualisation.hpp"
 
@@ -102,6 +102,7 @@ namespace picongpu
 #endif
         typedef ParticleDensity<PIC_Electrons, DensityToBinary, float_X> ElectronsBinaryDensityBuilder;
 
+/*
 #if(PIC_ENABLE_PNG==1)
         typedef heiko::ParticleDensity<PIC_Electrons> HeikoParticleDensity;
         
@@ -109,7 +110,7 @@ namespace picongpu
         typedef ParticleSpectrum<PIC_Electrons> ElectronSpectrum;
         typedef SliceFieldPrinterMulti<FieldE, FIELD_E> SliceFieldEPrinter;
         typedef SliceFieldPrinterMulti<FieldB, FIELD_B> SliceFieldBPrinter;
-
+*/
         typedef LiveViewModule<PIC_Electrons > LiveImageElectrons;
         typedef PngModule<ElectronsBinaryDensityBuilder > BinDensityElectrons;
         typedef CountParticles<PIC_Electrons> ElectronCounter;
@@ -142,7 +143,7 @@ namespace picongpu
             modules.push_back(new EnergyFields("EnergyFields", "energy_fields"));
             modules.push_back(new SumCurrents());
             modules.push_back(new LineSliceFields());
-
+/*
             modules.push_back(new FieldEnergy("FieldEnergy [keV/m^3]", "field_energy"));
 #if(PIC_ENABLE_PNG==1)
             modules.push_back(new HeikoParticleDensity("HeikoParticleDensity", "heiko_pd"));
@@ -151,7 +152,7 @@ namespace picongpu
             modules.push_back(new TotalDivJ("change of total charge per timestep (single gpu)", "totalDivJ"));
             modules.push_back(new SliceFieldEPrinter("FieldE: prints a slice of the E-field", "FieldE"));
             modules.push_back(new SliceFieldBPrinter("FieldB: prints a slice of the B-field", "FieldB"));
-
+*/
 #if (ENABLE_ELECTRONS == 1)
             modules.push_back(new LiveImageElectrons("LiveImageElectrons", "live_e"));
 #if(PIC_ENABLE_PNG==1)

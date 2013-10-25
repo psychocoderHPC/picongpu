@@ -24,8 +24,8 @@
 
 #include "fields/MaxwellSolver/None/NoSolver.def"
 #include "fields/MaxwellSolver/Yee/YeeSolver.def"
-#include "fields/MaxwellSolver/DirSplitting/DirSplitting.def"
-#include "fields/MaxwellSolver/Lehe/LeheSolver.def"
+//#include "fields/MaxwellSolver/DirSplitting/DirSplitting.def"
+//#include "fields/MaxwellSolver/Lehe/LeheSolver.def"
 
 #include "fields/numericalCellTypes/NumericalCellTypes.hpp"
 #include "algorithms/FieldToParticleInterpolationNative.hpp"
@@ -50,6 +50,7 @@ namespace fieldSolverNone
 
 namespace fieldSolverYeeNative
 {
+
     typedef typename picongpu::yeeSolver::YeeSolver<> FieldSolver;
     typedef yeeCell::YeeCell NumericalCellType;
 
@@ -57,6 +58,7 @@ namespace fieldSolverYeeNative
     ShiftCoordinateSystemNative,
     speciesParticleShape::ParticleShape::ChargeAssignment,
     AssignedTrilinearInterpolation> FieldToParticleInterpolation;
+    
 }
 
 namespace fieldSolverYee
@@ -72,17 +74,19 @@ namespace fieldSolverYee
 
 namespace fieldSolverDirSplitting
 {
-    typedef picongpu::dirSplitting::DirSplitting FieldSolver;
+    /*typedef picongpu::dirSplitting::DirSplitting FieldSolver;
     typedef allCenteredCell::AllCenteredCell NumericalCellType;
 
     typedef picongpu::FieldToParticleInterpolationNative<
     ShiftCoordinateSystemNative,
     speciesParticleShape::ParticleShape::ChargeAssignment,
     AssignedTrilinearInterpolation> FieldToParticleInterpolation;
+     * */
 }
 
 namespace fieldSolverLehe
 {
+/*
     typedef typename picongpu::leheSolver::LeheSolver FieldSolver;
     typedef yeeCell::YeeCell NumericalCellType;
     
@@ -90,6 +94,7 @@ namespace fieldSolverLehe
     ShiftCoordinateSystemNative,
     speciesParticleShape::ParticleShape::ChargeAssignment,
     AssignedTrilinearInterpolation> FieldToParticleInterpolation;
+  */
 
 }
 } //namespace picongpu

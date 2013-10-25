@@ -91,7 +91,7 @@ namespace particleInitRandomPos
 {
 /** Count of particles per cell at initial state
  *  unit: none */
-const uint32_t NUM_PARTICLES_PER_CELL = 2;
+const uint32_t NUM_PARTICLES_PER_CELL = 88;
 }
 
 namespace particleInitQuietStart

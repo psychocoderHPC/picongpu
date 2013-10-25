@@ -52,7 +52,7 @@ using namespace PMacc;
  * is not optimized, it checks any partcile position if its realy a particle
  */
 template<class FieldBox, class BoxMax, class BoxIntegral>
-__global__ void kernelIntensity(FieldBox field, DataSpace<DIM3> cellsCount, BoxMax boxMax, BoxIntegral integralBox)
+__global__ void kernelIntensity(FieldBox field, DataSpace<simDim> cellsCount, BoxMax boxMax, BoxIntegral integralBox)
 {
 
     typedef MappingDesc::SuperCellSize SuperCellSize;
@@ -81,12 +81,12 @@ __global__ void kernelIntensity(FieldBox field, DataSpace<DIM3> cellsCount, BoxM
     __syncthreads();
 
     /*move cell wise over z direction(without garding cells)*/
-    for (int z = GUARD_SIZE * SuperCellSize::z; z < cellsCount.z() - GUARD_SIZE * SuperCellSize::z; ++z)
+   // for (int z = GUARD_SIZE * SuperCellSize::z; z < cellsCount.z() - GUARD_SIZE * SuperCellSize::z; ++z)
     {
         /*move supercell wise over x direction without guarding*/
         for (int x = GUARD_SIZE * SuperCellSize::x + threadId.x(); x < cellsCount.x() - GUARD_SIZE * SuperCellSize::x; x += SuperCellSize::x)
         {
-            const float3_X field_at_point(field(DataSpace<DIM3 > (x, yGlobal, z)));
+            const float3_X field_at_point(field(DataSpace<simDim > (x, yGlobal /*, z*/ )));
             s_field(threadId) = math::abs2(field_at_point);
             __syncthreads();
             if (threadId.x() == 0)
@@ -281,7 +281,7 @@ private:
                       window.globalWindowSize.y(),
                       physicelYCellOffset,
                       outFileIntegrated,
-                      UNIT_EFIELD * SI::CELL_HEIGHT_SI * SI::CELL_WIDTH_SI * SI::CELL_DEPTH_SI * SI::EPS0_SI
+                      UNIT_EFIELD * SI::CELL_HEIGHT_SI * SI::CELL_WIDTH_SI /* * SI::CELL_DEPTH_SI*/ * SI::EPS0_SI
                       );
         }
 

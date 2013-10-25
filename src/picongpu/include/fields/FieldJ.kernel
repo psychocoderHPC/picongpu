@@ -165,7 +165,7 @@ template<class ParticleAlgo, class Velocity, class TVec>
 struct ComputeCurrentPerFrame
 {
 
-    HDINLINE ComputeCurrentPerFrame(const float3_X cellSize, const float_X deltaTime) :
+    HDINLINE ComputeCurrentPerFrame(const float2_X cellSize, const float_X deltaTime) :
     cellSize(cellSize), deltaTime(deltaTime)
     {
     }
@@ -176,7 +176,7 @@ struct ComputeCurrentPerFrame
 
         PMACC_AUTO(particle,frame[localIdx]);
         const float_X weighting = particle[weighting_];
-        const float3_X pos = particle[position_];
+        const float2_X pos = particle[position_];
         const int particleCellIdx = particle[localCellIdx_];
         const float_X charge = particle.getCharge(weighting);
         const DataSpace<TVec::dim> localCell(DataSpaceOperations<TVec::dim>::template map<TVec > (particleCellIdx));
@@ -197,7 +197,7 @@ struct ComputeCurrentPerFrame
     }
 
 private:
-    const PMACC_ALIGN(cellSize, float3_X);
+    const PMACC_ALIGN(cellSize, float2_X);
     const PMACC_ALIGN(deltaTime, float);
 };
 
@@ -254,6 +254,7 @@ __global__ void kernelBashCurrent(J_DataBox fieldJ,
     }
     else if ((direction.y() == 1) && (threadIdx.y >= exchangeSize.y())) return;
 
+    /*
     if (direction.z() == -1)
     {
         if (threadIdx.z < TILE_DEPTH - exchangeSize.z()) return;
@@ -262,7 +263,7 @@ __global__ void kernelBashCurrent(J_DataBox fieldJ,
     else
 
         if ((direction.z() == 1) && (threadIdx.z >= exchangeSize.z())) return;
-
+     */
     targetJ(targetCell) = fieldJ(sourceCell);
 }
 
@@ -309,7 +310,7 @@ __global__ void kernelInsertCurrent(J_DataBox fieldJ,
         targetCell.y() += TILE_HEIGHT;
     }
 
-    if (direction.z() == 1)
+   /* if (direction.z() == 1)
     {
         if (threadIdx.z < TILE_DEPTH - exchangeSize.z()) return;
         sourceCell.z() -= TILE_DEPTH - exchangeSize.z();
@@ -320,7 +321,7 @@ __global__ void kernelInsertCurrent(J_DataBox fieldJ,
         if (threadIdx.z >= exchangeSize.z()) return;
         targetCell.z() += TILE_DEPTH;
     }
-
+    */
     fieldJ(targetCell) += sourceJ(sourceCell);
 }
 

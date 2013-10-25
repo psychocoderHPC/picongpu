@@ -42,28 +42,29 @@ namespace picongpu
             DINLINE void operator()(BoxJ& boxJ_par, /*box which is shifted to particles cell*/
                                        const PosType pos,
                                        const VelType velocity,
-                                       const ChargeType charge, const float3_X& cellSize, const float_X deltaTime)
+                                       const ChargeType charge, const float2_X& cellSize, const float_X deltaTime)
             {
                 typename BoxJ::ValueType j = velocity * charge * deltaTime;
                 j.x() *= (1.0 / (cellSize.y() * cellSize.z()));
                 j.y() *= (1.0 / (cellSize.x() * cellSize.z()));
-                j.z() *= (1.0 / (cellSize.x() * cellSize.y()));
+                //j.z() *= (1.0 / (cellSize.x() * cellSize.y()));
 
-                const DataSpace<DIM3> nearestCell(
+                const DataSpace<simDim> nearestCell(
                                                   __float2_Xint_rd(pos.x() + float_X(0.5)),
-                                                  __float2_Xint_rd(pos.y() + float_X(0.5)),
-                                                  __float2_Xint_rd(pos.z() + float_X(0.5))
+                                                  __float2_Xint_rd(pos.y() + float_X(0.5))
+                                                  /*,
+                                                  __float2_Xint_rd(pos.z() + float_X(0.5))*/
                                                   );
 
                 atomicAddWrapper(
-                                 &(boxJ_par(DataSpace < DIM3 > (0, nearestCell.y(), nearestCell.z())).x()),
+                                 &(boxJ_par(DataSpace < simDim > (0, nearestCell.y()/*, nearestCell.z()*/)).x()),
                                  j.x());
                 atomicAddWrapper(
-                                 &(boxJ_par(DataSpace < DIM3 > (nearestCell.x(), 0, nearestCell.z())).y()),
+                                 &(boxJ_par(DataSpace < simDim > (nearestCell.x(), 0 /*, nearestCell.z()*/)).y()),
                                  j.y());
-                atomicAddWrapper(
+               /* atomicAddWrapper(
                                  &(boxJ_par(DataSpace < DIM3 > (nearestCell.x(), nearestCell.y(), 0)).z()),
-                                 j.z());
+                                 j.z());*/
             }
 
 

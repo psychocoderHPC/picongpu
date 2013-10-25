@@ -239,18 +239,18 @@ __global__ void kernelPaintFields(
                                     realCell[transpose.y()]);
     const DataSpace<simDim> realCell2(blockOffset + threadId); //delete guard from cell idx
 
-    uint32_t globalCell = realCell2[sliceDim] + globalOffset;
+  //  uint32_t globalCell = realCell2[sliceDim] + globalOffset;
 
-    if (globalCell != slice)
-        return;
+    //if (globalCell != slice)
+    //    return;
 
     // set fields of this cell to vars
     typename BBox::ValueType field_b = fieldB(cell);
     typename EBox::ValueType field_e = fieldE(cell);
     typename JBox::ValueType field_j = fieldJ(cell);
     field_j = float3_X(
-                       field_j.x() * CELL_HEIGHT * CELL_DEPTH,
-                       field_j.y() * CELL_WIDTH * CELL_DEPTH,
+                       field_j.x() * CELL_HEIGHT /* * CELL_DEPTH*/,
+                       field_j.y() * CELL_WIDTH /* * CELL_DEPTH*/,
                        field_j.z() * CELL_WIDTH * CELL_HEIGHT
                        );
     
@@ -324,9 +324,9 @@ kernelPaintParticles3D(ParBox pb,
     const DataSpace<simDim> realCell(blockOffset + threadId); //delete guard from cell idx
 
 
-    uint32_t globalCell = realCell[sliceDim] + globalOffset;
+   // uint32_t globalCell = realCell[sliceDim] + globalOffset;
 
-    if (globalCell == slice)
+  //  if (globalCell == slice)
     {
         atomicExch((int*) &isValid, 1); /*WAW Error in cuda-memcheck racecheck*/
         isImageThread = true;
@@ -371,9 +371,9 @@ kernelPaintParticles3D(ParBox pb,
         {
             int cellIdx = particle[localCellIdx_];
             // we only draw the first slice of cells in the super cell (z == 0)
-            const DataSpace<DIM3> particleCellId(DataSpaceOperations<DIM3>::template map<Block > (cellIdx));
-            uint32_t globalParticleCell = particleCellId[sliceDim] + globalOffset + blockOffset[sliceDim];
-            if (globalParticleCell == slice)
+            const DataSpace<simDim> particleCellId(DataSpaceOperations<simDim>::template map<Block > (cellIdx));
+          //  uint32_t globalParticleCell = particleCellId[sliceDim] + globalOffset + blockOffset[sliceDim];
+          //  if (globalParticleCell == slice)
             {
                 const DataSpace<DIM2> reducedCell(particleCellId[transpose.x()], particleCellId[transpose.y()]);
                 atomicAddWrapper(&(counter(reducedCell)), particle[weighting_] / NUM_EL_PER_PARTICLE);
@@ -498,7 +498,7 @@ public:
         const DataSpace<simDim> localSize(cellDescription->getGridLayout().getDataSpaceWithoutGuarding());
         VirtualWindow window(MovingWindow::getInstance().getVirtualWindow(currentStep));
 
-        sliceOffset = (int) ((float) (window.globalWindowSize[sliceDim]) * slicePoint) + window.globalSimulationOffset[sliceDim];
+        sliceOffset = 0; //(int) ((float) (window.globalWindowSize[sliceDim]) * slicePoint) + window.globalSimulationOffset[sliceDim];
         
         if (!doDrawing())
         {
@@ -536,7 +536,7 @@ public:
              img->getDeviceBuffer().getDataBox(),
              transpose,
              sliceOffset,
-             simBox.getGlobalOffset()[sliceDim], sliceDim
+             0, sliceDim
              );
 
         // find maximum for img.x()/y and z and return it as float3_X
@@ -585,7 +585,7 @@ public:
              img->getDeviceBuffer().getDataBox(),
              transpose,
              sliceOffset,
-             simBox.getGlobalOffset()[sliceDim], sliceDim
+             0, sliceDim
              );
 
         // send the RGB image back to host
@@ -624,12 +624,12 @@ public:
             const DataSpace<simDim> localSize(cellDescription->getGridLayout().getDataSpaceWithoutGuarding());
 
             VirtualWindow window(MovingWindow::getInstance().getVirtualWindow(0));
-            sliceOffset = (int) ((float) (window.globalWindowSize[sliceDim]) * slicePoint) + window.globalSimulationOffset[sliceDim];
+            sliceOffset = 0 ; //(int) ((float) (window.globalWindowSize[sliceDim]) * slicePoint) + window.globalSimulationOffset[sliceDim];
 
 
             const DataSpace<simDim> gpus = GridController<simDim>::getInstance().getGpuNodes();
 
-            float_32 cellSize[3] = {CELL_WIDTH, CELL_HEIGHT, CELL_DEPTH};
+            float_32 cellSize[3] = {CELL_WIDTH, CELL_HEIGHT /*, CELL_DEPTH*/ };
 
             header.update(*cellDescription, window, transpose, 0, cellSize, gpus);
 
@@ -651,12 +651,12 @@ private:
     {
         assert(cellDescription != NULL);
         const DataSpace<simDim> globalRootCellPos(SubGrid<simDim>::getInstance().getSimulationBox().getGlobalOffset());
-        const bool tmp = globalRootCellPos[sliceDim] + SubGrid<simDim>::getInstance().getSimulationBox().getLocalSize()[sliceDim] > sliceOffset &&
-            globalRootCellPos[sliceDim] <= sliceOffset;
+      /*  const bool tmp = globalRootCellPos[sliceDim] + SubGrid<simDim>::getInstance().getSimulationBox().getLocalSize()[sliceDim] > sliceOffset &&
+            globalRootCellPos[sliceDim] <= sliceOffset;*/
         /* std::cout << "do drawing ." << tmp << "." <<
                  globalRootCellPos[sliceDim] + cellDescription->getGridLayout().getDataSpaceWithoutGuarding()[sliceDim] << ">" << sliceOffset <<
                  "&&" << globalRootCellPos[sliceDim] << "<=" << sliceOffset << std::endl;*/
-        return tmp;
+        return true;
     }
 
 

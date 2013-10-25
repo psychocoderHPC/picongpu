@@ -186,7 +186,7 @@ public:
             log<picLog::INPUT_OUTPUT > ("HDF5: Finish get mapped memory device pointer: %1%") % Hdf5FrameType::getName();
 
             log<picLog::INPUT_OUTPUT > ("HDF5: copy particle to host: %1%") % Hdf5FrameType::getName();
-            typedef bmpl::vector< PositionFilter3D<> > usedFilters;
+            typedef bmpl::vector< PositionFilter2D<> > usedFilters;
             typedef typename FilterFactory<usedFilters>::FilterType MyParticleFilter;
             MyParticleFilter filter;
             /*activeate filter pipline if moving window is activated*/

@@ -30,23 +30,25 @@ namespace picongpu
 {
     struct DifferenceToUpper
     {
-        typedef PMacc::math::CT::Int< 1, 1, 1 > OffsetEnd;
-        typedef PMacc::math::CT::Int< 0, 0, 0 > OffsetOrigin;
+        typedef PMacc::math::CT::Int< 1, 1 /*, 1*/ > OffsetEnd;
+        typedef PMacc::math::CT::Int< 0, 0 /*, 0*/ > OffsetOrigin;
 
         template<class Memory >
         HDINLINE typename Memory::ValueType operator()(const Memory& mem, const uint32_t direction) const
         {
             const float_X reciWidth = float_X(1.0) / CELL_WIDTH;
             const float_X reciHeight = float_X(1.0) / CELL_HEIGHT;
-            const float_X reciDepth = float_X(1.0) / CELL_DEPTH;
+          //  const float_X reciDepth = float_X(1.0) / CELL_DEPTH;
             switch (direction)
             {
             case 0:
-                return (mem[0][0][1] - mem[0][0][0]) * reciWidth;
+                return (mem[0][1] - mem[0][0]) * reciWidth;
             case 1:
-                return (mem[0][1][0] - mem[0][0][0]) * reciHeight;
+                return (mem[1][0] - mem[0][0]) * reciHeight;
+                
             case 2:
-                return (mem[1][0][0] - mem[0][0][0]) * reciDepth;
+                return float3_X(0.,0.,0.);
+                 
             }
             return float3_X(NAN, NAN, NAN);
         }

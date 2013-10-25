@@ -54,8 +54,8 @@ struct EsirkepovNative
 
     static const int currentLowerMargin = supp / 2 + 1;
     static const int currentUpperMargin = (supp + 1) / 2 + 1;
-    typedef PMacc::math::CT::Int<currentLowerMargin, currentLowerMargin, currentLowerMargin> LowerMargin;
-    typedef PMacc::math::CT::Int<currentUpperMargin, currentUpperMargin, currentUpperMargin> UpperMargin;
+    typedef PMacc::math::CT::Int<currentLowerMargin, currentLowerMargin /*, currentLowerMargin*/> LowerMargin;
+    typedef PMacc::math::CT::Int<currentUpperMargin, currentUpperMargin /*, currentUpperMargin*/> UpperMargin;
 
     float_X charge;
 
@@ -63,12 +63,12 @@ struct EsirkepovNative
         DINLINE void operator()(DataBoxJ dataBoxJ,
                                 const PosType pos,
                                 const VelType velocity,
-                                const ChargeType charge, const float3_X& cellSize, const float_X deltaTime)
+                                const ChargeType charge, const float2_X& cellSize, const float_X deltaTime)
     {
         this->charge = charge;
-        const float3_X deltaPos = float3_X(velocity.x() * deltaTime / cellSize.x(),
-                                           velocity.y() * deltaTime / cellSize.y(),
-                                           velocity.z() * deltaTime / cellSize.z());
+        const float2_X deltaPos = float2_X(velocity.x() * deltaTime / cellSize.x(),
+                                           velocity.y() * deltaTime / cellSize.y()/*,
+                                           velocity.z() * deltaTime / cellSize.z()*/);
         const PosType oldPos = pos - deltaPos;
         Line line(oldPos, pos);
         BOOST_AUTO(cursorJ, dataBoxJ.toCursor());
@@ -81,9 +81,9 @@ struct EsirkepovNative
          */
 
         using namespace cursor::tools;
-        cptCurrent1D(twistVectorFieldAxes<PMacc::math::CT::Int < 1, 2, 0 > >(cursorJ), rotateOrigin < 1, 2, 0 > (line), cellSize.x());
-        cptCurrent1D(twistVectorFieldAxes<PMacc::math::CT::Int < 2, 0, 1 > >(cursorJ), rotateOrigin < 2, 0, 1 > (line), cellSize.y());
-        cptCurrent1D(cursorJ, line, cellSize.z());
+        cptCurrent1D(twistVectorFieldAxes<PMacc::math::CT::Int < 1/*, 2*/, 0 > >(cursorJ), rotateOrigin < 1, /*2,*/ 0 > (line), cellSize.x());
+        cptCurrent1D(twistVectorFieldAxes<PMacc::math::CT::Int < /*2,*/ 0, 1 > >(cursorJ), rotateOrigin < /*2,*/ 0, 1 > (line), cellSize.y());
+   //     cptCurrent1D(cursorJ, line, cellSize.z());
     }
 
     /**
@@ -112,7 +112,7 @@ struct EsirkepovNative
         {
             for (int y = a; y <= b; y++)
             {
-                cptCurrentInLineOfCells(cursorJ(x, y, 0), line - float3_X(x, y, float_X(0.0)), cellEdgeLength);
+                cptCurrentInLineOfCells(cursorJ(x, y /*, 0*/), line - float2_X(x, y /*, float_X(0.0)*/), cellEdgeLength);
             }
         }
 
@@ -130,8 +130,8 @@ struct EsirkepovNative
                                              const Line& line,
                                              const float_X cellEdgeLength)
     {
-        const int a = -currentLowerMargin;
-        const int b = currentUpperMargin;
+       // const int a = -currentLowerMargin;
+       // const int b = currentUpperMargin;
 
         float_X tmp =
             S0(line.pos0.x()) * S0(line.pos0.y()) +
@@ -143,11 +143,11 @@ struct EsirkepovNative
          * to get the current density j
          */
         float_X accumulated_J = float_X(0.0);
-        for (int i = a; i <= b; i++)
+       // for (int i = a; i <= b; i++)
         {
-            float_X W = DS(line.pos0.z() - i, line.pos1.z() - i) * tmp;
+            float_X W = DS(line.pos0.z() , line.pos1.z() ) * tmp;
             accumulated_J += -this->charge * (float_X(1.0) / float_X(CELL_VOLUME * DELTA_T)) * W * cellEdgeLength;
-            atomicAddWrapper(&((*cursorJ(0, 0, i)).z()), accumulated_J);
+            atomicAddWrapper(&((*cursorJ(0, 0/*, i*/)).z()), accumulated_J);
         }
     }
 

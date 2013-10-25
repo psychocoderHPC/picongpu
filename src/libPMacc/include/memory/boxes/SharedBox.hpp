@@ -17,8 +17,8 @@
  * You should have received a copy of the GNU General Public License 
  * and the GNU Lesser General Public License along with libPMacc. 
  * If not, see <http://www.gnu.org/licenses/>. 
- */ 
- 
+ */
+
 #pragma once
 
 #include "types.h"
@@ -143,6 +143,13 @@ public:
         return SharedBox<TYPE, TVec<_X_, _Y_> >((TYPE*) mem_sh);
     }
 
+    HDINLINE PMacc::cursor::CT::BufferCursor<TYPE, ::PMacc::math::CT::Int<sizeof (TYPE) * _X_> >
+    toCursor() const
+    {
+        return PMacc::cursor::CT::BufferCursor<TYPE, ::PMacc::math::CT::Int<sizeof (TYPE) * _X_> >
+            ((TYPE*) fixedPointer);
+    }
+
 protected:
 
     PMACC_ALIGN(fixedPointer, TYPE*);
@@ -195,7 +202,7 @@ public:
     {
         return PMacc::cursor::CT::BufferCursor<TYPE, ::PMacc::math::CT::Int<sizeof (TYPE) * _X_,
             sizeof (TYPE) * _X_ * _Y_> >
-            ((TYPE*)fixedPointer);
+            ((TYPE*) fixedPointer);
     }
 
     /*this call synchronize a block and must called from any thread and not inside a if clauses*/

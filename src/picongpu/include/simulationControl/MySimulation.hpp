@@ -443,19 +443,19 @@ private:
 
         assert(globalGridSize.x() % MappingDesc::SuperCellSize::x == 0);
         assert(globalGridSize.y() % MappingDesc::SuperCellSize::y == 0);
-        assert(globalGridSize.z() % MappingDesc::SuperCellSize::z == 0);
+//        assert(globalGridSize.z() % MappingDesc::SuperCellSize::z == 0);
 
         // local size must a devisor of supercell size
         assert(gridSizeLocal[0] % MappingDesc::SuperCellSize::x == 0);
         assert(gridSizeLocal[1] % MappingDesc::SuperCellSize::y == 0);
-        assert(gridSizeLocal[2] % MappingDesc::SuperCellSize::z == 0);
+  //      assert(gridSizeLocal[2] % MappingDesc::SuperCellSize::z == 0);
 
         // local size must be at least 3 supercells (1x core + 2x border)
         // note: size of border = guard_size (in supercells)
         // \todo we have to add the guard_x/y/z for modified supercells here
         assert( (uint32_t) gridSizeLocal[0] / MappingDesc::SuperCellSize::x >= 3 * GUARD_SIZE);
         assert( (uint32_t) gridSizeLocal[1] / MappingDesc::SuperCellSize::y >= 3 * GUARD_SIZE);
-        assert( (uint32_t) gridSizeLocal[2] / MappingDesc::SuperCellSize::z >= 3 * GUARD_SIZE);
+    //    assert( (uint32_t) gridSizeLocal[2] / MappingDesc::SuperCellSize::z >= 3 * GUARD_SIZE);
     }
 
 

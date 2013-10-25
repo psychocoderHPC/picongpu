@@ -24,5 +24,5 @@
 
 #include "None/NoSolver.hpp"
 #include "Yee/YeeSolver.hpp"
-#include "Lehe/LeheSolver.hpp"
-#include "DirSplitting/DirSplitting.hpp"
+//#include "Lehe/LeheSolver.hpp"
+//#include "DirSplitting/DirSplitting.hpp"

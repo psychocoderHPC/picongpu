@@ -77,16 +77,16 @@ void TotalDivJ::notify(uint32_t currentStep)
 {
     namespace vec = PMacc::math;
     using namespace vec;
-    typedef vec::CT::Size_t<TILE_WIDTH,TILE_HEIGHT,TILE_DEPTH> BlockDim;
+    typedef vec::CT::Size_t<TILE_WIDTH,TILE_HEIGHT/*,TILE_DEPTH*/> BlockDim;
     
     DataConnector &dc = DataConnector::getInstance();
     
-    container::PseudoBuffer<float3_X, 3> fieldJ
+    container::PseudoBuffer<float3_X, simDim> fieldJ
         (dc.getData<FieldJ > (FIELD_J, true).getGridBuffer().getDeviceBuffer());
         
-    container::DeviceBuffer<float, 3> fieldDivJ(fieldJ.size());
-    zone::SphericZone<3> coreBorderZone(fieldJ.zone().size - (size_t)2*BlockDim().vec(),
-                                        fieldJ.zone().offset + (vec::Int<3>)BlockDim().vec());
+    container::DeviceBuffer<float, simDim> fieldDivJ(fieldJ.size());
+    zone::SphericZone<simDim> coreBorderZone(fieldJ.zone().size - (size_t)2*BlockDim().vec(),
+                                        fieldJ.zone().offset + (vec::Int<simDim>)BlockDim().vec());
     //std::cout << coreBorderZone.size << ", " << coreBorderZone.offset << std::endl;
     using namespace lambda;
     algorithm::kernel::Foreach<BlockDim>()
