@@ -45,6 +45,7 @@
 
 #include "plugins/hdf5/writer/ParticleAttribute.hpp"
 #include "compileTime/conversion/RemoveFromSeq.hpp"
+#include "particles/memory/frames/Frame.hpp"
 
 namespace picongpu
 {
