@@ -42,14 +42,12 @@
 #include "memory/boxes/PitchedBox.hpp"
 
 #include "math/Vector.hpp"
+#include "particles/Particles.def"
 
 namespace picongpu
 {
     using namespace PMacc;
-
-    template< typename,typename>
-    class Particles;
-    
+   
     // The fieldJ saves the current density j
     //
     // j = current / area

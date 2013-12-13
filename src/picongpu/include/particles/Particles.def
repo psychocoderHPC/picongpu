@@ -31,7 +31,7 @@ class FieldJ;
 class FieldB;
 class FieldE;
 
-template< typename T_DataVector, typename T_MethodsVector>
+template< typename T_ParticleDescription>
 class Particles;
 
 
