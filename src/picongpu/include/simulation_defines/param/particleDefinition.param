@@ -30,6 +30,10 @@
 #include "identifier/alias.hpp"
 #include "identifier/value_identifier.hpp"
 
+#include "particles/Particles.def"
+#include "particles/species/ions/IonMethods.def"
+#include "particles/species/electrons/ElectronMethods.def"
+
 namespace picongpu
 {
 
@@ -71,11 +75,67 @@ value_identifier(DataSpace<simDim>,globalCellIdx_pic,DataSpace<simDim>());
 /** describe attributes of a particle*/
 typedef typename MakeSeq<position<position_pic>,momentum,weighting>::type DefaultParticleAttributes;
 
-typedef DefaultParticleAttributes ElectronsDataList;
-typedef DefaultParticleAttributes IonsDataList;
-
-/** add methods to particle*/
+/** define methods to particle*/
 typedef typename MakeSeq<ElectronMethods>::type ElectronsMethodsList;
 typedef typename MakeSeq<IonMethods>::type IonsMethodsList;
+
+
+/** \todo: not nice, we change this later with nice interfaces
+ * Plugins should add needed attributes
+ */
+
+/*add old momentum for radiation plugin*/
+typedef typename MakeSeq<
+#if(ENABLE_RADIATION == 1)
+    momentumPrev1
+#endif
+>::type AttributMomentum_mt1;
+
+/*add old radiation flag for radiation plugin*/
+typedef typename MakeSeq<
+#if(RAD_MARK_PARTICLE>1) || (RAD_ACTIVATE_GAMMA_FILTER!=0)
+    radiationFlag
+#endif
+>::type AttributRadiationFlag;
+
+
+typedef
+typename MakeSeq<
+            DefaultParticleAttributes, 
+            AttributMomentum_mt1, 
+            AttributRadiationFlag
+    >::type DefaultAttributesSeq;
+
+typedef Particles<
+    DefaultAttributesSeq,
+    ElectronsMethodsList
+> PIC_Electrons;
+
+typedef Particles<
+    DefaultAttributesSeq,
+    IonsMethodsList
+> PIC_Ions;
+
+
+/** \todo: not nice, but this should be changed in the future
+ *   At the moment diable a species is done by defines, in feuture we only support
+ *   adding active particle species to a list
+ */
+typedef typename MakeSeq<
+    #if (ENABLE_ELECTRONS == 1)
+    PIC_Electrons
+    #endif
+>::type Species1;
+
+typedef typename MakeSeq<
+    #if (ENABLE_IONS == 1)
+    PIC_Ions
+    #endif
+>::type Species2;
+
+typedef typename MakeSeq<
+    Species1,
+    Species2
+>::type VectorAllSpecies;
 
 } //namespace picongpu
