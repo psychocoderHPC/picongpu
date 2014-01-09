@@ -72,16 +72,16 @@ namespace picongpu
     /** List of solvers which use TmpField and electons*/
     typedef typename MakeSeq<
 #if (ENABLE_ELECTRONS == 1)
-        FieldTmpOperation< TmpParticleDensity, PIC_Electrons > ,
-        FieldTmpOperation< TmpParticleEnergyDensity, PIC_Electrons >
+        FieldTmpOperation< TmpParticleDensity, typename PIC_Electrons::type > ,
+        FieldTmpOperation< TmpParticleEnergyDensity, typename PIC_Electrons::type >
 #endif
     >::type PluginsHdf5OutputFieldsElectrons;
 
     /** List of solvers which use TmpField and ions*/
     typedef typename MakeSeq<
 #if (ENABLE_IONS == 1)
-        FieldTmpOperation< TmpParticleDensity, PIC_Ions >,
-        FieldTmpOperation< TmpParticleEnergyDensity, PIC_Ions >
+        FieldTmpOperation< TmpParticleDensity,typename PIC_Ions::type >,
+        FieldTmpOperation< TmpParticleEnergyDensity, typename PIC_Ions::type >
 #endif
     >::type PluginsHdf5OutputFieldsIons;
     

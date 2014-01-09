@@ -16,8 +16,8 @@
  * You should have received a copy of the GNU General Public License 
  * along with PIConGPU.  
  * If not, see <http://www.gnu.org/licenses/>. 
- */ 
- 
+ */
+
 
 
 #ifndef MYSIMULATION_HPP
@@ -57,9 +57,155 @@
 #include "memory/boxes/DataBoxDim1Access.hpp"
 #include "nvidia/functors/Add.hpp"
 
+#include "compileTime/conversion/SeqToMap.hpp"
+#include "compileTime/conversion/TypeToPointerPair.hpp"
+#include "math/MapTuple.hpp"
+#include "algorithms/ForEach.hpp"
+#include "RefWrapper.hpp"
+
+#include <boost/type_traits/is_same.hpp>
+#include <boost/mpl/placeholders.hpp>
+#include <boost/mpl/if.hpp>
+#include <boost/mpl/find_if.hpp>
+#include <boost/mpl/deref.hpp>
+#include <boost/type_traits.hpp>
+
+#include "traits/HasFlag.hpp"
+#include "traits/GetFlagType.hpp"
+
 namespace picongpu
 {
 using namespace PMacc;
+
+template<typename T_Type>
+struct SetPtrToNull
+{
+    typedef T_Type SpeciesName;
+
+    template<typename T_StorageTupel>
+    void operator()(const RefWrapper<T_StorageTupel> tupel)
+    {
+        tupel.get()[SpeciesName()] = NULL;
+    }
+
+};
+
+template<typename T_Type>
+struct DeleteMemory
+{
+    typedef T_Type SpeciesName;
+
+    template<typename T_StorageTupel>
+    void operator()(const RefWrapper<T_StorageTupel> tupel)
+    {
+        __delete(tupel.get()[SpeciesName()]);
+    }
+
+};
+
+template<typename T_Type>
+struct CreateSpeciesMemory
+{
+    typedef T_Type SpeciesName;
+    typedef typename T_Type::type SpeciesType;
+
+    template<typename T_StorageTupel, typename T_CellDescription>
+    HINLINE void operator()(RefWrapper<T_StorageTupel> tupel, T_CellDescription* cellDesc) const
+    {
+        tupel.get()[SpeciesName()] = new SpeciesType(cellDesc->getGridLayout(), *cellDesc);
+    }
+};
+
+template<typename T_Type>
+struct CreateParticleBuffer
+{
+    typedef T_Type SpeciesName;
+    typedef typename T_Type::type SpeciesType;
+
+    template<typename T_StorageTupel>
+    HINLINE void operator()(RefWrapper<T_StorageTupel> tupel, const size_t freeGpuMem) const
+    {
+        static int const counter = 0;
+        log<picLog::MEMORY > ("create %1% MB for species %2%") %
+            (freeGpuMem * SpeciesName::memPercent / (size_t) 100 / 1024 / 1024) %
+            counter;
+        tupel.get()[SpeciesName()]->createParticleBuffer(freeGpuMem * SpeciesName::memPercent / (size_t) 100);
+    }
+};
+
+
+template<typename T_SpeciesName,typename T_Pusher>
+struct ParticlePusherPair
+{
+    typedef T_SpeciesName SpeciesName;
+    typedef T_Pusher Pusher;
+};
+
+template<typename T_SpeciesName>
+struct UpdateSpecie
+{
+    typedef T_SpeciesName SpeciesName;
+    typedef typename SpeciesName::type SpeciesType;
+    typedef typename SpeciesType::FrameType FrameType;
+    
+  
+     template<typename T_StorageTupel, typename T_Event>
+    HINLINE void operator()(
+                            RefWrapper<T_StorageTupel> tupel,
+                            const uint32_t currentStep,
+                            const T_Event eventInt,
+                            RefWrapper<T_Event> updateEvent,
+                            RefWrapper<T_Event> commEvent
+                            ) const
+    {
+        typedef typename HasFlag<FrameType,usedPusher<> >::type hasPusher;
+        if(hasPusher::value)
+        {
+            typedef typename GetFlagType<FrameType,usedPusher<> >::type Pusher;
+            typedef typename boost::mpl::if_<hasPusher,Pusher,usedPusher<PusherBoris> >::type CallPusher;
+            PMACC_AUTO(speciePtr, tupel.get()[SpeciesName()]);
+
+            __startTransaction(eventInt);
+            speciePtr->update(CallPusher(),currentStep);
+            commEvent.get() += speciePtr->asyncCommunication(__getTransactionEvent());
+            updateEvent.get() += __endTransaction();
+           
+        }
+
+    }
+};
+
+template<typename T_SpeciesName>
+struct GetPusherForSpecies
+{
+    typedef T_SpeciesName SpeciesName;
+    typedef typename SpeciesName::type SpeciesType;
+    typedef typename SpeciesType::FrameType FrameType;
+
+    typedef typename boost::mpl::find_if<AllPusher, HasFlag<FrameType, boost::mpl::_1> >::type iter;
+    typedef boost::is_same<iter, typename boost::mpl::end<AllPusher>::type> isEnd;
+    typedef typename boost::mpl::deref<iter>::type derefIter;
+    typedef typename boost::mpl::if_<isEnd, PusherNone, derefIter >::type Pusher;
+
+    typedef ParticlePusherPair<SpeciesName,Pusher> type;
+
+};
+
+template<typename T_Type>
+struct ParticleInit
+{
+    typedef T_Type SpeciesName;
+    typedef typename T_Type::type SpeciesType;
+
+    template<typename T_StorageTupel>
+    HINLINE void operator()(RefWrapper<T_StorageTupel> tupel,
+                            FieldE* fieldE,
+                            FieldB* fieldB,
+                            FieldJ* fieldJ) const
+    {
+        tupel.get()[SpeciesName()]->init(*fieldE, *fieldB, *fieldJ, SpeciesName::id);
+    }
+};
 
 /**
  * Global simulation controller class.
@@ -81,13 +227,9 @@ public:
      */
     MySimulation() : laser(NULL), fieldB(NULL), fieldE(NULL), fieldJ(NULL), fieldTmp(NULL), cellDescription(NULL), initialiserController(NULL), slidingWindow(false)
     {
-#if (ENABLE_IONS == 1)
-        ions = NULL;
-#endif
-#if (ENABLE_ELECTRONS == 1)
-        electrons = NULL;
 
-#endif
+        ForEach<VectorAllSpecies, SetPtrToNull<void> > setPtrToNull;
+        setPtrToNull(byRef(particleStorage));
     }
 
     virtual void moduleRegisterHelp(po::options_description& desc)
@@ -161,18 +303,18 @@ public:
         }
 
         GridController<simDim>::getInstance().init(gpus, isPeriodic);
-        DataSpace<simDim> myGPUpos( GridController<simDim>::getInstance().getPosition() );
-        
+        DataSpace<simDim> myGPUpos(GridController<simDim>::getInstance().getPosition());
+
         // calculate the number of local grid cells and
         // the local cell offset to the global box        
         for (uint32_t dim = 0; dim < gridDistribution.size(); ++dim)
         {
             // parse string
-            ParserGridDistribution parserGD( gridDistribution.at(dim) );
-            
+            ParserGridDistribution parserGD(gridDistribution.at(dim));
+
             // calculate local grid points & offset
-            gridSizeLocal[dim] = parserGD.getLocalSize( myGPUpos[dim] );
-            gridOffset[dim] = parserGD.getOffset( myGPUpos[dim], global_grid_size[dim] );
+            gridSizeLocal[dim] = parserGD.getLocalSize(myGPUpos[dim]);
+            gridOffset[dim] = parserGD.getOffset(myGPUpos[dim], global_grid_size[dim]);
         }
         // by default: use an equal distributed box for all omitted params
         for (uint32_t dim = gridDistribution.size(); dim < simDim; ++dim)
@@ -235,24 +377,20 @@ public:
         __delete(fieldE);
 
         __delete(fieldJ);
-        
+
         __delete(fieldTmp);
 
         __delete(myFieldSolver);
 
-#if (ENABLE_IONS == 1)
-        __delete(ions);
-#endif
-#if (ENABLE_ELECTRONS == 1)
-        __delete(electrons);
+        ForEach<VectorAllSpecies, DeleteMemory<void> > deleteParticleMemory;
+        deleteParticleMemory(byRef(particleStorage));
 
-#endif
         __delete(laser);
     }
 
     virtual uint32_t init()
     {
-        namespace nvmem=PMacc::nvidia::memory;
+        namespace nvmem = PMacc::nvidia::memory;
         // create simulation data such as fields and particles
         fieldB = new FieldB(*cellDescription);
         fieldE = new FieldE(*cellDescription);
@@ -263,28 +401,16 @@ public:
 
         laser = new LaserPhysics(cellDescription->getGridLayout());
 
-#if (ENABLE_IONS == 1)
-        ions = new PIC_Ions(cellDescription->getGridLayout(), *cellDescription);
-#endif
-#if (ENABLE_ELECTRONS == 1)
-        electrons = new PIC_Electrons(cellDescription->getGridLayout(), *cellDescription);
-#endif
+        ForEach<VectorAllSpecies, CreateSpeciesMemory<void> > createSpeciesMemory;
+        createSpeciesMemory(byRef(particleStorage), cellDescription);
+
 
         size_t freeGpuMem(0);
         nvmem::MemoryInfo::getInstance().getMemoryInfo(&freeGpuMem);
         freeGpuMem -= totalFreeGpuMemory;
 
-#if (ENABLE_IONS == 1)
-        log<picLog::MEMORY > ("free mem before ions %1% MiB") % (freeGpuMem / 1024 / 1024);
-        ions->createParticleBuffer(freeGpuMem * memFractionIons);
-#endif
-#if (ENABLE_ELECTRONS == 1)
-        size_t memElectrons(0);
-        nvmem::MemoryInfo::getInstance().getMemoryInfo(&memElectrons);
-        memElectrons -= totalFreeGpuMemory;
-        log<picLog::MEMORY > ("free mem before electrons %1% MiB") % (memElectrons / 1024 / 1024);
-        electrons->createParticleBuffer(freeGpuMem * memFractionElectrons);
-#endif
+        ForEach<VectorAllSpecies, CreateParticleBuffer<void> > createParticleBuffer;
+        createParticleBuffer(byRef(particleStorage), freeGpuMem);
 
         nvmem::MemoryInfo::getInstance().getMemoryInfo(&freeGpuMem);
         log<picLog::MEMORY > ("free mem after all mem is allocated %1% MiB") % (freeGpuMem / 1024 / 1024);
@@ -297,13 +423,10 @@ public:
         // create field solver
         this->myFieldSolver = new fieldSolver::FieldSolver(*cellDescription);
 
-#if (ENABLE_ELECTRONS == 1)
-        electrons->init(*fieldE, *fieldB, *fieldJ, PAR_ELECTRONS);
-#endif
 
-#if (ENABLE_IONS == 1)
-        ions->init(*fieldE, *fieldB, *fieldJ, PAR_IONS);
-#endif      
+        ForEach<VectorAllSpecies, ParticleInit<void> > particleInit;
+        particleInit(byRef(particleStorage), fieldE, fieldB, fieldJ);
+
         //disabled because of a transaction system bug
         StreamController::getInstance().addStreams(6);
 
@@ -339,37 +462,27 @@ public:
      */
     virtual void runOneStep(uint32_t currentStep)
     {
-#if (ENABLE_IONS == 1)
-        __startTransaction(__getTransactionEvent());
-        //std::cout << "Begin update Ions" << std::endl;
-        ions->update(currentStep);
-        //std::cout << "End update Ions" << std::endl;
-        EventTask eRecvIons = ions->asyncCommunication(__getTransactionEvent());
-        EventTask eIons = __endTransaction();
-#endif
-#if (ENABLE_ELECTRONS == 1)
-        __startTransaction(__getTransactionEvent());
-        //std::cout << "Begin update Electrons" << std::endl;
-        electrons->update(currentStep);
-        //std::cout << "End update Electrons" << std::endl;
-        EventTask eRecvElectrons = electrons->asyncCommunication(__getTransactionEvent());
-        EventTask eElectrons = __endTransaction();
-#endif
+        EventTask initEvent = __getTransactionEvent();
+        EventTask updateEvent;
+        EventTask commEvent;
+
+        ForEach<VectorAllSpecies, UpdateSpecie<void> > particleUpdate;
+        particleUpdate(byRef(particleStorage), currentStep, initEvent, byRef(updateEvent), byRef(commEvent));
+
 
         this->myFieldSolver->update_beforeCurrent(currentStep);
 
         fieldJ->clear();
 
+        __setTransactionEvent(updateEvent + commEvent);
 #if (ENABLE_IONS == 1)
-        __setTransactionEvent(eRecvIons + eIons);
 #if (ENABLE_CURRENT ==1)
-        fieldJ->computeCurrent < CORE + BORDER, PIC_Ions > (*ions, currentStep);
+        fieldJ->computeCurrent < CORE + BORDER, typename PIC_Ions::type > (*(particleStorage[PIC_Ions_]), currentStep);
 #endif
 #endif
 #if (ENABLE_ELECTRONS == 1)
-        __setTransactionEvent(eRecvElectrons + eElectrons);
 #if (ENABLE_CURRENT ==1)
-        fieldJ->computeCurrent < CORE + BORDER, PIC_Electrons > (*electrons, currentStep);
+        fieldJ->computeCurrent < CORE + BORDER, typename PIC_Electrons::type > (*(particleStorage[PIC_Electrons_]), currentStep);
 #endif
 #endif
 
@@ -387,7 +500,7 @@ public:
     virtual void movingWindowCheck(uint32_t currentStep)
     {
         if (MovingWindow::getInstance().getVirtualWindow(currentStep).doSlide)
-        {           
+        {
             slide(currentStep);
             log<picLog::PHYSICS > ("slide in step %1%") % currentStep;
         }
@@ -399,11 +512,11 @@ public:
         fieldB->reset(currentStep);
         fieldE->reset(currentStep);
 #if (ENABLE_ELECTRONS == 1)
-        electrons->reset(currentStep);
+        particleStorage[PIC_Electrons_]->reset(currentStep);
 #endif
 
 #if (ENABLE_IONS == 1)
-        ions->reset(currentStep);
+        particleStorage[PIC_Ions_]->reset(currentStep);
 #endif
 
     }
@@ -453,9 +566,9 @@ private:
         // local size must be at least 3 supercells (1x core + 2x border)
         // note: size of border = guard_size (in supercells)
         // \todo we have to add the guard_x/y/z for modified supercells here
-        assert( (uint32_t) gridSizeLocal[0] / MappingDesc::SuperCellSize::x >= 3 * GUARD_SIZE);
-        assert( (uint32_t) gridSizeLocal[1] / MappingDesc::SuperCellSize::y >= 3 * GUARD_SIZE);
-        assert( (uint32_t) gridSizeLocal[2] / MappingDesc::SuperCellSize::z >= 3 * GUARD_SIZE);
+        assert((uint32_t) gridSizeLocal[0] / MappingDesc::SuperCellSize::x >= 3 * GUARD_SIZE);
+        assert((uint32_t) gridSizeLocal[1] / MappingDesc::SuperCellSize::y >= 3 * GUARD_SIZE);
+        assert((uint32_t) gridSizeLocal[2] / MappingDesc::SuperCellSize::z >= 3 * GUARD_SIZE);
     }
 
 
@@ -469,13 +582,10 @@ protected:
     // field solver
     fieldSolver::FieldSolver* myFieldSolver;
 
-    // particles
-#if (ENABLE_IONS == 1)
-    PIC_Ions *ions;
-#endif
-#if (ENABLE_ELECTRONS == 1)
-    PIC_Electrons *electrons;
-#endif
+    typedef typename SeqToMap<VectorAllSpecies, TypeToPointerPair>::type ParticleStorageMap;
+    typedef PMacc::math::MapTuple<ParticleStorageMap> ParticleStorage;
+
+    ParticleStorage particleStorage;
 
     LaserPhysics *laser;
 
@@ -493,7 +603,7 @@ protected:
     DataSpace<simDim> gridSizeLocal;
     DataSpace<simDim> gridOffset;
     std::vector<uint32_t> periodic;
-    
+
     std::vector<std::string> gridDistribution;
 
     bool slidingWindow;

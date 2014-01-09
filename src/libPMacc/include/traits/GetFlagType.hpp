@@ -17,39 +17,33 @@
  * You should have received a copy of the GNU General Public License 
  * and the GNU Lesser General Public License along with libPMacc. 
  * If not, see <http://www.gnu.org/licenses/>. 
- */
-
+ */ 
+ 
 
 #pragma once
 
-#include <boost/mpl/vector.hpp>
-#include <boost/mpl/copy.hpp>
-#include <boost/mpl/back_inserter.hpp>
-#include <boost/mpl/front_inserter.hpp>
-#include "compileTime/conversion/ToSeq.hpp"
-
 namespace PMacc
 {
-
-namespace bmpl = boost::mpl;
-
-/** Join both input types to one boost mpl sequence
- * 
- * @tparam T_1 a boost mpl sequence or single type
- * @tparam T_2 a boost mpl sequence or single type
- */
-
-template<typename T_1, typename T_2 = bmpl::vector0<> >
-struct JoinToSeq
+namespace traits
 {
-private:
-    typedef typename ToSeq<T_1 >::type Seq1;
-    typedef typename ToSeq<T_2 >::type Seq2;
-public:
-    typedef typename bmpl::copy<
-    Seq2,
-    bmpl::back_inserter< Seq1>
-    >::type type;
-};
 
-} //namespace PMacc
+/** Checks if a Objects has an flag
+ * 
+ * @tparam T_Object any object (class or typename)
+ * @tparam T_Key a class which is used as identifier
+ * 
+ * This struct must define 
+ * ::type (boost::bool_<>)
+ */
+template<typename T_Object, typename T_Key>
+struct GetFlagType;
+
+template<typename T_Object, typename T_Key>
+static bool getFlagType(const T_Object& obj,const T_Key& key)
+{
+    return GetFlagType<T_Object,T_Key>::type::value;
+}
+
+}//namespace traits
+
+}//namespace PMacc

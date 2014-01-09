@@ -97,41 +97,41 @@ namespace picongpu
 
 #if (ENABLE_ELECTRONS == 1)
 #if(PIC_ENABLE_PNG==1)
-        typedef Visualisation<PIC_Electrons, PngCreator> ElectronsPngBuilder;
+        typedef Visualisation<typename PIC_Electrons::type, PngCreator> ElectronsPngBuilder;
         typedef PngModule<ElectronsPngBuilder > PngImageElectrons;
 #endif
-        typedef ParticleDensity<PIC_Electrons, DensityToBinary, float_X> ElectronsBinaryDensityBuilder;
+        typedef ParticleDensity<typename PIC_Electrons::type, DensityToBinary, float_X> ElectronsBinaryDensityBuilder;
 
 #if(PIC_ENABLE_PNG==1)
-        typedef heiko::ParticleDensity<PIC_Electrons> HeikoParticleDensity;
+        typedef heiko::ParticleDensity<typename PIC_Electrons::type> HeikoParticleDensity;
         
 #endif
-        typedef ParticleSpectrum<PIC_Electrons> ElectronSpectrum;
+        typedef ParticleSpectrum<typename PIC_Electrons::type> ElectronSpectrum;
         typedef SliceFieldPrinterMulti<FieldE, FIELD_E> SliceFieldEPrinter;
         typedef SliceFieldPrinterMulti<FieldB, FIELD_B> SliceFieldBPrinter;
 
-        typedef LiveViewModule<PIC_Electrons > LiveImageElectrons;
+        typedef LiveViewModule<typename PIC_Electrons::type > LiveImageElectrons;
         typedef PngModule<ElectronsBinaryDensityBuilder > BinDensityElectrons;
-        typedef CountParticles<PIC_Electrons> ElectronCounter;
-        typedef EnergyParticles<PIC_Electrons> EnergyElectrons;
-        typedef PositionsParticles<PIC_Electrons> PositionElectrons;
-        typedef BinEnergyParticles<PIC_Electrons> BinEnergyElectrons;
+        typedef CountParticles<typename PIC_Electrons::type> ElectronCounter;
+        typedef EnergyParticles<typename PIC_Electrons::type> EnergyElectrons;
+        typedef PositionsParticles<typename PIC_Electrons::type> PositionElectrons;
+        typedef BinEnergyParticles<typename PIC_Electrons::type> BinEnergyElectrons;
 #if(ENABLE_RADIATION == 1)
-        typedef Radiation<PIC_Electrons> RadiationElectrons;
+        typedef Radiation<typename PIC_Electrons::type> RadiationElectrons;
 #endif
 #endif
 
 #if (ENABLE_IONS == 1)
 #if(PIC_ENABLE_PNG==1)
-        typedef Visualisation<PIC_Ions, PngCreator> IonsPngBuilder;
+        typedef Visualisation<typename PIC_Ions::type, PngCreator> IonsPngBuilder;
         typedef PngModule<IonsPngBuilder > PngImageIons;
 #endif
-        typedef ParticleDensity<PIC_Ions, DensityToBinary, float_X> IonsBinaryDensityBuilder;
+        typedef ParticleDensity<typename PIC_Ions::type, DensityToBinary, float_X> IonsBinaryDensityBuilder;
         typedef PngModule<IonsBinaryDensityBuilder > BinDensityIons;
-        typedef LiveViewModule<PIC_Ions > LiveImageIons;
-        typedef CountParticles<PIC_Ions> IonCounter;
-        typedef EnergyParticles<PIC_Ions> EnergyIons;
-        typedef BinEnergyParticles<PIC_Ions> BinEnergyIons;
+        typedef LiveViewModule<typename PIC_Ions::type > LiveImageIons;
+        typedef CountParticles<typename PIC_Ions::type> IonCounter;
+        typedef EnergyParticles<typename PIC_Ions::type> EnergyIons;
+        typedef BinEnergyParticles<typename PIC_Ions::type> BinEnergyIons;
 #endif
 
         virtual void init()

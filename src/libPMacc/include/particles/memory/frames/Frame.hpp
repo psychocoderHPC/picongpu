@@ -42,6 +42,7 @@
 
 #include "traits/HasIdentifier.hpp"
 #include "traits/HasFlag.hpp"
+#include "traits/GetFlagType.hpp"
 #include <boost/mpl/contains.hpp>
 
 
@@ -180,14 +181,30 @@ T_IdentifierName
 {
 private:
     typedef PMacc::Frame<T_CreatePairOperator, T_ValueTypeSeq, T_MethodsList, T_Flags> FrameType;
-public:
+    typedef typename GetFlagType<FrameType,T_IdentifierName>::type SolvedAliasName;
     typedef typename FrameType::FlagList FlagList;
-    /* if T_IdentifierName is void_ than we have no T_IdentifierName in our Sequence.
-     * check is also valid if T_Key is a alias
-     */
-    typedef typename GetKeyFromAlias<FlagList, T_IdentifierName>::type SolvedAliasName;
-
+public:
+  
     typedef bmpl::contains<FlagList, SolvedAliasName> type;
+};
+
+template<typename T_IdentifierName,
+template<typename> class T_CreatePairOperator,
+typename T_ValueTypeSeq,
+typename T_MethodsList,
+typename T_Flags
+>
+struct GetFlagType<
+PMacc::Frame<T_CreatePairOperator, T_ValueTypeSeq, T_MethodsList, T_Flags>,
+T_IdentifierName
+>
+{
+private:
+    typedef PMacc::Frame<T_CreatePairOperator, T_ValueTypeSeq, T_MethodsList, T_Flags> FrameType;
+    typedef typename FrameType::FlagList FlagList;
+public:
+    
+    typedef typename GetKeyFromAlias<FlagList, T_IdentifierName>::type type;
 };
 
 } //namespace traits
