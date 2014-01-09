@@ -59,7 +59,8 @@ public:
 
     void init(FieldE &fieldE, FieldB &fieldB, FieldJ &fieldJ, int datasetID);
 
-    void update(uint32_t currentStep);
+    template<typename T_Pusher>
+    void update(T_Pusher,uint32_t currentStep);
 
     void initFill(uint32_t currentStep);
 

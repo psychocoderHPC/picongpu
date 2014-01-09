@@ -127,7 +127,7 @@ public:
         // the simulation will start after the last saved iteration
         if (restartSim)
         {
-            simRestartInitialiser = new SimRestartInitialiser<PIC_Electrons, PIC_Ions, simDim > (
+            simRestartInitialiser = new SimRestartInitialiser<typename PIC_Electrons::type, typename PIC_Ions::type, simDim > (
                                                                                                  restartFile.c_str(),
                                                                                                  cellDescription->getGridLayout().getDataSpaceWithoutGuarding());
 
@@ -146,7 +146,7 @@ public:
 #endif
 
         // start simulation using default values
-        simStartInitialiser = new SimStartInitialiser<PIC_Electrons, PIC_Ions > ();
+        simStartInitialiser = new SimStartInitialiser<typename PIC_Electrons::type, typename PIC_Ions::type > ();
         DataConnector::getInstance().initialise(*simStartInitialiser, 0);
         __getTransactionEvent().waitForFinished();
         delete simStartInitialiser;
@@ -195,7 +195,7 @@ public:
     virtual void slide(uint32_t currentStep)
     {
 
-        simStartInitialiser = new SimStartInitialiser<PIC_Electrons, PIC_Ions > ();
+        simStartInitialiser = new SimStartInitialiser<typename PIC_Electrons::type, typename PIC_Ions::type > ();
         DataConnector::getInstance().initialise(*simStartInitialiser, currentStep);
         __getTransactionEvent().waitForFinished();
         delete simStartInitialiser;
@@ -208,12 +208,12 @@ private:
     MappingDesc *cellDescription;
 
     // different initialisers for simulation data
-    SimStartInitialiser<PIC_Electrons, PIC_Ions>* simStartInitialiser;
+    SimStartInitialiser<typename PIC_Electrons::type, typename PIC_Ions::type>* simStartInitialiser;
 #if (ENABLE_HDF5==1)
-    SimRestartInitialiser<PIC_Electrons, PIC_Ions, simDim> *simRestartInitialiser;
+    SimRestartInitialiser<typename PIC_Electrons::type, typename PIC_Ions::type, simDim> *simRestartInitialiser;
 #endif
 #if(ENABLE_SIMLIB==1)
-    SimDescriptionInitialiser<PIC_Electrons, PIC_Ions, simDim> *simDescriptionInitialiser;
+    SimDescriptionInitialiser<typename PIC_Electrons::type, typename PIC_Ions::type, simDim> *simDescriptionInitialiser;
 #endif
 
     bool loadSim;

@@ -71,7 +71,7 @@ struct WriteSpecies
 {
 public:
 
-    typedef T_Species ThisSpecies;
+    typedef typename T_Species::type ThisSpecies;
     typedef typename ThisSpecies::FrameType FrameType;
     typedef typename FrameType::ValueTypeSeq ParticleAttributeList;
     typedef typename FrameType::MethodsList ParticleMethodsList;
