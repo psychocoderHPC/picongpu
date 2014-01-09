@@ -27,7 +27,25 @@
  *
  * @author Heiko Burau, Rene Widera, Wolfgang Hoenig, Felix Schmitt, Axel Huebl, Michael Bussmann, Guido Juckeland
  */
+#define BOOST_MPL_AUX_HAS_TAG_HPP_INCLUDED
 
+#include <boost/mpl/bool.hpp>
+#include <boost/mpl/aux_/type_wrapper.hpp>
+#include <boost/mpl/aux_/yes_no.hpp>
+
+namespace boost { namespace mpl { namespace aux {
+template< typename T, typename fallback_ = boost::mpl::bool_<false> >
+        struct has_tag {
+                struct gcc_3_2_wknd
+                {
+                        template< typename U >
+                        static boost::mpl::aux::yes_tag test(   boost::mpl::aux::type_wrapper<U> const volatile* , boost::mpl::aux::type_wrapper<typename U::tag>* = 0 );
+                        static boost::mpl::aux::no_tag test(...);
+                };
+                typedef boost::mpl::aux::type_wrapper<T> t_;
+                static const bool value = sizeof(gcc_3_2_wknd::test(static_cast<t_*>(0))) == sizeof(boost::mpl::aux::yes_tag);
+                typedef boost::mpl::bool_<value> type; };
+}}}
 
 #include <simulation_defines.hpp>
 #include <mpi.h>

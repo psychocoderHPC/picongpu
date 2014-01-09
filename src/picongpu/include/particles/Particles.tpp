@@ -128,10 +128,17 @@ void Particles<T_ParticleDescription>::init( FieldE &fieldE, FieldB &fieldB, Fie
     DataConnector::getInstance( ).registerData( *this, datasetID );
 }
 
-template< typename T_ParticleDescription>
-void Particles<T_ParticleDescription>::update( uint32_t )
+template<typename T>
+struct GetType
 {
-    typedef particlePusher::ParticlePusher ParticlePush;
+    typedef typename T::type type;
+};
+
+template<typename T_ParticleDescription>
+template< typename T_Pusher>
+void Particles<T_ParticleDescription>::update(T_Pusher,uint32_t )
+{
+    typedef typename GetType<T_Pusher>::type ParticlePush;
 
     typedef typename GetMargin<fieldSolver::FieldToParticleInterpolation>::LowerMargin LowerMargin;
     typedef typename GetMargin<fieldSolver::FieldToParticleInterpolation>::UpperMargin UpperMargin;

@@ -29,12 +29,18 @@
 #include "identifier/identifier.hpp"
 #include "identifier/alias.hpp"
 #include "identifier/value_identifier.hpp"
+#include "identifier/named_type.hpp"
 
 #include "particles/Particles.def"
 #include "particles/species/ions/IonMethods.def"
 #include "particles/species/electrons/ElectronMethods.def"
 
 #include "particles/ParticleDescription.hpp"
+
+/*enable (1) or disable (0) ions*/
+#define ENABLE_IONS 1
+/*enable (1) or disable (0) electrons*/
+#define ENABLE_ELECTRONS 1
 
 namespace picongpu
 {
@@ -100,7 +106,8 @@ radiationFlag
 #endif
 >::type AttributRadiationFlag;
 
-
+    alias(usedPusher);
+    
 typedef
 typename MakeSeq<
 DefaultParticleAttributes,
@@ -108,14 +115,22 @@ AttributMomentum_mt1,
 AttributRadiationFlag
 >::type DefaultAttributesSeq;
 
-typedef Particles<
-    ParticleDescription<DefaultAttributesSeq, ElectronsMethodsList>
-> PIC_Electrons;
+typedef typename MakeSeq<usedPusher<PusherBoris> >::type ParticleFlags;
 
-typedef Particles<
-    ParticleDescription< DefaultAttributesSeq, IonsMethodsList >
-> PIC_Ions;
+typedef Particles<ParticleDescription<DefaultAttributesSeq, ElectronsMethodsList, ParticleFlags> > p_Electrons;
+typedef Particles<ParticleDescription< DefaultAttributesSeq, IonsMethodsList, ParticleFlags > > p_Ions;
 
+named_type(p_Electrons,
+           PIC_Electrons,
+           static const uint32_t id = PAR_ELECTRONS;
+           static const size_t memPercent = 50;
+           );
+
+named_type(p_Ions,
+           PIC_Ions,
+           static const uint32_t id = PAR_IONS;
+           static const size_t memPercent = 50;
+           );
 
 /** \todo: not nice, but this should be changed in the future
  *   At the moment diable a species is done by defines, in feuture we only support
