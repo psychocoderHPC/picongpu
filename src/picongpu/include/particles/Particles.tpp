@@ -90,7 +90,7 @@ void Particles<T_DataVector,T_MethodsVector>::createParticleBuffer( size_t gpuMe
     if ( gpuMemory >= UINT_MAX )
         gpuMemory = (size_t) ( UINT_MAX - 2 );
 
-    this->particlesBuffer->createParticleBuffer( gpuMemory );
+    this->particlesBuffer->createParticleBuffer( );
 
 }
 
@@ -103,13 +103,13 @@ Particles<T_DataVector,T_MethodsVector>::~Particles( )
 template< typename T_DataVector, typename T_MethodsVector>
 void Particles<T_DataVector,T_MethodsVector>::synchronize( )
 {
-    this->particlesBuffer->deviceToHost( );
+   
 }
 
 template< typename T_DataVector, typename T_MethodsVector>
 void Particles<T_DataVector,T_MethodsVector>::syncToDevice( )
 {
-    this->particlesBuffer->hostToDevice( );
+
 }
 
 template< typename T_DataVector, typename T_MethodsVector>

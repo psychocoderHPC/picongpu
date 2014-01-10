@@ -17,8 +17,8 @@
  * You should have received a copy of the GNU General Public License 
  * and the GNU Lesser General Public License along with libPMacc. 
  * If not, see <http://www.gnu.org/licenses/>. 
- */ 
- 
+ */
+
 #ifndef SUPERCELL_HPP
 #define	SUPERCELL_HPP
 
@@ -28,16 +28,14 @@
 namespace PMacc
 {
 
-
-
 template <class TYPE>
 class SuperCell
 {
 public:
 
     HDINLINE SuperCell() :
-    firstFrameIdx(INV_IDX),
-    lastFrameIdx(INV_IDX),
+    firstFramePtr(NULL),
+    lastFramePtr(NULL),
     mustShiftVal(false),
     sizeLastFrame(0)
     {
@@ -48,24 +46,24 @@ public:
 
     }
 
-    HDINLINE TYPE& FirstFrameIdx()
+    HDINLINE void* FirstFramePtr()
     {
-        return firstFrameIdx;
+        return firstFramePtr;
     }
 
-    HDINLINE TYPE& LastFrameIdx()
+    HDINLINE void* LastFramePtr()
     {
-        return lastFrameIdx;
+        return lastFramePtr;
     }
 
-    HDINLINE TYPE FirstFrameIdx() const
+    HDINLINE void* FirstFramePtr() const
     {
-        return firstFrameIdx;
+        return firstFramePtr;
     }
 
-    HDINLINE TYPE LastFrameIdx() const
+    HDINLINE void* LastFramePtr() const
     {
-        return lastFrameIdx;
+        return lastFramePtr;
     }
 
     HDINLINE bool mustShift()
@@ -88,11 +86,12 @@ public:
         sizeLastFrame = size;
     }
 
+
+
+
+    PMACC_ALIGN(firstFramePtr, void*);
+    PMACC_ALIGN(lastFramePtr, void*);
 private:
-
-
-    PMACC_ALIGN(firstFrameIdx, TYPE);
-    PMACC_ALIGN(lastFrameIdx, TYPE);
     PMACC_ALIGN(mustShiftVal, bool);
     PMACC_ALIGN(sizeLastFrame, lcellId_t);
 };

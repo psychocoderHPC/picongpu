@@ -28,6 +28,21 @@
  * @author Heiko Burau, Rene Widera, Wolfgang Hoenig, Felix Schmitt, Axel Huebl, Michael Bussmann, Guido Juckeland
  */
 
+//replace the cuda malloc and free calls
+#define SCATTERALLOC_OVERWRITE_MALLOC 1
+
+//set the template arguments using SCATTERALLOC_HEAPARGS
+// pagesize ... byter per page
+// accessblocks ... number of superblocks
+// regionsize ... number of regions for meta data structur
+// wastefactor ... how much memory can be wasted per alloc (multiplicative factor)
+// use_coalescing ... combine memory requests of within each warp
+// resetfreedpages ... allow pages to be reused with a different size
+#define SCATTERALLOC_HEAPARGS 4*1024*1024, 8, 16, 2, true, false
+
+//include the scatter alloc heap
+#include "scatteralloc/heap_impl.cuh"
+#include "scatteralloc/utils.h"
 
 #include <simulation_defines.hpp>
 #include <mpi.h>

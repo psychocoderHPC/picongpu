@@ -17,8 +17,8 @@
  * You should have received a copy of the GNU General Public License 
  * and the GNU Lesser General Public License along with libPMacc. 
  * If not, see <http://www.gnu.org/licenses/>. 
- */ 
- 
+ */
+
 
 #ifndef PARTICLESBOX_HPP
 #define	PARTICLESBOX_HPP
@@ -29,11 +29,10 @@
 #include "dimensions/DataSpace.hpp"
 #include "particles/memory/dataTypes/SuperCell.hpp"
 #include "memory/boxes/PitchedBox.hpp"
+#include "particles/memory/dataTypes/Pointer.hpp"
 
 namespace PMacc
 {
-
-
 
 /**
  * A DIM-dimensional Box holding frames with particle data.
@@ -47,13 +46,12 @@ class ParticlesBox
 public:
 
     typedef FRAME FrameType;
-    static const uint32_t Dim=DIM;
+    typedef Pointer<FrameType> FramePtr;
 
-    HDINLINE ParticlesBox(const DataBox<PitchedBox<SuperCell<vint_t>, DIM> > &superCells,
-                         const HeapDataBox<vint_t, FRAME>& data,
-                         const VectorDataBox<vint_t>& nextFrames,
-                         const VectorDataBox<vint_t>& prevFrames) :
-    superCells(superCells), data(data), next(nextFrames), prev(prevFrames)
+    static const uint32_t Dim = DIM;
+
+    HDINLINE ParticlesBox(const DataBox<PitchedBox<SuperCell<vint_t>, DIM> > &superCells) :
+    superCells(superCells)
     {
 
     }
@@ -65,7 +63,7 @@ public:
      */
     HDINLINE FRAME &getEmptyFrame()
     {
-        return data.pop();
+        return *(FramePtr(new FrameType));
     }
 
     /**
@@ -73,69 +71,35 @@ public:
      *
      * @param frame FRAME to remove
      */
-    HDINLINE void removeFrame(FRAME &frame)
+    HDINLINE void removeFrame(const FRAME &frame)
     {
-        data.push(frame);
+        delete &frame;
     }
 
     /**
      * Returns the next frame in the linked list.
      *
      * @param frame the active FRAME
-     * @param isValid false if there is no next frame (returned frame is not unknown),
-     * true otherwise (returned frame is the next frame)
      * @return the next frame in the list
      */
     HDINLINE FRAME& getNextFrame(FRAME &frame, bool &isValid)
     {
-        vint_t myId = getFrameIdx(frame);
-        vint_t nextId = next[myId];
-        /*!\todo: BUG: prev[nextId]!=myId fix fermi bug on shiftparticles
-         * on fermi isValid sometimes never became the state false
-         */
-        if (nextId == INV_IDX)
-        {
-
-            isValid = false;
-            return frame;
-        }
-        else
-        {
-        //    if (prev[nextId] != myId)
-        //        printf("prevBug next %d->%d\n", prev[nextId], myId);
-            isValid = true;
-            return data[nextId];
-        }
+        FramePtr tmp = frame.nextFrame;
+        isValid = tmp.isValid();
+        return *tmp;
     }
 
     /**
      * Returns the previous frame in the linked list.
      *
      * @param frame the active FRAME
-     * @param ret false if there is no previous frame (returned frame is not unknown),
-     * true otherwise (returned frame is the previous frame)
      * @return the previous frame in the list
      */
-    HDINLINE FRAME& getPreviousFrame(FRAME &frame, bool &ret)
+    HDINLINE FRAME& getPreviousFrame(FRAME &frame, bool &isValid)
     {
-        vint_t myId = getFrameIdx(frame);
-        vint_t prevId = prev[myId];
-        /*!\todo: BUG: prev[nextId]!=myId fix fermi bug on shiftparticles
-         * on fermi isValid sometimes never became the state false
-         */
-        if (prevId == INV_IDX)
-        {
-
-            ret = false;
-            return frame;
-        }
-        else
-        {
-          //  if (next[prevId] != myId)
-          //      printf("nextBug prev %d->%d\n", next[prevId], myId);
-            ret = true;
-            return data[prevId];
-        }
+        FramePtr tmp = frame.previousFrame;
+        isValid = tmp.isValid();
+        return *tmp;
     }
 
     /**
@@ -146,12 +110,9 @@ public:
      */
     HDINLINE FRAME& getLastFrame(const DataSpace<DIM> &idx, bool &isValid)
     {
-        const vint_t frameId = superCells(idx).LastFrameIdx();
-        isValid = (frameId != INV_IDX);
-        if (isValid)
-            return this->data[frameId];
-        else
-            return this->data[0];
+        FramePtr tmp = FramePtr((FrameType*) (superCells(idx).LastFramePtr()));
+        isValid = tmp.isValid();
+        return *tmp;
     }
 
     /**
@@ -162,12 +123,10 @@ public:
      */
     HDINLINE FRAME& getFirstFrame(const DataSpace<DIM> &idx, bool &isValid)
     {
-        const vint_t frameId = superCells(idx).FirstFrameIdx();
-        isValid = (frameId != INV_IDX);
-        if (isValid)
-            return this->data[frameId];
-        else
-            return this->data[0];
+        FramePtr tmp = FramePtr((FrameType*) (superCells(idx).FirstFramePtr()));
+        isValid = tmp.isValid();
+        return *tmp;
+
     }
 
     /**
@@ -176,30 +135,29 @@ public:
      * @param frame frame to set as first frame
      * @param idx position of supercell
      */
-    HDINLINE void setAsFirstFrame(FRAME &frame, const DataSpace<DIM> &idx)
+    HDINLINE void setAsFirstFrame(FRAME &frameIn, const DataSpace<DIM> &idx)
     {
-        vint_t* firstFrameIdx = &(superCells(idx).FirstFrameIdx());
-        vint_t index = getFrameIdx(frame);
-        prev[index] = INV_IDX;
-        next[index] = *firstFrameIdx;
+        FramePtr frame(&frameIn);
+        void** firstFrameNativPtr = &(superCells(idx).firstFramePtr);
 
-        vint_t oldIndex;
+        frame->previousFrame = FramePtr();
+        frame->nextFrame = FramePtr((FrameType*) (*firstFrameNativPtr));
+
 #if !defined(__CUDA_ARCH__) // Host code path
-        oldIndex = *firstFrameIdx;
-        *firstFrameIdx = index;
+        FramePtr oldFirstFramePtr((FrameType*) (*firstFrameNativPtr));
+        *firstFrameNativPtr = frame.ptr;
 #else
-        oldIndex = atomicExch(firstFrameIdx, index);
+        FramePtr oldFirstFramePtr((FrameType*) atomicExch((unsigned long long int*) firstFrameNativPtr, (unsigned long long int) frame.ptr));
 #endif
-
-        next[index] = oldIndex;
-        if (oldIndex != INV_IDX)
+        frame->nextFrame = oldFirstFramePtr;
+        if (oldFirstFramePtr.isValid())
         {
-            prev[oldIndex] = index;
+            oldFirstFramePtr->previousFrame = frame;
         }
         else
         {
             //we add the first frame in supercell
-            superCells(idx).LastFrameIdx() = index;
+            superCells(idx).lastFramePtr = frame.ptr;
         }
     }
 
@@ -209,31 +167,29 @@ public:
      * @param frame frame to set as last frame
      * @param idx position of supercell
      */
-    HDINLINE void setAsLastFrame(FRAME &frame, const DataSpace<DIM> &idx)
+    HDINLINE void setAsLastFrame(FRAME &frameIn, const DataSpace<DIM> &idx)
     {
+        FramePtr frame(&frameIn);
+        void** lastFrameNativPtr = &(superCells(idx).lastFramePtr);
 
-        vint_t* lastFrameIdx = &(superCells(idx).LastFrameIdx());
-        vint_t index = getFrameIdx(frame);
-        next[index] = INV_IDX;
-        prev[index] = *lastFrameIdx;
+        frame->nextFrame = FramePtr();
+        frame->previousFrame = FramePtr((FrameType*) (*lastFrameNativPtr));
 
-        vint_t oldIndex;
 #if !defined(__CUDA_ARCH__) // Host code path
-        oldIndex = *lastFrameIdx;
-        *lastFrameIdx = index;
+        FramePtr oldLastFramePtr((FrameType*) (*lastFrameNativPtr));
+        *lastFrameNativPtr = frame.ptr;
 #else
-        oldIndex = atomicExch(lastFrameIdx, index);
+        FramePtr oldLastFramePtr((FrameType*) atomicExch((unsigned long long int*) lastFrameNativPtr, (unsigned long long int) frame.ptr));
 #endif
-
-        prev[index] = oldIndex;
-        if (oldIndex != INV_IDX)
+        frame->previousFrame = oldLastFramePtr;
+        if (oldLastFramePtr.isValid())
         {
-            next[oldIndex] = index;
+            oldLastFramePtr->nextFrame = frame;
         }
         else
         {
             //we add the first frame in supercell
-            superCells(idx).FirstFrameIdx() = index;
+            superCells(idx).firstFramePtr = frame.ptr;
         }
     }
 
@@ -247,25 +203,25 @@ public:
     HDINLINE bool removeLastFrame(const DataSpace<DIM> &idx)
     {
         //!\todo this is not thread save
-        vint_t *lastFrameIdx = &(superCells(idx).LastFrameIdx());
-        const vint_t last_id = *lastFrameIdx;
+        void** lastFrameNativPtr = &(superCells(idx).lastFramePtr);
 
-        const vint_t prev_id = prev[last_id];
-        prev[last_id] = INV_IDX; //delete previous frame of the frame which we remove
+        FramePtr last((FrameType*) (*lastFrameNativPtr));
 
-        if (prev_id != INV_IDX)
+        FramePtr prev(last->previousFrame);
+        last->previousFrame = FramePtr(); //delete previous frame of the frame which we remove
+
+        if (prev.isValid())
         {
-            //prev_id is Valid
-            next[prev_id] = INV_IDX; //clear next of previous frame
-            *lastFrameIdx = prev_id; //set new last particle
-            removeFrame(data[last_id]);
+            prev->nextFrame = FramePtr(); //clear next of previous frame
+            *lastFrameNativPtr = prev.ptr; //set new last particle
+            removeFrame(*last);
             return true;
         }
         //remove last frame of supercell
-        vint_t *firstFrameIdx = &(superCells(idx).FirstFrameIdx());
-        *firstFrameIdx = INV_IDX;
-        *lastFrameIdx = INV_IDX;
-        removeFrame(data[last_id]);
+        superCells(idx).firstFramePtr = NULL;
+        superCells(idx).lastFramePtr = NULL;
+
+        removeFrame(*last);
         return false;
     }
 
@@ -276,18 +232,9 @@ public:
 
 private:
 
-    HDINLINE vint_t getFrameIdx(const FRAME& frame) const
-    {
-        //const double x = (double) (sizeof (FRAME));
-        //return (vint_t) floor(((double) ((size_t) (&frame) - (size_t)&(data[0])) / x + 0.00001));
 
-        return ((size_t) (&frame) - (size_t)(&(data[0]))) / sizeof (FRAME);
-    }
 
     PMACC_ALIGN8(superCells, DataBox<PitchedBox<SuperCell<vint_t>, DIM> >);
-    PMACC_ALIGN8(data, HeapDataBox<vint_t, FRAME>);
-    PMACC_ALIGN(next, VectorDataBox<vint_t>);
-    PMACC_ALIGN(prev, VectorDataBox<vint_t>);
 
 };
 

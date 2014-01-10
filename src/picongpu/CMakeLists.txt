@@ -97,6 +97,9 @@ if(CUDA_KEEP_FILES)
     set(CUDA_NVCC_FLAGS "${CUDA_NVCC_FLAGS}" --keep --keep-dir "${PROJECT_BINARY_DIR}/nvcc_tmp")
 endif(CUDA_KEEP_FILES)
 
+include_directories(${CMAKE_CURRENT_BINARY_DIR}/../../scatterAlloc/src/include/)
+include_directories(${CMAKE_CURRENT_BINARY_DIR}/../../scatterAlloc/)
+
 
 ################################################################################
 # Build type (debug, release)

@@ -33,7 +33,7 @@
 #include "fields/FieldB.hpp"
 
 #if (ENABLE_HDF5==1)
-#include "initialization/SimRestartInitialiser.hpp"
+//#include "initialization/SimRestartInitialiser.hpp"
 #endif
 #include "initialization/SimStartInitialiser.hpp"
 #include "particles/Species.hpp"
@@ -60,12 +60,14 @@ public:
     restartFile("h5"),
     xmlFile("sim.x()ml"),
     simStartInitialiser(NULL)
+    /*/
 #if(ENABLE_SIMLIB==1)
     , simDescriptionInitialiser(NULL)
 #endif
 #if (ENABLE_HDF5==1)
     , simRestartInitialiser(NULL)
 #endif
+     */
     {
         //ModuleConnector::getInstance().registerModule(this);
     }
@@ -128,6 +130,7 @@ public:
         // the simulation will start after the last saved iteration
         if (restartSim)
         {
+            /*
             simRestartInitialiser = new SimRestartInitialiser<PIC_Electrons, PIC_Ions, simDim > (
                                                                                                  restartFile.c_str(),
                                                                                                  globalRootCell,
@@ -142,7 +145,8 @@ public:
             simRestartInitialiser = NULL;
 
             std::cout << "Loading from hdf5 finished, can start program" << std::endl;
-
+             */
+            uint32_t simulationStep =0;
             return simulationStep;
         }
 #endif
@@ -211,13 +215,14 @@ private:
 
     // different initialisers for simulation data
     SimStartInitialiser<PIC_Electrons, PIC_Ions>* simStartInitialiser;
+    /*
 #if (ENABLE_HDF5==1)
     SimRestartInitialiser<PIC_Electrons, PIC_Ions, simDim> *simRestartInitialiser;
 #endif
 #if(ENABLE_SIMLIB==1)
     SimDescriptionInitialiser<PIC_Electrons, PIC_Ions, simDim> *simDescriptionInitialiser;
 #endif
-
+*/
     bool loadSim;
     bool restartSim;
     std::string restartFile;

@@ -140,11 +140,6 @@ public:
      */
     void insertParticles(uint32_t exchangeType);
 
-    ParticlesBoxType getHostParticlesBox()
-    {
-        return particlesBuffer->getHostParticleBox();
-    }
-
     ParticlesBoxType getDeviceParticlesBox()
     {
         return particlesBuffer->getDeviceParticleBox();

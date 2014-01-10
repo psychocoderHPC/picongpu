@@ -16,8 +16,8 @@
  * You should have received a copy of the GNU General Public License 
  * along with PIConGPU.  
  * If not, see <http://www.gnu.org/licenses/>. 
- */ 
- 
+ */
+
 
 
 #ifndef MYSIMULATION_HPP
@@ -161,18 +161,18 @@ public:
         }
 
         GridController<simDim>::getInstance().init(gpus, isPeriodic);
-        DataSpace<simDim> myGPUpos( GridController<simDim>::getInstance().getPosition() );
-        
+        DataSpace<simDim> myGPUpos(GridController<simDim>::getInstance().getPosition());
+
         // calculate the number of local grid cells and
         // the local cell offset to the global box        
         for (uint32_t dim = 0; dim < gridDistribution.size(); ++dim)
         {
             // parse string
-            ParserGridDistribution parserGD( gridDistribution.at(dim) );
-            
+            ParserGridDistribution parserGD(gridDistribution.at(dim));
+
             // calculate local grid points & offset
-            gridSizeLocal[dim] = parserGD.getLocalSize( myGPUpos[dim] );
-            gridOffset[dim] = parserGD.getOffset( myGPUpos[dim], global_grid_size[dim] );
+            gridSizeLocal[dim] = parserGD.getLocalSize(myGPUpos[dim]);
+            gridOffset[dim] = parserGD.getOffset(myGPUpos[dim], global_grid_size[dim]);
         }
         // by default: use an equal distributed box for all omitted params
         for (uint32_t dim = gridDistribution.size(); dim < simDim; ++dim)
@@ -235,7 +235,7 @@ public:
         __delete(fieldE);
 
         __delete(fieldJ);
-        
+
         __delete(fieldTmp);
 
         __delete(myFieldSolver);
@@ -252,7 +252,7 @@ public:
 
     virtual uint32_t init()
     {
-        namespace nvmem=PMacc::nvidia::memory;
+        namespace nvmem = PMacc::nvidia::memory;
         // create simulation data such as fields and particles
         fieldB = new FieldB(*cellDescription);
         fieldE = new FieldE(*cellDescription);
@@ -274,6 +274,8 @@ public:
         nvmem::MemoryInfo::getInstance().getMemoryInfo(&freeGpuMem);
         freeGpuMem -= totalFreeGpuMemory;
 
+        size_t heapMem = freeGpuMem;
+
 #if (ENABLE_IONS == 1)
         log<picLog::MEMORY > ("free mem before ions %1% MiB") % (freeGpuMem / 1024 / 1024);
         ions->createParticleBuffer(freeGpuMem * memFractionIons);
@@ -285,6 +287,9 @@ public:
         log<picLog::MEMORY > ("free mem before electrons %1% MiB") % (memElectrons / 1024 / 1024);
         electrons->createParticleBuffer(freeGpuMem * memFractionElectrons);
 #endif
+
+        initHeap(heapMem);
+        //cudaDeviceSetLimit(cudaLimitMallocHeapSize, heapMem);
 
         nvmem::MemoryInfo::getInstance().getMemoryInfo(&freeGpuMem);
         log<picLog::MEMORY > ("free mem after all mem is allocated %1% MiB") % (freeGpuMem / 1024 / 1024);
@@ -387,7 +392,7 @@ public:
     virtual void movingWindowCheck(uint32_t currentStep)
     {
         if (MovingWindow::getInstance().getVirtualWindow(currentStep).doSlide)
-        {           
+        {
             slide(currentStep);
             log<picLog::PHYSICS > ("slide in step %1%") % currentStep;
         }
@@ -453,9 +458,9 @@ private:
         // local size must be at least 3 supercells (1x core + 2x border)
         // note: size of border = guard_size (in supercells)
         // \todo we have to add the guard_x/y/z for modified supercells here
-        assert( (uint32_t) gridSizeLocal[0] / MappingDesc::SuperCellSize::x >= 3 * GUARD_SIZE);
-        assert( (uint32_t) gridSizeLocal[1] / MappingDesc::SuperCellSize::y >= 3 * GUARD_SIZE);
-        assert( (uint32_t) gridSizeLocal[2] / MappingDesc::SuperCellSize::z >= 3 * GUARD_SIZE);
+        assert((uint32_t) gridSizeLocal[0] / MappingDesc::SuperCellSize::x >= 3 * GUARD_SIZE);
+        assert((uint32_t) gridSizeLocal[1] / MappingDesc::SuperCellSize::y >= 3 * GUARD_SIZE);
+        assert((uint32_t) gridSizeLocal[2] / MappingDesc::SuperCellSize::z >= 3 * GUARD_SIZE);
     }
 
 
@@ -493,7 +498,7 @@ protected:
     DataSpace<simDim> gridSizeLocal;
     DataSpace<simDim> gridOffset;
     std::vector<uint32_t> periodic;
-    
+
     std::vector<std::string> gridDistribution;
 
     bool slidingWindow;

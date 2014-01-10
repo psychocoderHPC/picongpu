@@ -42,6 +42,7 @@
 
 #include "traits/HasIdentifier.hpp"
 #include <boost/mpl/contains.hpp>
+#include "particles/memory/dataTypes/Pointer.hpp"
 
 
 namespace PMacc
@@ -137,7 +138,9 @@ protected pmath::MapTuple<typename SeqToMap<T_ValueTypeSeq, T_CreatePairOperator
         typedef typename GetKeyFromAlias<ValueTypeSeq, T_Key>::type Key;
         return BaseType::operator[](Key());
     }
-
+    
+    Pointer<ThisType> previousFrame;
+    Pointer<ThisType> nextFrame;
 };
 
 namespace traits
