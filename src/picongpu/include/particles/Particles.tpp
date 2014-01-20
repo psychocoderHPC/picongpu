@@ -174,9 +174,9 @@ void Particles<T_DataVector,T_MethodsVector>::initFill( uint32_t currentStep )
     DataSpace<simDim> gpuCellOffset = simBox.getGlobalOffset( );
     gpuCellOffset.y( ) += window.slides * localCells.y( );
 
-    // seed= (MPI_SIZE*CommunicationTag+MPI_Rank)^AlgoSeed 
-    uint32_t seed = GridController<DIM3>::getInstance( ).getGlobalSize( ) * FrameType::CommunicationTag
-        + GridController<DIM3>::getInstance( ).getGlobalRank( );
+
+    uint32_t seed = GridController<simDim>::getInstance( ).getGlobalSize( ) * FrameType::CommunicationTag
+        + GridController<simDim>::getInstance( ).getGlobalRank( );
     seed ^= POSITION_SEED;
     dim3 block( MappingDesc::SuperCellSize::getDataSpace( ) );
 
@@ -217,9 +217,9 @@ void Particles<T_DataVector,T_MethodsVector>::deviceAddTemperature( float_X ener
 {
     dim3 block( MappingDesc::SuperCellSize::getDataSpace( ) );
     DataSpace<simDim> superCells = this->particlesBuffer->getSuperCellsCount( );
-    // seed= (MPI_SIZE*CommunicationTag+MPI_Rank)^AlgoSeed 
-    uint32_t seed = GridController<DIM3>::getInstance( ).getGlobalSize( ) * FrameType::CommunicationTag
-        + GridController<DIM3>::getInstance( ).getGlobalRank( );
+
+    uint32_t seed = GridController<simDim>::getInstance( ).getGlobalSize( ) * FrameType::CommunicationTag
+        + GridController<simDim>::getInstance( ).getGlobalRank( );
     seed ^= TEMPERATURE_SEED;
 
     __picKernelArea( kernelAddTemperature, this->cellDescription, CORE + BORDER + GUARD )

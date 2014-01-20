@@ -16,8 +16,8 @@
  * You should have received a copy of the GNU General Public License 
  * along with PIConGPU.  
  * If not, see <http://www.gnu.org/licenses/>. 
- */ 
- 
+ */
+
 
 
 #pragma once
@@ -33,14 +33,14 @@ using namespace PMacc;
 
 struct Line
 {
-    float3_X pos0;
-    float3_X pos1;
+    floatD_X pos0;
+    floatD_X pos1;
 
-    DINLINE Line(const float3_X& pos0, const float3_X & pos1) : pos0(pos0), pos1(pos1)
+    DINLINE Line(const floatD_X& pos0, const floatD_X & pos1) : pos0(pos0), pos1(pos1)
     {
     }
 
-    DINLINE Line& operator-=(const float3_X & rhs)
+    DINLINE Line& operator-=(const floatD_X & rhs)
     {
         pos0 -= rhs;
         pos1 -= rhs;
@@ -48,12 +48,12 @@ struct Line
     }
 };
 
-DINLINE Line operator-(const Line& lhs, const float3_X& rhs)
+DINLINE Line operator-(const Line& lhs, const floatD_X& rhs)
 {
     return Line(lhs.pos0 - rhs, lhs.pos1 - rhs);
 }
 
-DINLINE Line operator-(const float3_X& lhs, const Line& rhs)
+DINLINE Line operator-(const floatD_X& lhs, const Line& rhs)
 {
     return Line(lhs - rhs.pos0, lhs - rhs.pos1);
 }
@@ -65,6 +65,12 @@ DINLINE float3_X rotateOrigin(const float3_X& vec)
 {
     return float3_X(vec[newXAxis], vec[newYAxis], vec[newZAxis]);
 }
+
+template<int newXAxis, int newYAxis>
+DINLINE float2_X rotateOrigin(const float2_X& vec)
+{
+    return float2_X(vec[newXAxis], vec[newYAxis]);
+}
 ///auxillary function to rotate a line
 
 template<int newXAxis, int newYAxis, int newZAxis>
@@ -72,6 +78,14 @@ DINLINE Line rotateOrigin(const Line& line)
 {
     Line result(rotateOrigin<newXAxis, newYAxis, newZAxis > (line.pos0),
                 rotateOrigin<newXAxis, newYAxis, newZAxis > (line.pos1));
+    return result;
+}
+
+template<int newXAxis, int newYAxis>
+DINLINE Line rotateOrigin(const Line& line)
+{
+    Line result(rotateOrigin<newXAxis, newYAxis > (line.pos0),
+                rotateOrigin<newXAxis, newYAxis > (line.pos1));
     return result;
 }
 

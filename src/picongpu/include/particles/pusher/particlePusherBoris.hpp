@@ -24,6 +24,7 @@
 #define	PARTICLEPUSHERBORIS_HPP
 
 #include "types.h"
+#include "simulation_defines.hpp"
 
 namespace picongpu
 {
@@ -79,4 +80,3 @@ struct Push
 }
 
 #endif	/* PARTICLEPUSHERBORIS_HPP */
-

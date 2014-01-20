@@ -31,6 +31,7 @@
 #include "math/vector/Vector.hpp"
 #include "math/vector/Size_t.hpp"
 
+#include <boost/static_assert.hpp>
 
 namespace PMacc
 {
@@ -61,7 +62,7 @@ namespace PMacc
             {
                 (*this)[i] = 0;
             }
-        }
+        }     
 
         /**
          * constructor.
@@ -373,6 +374,7 @@ namespace PMacc
         this->y() = y;
     }
 
+    
     template <>
     inline DataSpace<DIM3>::DataSpace(int x, int y, int z)
     {
@@ -380,6 +382,7 @@ namespace PMacc
         this->y() = y;
         this->z() = z;
     }
+     
 
 } //namespace PMacc
 
