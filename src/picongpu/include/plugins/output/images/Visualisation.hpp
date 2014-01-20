@@ -674,9 +674,6 @@ private:
 #if(SIMDIM==DIM3)
         const bool tmp = globalRootCellPos[sliceDim] + SubGrid<simDim>::getInstance().getSimulationBox().getLocalSize()[sliceDim] > sliceOffset &&
               globalRootCellPos[sliceDim] <= sliceOffset;
-         std::cout << "do drawing ." << tmp << "." <<
-                 globalRootCellPos[sliceDim] + cellDescription->getGridLayout().getDataSpaceWithoutGuarding()[sliceDim] << ">" << sliceOffset <<
-                 "&&" << globalRootCellPos[sliceDim] << "<=" << sliceOffset << std::endl;
         return tmp;
 #else
         return true;
