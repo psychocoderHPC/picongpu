@@ -202,7 +202,7 @@ namespace PMacc
          */
         static ExchangeType getMirroredExchangeType(uint32_t ex)
         {
-            if (ex > MAX_EXCHANGE_TYPE)
+            if (ex >= numberExchangeTypes[DIM3])
                 throw std::runtime_error("parameter exceeds allowed maximum");
 
             Mask mask(ex);

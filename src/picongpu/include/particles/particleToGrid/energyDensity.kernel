@@ -148,7 +148,7 @@ namespace picongpu
                     * ( math::abs2( mom_dt ) -
                         math::abs2( math::cross(mom, mom_dt) ) );
 #endif
-                const float_X particleChargeDensity = charge / ( CELL_WIDTH * CELL_HEIGHT * CELL_DEPTH );
+                const float_X particleChargeDensity = charge / ( CELL_VOLUME );
 
                 /** Shift to the cell the particle belongs to */
                 PMACC_AUTO( fieldTmpShiftToParticle, tmpBox.shift( localCell ) );
@@ -164,7 +164,7 @@ namespace picongpu
                         const float_X assignY = AssignmentFunction( )( float_X( j ) - pos.y( ) );
                         for( int i = -lowerMargin; i <= upperMargin; ++i )
                         {
-                            DataSpace<simDim> offsetToBaseCell( i, j, k );
+                            DataSpace<DIM3> offsetToBaseCell( i, j, k );
 
                             const float_X assignX = AssignmentFunction( )( float_X( i ) - pos.x( ) );
 

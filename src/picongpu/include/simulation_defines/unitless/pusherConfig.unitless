@@ -28,10 +28,12 @@
 
 #include "particles/pusher/particlePusherBoris.hpp"
 #include "particles/pusher/particlePusherNone.hpp"
+#if(SIMDIM==DIM3)
 #include "particles/pusher/particlePusherVay.hpp"
 #include "particles/pusher/particlePusherAxl.hpp"
 #include "particles/pusher/particlePusherFree.hpp"
 #include "particles/pusher/particlePusherPhot.hpp"
+#endif
 
 namespace picongpu
 {
@@ -45,9 +47,10 @@ namespace picongpu
         typedef Push<Velocity, Gamma<> > ParticlePusher;
     }
 
+#if(SIMDIM==DIM3)
     namespace particlePusherVay
     {
-        typedef Push<Velocity, Gamma<> > ParticlePusher;
+       typedef Push<Velocity, Gamma<> > ParticlePusher;
     }
 
     namespace particlePusherAxl
@@ -64,9 +67,9 @@ namespace picongpu
     
     namespace particlePusherPhot
     {
-
-        typedef Push<Velocity, Gamma<> > ParticlePusher;
+       typedef Push<Velocity, Gamma<> > ParticlePusher;
     }
+#endif
 
 }
 

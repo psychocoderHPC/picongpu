@@ -31,6 +31,7 @@
 #include "math/vector/Int.hpp"
 #include "math/vector/Size_t.hpp"
 
+#include <boost/static_assert.hpp>
 
 namespace PMacc
 {
@@ -49,6 +50,7 @@ class DataSpace : public math::Int<DIM>
     public:
         
         static const int Dim=DIM;
+        typedef math::Int<DIM> BaseType;
 
         /**
          * default constructor.
@@ -60,7 +62,7 @@ class DataSpace : public math::Int<DIM>
             {
                 (*this)[i] = 0;
             }
-        }
+        }     
 
         /**
          * constructor.
@@ -102,13 +104,13 @@ class DataSpace : public math::Int<DIM>
          */
         HDINLINE DataSpace(int x, int y, int z);
         
-        HDINLINE int& x() {return (*this)[0];}
-        HDINLINE int& y() {return (*this)[1];}
-        HDINLINE int& z() {return (*this)[2];}
+        HDINLINE int& x() {BOOST_STATIC_ASSERT(DIM>=DIM1);return (*this)[0];}
+        HDINLINE int& y() {BOOST_STATIC_ASSERT(DIM>=DIM2);return (*this)[1];}
+        HDINLINE int& z() {BOOST_STATIC_ASSERT(DIM>=DIM3);return (*this)[2];}
     
-        HDINLINE int x() const {return (*this)[0];}
-        HDINLINE int y() const {return (*this)[1];}
-        HDINLINE int z() const {return (*this)[2];}
+        HDINLINE int x() const {BOOST_STATIC_ASSERT(DIM>=DIM1);return (*this)[0];}
+        HDINLINE int y() const {BOOST_STATIC_ASSERT(DIM>=DIM2);return (*this)[1];}
+        HDINLINE int z() const {BOOST_STATIC_ASSERT(DIM>=DIM3);return (*this)[2];}
         
         HDINLINE DataSpace(const math::Int<DIM>& vec)
         {
@@ -410,6 +412,7 @@ class DataSpace : public math::Int<DIM>
         this->y() = y;
     }
 
+    
     template <>
     inline DataSpace<DIM3>::DataSpace(int x, int y, int z)
     {
@@ -417,6 +420,7 @@ class DataSpace : public math::Int<DIM>
         this->y() = y;
         this->z() = z;
     }
+     
 
 } //namespace PMacc
 

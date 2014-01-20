@@ -91,6 +91,40 @@ public:
     }
 };
 
+template<class Base = NullFrame>
+class PositionFilter2D : public privatePositionFilter::PositionFilter<DIM2, Base>
+{
+public:
+
+    template<class FRAME>
+    HDINLINE bool operator()(FRAME & frame, lcellId_t id)
+    {
+        DataSpace<DIM2> localCellIdx2D = DataSpaceOperations<DIM2>::template map<
+            typename FRAME::SuperCellSize
+            > ((uint32_t) (frame[id][localCellIdx_]));
+        DataSpace<DIM2> pos = this->superCellIdx + localCellIdx2D;
+        return (this->offset.x() <= pos.x() && this->offset.y() <= pos.y() && 
+                this->max.x() > pos.x() && this->max.y() > pos.y() ) &&
+            Base::operator() (frame, id);
+    }
+};
+
+template<unsigned DIM>
+struct GetPositionFilter;
+
+template<>
+struct GetPositionFilter<DIM3>
+{
+    typedef PositionFilter3D<> type;
+};
+
+template<>
+struct GetPositionFilter<DIM2>
+{
+    typedef PositionFilter2D<> type;
+};
+
+
 } //namespace Frame
 
 #endif	/* POSITIONFILTER_HPP */

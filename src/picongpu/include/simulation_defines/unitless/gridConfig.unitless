@@ -31,14 +31,43 @@ namespace picongpu
     const float_X DELTA_T = float_X(SI::DELTA_T_SI / UNIT_TIME);
     const float_X CELL_WIDTH = float_X (SI::CELL_WIDTH_SI / UNIT_LENGTH); //normalized to UNIT_LENGTH
     const float_X CELL_HEIGHT = float_X (SI::CELL_HEIGHT_SI / UNIT_LENGTH); //normalized to UNIT_LENGTH
+
+#if (SIMDIM==DIM3)    
     const float_X CELL_DEPTH = float_X(SI::CELL_DEPTH_SI / UNIT_LENGTH); // normalized to UNIT_LENGTH
-    const float_X CELL_VOLUME = CELL_WIDTH * CELL_HEIGHT * CELL_DEPTH;
-
-    /* Courant-Friedrichs-Levy-Condition for Field Solver: */
+    const float_X CELL_VOLUME = CELL_WIDTH * CELL_HEIGHT *CELL_DEPTH;
+    
+   namespace host_cell_size
+   {
+        const float_X cell_size[DIM3]={CELL_WIDTH,CELL_HEIGHT,CELL_DEPTH};
+   }
+   namespace device_cell_size
+   {
+        __constant__ const float_X cell_size[DIM3]={CELL_WIDTH,CELL_HEIGHT,CELL_DEPTH};
+   }
+     
+        /* Courant-Friedrichs-Levy-Condition for Field Solver: */
+    PMACC_CASSERT_MSG(Courant_Friedrichs_Levy_condition_failure____check_your_gridConfig_param_file,  
+                     (PMACC_MIN(CELL_DEPTH,PMACC_MIN(CELL_WIDTH,CELL_HEIGHT))/SPEED_OF_LIGHT/DELTA_T)>1.77f); 
+#elif(SIMDIM==DIM2)
+    const float_X CELL_VOLUME = CELL_WIDTH * CELL_HEIGHT ;
+    namespace device_cell_size
+    {
+        __constant__ const float_X cell_size[DIM2]={CELL_WIDTH,CELL_HEIGHT};
+    } //namepsace device_cell_size
+    namespace host_cell_size
+    {
+        const float_X cell_size[DIM2]={CELL_WIDTH,CELL_HEIGHT};
+    }//namespace host_cell_size
+        /* Courant-Friedrichs-Levy-Condition for Field Solver: */
     PMACC_CASSERT_MSG(Courant_Friedrichs_Levy_condition_failure____check_your_gridConfig_param_file,
-                        (PMACC_MIN(CELL_DEPTH,PMACC_MIN(CELL_WIDTH,CELL_HEIGHT))/SPEED_OF_LIGHT/DELTA_T)>1.77f);               
-
+                      (PMACC_MIN(CELL_WIDTH,CELL_HEIGHT)/SPEED_OF_LIGHT/DELTA_T)>1.77f);               
+             
+#endif
+    
+#ifdef __CUDA_ARCH__ //we are on gpu
+   using namespace device_cell_size;
+#else
+    using namespace host_cell_size;
+#endif
+    
 }
-
-
-
