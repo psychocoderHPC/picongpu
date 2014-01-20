@@ -20,7 +20,7 @@
 
 #pragma once
 
-#define SIMDIM DIM3
+#define SIMDIM DIM2
 
 namespace picongpu
 {

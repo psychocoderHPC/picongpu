@@ -86,15 +86,12 @@ enum ExchangeType
     RIGHT = 1u, LEFT = 2u, BOTTOM = 3u, TOP = 6u, BACK = 9u, FRONT = 18u // 3er-System
 };
 
-#define MAX_EXCHANGE_TYPE FRONT + TOP + LEFT
+
+const uint32_t numberExchangeTypes[4]={0,LEFT+RIGHT,TOP+BOTTOM,BACK+FRONT};
 
 /**
  * Defines number of dimensions (1-3)
  */
-/*enum Dim
-{
-    DIM1 = 1u, DIM2 = 2u, DIM3 = 3u
-};*/
 
 #define DIM1 1u
 #define DIM2 2u

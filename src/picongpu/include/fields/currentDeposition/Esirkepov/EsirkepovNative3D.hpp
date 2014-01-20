@@ -54,8 +54,8 @@ struct EsirkepovNative
 
     static const int currentLowerMargin = supp / 2 + 1;
     static const int currentUpperMargin = (supp + 1) / 2 + 1;
-    typedef PMacc::math::CT::Int<currentLowerMargin, currentLowerMargin, currentLowerMargin> LowerMargin;
-    typedef PMacc::math::CT::Int<currentUpperMargin, currentUpperMargin, currentUpperMargin> UpperMargin;
+    typedef typename PMacc::math::CT::make_Int<3,currentLowerMargin>::type LowerMargin;
+    typedef typename PMacc::math::CT::make_Int<3,currentUpperMargin>::type UpperMargin;
 
     float_X charge;
 

@@ -56,11 +56,13 @@
 #include "plugins/output/images/PngCreator.hpp"
 #endif
 
-#include "plugins/IntensityModule.hpp"
+
 /// That's an abstract ImageModule for Png and Binary Density output
 /// \todo rename PngModule to ImageModule or similar
 #include "plugins/PngModule.hpp"
 
+#if(SIMDIM==DIM3)
+#include "plugins/IntensityModule.hpp"
 
 #include "plugins/FieldEnergy.hpp"
 #if(PIC_ENABLE_PNG==1)
@@ -69,7 +71,7 @@
 #include "plugins/ParticleSpectrum.hpp"
 #include "plugins/TotalDivJ.hpp"
 #include "plugins/SliceFieldPrinterMulti.hpp"
-
+#endif
 
 #include "plugins/output/images/Visualisation.hpp"
 
@@ -80,9 +82,11 @@
 
 #include "plugins/IPluginModule.hpp"
 
+#if(SIMDIM==DIM3)
 #if (ENABLE_HDF5 == 1)
 #include "plugins/hdf5/HDF5Writer.hpp"
 #include "plugins/makroParticleCounter/PerSuperCell.hpp"
+#endif
 #endif
 
 namespace picongpu
@@ -103,20 +107,21 @@ private:
 #endif
     typedef ParticleDensity<PIC_Electrons, DensityToBinary, float_X> ElectronsBinaryDensityBuilder;
 
+#if(SIMDIM==DIM3)
 #if(PIC_ENABLE_PNG==1)
-    typedef heiko::ParticleDensity<PIC_Electrons> HeikoParticleDensity;
-
+        typedef heiko::ParticleDensity<PIC_Electrons> HeikoParticleDensity;
+        
 #endif
-    typedef ParticleSpectrum<PIC_Electrons> ElectronSpectrum;
-    typedef SliceFieldPrinterMulti<FieldE, FIELD_E> SliceFieldEPrinter;
-    typedef SliceFieldPrinterMulti<FieldB, FIELD_B> SliceFieldBPrinter;
-
-    typedef LiveViewModule<PIC_Electrons > LiveImageElectrons;
-    typedef PngModule<ElectronsBinaryDensityBuilder > BinDensityElectrons;
-    typedef CountParticles<PIC_Electrons> ElectronCounter;
-    typedef EnergyParticles<PIC_Electrons> EnergyElectrons;
-    typedef PositionsParticles<PIC_Electrons> PositionElectrons;
-    typedef BinEnergyParticles<PIC_Electrons> BinEnergyElectrons;
+        typedef ParticleSpectrum<PIC_Electrons> ElectronSpectrum;
+        typedef SliceFieldPrinterMulti<FieldE, FIELD_E> SliceFieldEPrinter;
+        typedef SliceFieldPrinterMulti<FieldB, FIELD_B> SliceFieldBPrinter;
+#endif
+        typedef LiveViewModule<PIC_Electrons > LiveImageElectrons;
+        typedef PngModule<ElectronsBinaryDensityBuilder > BinDensityElectrons;
+        typedef CountParticles<PIC_Electrons> ElectronCounter;
+        typedef EnergyParticles<PIC_Electrons> EnergyElectrons;
+        typedef PositionsParticles<PIC_Electrons> PositionElectrons;
+        typedef BinEnergyParticles<PIC_Electrons> BinEnergyElectrons;
 #if(ENABLE_RADIATION == 1)
     typedef Radiation<PIC_Electrons> RadiationElectrons;
 #endif

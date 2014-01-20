@@ -8,16 +8,16 @@
  * the Free Software Foundation, either version 3 of the License, or
  * (at your option) any later version.
  * 
- * PIConGPU is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with PIConGPU.
- * If not, see <http://www.gnu.org/licenses/>.
+ * PIConGPU is distributed in the hope that it will be useful, 
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of 
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the 
+ * GNU General Public License for more details. 
+ * 
+ * You should have received a copy of the GNU General Public License 
+ * along with PIConGPU.  
+ * If not, see <http://www.gnu.org/licenses/>. 
  */
- 
+
 #ifndef PARTICLES_KERNEL
 #define	PARTICLES_KERNEL
 
@@ -56,12 +56,11 @@ namespace picongpu
 
 using namespace PMacc;
 
-
 template<class MYFRAME, class OTHERFRAME, class Mapping>
 __global__ void kernelCloneParticles(ParticlesBox<MYFRAME, simDim> myBox, ParticlesBox<OTHERFRAME, simDim> otherBox, Mapping mapper)
 {
     using namespace particles::operations;
-    
+
     __shared__ OTHERFRAME *frame;
 
     __shared__ MYFRAME *myFrame;
@@ -84,9 +83,9 @@ __global__ void kernelCloneParticles(ParticlesBox<MYFRAME, simDim> myBox, Partic
     __syncthreads();
     while (isValid) //move over all Frames
     {
-        PMACC_AUTO(parDest,((*myFrame)[threadIdx.x]));
-        PMACC_AUTO(parSrc,((*frame)[threadIdx.x]));
-        assign(parDest,parSrc);
+        PMACC_AUTO(parDest, ((*myFrame)[threadIdx.x]));
+        PMACC_AUTO(parSrc, ((*frame)[threadIdx.x]));
+        assign(parDest, parSrc);
         __syncthreads();
         if (threadIdx.x == 0)
         {
@@ -153,7 +152,7 @@ __global__ void kernelAddTemperature(ParticlesBox<FRAME, simDim> pb, float_X ene
     {
         if (isParticle)
         {
-            PMACC_AUTO(particle,((*frame)[linearThreadIdx]));
+            PMACC_AUTO(particle, ((*frame)[linearThreadIdx]));
             const float3_X tmpRand = float3_X(rng(),
                                               rng(),
                                               rng());
@@ -271,7 +270,7 @@ __global__ void kernelSetDrift(ParBox pb,
                 }
 
                 typedef typename FRAME::MassType MassType;
-                PMACC_AUTO(particle,((*frame)[linearThreadIdx]));
+                PMACC_AUTO(particle, ((*frame)[linearThreadIdx]));
                 const float_X macroWeighting = particle[weighting_];
                 const MassType macroMass = frame->getMass(macroWeighting);
 
@@ -406,19 +405,19 @@ struct PushParticlePerFrame
         typedef typename BoxB::ValueType BType;
         typedef typename BoxE::ValueType EType;
 
-        PMACC_AUTO(particle,frame[localIdx]);
+        PMACC_AUTO(particle, frame[localIdx]);
         const float_X weighting = particle[weighting_];
 
-        float3_X pos = particle[position_];
+        floatD_X pos = particle[position_];
         const int particleCellIdx = particle[localCellIdx_];
 
         DataSpace<TVec::dim> localCell(DataSpaceOperations<TVec::dim>::template map<TVec > (particleCellIdx));
 
-       
+
         EType eField = fieldSolver::FieldToParticleInterpolation()
             (eBox.shift(localCell).toCursor(), pos, NumericalCellType::getEFieldPosition());
         BType bField = fieldSolver::FieldToParticleInterpolation()
-            (bBox.shift(localCell).toCursor(), pos,NumericalCellType::getBFieldPosition());
+            (bBox.shift(localCell).toCursor(), pos, NumericalCellType::getBFieldPosition());
 
         float3_X mom = particle[momentum_];
         const float_X mass = frame.getMass(weighting);
@@ -494,8 +493,11 @@ struct PushParticlePerFrame
          */
         const int direction = 1 +
             (dir.x() + int(dir.x() < 0)*3) +
-            (dir.y() + int(dir.y() < 0)*3) * BOTTOM +
-            (dir.z() + int(dir.z() < 0)*3) * BACK;
+            (dir.y() + int(dir.y() < 0)*3) * BOTTOM
+#if (SIMDIM==DIM3)
+            + (dir.z() + int(dir.z() < 0)*3) * BACK
+#endif
+            ;
 
         particle[multiMask_] = direction;
 
