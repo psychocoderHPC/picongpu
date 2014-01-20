@@ -214,7 +214,8 @@ struct Esirkepov<DIM2,ParticleAssign,NumericalCellType>
         {
             float_X W = DS(line.pos0.x()-i, line.pos1.x()-i) * tmp;
             accumulated_J += -this->charge * (float_X(1.0) / float_X(CELL_VOLUME * DELTA_T)) * W * cellEdgeLength;
-            atomicAddWrapper(&((*cursorJ(i, 0)).x()), accumulated_J);
+            if(accumulated_J!=float_X(0.0))
+                atomicAddWrapper(&((*cursorJ(i, 0)).x()), accumulated_J);
         }
     }
 
@@ -232,7 +233,8 @@ struct Esirkepov<DIM2,ParticleAssign,NumericalCellType>
             (float_X(1.0) / float_X(3.0)) * DS(line.pos0.x(), line.pos1.x()) * DS(line.pos0.y(), line.pos1.y());
 
         const float_X j_z = this->charge * (float_X(1.0) / float_X(CELL_VOLUME)) * W * v_z;
-        atomicAddWrapper(&((*cursorJ(0, 0)).z()), j_z);
+        if(j_z!=float_X(0.0))
+            atomicAddWrapper(&((*cursorJ(0, 0)).z()), j_z);
 
     }
 
