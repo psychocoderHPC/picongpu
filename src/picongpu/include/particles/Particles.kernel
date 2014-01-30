@@ -445,7 +445,7 @@ struct PushParticlePerFrame
          * if pos positive and >1 dir is set to +1
          * 0 (NULL) if particle stay in cell
          */
-        DataSpace<DIM3> dir;
+        DataSpace<simDim> dir;
         for(uint32_t i=0;i<simDim;++i)
             dir[i]=math::float2int_rd(pos[i]);
 
