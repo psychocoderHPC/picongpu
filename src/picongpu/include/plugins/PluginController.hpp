@@ -82,11 +82,9 @@
 
 #include "plugins/IPluginModule.hpp"
 
-#if(SIMDIM==DIM3)
 #if (ENABLE_HDF5 == 1)
 #include "plugins/hdf5/HDF5Writer.hpp"
 #include "plugins/makroParticleCounter/PerSuperCell.hpp"
-#endif
 #endif
 
 namespace picongpu

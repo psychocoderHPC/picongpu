@@ -24,11 +24,11 @@ namespace picongpu
 {
 
 #if (SIMDIM==DIM3)
-const float_X tile_size[DIM3]={TILE_WIDTH,TILE_HEIGHT,TILE_DEPTH};
 const uint32_t TILE_SIZE = TILE_WIDTH * TILE_HEIGHT*TILE_DEPTH;
+CONST_VECTOR(int,DIM3,tile_size,TILE_WIDTH,TILE_HEIGHT,TILE_DEPTH);
 #elif (SIMDIM==DIM2)
-const float_X tile_size[DIM2]={TILE_WIDTH,TILE_HEIGHT};
 const uint32_t TILE_SIZE = TILE_WIDTH * TILE_HEIGHT;
+CONST_VECTOR(int,DIM2,tile_size,TILE_WIDTH,TILE_HEIGHT);
 #endif
 
 #if (ENABLE_IONS == 1 && ENABLE_ELECTRONS == 1)
