@@ -32,11 +32,11 @@
 #include "fields/FieldE.hpp"
 #include "fields/FieldB.hpp"
 
-#if(SIMDIM==DIM3)
+
 #if (ENABLE_HDF5==1)
 #include "initialization/SimRestartInitialiser.hpp"
 #endif
-#endif
+
 #include "initialization/SimStartInitialiser.hpp"
 #include "particles/Species.hpp"
 
@@ -62,10 +62,8 @@ public:
     restartFile("h5"),
     xmlFile("sim.x()ml"),
     simStartInitialiser(NULL)
-#if (SIMDIM==DIM3)
 #if (ENABLE_HDF5==1)
     , simRestartInitialiser(NULL)
-#endif
 #endif
     {
         //ModuleConnector::getInstance().registerModule(this);
@@ -111,7 +109,7 @@ public:
             std::cout << "UNIT_EFIELD" << " " << UNIT_EFIELD << std::endl;
             std::cout << "UNIT_BFIELD" << " " << UNIT_BFIELD << std::endl;
             std::cout << "UNIT_ENERGY" << " " << UNIT_ENERGY << std::endl;
-#if (SIMDIM==DIM3)       
+     
 #if (ENABLE_HDF5==1)
             // check for HDF5 restart capability
             typedef typename boost::mpl::find<Hdf5OutputFields, FieldE>::type itFindFieldE;
@@ -124,10 +122,8 @@ public:
                           << "FieldE and FieldB in hdf5Output.unitless)"
                           << std::endl;
 #endif
-#endif
         }
 
-#if (SIMDIM==DIM3)
 #if (ENABLE_HDF5==1)
         // restart simulation by loading from hdf5 data file
         // the simulation will start after the last saved iteration
@@ -150,8 +146,6 @@ public:
             return simulationStep;
         }
 #endif
-#endif
-
         // start simulation using default values
         simStartInitialiser = new SimStartInitialiser<PIC_Electrons, PIC_Ions > ();
         DataConnector::getInstance().initialise(*simStartInitialiser, 0);
@@ -181,11 +175,9 @@ public:
         desc.add_options()
             ("load", po::value<bool>(&loadSim)->zero_tokens(), "load simulation from xml description")
             ("xml-infile", po::value<std::string > (&xmlFile)->default_value(xmlFile), "simulation description file")
-#if (SIMDIM==DIM3)
 #if (ENABLE_HDF5==1)
             ("restart", po::value<bool>(&restartSim)->zero_tokens(), "restart simulation from HDF5")
             ("restart-file", po::value<std::string > (&restartFile)->default_value(restartFile), "HDF5 file to restart simulation from")
-#endif
 #endif
             ;
     }
@@ -218,12 +210,9 @@ private:
 
     // different initialisers for simulation data
     SimStartInitialiser<PIC_Electrons, PIC_Ions>* simStartInitialiser;
-#if (SIMDIM==DIM3)
 #if (ENABLE_HDF5==1)
     SimRestartInitialiser<PIC_Electrons, PIC_Ions, simDim> *simRestartInitialiser;
 #endif
-#endif
-
 
     bool loadSim;
     bool restartSim;

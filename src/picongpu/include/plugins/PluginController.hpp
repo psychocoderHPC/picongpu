@@ -82,10 +82,8 @@
 
 #include "plugins/IPluginModule.hpp"
 
-#if(SIMDIM==DIM3)
 #if (ENABLE_HDF5 == 1)
 #include "plugins/hdf5/HDF5Writer.hpp"
-#endif
 #endif
 
 namespace picongpu
@@ -141,10 +139,8 @@ namespace picongpu
 
         virtual void init()
         {
-#if(SIMDIM==DIM3)
 #if (ENABLE_HDF5 == 1)
             modules.push_back(new hdf5::HDF5Writer());
-#endif
 #endif
             modules.push_back(new EnergyFields("EnergyFields", "energy_fields"));
             modules.push_back(new SumCurrents());

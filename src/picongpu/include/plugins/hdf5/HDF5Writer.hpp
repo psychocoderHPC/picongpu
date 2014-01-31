@@ -96,7 +96,7 @@ class HDF5Writer : public ISimulationIO, public IPluginModule
 public:
 
     /* filter particles by global position*/
-    typedef bmpl::vector< PositionFilter3D<> > usedFilters;
+    typedef bmpl::vector< typename GetPositionFilter<simDim>::type > usedFilters;
     typedef typename FilterFactory<usedFilters>::FilterType MyParticleFilter;
 
 private:
@@ -416,10 +416,9 @@ private:
          * and origin at current time step
          * ATTENTION: splash offset are globalSlideOffset + picongpu offsets
          */
-        DataSpace<simDim> globalSlideOffset = DataSpace<simDim>(
-                                                                0,
-                                                                params->window.slides * params->window.localFullSize.y(),
-                                                                0);
+        DataSpace<simDim> globalSlideOffset;
+        globalSlideOffset.y()+=params->window.slides * params->window.localFullSize.y();
+
         Dimensions splashGlobalDomainOffset(0, 0, 0);
         Dimensions splashGlobalOffsetFile(0, 0, 0);
         Dimensions splashGlobalDomainSize(1, 1, 1);
