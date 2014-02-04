@@ -156,6 +156,7 @@ private:
         modules.push_back(new SumCurrents());
         modules.push_back(new LineSliceFields());
 
+#if(SIMDIM==DIM3)
         modules.push_back(new FieldEnergy("FieldEnergy [keV/m^3]", "field_energy"));
 #if(PIC_ENABLE_PNG==1)
         modules.push_back(new HeikoParticleDensity("HeikoParticleDensity", "heiko_pd"));
@@ -164,7 +165,10 @@ private:
         modules.push_back(new TotalDivJ("change of total charge per timestep (single gpu)", "totalDivJ"));
         modules.push_back(new SliceFieldEPrinter("FieldE: prints a slice of the E-field", "FieldE"));
         modules.push_back(new SliceFieldBPrinter("FieldB: prints a slice of the B-field", "FieldB"));
-
+        
+        modules.push_back(new IntensityModule("Intensity", "intensity"));
+#endif
+        
 #if (ENABLE_ELECTRONS == 1)
         modules.push_back(new LiveImageElectrons("LiveImageElectrons", "live_e"));
 #if(PIC_ENABLE_PNG==1)
@@ -191,8 +195,6 @@ private:
 #if(ENABLE_RADIATION == 1)
         modules.push_back(new RadiationElectrons("RadiationElectrons", "radiation_e"));
 #endif
-
-        modules.push_back(new IntensityModule("Intensity", "intensity"));
 
 #if (ENABLE_INSITU_VOLVIS == 1)
         modules.push_back(new InSituVolumeRenderer("InSituVolumeRenderer", "insituvolvis"));

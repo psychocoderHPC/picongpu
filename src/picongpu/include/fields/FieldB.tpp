@@ -16,8 +16,8 @@
  * You should have received a copy of the GNU General Public License 
  * along with PIConGPU.  
  * If not, see <http://www.gnu.org/licenses/>. 
- */ 
- 
+ */
+
 #include <iostream>
 #include "simulation_defines.hpp"
 
@@ -80,10 +80,7 @@ fieldE( NULL )
          */
         DataSpace<simDim> guardingCells;
         for ( uint32_t d = 0; d < simDim; ++d )
-            guardingCells[d] =
-            ( relativMask[d] == -1 ?
-              originGuard[d] :
-              endGuard[d] );
+            guardingCells[d] = ( relativMask[d] == -1 ? originGuard[d] : endGuard[d] );
         fieldB->addExchange( GUARD, i, guardingCells, FIELD_B );
     }
 

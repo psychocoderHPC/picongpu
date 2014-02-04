@@ -390,6 +390,14 @@ public:
         DataSpace<DIM> mpiPos = gc.getPosition();
         DataSpace<DIM> mpiSize = gc.getGpuNodes();
 
+        Dimensions splash_mpiPos(0,0,0);
+        Dimensions splash_mpiSize(1,1,1);
+        for (uint32_t i = 0; i < simDim; ++i)
+        {
+            splash_mpiPos[i] = mpiPos[i];
+            splash_mpiSize[i] = mpiSize[i];
+        }
+
         DataCollector::FileCreationAttr attr;
         DataCollector::initFileCreationAttr(attr);
         /** \todo add hdf5.restartMerged flag
@@ -398,8 +406,8 @@ public:
          *        (useful for changed MPI setting for restart)
          */
         attr.fileAccType = DataCollector::FAT_READ;
-        attr.mpiSize.set(mpiSize[0], mpiSize[1], mpiSize[2]);
-        attr.mpiPosition.set(mpiPos[0], mpiPos[1], mpiPos[2]);
+        attr.mpiSize.set(splash_mpiSize);
+        attr.mpiPosition.set(splash_mpiPos);
 
         dataCollector->open(filename.c_str(), attr);
 
@@ -592,10 +600,10 @@ private:
         globalSlideOffset.y() = window.slides * window.localFullSize.y();
 
         DataSpace<DIM> globalOffset(SubGrid<DIM>::getInstance().getSimulationBox().getGlobalOffset());
-        
-        Dimensions domain_offset(0,0,0);
+
+        Dimensions domain_offset(0, 0, 0);
         for (uint32_t d = 0; d < simDim; ++d)
-         domain_offset[d] = globalOffset[d] + globalSlideOffset[d];
+            domain_offset[d] = globalOffset[d] + globalSlideOffset[d];
 
         if (GridController<simDim>::getInstance().getPosition().y() == 0)
             domain_offset[1] += window.globalSimulationOffset.y();
