@@ -26,7 +26,7 @@
 #include "types.h"
 #include "simulation_defines.hpp"
 #include "simulation_types.hpp"
-#include "plugins/radiation/parameters.hpp"
+
 
 #include "particles/Species.hpp"
 #include "plugins/CountParticles.hpp"
@@ -41,7 +41,8 @@
 #include "plugins/InSituVolumeRenderer.hpp"
 #endif
 
-#if(ENABLE_RADIATION == 1)
+#if(ENABLE_RADIATION == 1 && SIMDIM==DIM3)
+#include "plugins/radiation/parameters.hpp"
 #include "plugins/Radiation.hpp"
 #endif
 #include "particles/Species.hpp"
@@ -120,7 +121,7 @@ private:
         typedef EnergyParticles<PIC_Electrons> EnergyElectrons;
         typedef PositionsParticles<PIC_Electrons> PositionElectrons;
         typedef BinEnergyParticles<PIC_Electrons> BinEnergyElectrons;
-#if(ENABLE_RADIATION == 1)
+#if(ENABLE_RADIATION == 1 && SIMDIM==DIM3)
     typedef Radiation<PIC_Electrons> RadiationElectrons;
 #endif
 #endif
@@ -192,7 +193,7 @@ private:
         modules.push_back(new EnergyIons("EnergyIons", "energy_i"));
 #endif
 
-#if(ENABLE_RADIATION == 1)
+#if(ENABLE_RADIATION == 1 && SIMDIM==DIM3)
         modules.push_back(new RadiationElectrons("RadiationElectrons", "radiation_e"));
 #endif
 
