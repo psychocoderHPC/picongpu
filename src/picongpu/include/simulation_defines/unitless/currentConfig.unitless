@@ -28,6 +28,7 @@
 
 #include "fields/currentDeposition/Esirkepov/EsirkepovNative.hpp"
 #include "fields/currentDeposition/Esirkepov/Esirkepov.hpp"
+#include "fields/currentDeposition/ZigZag/ZigZag.hpp"
 #include "fields/numericalCellTypes/YeeCell.hpp"
 
 
@@ -50,6 +51,12 @@ namespace picongpu
     namespace currentSolverEsirkepov
     {
         typedef Esirkepov<typename speciesParticleShape::ParticleShape::ChargeAssignment,
+                          fieldSolver::NumericalCellType> CurrentSolver;
+    }
+    
+    namespace currentSolverZigZag
+    {
+        typedef ZigZag<typename speciesParticleShape::ParticleShape::ChargeAssignment,
                           fieldSolver::NumericalCellType> CurrentSolver;
     }
     
