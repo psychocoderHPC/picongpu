@@ -59,8 +59,10 @@ struct ZigZag
      * 
      * (supp + 1) % 2 is 1 for even supports else 0
      */
-    static const int begin = -supp / 2 + (supp + 1) % 2 - 1;
-    static const int end = supp / 2;
+   // static const int begin = -supp / 2 + (supp + 1) % 2 - 1;
+   // static const int end = supp / 2;
+    static const int begin = supp / 2 + 1;
+    static const int end = (supp + 1) / 2 + 1;
 
     float_X charge;
 
@@ -75,7 +77,6 @@ struct ZigZag
                                            velocity.y() * deltaTime / cellSize.y(),
                                            velocity.z() * deltaTime / cellSize.z());
         const PosType pos2 = pos1 - deltaPos;
-
 
         float3_X pos[2];
         pos[0] = (pos1) * cellSize;
@@ -111,84 +112,84 @@ struct ZigZag
             F[1][d] = calc_F(-pos[1][d], -r[d], deltaTime, charge);
         }
 
-        float3_X sum(0.);
         float_X frac = float_X(1.0) / float_X(CELL_VOLUME);
         for (int l = 0; l < 2; ++l)
         {
 
             /*x*/
-            DataSpace<DIM3> jIdx_1((I[l].x() + float_X(0.5)),
+            DataSpace<DIM3> jIdx_1((I[l].x()),
                                    I[l].y(),
                                    I[l].z());
+            printf("[%i] %i %i %i\n",l,jIdx_1.x(),jIdx_1.y(),jIdx_1.z());
             float_X j_1 = frac * F[l].x()*(float_X(1.0) - W[l].y())*(float_X(1.0) - W[l].z());
             atomicAddWrapper(&(dataBoxJ(jIdx_1).x()), j_1);
 
             float_X j_2 = frac * F[l].x()*(W[l].y())*(float_X(1.0) - W[l].z());
-            DataSpace<DIM3> jIdx_2((I[l].x() + float_X(0.5)),
+            DataSpace<DIM3> jIdx_2((I[l].x()),
                                    I[l].y() + float_X(1.0),
                                    I[l].z());
             atomicAddWrapper(&(dataBoxJ(jIdx_2).x()), j_2);
 
             float_X j_3 = frac * F[l].x() * (float_X(1.0) - W[l].y())*(W[l].z());
-            DataSpace<DIM3> jIdx_3((I[l].x() + float_X(0.5)),
+            DataSpace<DIM3> jIdx_3((I[l].x()),
                                    I[l].y(),
                                    I[l].z() + float_X(1.0));
             atomicAddWrapper(&(dataBoxJ(jIdx_3).x()), j_3);
 
             float_X j_4 = frac * F[l].x() * (W[l].y())*(W[l].z());
-            DataSpace<DIM3> jIdx_4((I[l].x() + float_X(0.5)),
+            DataSpace<DIM3> jIdx_4((I[l].x() ),
                                    I[l].y() + float_X(1.0),
                                    I[l].z() + float_X(1.0));
             atomicAddWrapper(&(dataBoxJ(jIdx_4).x()), j_4);
 
             /*y*/
             DataSpace<DIM3> jIdx_5((I[l].x()),
-                                   I[l].y() + float_X(0.5),
+                                   I[l].y() ,
                                    I[l].z());
             float_X j_5 = frac * F[l].y()*(float_X(1.0) - W[l].x())*(float_X(1.0) - W[l].z());
             atomicAddWrapper(&(dataBoxJ(jIdx_5).y()), j_5);
 
             float_X j_6 = frac * F[l].y()*(W[l].x())*(float_X(1.0) - W[l].z());
             DataSpace<DIM3> jIdx_6((I[l].x() + float_X(1.0)),
-                                   I[l].y() + float_X(0.5),
+                                   I[l].y() ,
                                    I[l].z());
             atomicAddWrapper(&(dataBoxJ(jIdx_6).y()), j_6);
 
             float_X j_7 = frac * F[l].y() * (float_X(1.0) - W[l].x())*(W[l].z());
             DataSpace<DIM3> jIdx_7((I[l].x()),
-                                   I[l].y() + float_X(0.5),
+                                   I[l].y() ,
                                    I[l].z() + float_X(1.0));
             atomicAddWrapper(&(dataBoxJ(jIdx_7).y()), j_7);
 
             float_X j_8 = frac * F[l].y() * (W[l].x())*(W[l].z());
             DataSpace<DIM3> jIdx_8((I[l].x() + float_X(1.0)),
-                                   I[l].y() + float_X(0.5),
+                                   I[l].y() ,
                                    I[l].z() + float_X(1.0));
             atomicAddWrapper(&(dataBoxJ(jIdx_8).y()), j_8);
 
             /*z*/
             DataSpace<DIM3> jIdx_9(I[l].x(),
                                    I[l].y(),
-                                   I[l].z() + float_X(0.5));
+                                   I[l].z() );
             float_X j_9 = frac * F[l].z()*(float_X(1.0) - W[l].x())*(float_X(1.0) - W[l].y());
             atomicAddWrapper(&(dataBoxJ(jIdx_9).z()), j_9);
 
             float_X j_10 = frac * F[l].z()*(W[l].x())*(float_X(1.0) - W[l].y());
             DataSpace<DIM3> jIdx_10((I[l].x() + float_X(1.0)),
                                     I[l].y(),
-                                    I[l].z() + float_X(0.5));
+                                    I[l].z() );
             atomicAddWrapper(&(dataBoxJ(jIdx_10).z()), j_10);
 
             float_X j_11 = frac * F[l].z() * (float_X(1.0) - W[l].x())*(W[l].y());
             DataSpace<DIM3> jIdx_11((I[l].x()),
                                     I[l].y() + float_X(1.0),
-                                    I[l].z() + float_X(0.5));
+                                    I[l].z());
             atomicAddWrapper(&(dataBoxJ(jIdx_11).z()), j_11);
 
             float_X j_12 = frac * F[l].z() * (W[l].x())*(W[l].y());
             DataSpace<DIM3> jIdx_12((I[l].x() + float_X(1.0)),
                                     I[l].y() + float_X(1.0),
-                                    I[l].z() + float_X(0.5));
+                                    I[l].z());
             atomicAddWrapper(&(dataBoxJ(jIdx_12).z()), j_12);
               
         }
