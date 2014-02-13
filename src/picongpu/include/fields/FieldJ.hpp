@@ -63,7 +63,7 @@ namespace picongpu
         typedef typename promoteType<float_64, ValueType>::type UnitValueType;
         static const int numComponents = ValueType::dim;
         
-        static const uint32_t FloatJDim = simDim;
+        static const uint32_t FloatJDim = 3;
         
         typedef DataBox<PitchedBox<ValueType, simDim> > DataBoxType;
                 
@@ -118,7 +118,7 @@ namespace picongpu
 
     private:
         
-        GridBuffer<ValueType, FloatJDim> fieldJ;
+        GridBuffer<ValueType, simDim> fieldJ;
 
         FieldE *fieldE;
     };

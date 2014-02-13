@@ -24,8 +24,10 @@
 
 #include "fields/MaxwellSolver/None/NoSolver.def"
 #include "fields/MaxwellSolver/Yee/YeeSolver.def"
+#if(SIMDIM==DIM3)
 #include "fields/MaxwellSolver/DirSplitting/DirSplitting.def"
 #include "fields/MaxwellSolver/Lehe/LeheSolver.def"
+#endif
 
 #include "fields/numericalCellTypes/NumericalCellTypes.hpp"
 #include "algorithms/FieldToParticleInterpolationNative.hpp"
@@ -70,6 +72,7 @@ namespace fieldSolverYee
     AssignedTrilinearInterpolation> FieldToParticleInterpolation;
 }
 
+#if(SIMDIM==DIM3)
 namespace fieldSolverDirSplitting
 {
     typedef picongpu::dirSplitting::DirSplitting FieldSolver;
@@ -80,7 +83,9 @@ namespace fieldSolverDirSplitting
     speciesParticleShape::ParticleShape::ChargeAssignment,
     AssignedTrilinearInterpolation> FieldToParticleInterpolation;
 }
+#endif
 
+#if (SIMDIM==DIM3)
 namespace fieldSolverLehe
 {
     typedef typename picongpu::leheSolver::LeheSolver FieldSolver;
@@ -90,8 +95,8 @@ namespace fieldSolverLehe
     ShiftCoordinateSystemNative,
     speciesParticleShape::ParticleShape::ChargeAssignment,
     AssignedTrilinearInterpolation> FieldToParticleInterpolation;
-
 }
+#endif
 } //namespace picongpu
 
 

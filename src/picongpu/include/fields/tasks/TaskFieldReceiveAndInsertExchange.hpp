@@ -42,10 +42,7 @@ public:
 
     enum
     {
-        Dim = DIM3,
-        /* Exchanges in 2D=9 and in 3D=27
-         */
-        Exchanges = 27
+        Dim = picongpu::simDim
     };
 
     TaskFieldReceiveAndInsertExchange(Field &buffer, uint32_t exchange) :

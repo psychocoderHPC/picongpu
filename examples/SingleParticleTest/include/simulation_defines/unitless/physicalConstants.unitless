@@ -28,7 +28,7 @@ namespace picongpu
      *  unit: none */
     const float_X NUM_EL_PER_PARTICLE = 1;
     //float_X(SI::GAS_DENSITY_SI*SI::CELL_WIDTH_SI*SI::CELL_HEIGHT_SI*SI::CELL_DEPTH_SI)
-    //                                / float_X(particleInit::NUM_PARTICLES_PER_CELL);
+    //                                / float_X(particleInit::SET_NUM_PARTICLES_PER_CELL);
     /** Number of ions per particle
      *  unit: none */
     const float_X NUM_ION_PER_PARTICLE = NUM_EL_PER_PARTICLE;
