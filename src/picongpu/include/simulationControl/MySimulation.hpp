@@ -164,7 +164,7 @@ struct UpdateSpecie
         if(hasPusher::value)
         {
             typedef typename GetFlagType<FrameType,usedPusher<> >::type Pusher;
-            typedef typename boost::mpl::if_<hasPusher,Pusher,usedPusher<PusherBoris> >::type CallPusher;
+            typedef typename boost::mpl::if_<hasPusher,Pusher,usedPusher<PusherNone> >::type CallPusher;
             PMACC_AUTO(speciePtr, tupel.get()[SpeciesName()]);
 
             __startTransaction(eventInt);
@@ -470,23 +470,14 @@ public:
                        currentStep, fieldBackgroundE::InfluenceParticlePusher);
         (*pushBGField)(fieldB, nvfct::Add(), fieldBackgroundB(fieldB->getUnit()),
                        currentStep, fieldBackgroundB::InfluenceParticlePusher);
+        
+        
+         EventTask initEvent = __getTransactionEvent();
+        EventTask updateEvent;
+        EventTask commEvent;
 
-#if (ENABLE_IONS == 1)
-        __startTransaction(__getTransactionEvent());
-        //std::cout << "Begin update Ions" << std::endl;
-        ions->update(currentStep);
-        //std::cout << "End update Ions" << std::endl;
-        EventTask eRecvIons = ions->asyncCommunication(__getTransactionEvent());
-        EventTask eIons = __endTransaction();
-#endif
-#if (ENABLE_ELECTRONS == 1)
-        __startTransaction(__getTransactionEvent());
-        //std::cout << "Begin update Electrons" << std::endl;
-        electrons->update(currentStep);
-        //std::cout << "End update Electrons" << std::endl;
-        EventTask eRecvElectrons = electrons->asyncCommunication(__getTransactionEvent());
-        EventTask eElectrons = __endTransaction();
-#endif
+        ForEach<VectorAllSpecies, UpdateSpecie<void> > particleUpdate;
+        particleUpdate(byRef(particleStorage), currentStep, initEvent, byRef(updateEvent), byRef(commEvent));
 
         /** remove background field for particle pusher */
         (*pushBGField)(fieldE, nvfct::Sub(), fieldBackgroundE(fieldE->getUnit()),
