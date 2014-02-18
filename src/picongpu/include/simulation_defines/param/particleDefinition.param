@@ -115,7 +115,7 @@ AttributMomentum_mt1,
 AttributRadiationFlag
 >::type DefaultAttributesSeq;
 
-typedef typename MakeSeq<usedPusher<PusherBoris> >::type ParticleFlags;
+typedef boost::mpl::vector1<usedPusher<PusherBoris> > ParticleFlags;
 
 typedef Particles<ParticleDescription<DefaultAttributesSeq, ElectronsMethodsList, ParticleFlags> > p_Electrons;
 typedef Particles<ParticleDescription< DefaultAttributesSeq, IonsMethodsList, ParticleFlags > > p_Ions;
