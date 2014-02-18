@@ -177,22 +177,6 @@ struct UpdateSpecie
     }
 };
 
-template<typename T_SpeciesName>
-struct GetPusherForSpecies
-{
-    typedef T_SpeciesName SpeciesName;
-    typedef typename SpeciesName::type SpeciesType;
-    typedef typename SpeciesType::FrameType FrameType;
-
-    typedef typename boost::mpl::find_if<AllPusher, HasFlag<FrameType, boost::mpl::_1> >::type iter;
-    typedef boost::is_same<iter, typename boost::mpl::end<AllPusher>::type> isEnd;
-    typedef typename boost::mpl::deref<iter>::type derefIter;
-    typedef typename boost::mpl::if_<isEnd, PusherNone, derefIter >::type Pusher;
-
-    typedef ParticlePusherPair<SpeciesName,Pusher> type;
-
-};
-
 template<typename T_Type>
 struct ParticleInit
 {
@@ -472,7 +456,7 @@ public:
                        currentStep, fieldBackgroundB::InfluenceParticlePusher);
         
         
-         EventTask initEvent = __getTransactionEvent();
+        EventTask initEvent = __getTransactionEvent();
         EventTask updateEvent;
         EventTask commEvent;
 

@@ -47,7 +47,8 @@ namespace picongpu
     {
 
     }
-
+    
+    struct PusherNone;
 
     namespace particlePusherVay
     {
