@@ -1,5 +1,5 @@
 /**
- * Copyright 2013 Axel Huebl, Rene Widera
+ * Copyright 2014 Rene Widera
  *
  * This file is part of PIConGPU. 
  * 
@@ -16,16 +16,32 @@
  * You should have received a copy of the GNU General Public License 
  * along with PIConGPU.  
  * If not, see <http://www.gnu.org/licenses/>. 
- */ 
- 
-
+ */
 
 #pragma once
+
 #include "simulation_defines.hpp"
 
+namespace picongpu
+{
 
-#include "particles/shapes/Counter.hpp"
-#include "particles/shapes/NGP.hpp"
-#include "particles/shapes/CIC.hpp"
-#include "particles/shapes/TSC.hpp"
-#include "particles/shapes/PCS.hpp"
+namespace traits
+{
+/**Get margin of a solver
+ * class must define a LowerMargin and UpperMargin for any valid solver
+ * 
+ * \tparam Solver solver which need goast cells for solving a problem
+ * \tparam SubSetName a optinal name (id) if solver needs defferent goast cells
+ * for different objects
+ */
+template<class T_Type>
+struct GetCharge;
+        for (uint32_t i = 0; i < simDim; ++i)
+} //namespace traits
+template<typename T_Frame>
+static float_X getCharge(const T_Frame& frame,float_X weighting)
+{
+    return traits::GetCharge<T_Frame>::charge*weighting;
+}
+
+}// namespace picongpu

@@ -391,7 +391,7 @@ __global__ void kernelMoveAndMarkParticles(ParBox pb,
 
 }
 
-template<class PushAlgo, class TVec, class NumericalCellType>
+template<class PushAlgo, class TVec, class T_Field2ParticleInterpolation, class NumericalCellType>
 struct PushParticlePerFrame
 {
 
@@ -400,6 +400,7 @@ struct PushParticlePerFrame
     {
 
         typedef TVec Block;
+        typedef T_Field2ParticleInterpolation Field2ParticleInterpolation;
 
         typedef typename BoxB::ValueType BType;
         typedef typename BoxE::ValueType EType;
@@ -413,9 +414,9 @@ struct PushParticlePerFrame
         DataSpace<TVec::dim> localCell(DataSpaceOperations<TVec::dim>::template map<TVec > (particleCellIdx));
 
 
-        EType eField = fieldSolver::FieldToParticleInterpolation()
+        EType eField = Field2ParticleInterpolation()
             (eBox.shift(localCell).toCursor(), pos, NumericalCellType::getEFieldPosition());
-        BType bField = fieldSolver::FieldToParticleInterpolation()
+        BType bField =Field2ParticleInterpolation()
             (bBox.shift(localCell).toCursor(), pos,NumericalCellType::getBFieldPosition());
 
         float3_X mom = particle[momentum_];

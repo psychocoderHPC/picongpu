@@ -1,5 +1,5 @@
 /**
- * Copyright 2013 Axel Huebl, Heiko Burau, Rene Widera
+ * Copyright 2014 Rene Widera
  *
  * This file is part of PIConGPU. 
  * 
@@ -16,35 +16,33 @@
  * You should have received a copy of the GNU General Public License 
  * along with PIConGPU.  
  * If not, see <http://www.gnu.org/licenses/>. 
- */
-
-
+ */ 
 
 #pragma once
 
-#include "types.h"
-#include "types.h"
-#include "math/vector/Int.hpp"
+#include "simulation_defines.hpp"
 
 namespace picongpu
 {
 
-struct ShiftCoordinateSystemNative
+namespace traits
 {
+/**Get margin of a solver
+ * class must define a LowerMargin and UpperMargin for any valid solver
+ * 
+ * \tparam Solver solver which need goast cells for solving a problem
+ * \tparam SubSetName a optinal name (id) if solver needs defferent goast cells
+ * for different objects
+ */
+template<class T_Type>
+struct GetMass;
 
-    /**shift to new coordinat system
-     * 
-     * shift cursor and vector to new coordinate system
-     * @param curser curser to memory
-     * @param vector short vector with coordinates in old system
-     * @param fieldPos vector with relative coordinates for shift ( value range [0.0;0.5] )
-     */
-    template<typename Cursor, typename Vector >
-    HDINLINE void operator()(Cursor& cursor, Vector& vector, const float3_X & fieldPos)
-    {
-        for (uint32_t i = 0; i < simDim; ++i)
-            vector[i] -= fieldPos[i];
-    }
-};
+} //namespace traits
 
-} // namespace picongpu
+template<typename T_Frame>
+static float_X getCharge(const T_Frame& frame,float_X weighting)
+{
+    return traits::GetMass<T_Frame>::charge*weighting;
+}
+
+}// namespace picongpu

@@ -16,8 +16,8 @@
  * You should have received a copy of the GNU General Public License 
  * along with PIConGPU.  
  * If not, see <http://www.gnu.org/licenses/>. 
- */ 
- 
+ */
+
 
 
 #pragma once
@@ -39,9 +39,12 @@ namespace picongpu
  * \tparam AssignmentFunction AssignmentFunction which is used for interpolation
  * \tparam InterpolationMethod functor for interpolation method
  */
-template<class GridShiftMethod, class AssignmentFunction, class InterpolationMethod>
+template<class Assignment, class InterpolationMethod>
 struct FieldToParticleInterpolation
 {
+    typedef FieldToParticleInterpolation<Assignment,InterpolationMethod> ThisType;
+    typedef typename Assignment::ChargeAssignment AssignmentFunction;
+
     static const int supp = AssignmentFunction::support;
 
     static const int lowerMargin = supp / 2;
@@ -74,22 +77,83 @@ struct FieldToParticleInterpolation
 
         BOOST_AUTO(field_x, PMacc::cursor::make_FunctorCursor(field, _1[mpl::int_ < 0 > ()]));
         floatD_X pos_tmp(particlePos);
-        GridShiftMethod()(field_x, pos_tmp, fieldPos.x());
+        shift(field_x, pos_tmp, fieldPos.x());
         float_X result_x = InterpolationMethod::template interpolate<AssignmentFunction, begin, end > (field_x, pos_tmp);
 
         BOOST_AUTO(field_y, PMacc::cursor::make_FunctorCursor(field, _1[mpl::int_ < 1 > ()]));
         pos_tmp = particlePos;
-        GridShiftMethod()(field_y, pos_tmp, fieldPos.y());
+        shift(field_y, pos_tmp, fieldPos.y());
         float_X result_y = InterpolationMethod::template interpolate<AssignmentFunction, begin, end > (field_y, pos_tmp);
 
         BOOST_AUTO(field_z, PMacc::cursor::make_FunctorCursor(field, _1[mpl::int_ < 2 > ()]));
         pos_tmp = particlePos;
-        GridShiftMethod()(field_z, pos_tmp, fieldPos.z());
+        shift(field_z, pos_tmp, fieldPos.z());
         float_X result_z = InterpolationMethod::template interpolate<AssignmentFunction, begin, end > (field_z, pos_tmp);
 
         return float3_X(result_x, result_y, result_z);
     }
 
+private:
+
+    /**shift to new coordinat system
+     * 
+     * shift cursor and vector to new coordinate system
+     * @param curser curser to memory
+     * @param vector short vector with coordinates in old system
+     * @param fieldPos vector with relative coordinates for shift ( value range [0.0;0.5] )
+     */
+    template<typename Cursor, typename Vector >
+    HDINLINE void shift(Cursor& cursor, Vector& vector, const float3_X & fieldPos)
+    {
+
+        if (supp % 2 == 0)
+        {
+            //even support
+
+            /* for any direction
+             * if fieldPos == 0.5 and vector<0.5 
+             * shift curser+(-1) and new_vector=old_vector-(-1)
+             * 
+             * (vector.x() < fieldPos.x()) is equal ((fieldPos == 0.5) && (vector<0.5))
+             */
+            float3_X coordinate_shift(
+                                      -float_X(vector.x() < fieldPos.x()),
+                                      -float_X(vector.y() < fieldPos.y()),
+                                      -float_X(vector.z() < fieldPos.z())
+                                      );
+            cursor = cursor(
+                            PMacc::math::Int < 3 > (
+                                                    coordinate_shift.x(),
+                                                    coordinate_shift.y(),
+                                                    coordinate_shift.z()
+                                                    ));
+            //same as: vector = vector - fieldPos - coordinate_shift;
+            vector -= (fieldPos + coordinate_shift);
+        }
+        else
+        {
+            //odd support
+
+            /* for any direction
+             * if fieldPos < 0.5 and vector> 0.5 
+             * shift curser+1 and new_vector=old_vector-1
+             */
+            float3_X coordinate_shift(
+                                      float_X(vector.x() > float_X(0.5) && fieldPos.x() != float_X(0.5)),
+                                      float_X(vector.y() > float_X(0.5) && fieldPos.y() != float_X(0.5)),
+                                      float_X(vector.z() > float_X(0.5) && fieldPos.z() != float_X(0.5))
+                                      );
+            cursor = cursor(
+                            PMacc::math::Int < 3 > (
+                                                    coordinate_shift.x(),
+                                                    coordinate_shift.y(),
+                                                    coordinate_shift.z()
+                                                    ));
+            //same as: vector = vector - fieldPos - coordinate_shift;
+            vector -= (fieldPos + coordinate_shift);
+
+        }
+    }
 };
 
 namespace traits
@@ -98,11 +162,11 @@ namespace traits
 /*Get margin of a solver
  * class must define a LowerMargin and UpperMargin 
  */
-template<class GridShiftMethod, class AssignMethod, class InterpolationMethod>
-struct GetMargin<picongpu::FieldToParticleInterpolation<GridShiftMethod, AssignMethod, InterpolationMethod> >
+template<class AssignMethod, class InterpolationMethod>
+struct GetMargin<picongpu::FieldToParticleInterpolation<AssignMethod, InterpolationMethod> >
 {
 private:
-    typedef picongpu::FieldToParticleInterpolation<GridShiftMethod, AssignMethod, InterpolationMethod> Interpolation;
+    typedef picongpu::FieldToParticleInterpolation<AssignMethod, InterpolationMethod> Interpolation;
 public:
     typedef typename Interpolation::LowerMargin LowerMargin;
     typedef typename Interpolation::UpperMargin UpperMargin;

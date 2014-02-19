@@ -57,13 +57,14 @@ fieldE( NULL )
     /*#####create FieldB###############*/
     fieldB = new GridBuffer<ValueType, simDim > ( cellDescription.getGridLayout( ) );
 
+    /** \todo loop over all particle species*/
     /* Calculate the maximum Neighbors we need from MAX(ParticleShape, FieldSolver) */
     typedef typename PMacc::math::CT::max<
-        GetMargin<fieldSolver::FieldToParticleInterpolation>::LowerMargin,
+        GetMargin<Field2Particle>::LowerMargin,
         GetMargin<fieldSolver::FieldSolver, FIELD_B>::LowerMargin
         >::type LowerMargin;
     typedef typename PMacc::math::CT::max<
-        GetMargin<fieldSolver::FieldToParticleInterpolation>::UpperMargin,
+        GetMargin<Field2Particle>::UpperMargin,
         GetMargin<fieldSolver::FieldSolver, FIELD_B>::UpperMargin
         >::type UpperMargin;
 

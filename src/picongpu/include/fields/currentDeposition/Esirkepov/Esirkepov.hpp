@@ -22,6 +22,7 @@
 
 #include "simulation_defines.hpp"
 #include "types.h"
+#include "fields/currentDeposition/Esirkepov/Esirkepov.def"
 #include "math/vector/UInt.hpp"
 #include "types.h"
 #include "cuSTL/cursor/Cursor.hpp"
@@ -32,7 +33,7 @@
 
 namespace picongpu
 {
-namespace currentSolverEsirkepov
+namespace currentSolver
 {
 using namespace PMacc;
 
@@ -44,12 +45,14 @@ using namespace PMacc;
  * paper: "Exact charge conservation scheme for Particle-in-Cell simulation
  *  with an arbitrary form-factor"
  */
-template<uint32_t T_Dim,typename ParticleAssign, typename NumericalCellType>
+template<typename T_ParticleAssign>
 struct Esirkepov;
 
-template<typename ParticleAssign, typename NumericalCellType>
 struct Esirkepov<DIM3, ParticleAssign, NumericalCellType>
 {
+    typedef Esirkepov<T_ParticleAssign> ThisType;
+    typedef typename T_ParticleAssign::ChargeAssignment ParticleAssign;
+    
     static const int supp = ParticleAssign::support;
 
     static const int currentLowerMargin = supp / 2 + 1;
@@ -84,7 +87,7 @@ struct Esirkepov<DIM3, ParticleAssign, NumericalCellType>
         Line<float3_X> line(oldPos, pos);
         BOOST_AUTO(cursorJ, dataBoxJ.toCursor());
 
-        if (speciesParticleShape::ParticleShape::support % 2 == 1)
+        if (supp % 2 == 1)
         {
             /* odd support
              * we need only for odd supports a shift because for even supports
@@ -228,11 +231,11 @@ namespace traits
 /*Get margin of a solver
  * class must define a LowerMargin and UpperMargin 
  */
-template<uint32_t T_Dim,typename ParticleShape, typename NumericalCellType>
-struct GetMargin<picongpu::currentSolverEsirkepov::Esirkepov<T_Dim,ParticleShape, NumericalCellType> >
+template<typename ParticleShape>
+struct GetMargin<picongpu::currentSolver::Esirkepov<ParticleShape> >
 {
 private:
-    typedef picongpu::currentSolverEsirkepov::Esirkepov<T_Dim,ParticleShape, NumericalCellType> Solver;
+    typedef picongpu::currentSolver::Esirkepov<ParticleShape> Solver;
 public:
     typedef typename Solver::LowerMargin LowerMargin;
     typedef typename Solver::UpperMargin UpperMargin;

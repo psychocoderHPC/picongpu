@@ -16,8 +16,8 @@
  * You should have received a copy of the GNU General Public License 
  * along with PIConGPU.  
  * If not, see <http://www.gnu.org/licenses/>. 
- */ 
- 
+ */
+
 
 
 #pragma once
@@ -39,9 +39,11 @@ namespace picongpu
  * \tparam AssignmentFunction AssignmentFunction which is used for interpolation
  * \tparam InterpolationMethod functor for interpolation method
  */
-template<class GridShiftMethod, class AssignmentFunction, class InterpolationMethod>
+template<class Assignment, class InterpolationMethod>
 struct FieldToParticleInterpolationNative
 {
+    typedef typename Assignment::ChargeAssignment AssignmentFunction;
+
     static const int supp = AssignmentFunction::support;
 
     static const int lowerMargin = supp / 2;
@@ -70,20 +72,37 @@ struct FieldToParticleInterpolationNative
 
         BOOST_AUTO(field_x, PMacc::cursor::make_FunctorCursor(field, _1[mpl::int_ < 0 > ()]));
         floatD_X pos_tmp(particlePos);
-        GridShiftMethod()(field_x, pos_tmp, fieldPos.x());
+        shift(field_x, pos_tmp, fieldPos.x());
         float_X result_x = InterpolationMethod::template interpolate<AssignmentFunction, -lowerMargin, upperMargin > (field_x, pos_tmp);
 
         BOOST_AUTO(field_y, PMacc::cursor::make_FunctorCursor(field, _1[mpl::int_ < 1 > ()]));
         pos_tmp = particlePos;
-        GridShiftMethod()(field_y, pos_tmp, fieldPos.y());
+        shift(field_y, pos_tmp, fieldPos.y());
         float_X result_y = InterpolationMethod::template interpolate<AssignmentFunction, -lowerMargin, upperMargin > (field_y, pos_tmp);
 
         BOOST_AUTO(field_z, PMacc::cursor::make_FunctorCursor(field, _1[mpl::int_ < 2 > ()]));
         pos_tmp = particlePos;
-        GridShiftMethod()(field_z, pos_tmp, fieldPos.z());
+        shift(field_z, pos_tmp, fieldPos.z());
         float_X result_z = InterpolationMethod::template interpolate<AssignmentFunction, -lowerMargin, upperMargin > (field_z, pos_tmp);
 
         return float3_X(result_x, result_y, result_z);
+    }
+
+private:
+
+    /**shift to new coordinat system
+     * 
+     * shift cursor and vector to new coordinate system
+     * @param curser curser to memory
+     * @param vector short vector with coordinates in old system
+     * @param fieldPos vector with relative coordinates for shift ( value range [0.0;0.5] )
+     */
+    template<typename Cursor, typename Vector >
+    HDINLINE void shift(Cursor& cursor, Vector& vector, const float3_X & fieldPos)
+    {
+
+        vector -= fieldPos;
+
     }
 
 };
@@ -94,11 +113,11 @@ namespace traits
 /*Get margin of a solver
  * class must define a LowerMargin and UpperMargin 
  */
-template<class GridShiftMethod, class AssignMethod, class InterpolationMethod>
-struct GetMargin<picongpu::FieldToParticleInterpolationNative<GridShiftMethod, AssignMethod, InterpolationMethod> >
+template<class AssignMethod, class InterpolationMethod>
+struct GetMargin<picongpu::FieldToParticleInterpolationNative<AssignMethod, InterpolationMethod> >
 {
 private:
-    typedef picongpu::FieldToParticleInterpolationNative<GridShiftMethod, AssignMethod, InterpolationMethod> Interpolation;
+    typedef picongpu::FieldToParticleInterpolationNative< AssignMethod, InterpolationMethod> Interpolation;
 public:
     typedef typename Interpolation::LowerMargin LowerMargin;
     typedef typename Interpolation::UpperMargin UpperMargin;
