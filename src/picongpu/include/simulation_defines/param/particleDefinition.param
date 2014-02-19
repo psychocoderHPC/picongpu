@@ -37,6 +37,14 @@
 
 #include "particles/ParticleDescription.hpp"
 
+
+#include "particles/shapes.hpp"
+#include "algorithms/FieldToParticleInterpolationNative.hpp"
+#include "algorithms/FieldToParticleInterpolation.hpp"
+#include "algorithms/AssignedTrilinearInterpolation.hpp"
+
+#include "fields/currentDeposition/Esirkepov/Esirkepov.def"
+
 /*enable (1) or disable (0) ions*/
 #define ENABLE_IONS 1
 /*enable (1) or disable (0) electrons*/
@@ -106,8 +114,11 @@ radiationFlag
 #endif
 >::type AttributRadiationFlag;
 
-    alias(usedPusher);
-    
+alias(usedPusher);
+alias(shape);
+alias(interpolation);
+alias(current);
+
 typedef
 typename MakeSeq<
 DefaultParticleAttributes,
@@ -115,7 +126,15 @@ AttributMomentum_mt1,
 AttributRadiationFlag
 >::type DefaultAttributesSeq;
 
-typedef boost::mpl::vector1<usedPusher<PusherBoris> > ParticleFlags;
+/* define which interpolation method is used to interpolate fields to particle*/
+typedef FieldToParticleInterpolation<particleShape::TSC, AssignedTrilinearInterpolation> Field2Particle;
+typedef currentSolver::Esirkepov<particleShape::TSC> CurrentSolver;
+
+typedef boost::mpl::vector<usedPusher<PusherBoris>,
+    shape<particleShape::TSC>,
+    interpolation<Field2Particle>,
+    current<CurrentSolver>
+> ParticleFlags;
 
 typedef Particles<ParticleDescription<DefaultAttributesSeq, ElectronsMethodsList, ParticleFlags> > p_Electrons;
 typedef Particles<ParticleDescription< DefaultAttributesSeq, IonsMethodsList, ParticleFlags > > p_Ions;

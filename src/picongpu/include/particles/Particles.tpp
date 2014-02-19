@@ -135,11 +135,13 @@ template< typename T_Pusher>
 void Particles<T_ParticleDescription>::update(T_Pusher,uint32_t )
 {
     typedef typename GetType<T_Pusher>::type ParticlePush;
+    typedef typename GetFlagType<FrameType,interpolation<> >::type::ThisType InterpolationSchema;
 
-    typedef typename GetMargin<fieldSolver::FieldToParticleInterpolation>::LowerMargin LowerMargin;
-    typedef typename GetMargin<fieldSolver::FieldToParticleInterpolation>::UpperMargin UpperMargin;
+    typedef typename GetMargin<InterpolationSchema>::LowerMargin LowerMargin;
+    typedef typename GetMargin<InterpolationSchema>::UpperMargin UpperMargin;
 
     typedef PushParticlePerFrame<ParticlePush, MappingDesc::SuperCellSize,
+        InterpolationSchema,
         fieldSolver::NumericalCellType > FrameSolver;
 
     typedef SuperCellDescription<

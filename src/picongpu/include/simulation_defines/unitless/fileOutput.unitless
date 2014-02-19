@@ -49,7 +49,7 @@ namespace picongpu
     /** FieldTmp output (calculated at runtime)
      */
     using namespace particleToGrid;
-    
+ /*   
     typedef ComputeEnergyDensityPerFrame<
             speciesParticleShape::ParticleShape::ChargeAssignment,
             ComputeEnergyDensityOptions::calcDensity
@@ -64,21 +64,25 @@ namespace picongpu
             particleShape::Counter::ChargeAssignment,
             ComputeEnergyDensityOptions::calcCounter
         > TmpParticleCounter;
-
+*/
     /** List of solvers that use FieldTmp and electrons */
     typedef typename MakeSeq<
+/*
 #if (ENABLE_ELECTRONS == 1)
         FieldTmpOperation< TmpParticleDensity, typename PIC_Electrons::type > ,
         FieldTmpOperation< TmpParticleEnergyDensity, typename PIC_Electrons::type >
 #endif
+*/
     >::type PluginsFileOutputFieldsElectrons;
 
     /** List of solvers that use FieldTmp and ions */
     typedef typename MakeSeq<
+/*
 #if (ENABLE_IONS == 1)
         FieldTmpOperation< TmpParticleDensity,typename PIC_Ions::type >,
         FieldTmpOperation< TmpParticleEnergyDensity, typename PIC_Ions::type >
 #endif
+*/
     >::type PluginsFileOutputFieldsIons;
     
     

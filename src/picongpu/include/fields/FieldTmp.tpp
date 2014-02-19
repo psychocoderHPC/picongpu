@@ -59,10 +59,8 @@ namespace picongpu
 
         const DataSpace<simDim> coreBorderSize = cellDescription.getGridLayout( ).getDataSpaceWithoutGuarding( );
 
-        typedef picongpu::FieldToParticleInterpolationNative<
-            ShiftCoordinateSystemNative,
-            speciesParticleShape::ParticleShape::ChargeAssignment,
-            AssignedTrilinearInterpolation> maxMarginsFrameSolver;
+        /** \todo loop over all particle interpolation */
+        typedef Field2Particle maxMarginsFrameSolver;
 
         /* The maximum Neighbors we need will be given by the ParticleShape */
         typedef typename GetMargin<maxMarginsFrameSolver>::LowerMargin LowerMargin;

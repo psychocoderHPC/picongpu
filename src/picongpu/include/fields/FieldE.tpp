@@ -55,11 +55,11 @@ fieldB( NULL )
 
     /* Calculate the maximum Neighbors we need from MAX(ParticleShape, FieldSolver) */
     typedef typename PMacc::math::CT::max<
-        GetMargin<fieldSolver::FieldToParticleInterpolation>::LowerMargin,
+        GetMargin<Field2Particle>::LowerMargin,
         GetMargin<fieldSolver::FieldSolver, FIELD_E>::LowerMargin
         >::type LowerMargin;
     typedef typename PMacc::math::CT::max<
-        GetMargin<fieldSolver::FieldToParticleInterpolation>::UpperMargin,
+        GetMargin<Field2Particle>::UpperMargin,
         GetMargin<fieldSolver::FieldSolver, FIELD_E>::UpperMargin
         >::type UpperMargin;
 

@@ -37,8 +37,22 @@
 
 #include "math/vector/compile-time/Vector.hpp"
 
+#include <boost/mpl/accumulate.hpp>
+
+
 namespace picongpu
 {
+
+template<typename T_Type1,typename T_Type2>
+struct BinaryOpLowerMargin
+{
+    typedef typename GetFlagType<typename T_Type2::type::FrameType,current<> >::type::ThisType ParticleCurrentSolver;
+    
+    typedef typename PMacc::math::CT::max<
+        T_Type1,
+        typename ParticleCurrentSolver::LowerMargin
+        >::type type;
+};
 
 using namespace PMacc;
 
@@ -46,12 +60,21 @@ FieldJ::FieldJ( MappingDesc cellDescription ) :
 SimulationFieldHelper<MappingDesc>( cellDescription ),
 fieldJ( cellDescription.getGridLayout( ) ), fieldE( NULL )
 {
-    typedef currentSolver::CurrentSolver ParticleCurrentSolver;
-
     const DataSpace<simDim> coreBorderSize = cellDescription.getGridLayout( ).getDataSpaceWithoutGuarding( );
 
-    typedef typename GetMargin<ParticleCurrentSolver>::LowerMargin LowerMargin;
-    typedef typename GetMargin<ParticleCurrentSolver>::UpperMargin UpperMargin;
+    
+    
+    
+    /**\todo loop over all species and calculate max neighbors */
+    //typedef typename GetMargin<CurrentSolver>::LowerMargin LowerMargin;
+    
+    typedef typename boost::mpl::accumulate<
+        VectorAllSpecies,
+        typename PMacc::math::CT::make_Int<simDim,0>::type,
+        BinaryOpLowerMargin<boost::mpl::_1,boost::mpl::_2>
+    >::type LowerMargin;
+    
+    typedef typename GetMargin<CurrentSolver>::UpperMargin UpperMargin;
 
     const DataSpace<simDim> originGuard( LowerMargin( ).vec( ) );
     const DataSpace<simDim> endGuard( UpperMargin( ).vec( ) );
@@ -194,13 +217,15 @@ void FieldJ::computeCurrent( ParticlesClass &parClass, uint32_t ) throw (std::in
      */
     const int workerMultiplier =2;
     
-    typedef currentSolver::CurrentSolver ParticleCurrentSolver;
+    typedef typename ParticlesClass::FrameType FrameType;
+    typedef typename GetFlagType<FrameType,current<> >::type::ThisType ParticleCurrentSolver;
+    
     typedef ComputeCurrentPerFrame<ParticleCurrentSolver, Velocity, MappingDesc::SuperCellSize> FrameSolver;
 
     typedef SuperCellDescription<
         typename MappingDesc::SuperCellSize,
-        typename toTVec<GetMargin<currentSolver::CurrentSolver>::LowerMargin>::type,
-        typename toTVec<GetMargin<currentSolver::CurrentSolver>::UpperMargin>::type
+        typename toTVec<typename GetMargin<ParticleCurrentSolver>::LowerMargin>::type,
+        typename toTVec<typename GetMargin<ParticleCurrentSolver>::UpperMargin>::type
         > BlockArea;
 
     StrideMapping<AREA, DIM3, MappingDesc> mapper( cellDescription );

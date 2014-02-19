@@ -22,6 +22,7 @@
 
 #include "simulation_defines.hpp"
 #include "types.h"
+#include "fields/currentDeposition/Esirkepov/Esirkepov.def"
 #include "math/vector/UInt.hpp"
 #include "types.h"
 #include "dimensions/DataSpace.hpp"
@@ -35,7 +36,7 @@
 
 namespace picongpu
 {
-namespace currentSolverEsirkepov
+namespace currentSolver
 {
 using namespace PMacc;
 
@@ -46,9 +47,12 @@ using namespace PMacc;
  * paper: "Exact charge conservation scheme for Particle-in-Cell simulation
  *  with an arbitrary form-factor"
  */
-template<typename ParticleAssign, typename NumericalCellType>
+template<typename T_ParticleAssign>
 struct EsirkepovNative
 {
+    typedef Esirkepov<T_ParticleAssign> ThisType;
+    typedef typename T_ParticleAssign::ChargeAssignment ParticleAssign;
+    
     static const int supp = ParticleAssign::support;
 
     static const int currentLowerMargin = supp / 2 + 1;
@@ -161,7 +165,7 @@ struct EsirkepovNative
     }
 };
 
-} //namespace currentSolverEsirkepov
+} //namespace currentSolver
 
 namespace traits
 {
@@ -169,11 +173,11 @@ namespace traits
 /*Get margin of a solver
  * class must define a LowerMargin and UpperMargin 
  */
-template<typename ParticleShape, typename NumericalCellType>
-struct GetMargin<picongpu::currentSolverEsirkepov::EsirkepovNative<ParticleShape, NumericalCellType> >
+template<typename ParticleShape>
+struct GetMargin<picongpu::currentSolver::EsirkepovNative<ParticleShape> >
 {
 private:
-    typedef picongpu::currentSolverEsirkepov::EsirkepovNative<ParticleShape, NumericalCellType> Solver;
+    typedef picongpu::currentSolver::EsirkepovNative<ParticleShape> Solver;
 public:
     typedef typename Solver::LowerMargin LowerMargin;
     typedef typename Solver::UpperMargin UpperMargin;

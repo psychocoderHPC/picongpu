@@ -31,7 +31,7 @@
 
 namespace picongpu
 {
-namespace currentSolverVillaBune
+namespace currentSolver
 {
 using namespace PMacc;
 
@@ -220,7 +220,7 @@ namespace traits
 {
 
 template<>
-struct GetMargin<picongpu::currentSolverVillaBune::VillaBune>
+struct GetMargin<picongpu::currentSolver::VillaBune>
 {
     typedef ::PMacc::math::CT::Int < 1, 1, 1 > LowerMargin;
     typedef ::PMacc::math::CT::Int < 2, 2, 2 > UpperMargin;

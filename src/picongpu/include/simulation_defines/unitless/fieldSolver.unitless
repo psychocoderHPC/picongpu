@@ -28,11 +28,7 @@
 #include "fields/MaxwellSolver/Lehe/LeheSolver.def"
 
 #include "fields/numericalCellTypes/NumericalCellTypes.hpp"
-#include "algorithms/FieldToParticleInterpolationNative.hpp"
-#include "algorithms/FieldToParticleInterpolation.hpp"
-#include "algorithms/ShiftCoordinateSystemNative.hpp"
-#include "algorithms/ShiftCoordinateSystem.hpp"
-#include "algorithms/AssignedTrilinearInterpolation.hpp"
+
 
 namespace picongpu
 {
@@ -41,56 +37,30 @@ namespace fieldSolverNone
 {
     typedef typename picongpu::noSolver::NoSolver FieldSolver;
     typedef yeeCell::YeeCell NumericalCellType;
-    
-    typedef picongpu::FieldToParticleInterpolationNative<
-    ShiftCoordinateSystemNative,
-    speciesParticleShape::ParticleShape::ChargeAssignment,
-    AssignedTrilinearInterpolation> FieldToParticleInterpolation;
 }
 
 namespace fieldSolverYeeNative
 {
     typedef typename picongpu::yeeSolver::YeeSolver<> FieldSolver;
     typedef yeeCell::YeeCell NumericalCellType;
-
-    typedef picongpu::FieldToParticleInterpolationNative<
-    ShiftCoordinateSystemNative,
-    speciesParticleShape::ParticleShape::ChargeAssignment,
-    AssignedTrilinearInterpolation> FieldToParticleInterpolation;
 }
 
 namespace fieldSolverYee
 {
     typedef typename picongpu::yeeSolver::YeeSolver<> FieldSolver;
     typedef yeeCell::YeeCell NumericalCellType;
-
-    typedef picongpu::FieldToParticleInterpolation<
-    ShiftCoordinateSystem,
-    speciesParticleShape::ParticleShape::ChargeAssignmentOnSupport,
-    AssignedTrilinearInterpolation> FieldToParticleInterpolation;
 }
 
 namespace fieldSolverDirSplitting
 {
     typedef picongpu::dirSplitting::DirSplitting FieldSolver;
     typedef allCenteredCell::AllCenteredCell NumericalCellType;
-
-    typedef picongpu::FieldToParticleInterpolationNative<
-    ShiftCoordinateSystemNative,
-    speciesParticleShape::ParticleShape::ChargeAssignment,
-    AssignedTrilinearInterpolation> FieldToParticleInterpolation;
 }
 
 namespace fieldSolverLehe
 {
     typedef typename picongpu::leheSolver::LeheSolver FieldSolver;
     typedef yeeCell::YeeCell NumericalCellType;
-    
-    typedef picongpu::FieldToParticleInterpolationNative<
-    ShiftCoordinateSystemNative,
-    speciesParticleShape::ParticleShape::ChargeAssignment,
-    AssignedTrilinearInterpolation> FieldToParticleInterpolation;
-
 }
 } //namespace picongpu
 
