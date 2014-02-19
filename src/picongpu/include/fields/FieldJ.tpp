@@ -16,7 +16,7 @@
  * You should have received a copy of the GNU General Public License 
  * along with PIConGPU.  
  * If not, see <http://www.gnu.org/licenses/>. 
- */ 
+ */
 
 #include <iostream>
 #include "simulation_defines.hpp"
@@ -38,33 +38,13 @@
 #include "math/vector/compile-time/Vector.hpp"
 
 #include <boost/mpl/accumulate.hpp>
+#include "particles/compileTime/traits.hpp"
 
 
 namespace picongpu
 {
 
 using namespace PMacc;
-template<typename T_Type1,typename T_Type2>
-struct BinaryOpLowerMarginCurrentSolver
-{
-    typedef typename GetFlagType<typename T_Type2::type::FrameType,current<> >::type::ThisType ParticleCurrentSolver;
-    
-    typedef typename PMacc::math::CT::max<
-        T_Type1,
-        typename ParticleCurrentSolver::LowerMargin
-        >::type type;
-};
-
-template<typename T_Type1,typename T_Type2>
-struct BinaryOpUpperMarginCurrentSolver
-{
-    typedef typename GetFlagType<typename T_Type2::type::FrameType,current<> >::type::ThisType ParticleCurrentSolver;
-    
-    typedef typename PMacc::math::CT::max<
-        T_Type1,
-        typename ParticleCurrentSolver::UpperMargin
-        >::type type;
-};
 
 
 FieldJ::FieldJ( MappingDesc cellDescription ) :
@@ -72,20 +52,19 @@ SimulationFieldHelper<MappingDesc>( cellDescription ),
 fieldJ( cellDescription.getGridLayout( ) ), fieldE( NULL )
 {
     const DataSpace<simDim> coreBorderSize = cellDescription.getGridLayout( ).getDataSpaceWithoutGuarding( );
-    
-    typedef typename GetFlagType<typename T_Type2::type::FrameType,current<> >::type::ThisType ParticleCurrentSolver;
-    
+
+
     typedef typename boost::mpl::accumulate<
         VectorAllSpecies,
-        typename PMacc::math::CT::make_Int<simDim,0>::type,
-        BinaryOpLowerMarginCurrentSolver<boost::mpl::_1,boost::mpl::_2 >
-    >::type LowerMargin;
-    
-     typedef typename boost::mpl::accumulate<
+        typename PMacc::math::CT::make_Int<simDim, 0>::type,
+        PMacc::math::CT::max<boost::mpl::_1, GetLowerMarging< GetCurrentSolver<boost::mpl::_2> > >
+        >::type LowerMargin;
+
+    typedef typename boost::mpl::accumulate<
         VectorAllSpecies,
-        typename PMacc::math::CT::make_Int<simDim,0>::type,
-        BinaryOpUpperMarginCurrentSolver<boost::mpl::_1,boost::mpl::_2 >
-    >::type UpperMargin;
+        typename PMacc::math::CT::make_Int<simDim, 0>::type,
+        PMacc::math::CT::max<boost::mpl::_1, GetUpperMarging< GetCurrentSolver<boost::mpl::_2> > >
+        >::type UpperMargin;
 
     const DataSpace<simDim> originGuard( LowerMargin( ).vec( ) );
     const DataSpace<simDim> endGuard( UpperMargin( ).vec( ) );
@@ -205,7 +184,7 @@ typename FieldJ::UnitValueType
 FieldJ::getUnit( )
 {
     const UnitValueType unitaryVector( 1.0, 1.0, 1.0 );
-    return unitaryVector * UNIT_CHARGE / UNIT_TIME / (UNIT_LENGTH * UNIT_LENGTH);
+    return unitaryVector * UNIT_CHARGE / UNIT_TIME / ( UNIT_LENGTH * UNIT_LENGTH );
 }
 
 std::string
@@ -226,11 +205,11 @@ void FieldJ::computeCurrent( ParticlesClass &parClass, uint32_t ) throw (std::in
     /** tune paramter to use more threads than cells in a supercell
      *  valid domain: 1 <= workerMultiplier
      */
-    const int workerMultiplier =2;
-    
+    const int workerMultiplier = 2;
+
     typedef typename ParticlesClass::FrameType FrameType;
-    typedef typename GetFlagType<FrameType,current<> >::type::ThisType ParticleCurrentSolver;
-    
+    typedef typename GetFlagType<FrameType, current<> >::type::ThisType ParticleCurrentSolver;
+
     typedef ComputeCurrentPerFrame<ParticleCurrentSolver, Velocity, MappingDesc::SuperCellSize> FrameSolver;
 
     typedef SuperCellDescription<
@@ -245,14 +224,14 @@ void FieldJ::computeCurrent( ParticlesClass &parClass, uint32_t ) throw (std::in
     FrameSolver solver(
                         float3_X( CELL_WIDTH, CELL_HEIGHT, CELL_DEPTH ),
                         DELTA_T );
-    
-    DataSpace<simDim> blockSize(mapper.getSuperCellSize( ));
-    blockSize.z()*=workerMultiplier;
+
+    DataSpace<simDim> blockSize( mapper.getSuperCellSize( ) );
+    blockSize.z( ) *= workerMultiplier;
 
     __startAtomicTransaction( __getTransactionEvent( ) );
     do
     {
-        __cudaKernel( ( kernelComputeCurrent<workerMultiplier,BlockArea, AREA> ) )
+        __cudaKernel( ( kernelComputeCurrent<workerMultiplier, BlockArea, AREA> ) )
             ( mapper.getGridDim( ), blockSize )
             ( jBox,
               pBox, solver, mapper );

@@ -44,6 +44,7 @@
 #include "algorithms/AssignedTrilinearInterpolation.hpp"
 
 #include "fields/currentDeposition/Esirkepov/Esirkepov.def"
+#include "fields/currentDeposition/VillaBune/CurrentVillaBune.def"
 #include "particles/Species.hpp"
 
 /*enable (1) or disable (0) ions*/
@@ -112,7 +113,7 @@ radiationFlag
 #endif
 >::type AttributRadiationFlag;
 
-alias(usedPusher);
+alias(pusher);
 alias(shape);
 alias(interpolation);
 alias(current);
@@ -128,14 +129,22 @@ AttributRadiationFlag
 typedef FieldToParticleInterpolation<particleShape::TSC, AssignedTrilinearInterpolation> Field2Particle;
 typedef currentSolver::Esirkepov<particleShape::TSC> CurrentSolver;
 
-typedef boost::mpl::vector<usedPusher<PusherBoris>,
+typedef boost::mpl::vector<
+    pusher<PusherBoris>,
     shape<particleShape::TSC>,
     interpolation<Field2Particle>,
     current<CurrentSolver>
-> ParticleFlags;
+> ParticleFlagsElectrons;
 
-typedef Particles<ParticleDescription<DefaultAttributesSeq, ElectronsMethodsList, ParticleFlags> > p_Electrons;
-typedef Particles<ParticleDescription< DefaultAttributesSeq, IonsMethodsList, ParticleFlags > > p_Ions;
+typedef boost::mpl::vector<
+    pusher<PusherBoris>,
+    shape<particleShape::CIC>,
+    interpolation<FieldToParticleInterpolation<particleShape::CIC, AssignedTrilinearInterpolation> >,
+    current<currentSolver::VillaBune>
+> ParticleFlagsIons;
+
+typedef Particles<ParticleDescription<DefaultAttributesSeq, ElectronsMethodsList, ParticleFlagsElectrons> > p_Electrons;
+typedef Particles<ParticleDescription< DefaultAttributesSeq, IonsMethodsList, ParticleFlagsIons > > p_Ions;
 
 named_type(p_Electrons,
            PIC_Electrons,

@@ -43,6 +43,9 @@
 
 #include <list>
 
+#include "particles/compileTime/traits.hpp"
+#include <boost/mpl/accumulate.hpp>
+
 namespace picongpu
 {
 using namespace PMacc;
@@ -53,13 +56,25 @@ fieldB( NULL )
 {
     fieldE = new GridBuffer<ValueType, simDim > ( cellDescription.getGridLayout( ) );
 
+    typedef typename boost::mpl::accumulate<
+        VectorAllSpecies,
+        typename PMacc::math::CT::make_Int<simDim, 0>::type,
+        PMacc::math::CT::max<boost::mpl::_1, GetLowerMarging< GetInterpolation<boost::mpl::_2> > >
+        >::type LowerMarginInterpolation;
+
+    typedef typename boost::mpl::accumulate<
+        VectorAllSpecies,
+        typename PMacc::math::CT::make_Int<simDim, 0>::type,
+        PMacc::math::CT::max<boost::mpl::_1, GetUpperMarging< GetInterpolation<boost::mpl::_2> > >
+        >::type UpperMarginInterpolation;
+    
     /* Calculate the maximum Neighbors we need from MAX(ParticleShape, FieldSolver) */
     typedef typename PMacc::math::CT::max<
-        GetMargin<Field2Particle>::LowerMargin,
+        LowerMarginInterpolation,
         GetMargin<fieldSolver::FieldSolver, FIELD_E>::LowerMargin
         >::type LowerMargin;
     typedef typename PMacc::math::CT::max<
-        GetMargin<Field2Particle>::UpperMargin,
+        UpperMarginInterpolation,
         GetMargin<fieldSolver::FieldSolver, FIELD_E>::UpperMargin
         >::type UpperMargin;
 
