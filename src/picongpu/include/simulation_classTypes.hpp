@@ -38,7 +38,7 @@ namespace picongpu
     //short name for access verbose types of picongpu
     typedef PIConGPUVerbose picLog;
 
-    typedef MappingDescription<simDim, TVec<TILE_WIDTH, TILE_HEIGHT
+
     #if(SIMDIM==DIM3)
     , TILE_DEPTH
     #endif

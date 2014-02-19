@@ -44,6 +44,7 @@
 #include "algorithms/AssignedTrilinearInterpolation.hpp"
 
 #include "fields/currentDeposition/Esirkepov/Esirkepov.def"
+#include "particles/Species.hpp"
 
 /*enable (1) or disable (0) ions*/
 #define ENABLE_IONS 1
@@ -52,9 +53,6 @@
 
 namespace picongpu
 {
-
-class ElectronMethods;
-class IonMethods;
 
 /** relative (to cell origin) in-cell position of a particle 
  * With this definition we not define any type like float3,double3,...

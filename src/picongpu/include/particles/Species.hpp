@@ -22,7 +22,7 @@
 
 #include "types.h"
 #include "simulation_defines.hpp"
-#include "particles/Particles.hpp"
+
 #include "particles/species/ions/IonMethods.hpp"
 #include "particles/species/electrons/ElectronMethods.hpp"
 
