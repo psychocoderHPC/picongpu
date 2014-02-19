@@ -1,5 +1,5 @@
 /**
- * Copyright 2014 Rene Widera
+ * Copyright 2013 Axel Huebl, Rene Widera
  *
  * This file is part of PIConGPU. 
  * 
@@ -16,39 +16,43 @@
  * You should have received a copy of the GNU General Public License 
  * along with PIConGPU.  
  * If not, see <http://www.gnu.org/licenses/>. 
- */ 
+ */
+
+
 
 #pragma once
 
-#include "simulation_defines.hpp"
+#include "traits/GetMass.hpp"
+#include "traits/GetCharge.hpp"
+#include "particles/Particles.hpp"
+
 
 namespace picongpu
 {
 
-namespace traits
+template<>
+HDINLINE static float_X getMass<typename PIC_Ions::type::FrameType>(float_X weighting)
 {
-/**Get margin of a solver
- * class must define a LowerMargin and UpperMargin for any valid solver
- * 
- * \tparam Solver solver which need goast cells for solving a problem
- * \tparam SubSetName a optinal name (id) if solver needs defferent goast cells
- * for different objects
- */
-template<class T_Type>
-struct GetMass;
+    return M_ION*weighting;
+};
 
-} //namespace traits
-
-
-template<typename T_Frame>
-HDINLINE static float_X getMass(float_X weighting);
-
-template<typename T_Frame>
-HDINLINE static float_X getMass(float_X weighting,const T_Frame&)
+template<>
+HDINLINE static float_X getCharge<typename PIC_Ions::type::FrameType>(float_X weighting)
 {
-    return getMass<T_Frame>(weighting);
+    return Q_ION*weighting;
+};
+
+template<>
+HDINLINE static float_X getMass<typename PIC_Electrons::type::FrameType>(float_X weighting)
+{
+    return M_EL*weighting;
+};
+
+template<>
+HDINLINE static float_X getCharge<typename PIC_Electrons::type::FrameType>(float_X weighting)
+{
+    return Q_EL*weighting;
+};
+
 }
 
-
-
-}// namespace picongpu

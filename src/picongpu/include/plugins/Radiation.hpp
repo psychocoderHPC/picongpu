@@ -286,7 +286,7 @@ void kernelRadiationParticles(ParBox pb,
 #endif
 
                             // mass of macro-particle
-                            const float_X particle_mass = par.getMass(weighting);
+                            const float_X particle_mass =getMass<FRAME>(weighting);
 
 
                             /****************************************************

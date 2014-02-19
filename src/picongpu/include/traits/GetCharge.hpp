@@ -40,9 +40,13 @@ struct GetCharge;
 } //namespace traits
 
 template<typename T_Frame>
-static float_X getCharge(const T_Frame& frame,float_X weighting)
+HDINLINE static float_X getCharge(float_X weighting);
+
+
+template<typename T_Frame>
+HDINLINE static float_X getCharge(float_X weighting,const T_Frame&)
 {
-    return traits::GetCharge<T_Frame>::charge*weighting;
+    return getCharge<T_Frame>(weighting);
 }
 
 }// namespace picongpu

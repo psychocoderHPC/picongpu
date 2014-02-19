@@ -43,8 +43,9 @@
 namespace picongpu
 {
 
+using namespace PMacc;
 template<typename T_Type1,typename T_Type2>
-struct BinaryOpLowerMargin
+struct BinaryOpLowerMarginCurrentSolver
 {
     typedef typename GetFlagType<typename T_Type2::type::FrameType,current<> >::type::ThisType ParticleCurrentSolver;
     
@@ -54,27 +55,37 @@ struct BinaryOpLowerMargin
         >::type type;
 };
 
-using namespace PMacc;
+template<typename T_Type1,typename T_Type2>
+struct BinaryOpUpperMarginCurrentSolver
+{
+    typedef typename GetFlagType<typename T_Type2::type::FrameType,current<> >::type::ThisType ParticleCurrentSolver;
+    
+    typedef typename PMacc::math::CT::max<
+        T_Type1,
+        typename ParticleCurrentSolver::UpperMargin
+        >::type type;
+};
+
 
 FieldJ::FieldJ( MappingDesc cellDescription ) :
 SimulationFieldHelper<MappingDesc>( cellDescription ),
 fieldJ( cellDescription.getGridLayout( ) ), fieldE( NULL )
 {
     const DataSpace<simDim> coreBorderSize = cellDescription.getGridLayout( ).getDataSpaceWithoutGuarding( );
-
     
-    
-    
-    /**\todo loop over all species and calculate max neighbors */
-    //typedef typename GetMargin<CurrentSolver>::LowerMargin LowerMargin;
+    typedef typename GetFlagType<typename T_Type2::type::FrameType,current<> >::type::ThisType ParticleCurrentSolver;
     
     typedef typename boost::mpl::accumulate<
         VectorAllSpecies,
         typename PMacc::math::CT::make_Int<simDim,0>::type,
-        BinaryOpLowerMargin<boost::mpl::_1,boost::mpl::_2>
+        BinaryOpLowerMarginCurrentSolver<boost::mpl::_1,boost::mpl::_2 >
     >::type LowerMargin;
     
-    typedef typename GetMargin<CurrentSolver>::UpperMargin UpperMargin;
+     typedef typename boost::mpl::accumulate<
+        VectorAllSpecies,
+        typename PMacc::math::CT::make_Int<simDim,0>::type,
+        BinaryOpUpperMarginCurrentSolver<boost::mpl::_1,boost::mpl::_2 >
+    >::type UpperMargin;
 
     const DataSpace<simDim> originGuard( LowerMargin( ).vec( ) );
     const DataSpace<simDim> endGuard( UpperMargin( ).vec( ) );
