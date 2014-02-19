@@ -75,6 +75,8 @@
 #include "traits/HasFlag.hpp"
 #include "traits/GetFlagType.hpp"
 
+#include "particles/compileTime/traits.hpp"
+
 namespace picongpu
 {
 using namespace PMacc;
@@ -160,11 +162,11 @@ struct UpdateSpecie
                             RefWrapper<T_Event> commEvent
                             ) const
     {
-        typedef typename HasFlag<FrameType,usedPusher<> >::type hasPusher;
+        typedef typename HasFlag<FrameType,pusher<> >::type hasPusher;
         if(hasPusher::value)
         {
-            typedef typename GetFlagType<FrameType,usedPusher<> >::type Pusher;
-            typedef typename boost::mpl::if_<hasPusher,Pusher,usedPusher<PusherNone> >::type CallPusher;
+            typedef typename GetFlagType<FrameType,pusher<> >::type Pusher;
+            typedef typename boost::mpl::if_<hasPusher,Pusher,PusherNone >::type CallPusher;
             PMACC_AUTO(speciePtr, tupel.get()[SpeciesName()]);
 
             __startTransaction(eventInt);

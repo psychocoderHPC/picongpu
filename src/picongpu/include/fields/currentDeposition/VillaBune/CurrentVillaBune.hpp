@@ -37,6 +37,7 @@ using namespace PMacc;
 
 struct VillaBune
 {
+    typedef VillaBune ThisType;
 
     template<class BoxJ, typename PosType, typename VelType, typename ChargeType >
     DINLINE void operator()(BoxJ& boxJ_par, /*box which is shifted to particles cell*/
