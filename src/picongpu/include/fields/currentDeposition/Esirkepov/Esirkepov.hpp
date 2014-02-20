@@ -46,9 +46,7 @@ using namespace PMacc;
  *  with an arbitrary form-factor"
  */
 template<typename T_ParticleAssign>
-struct Esirkepov;
-
-struct Esirkepov<DIM3, ParticleAssign, NumericalCellType>
+struct Esirkepov<DIM3, T_ParticleAssign>
 {
     typedef typename T_ParticleAssign::ChargeAssignment ParticleAssign;
     
@@ -56,8 +54,8 @@ struct Esirkepov<DIM3, ParticleAssign, NumericalCellType>
 
     static const int currentLowerMargin = supp / 2 + 1;
     static const int currentUpperMargin = (supp + 1) / 2 + 1;
-    typedef PMacc::math::CT::Int<currentLowerMargin, currentLowerMargin, currentLowerMargin> LowerMargin;
-    typedef PMacc::math::CT::Int<currentUpperMargin, currentUpperMargin, currentUpperMargin> UpperMargin;
+    typedef typename PMacc::math::CT::make_Int<DIM3,currentLowerMargin>::type LowerMargin;
+    typedef typename PMacc::math::CT::make_Int<DIM3,currentUpperMargin>::type UpperMargin;
 
     /* begin and end border is calculated for a particle with a support which travels
      * to the negative direction.
@@ -222,25 +220,7 @@ struct Esirkepov<DIM3, ParticleAssign, NumericalCellType>
     }
 };
 
-} //namespace currentSolverEsirkepov
-
-namespace traits
-{
-
-/*Get margin of a solver
- * class must define a LowerMargin and UpperMargin 
- */
-template<typename ParticleShape>
-struct GetMargin<picongpu::currentSolver::Esirkepov<ParticleShape> >
-{
-private:
-    typedef picongpu::currentSolver::Esirkepov<ParticleShape> Solver;
-public:
-    typedef typename Solver::LowerMargin LowerMargin;
-    typedef typename Solver::UpperMargin UpperMargin;
-};
-
-} //namespace traits
+} //namespace currentSolver
 
 } //namespace picongpu
 

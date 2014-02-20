@@ -176,7 +176,7 @@ void FieldJ::reset( uint32_t )
 
 void FieldJ::clear( )
 {
-    ValueType tmp = float3_X( 0., 0., 0. );
+    ValueType tmp = float3_X( 0.);
     fieldJ.getDeviceBuffer( ).setValue( tmp );
     //fieldJ.reset(false);
 }
@@ -184,7 +184,7 @@ void FieldJ::clear( )
 typename FieldJ::UnitValueType
 FieldJ::getUnit( )
 {
-    const UnitValueType unitaryVector( 1.0, 1.0, 1.0 );
+    const UnitValueType unitaryVector( 1.0);
     return unitaryVector * UNIT_CHARGE / UNIT_TIME / ( UNIT_LENGTH * UNIT_LENGTH );
 }
 

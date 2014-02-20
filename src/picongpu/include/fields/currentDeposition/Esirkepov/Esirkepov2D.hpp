@@ -34,7 +34,7 @@
 
 namespace picongpu
 {
-namespace currentSolverEsirkepov
+namespace currentSolver
 {
 using namespace PMacc;
 
@@ -45,9 +45,11 @@ using namespace PMacc;
  * paper: "Exact charge conservation scheme for Particle-in-Cell simulation
  *  with an arbitrary form-factor"
  */
-template<typename ParticleAssign, typename NumericalCellType>
-struct Esirkepov<DIM2,ParticleAssign,NumericalCellType>
+template<typename T_ParticleAssign>
+struct Esirkepov<DIM2, T_ParticleAssign>
 {
+    typedef typename T_ParticleAssign::ChargeAssignment ParticleAssign;
+    
     static const int supp = ParticleAssign::support;
 
     static const int currentLowerMargin = supp / 2 + 1;
@@ -81,7 +83,7 @@ struct Esirkepov<DIM2,ParticleAssign,NumericalCellType>
         Line<float2_X> line(oldPos, pos);
         BOOST_AUTO(cursorJ, dataBoxJ.toCursor());
 
-        if (speciesParticleShape::ParticleShape::support % 2 == 1)
+        if (supp % 2 == 1)
         {
             /* odd support
              * we need only for odd supports a shift because for even supports
@@ -248,6 +250,6 @@ struct Esirkepov<DIM2,ParticleAssign,NumericalCellType>
     }
 };
 
-} //namespace currentSolverEsirkepov
+} //namespace currentSolver
 
 } //namespace picongpu

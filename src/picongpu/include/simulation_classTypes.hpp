@@ -38,12 +38,6 @@ namespace picongpu
     //short name for access verbose types of picongpu
     typedef PIConGPUVerbose picLog;
 
-
-    #if(SIMDIM==DIM3)
-    , TILE_DEPTH
-    #endif
-    > > MappingDesc;
-
 } //namespace picongpu
 
 /**

@@ -58,7 +58,12 @@ const uint32_t BYTES_EXCHANGE_Z = 4 * 256 * 1024; //4 MiB
 const uint32_t BYTES_CORNER = 8 * 1024; //8 kiB;
 const uint32_t BYTES_EDGES = 32 * 1024; //32 kiB;
 
-typedef MappingDescription<simDim, TVec<TILE_WIDTH, TILE_HEIGHT, TILE_DEPTH> > MappingDesc;
+typedef MappingDescription<simDim, TVec<TILE_WIDTH, TILE_HEIGHT
+#if(SIMDIM==DIM3)
+, TILE_DEPTH
+#endif
+>
+> MappingDesc;
 
 }
 //namespace picongpu

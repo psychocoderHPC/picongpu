@@ -124,7 +124,7 @@ AttributRadiationFlag
 
 /* define which interpolation method is used to interpolate fields to particle*/
 typedef FieldToParticleInterpolation<particleShape::TSC, AssignedTrilinearInterpolation> Field2Particle;
-typedef currentSolver::Esirkepov<particleShape::TSC> CurrentSolver;
+typedef currentSolver::Esirkepov<simDim,particleShape::TSC> CurrentSolver;
 
 typedef boost::mpl::vector<
     pusher<PusherBoris>,

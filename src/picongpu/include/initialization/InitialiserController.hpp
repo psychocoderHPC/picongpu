@@ -213,8 +213,7 @@ private:
 #if (ENABLE_HDF5==1)
     SimRestartInitialiser<typename PIC_Electrons::type, typename PIC_Ions::type, simDim> *simRestartInitialiser;
 #endif
-    SimDescriptionInitialiser<typename PIC_Electrons::type, typename PIC_Ions::type, simDim> *simDescriptionInitialiser;
-
+  
     bool loadSim;
     bool restartSim;
     std::string restartFile;

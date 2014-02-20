@@ -218,16 +218,16 @@ template<typename ArgA0, typename ArgA1,
          typename ArgB0, typename ArgB1>
 struct max<CT::Vector<ArgA0, ArgA1>, CT::Vector<ArgB0, ArgB1> >
 {
-    typedef CT::Vector<typename mpl::plus<ArgA0, ArgB0>::type,
-                       typename mpl::plus<ArgA1, ArgB1>::type> type;
+    typedef CT::Vector<typename mpl::max<ArgA0, ArgB0>::type,
+                       typename mpl::max<ArgA1, ArgB1>::type> type;
 };
 template<typename ArgA0, typename ArgA1, typename ArgA2,
          typename ArgB0, typename ArgB1, typename ArgB2>
 struct max<CT::Vector<ArgA0, ArgA1, ArgA2>, CT::Vector<ArgB0, ArgB1, ArgB2> >
 {
-    typedef CT::Vector<typename mpl::plus<ArgA0, ArgB0>::type,
-                       typename mpl::plus<ArgA1, ArgB1>::type,
-                       typename mpl::plus<ArgA2, ArgB2>::type> type;
+    typedef CT::Vector<typename mpl::max<ArgA0, ArgB0>::type,
+                       typename mpl::max<ArgA1, ArgB1>::type,
+                       typename mpl::max<ArgA2, ArgB2>::type> type;
 };
 
 template<typename Lhs, typename Rhs>
