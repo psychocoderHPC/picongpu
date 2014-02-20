@@ -75,7 +75,7 @@
 #include "traits/HasFlag.hpp"
 #include "traits/GetFlagType.hpp"
 
-#include "particles/compileTime/traits.hpp"
+#include "particles/traits/GetPusher.hpp"
 
 namespace picongpu
 {

@@ -29,9 +29,8 @@
 
 /** some forward declarations we need */
 #include "fields/Fields.def"
-#include "particles/Species.hpp"
-#include "particles/particleToGrid/energyDensity.kernel"
-#include "particles/compileTime/traits.hpp"
+#include "particles/particleToGrid/EnergyDensity.def"
+#include "particles/traits/GetShape.hpp"
 
 namespace picongpu
 {
@@ -52,7 +51,7 @@ namespace picongpu
     using namespace particleToGrid;
     
     /* ############## ParticleDensity section ################################*/
-    
+   
     template<typename T_Species>
     struct CreateDensityOperation
     {
@@ -65,12 +64,11 @@ namespace picongpu
         typedef FieldTmpOperation< ParticleDensity, typename T_Species::type > type;        
     };    
     
-    typedef boost::mpl::inserter< boost::mpl::vector<>, boost::mpl::insert<boost::mpl::_1, boost::mpl::_2> > vector_inserter;
     typedef typename boost::mpl::transform<
             VectorAllSpecies,
             CreateDensityOperation<boost::mpl::_1>
             >::type Density_Seq;
-    
+   
     /* ############## ParticleCounter section ################################*/
     
     template<typename T_Species>
@@ -89,7 +87,7 @@ namespace picongpu
             VectorAllSpecies,
             CreateCounterOperation<boost::mpl::_1>
             >::type Counter_Seq;
-        
+       
     /* ############## ParticleCounter section ################################*/
     
     template<typename T_Species>
@@ -113,9 +111,9 @@ namespace picongpu
     
     /** This list is use to dump fields to a file. */
     typedef typename MakeSeq<
-            NativeFileOutputFields,
-            EnergyDensity_Seq,
-            Counter_Seq,
-            Density_Seq
+        NativeFileOutputFields,
+        Density_Seq,
+        Counter_Seq,
+        EnergyDensity_Seq            
     >::type FileOutputFields;
 }

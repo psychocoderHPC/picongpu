@@ -43,7 +43,8 @@
 
 #include <list>
 
-#include "particles/compileTime/traits.hpp"
+#include "particles/traits/GetInterpolation.hpp"
+#include "traits/GetMargin.hpp"
 #include <boost/mpl/accumulate.hpp>
 
 namespace picongpu

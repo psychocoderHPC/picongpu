@@ -42,7 +42,8 @@
 #include "math/vector/compile-time/Vector.hpp"
 
 #include <boost/mpl/accumulate.hpp>
-#include "particles/compileTime/traits.hpp"
+#include "particles/traits/GetInterpolation.hpp"
+#include "traits/GetMargin.hpp"
 
 namespace picongpu
 {

@@ -31,9 +31,7 @@
 #include "identifier/value_identifier.hpp"
 #include "identifier/named_type.hpp"
 
-#include "particles/Particles.def"
-#include "particles/species/ions/IonMethods.def"
-#include "particles/species/electrons/ElectronMethods.def"
+#include "particles/Particles.hpp"
 
 #include "particles/ParticleDescription.hpp"
 
@@ -43,8 +41,7 @@
 #include "algorithms/FieldToParticleInterpolation.hpp"
 #include "algorithms/AssignedTrilinearInterpolation.hpp"
 
-#include "fields/currentDeposition/Esirkepov/Esirkepov.def"
-#include "fields/currentDeposition/VillaBune/CurrentVillaBune.def"
+#include "fields/currentDeposition/Solver.def"
 #include "particles/Species.hpp"
 
 /*enable (1) or disable (0) ions*/

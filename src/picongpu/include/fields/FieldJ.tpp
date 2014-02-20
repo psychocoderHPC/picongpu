@@ -38,7 +38,8 @@
 #include "math/vector/compile-time/Vector.hpp"
 
 #include <boost/mpl/accumulate.hpp>
-#include "particles/compileTime/traits.hpp"
+#include "traits/GetMargin.hpp"
+#include "particles/traits/GetCurrentSolver.hpp"
 
 
 namespace picongpu

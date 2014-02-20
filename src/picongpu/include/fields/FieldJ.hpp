@@ -40,7 +40,7 @@
 #include "memory/boxes/PitchedBox.hpp"
 
 #include "math/Vector.hpp"
-#include "particles/Particles.def"
+#include "particles/Particles.hpp"
 
 namespace picongpu
 {

@@ -26,6 +26,7 @@
 #include "types.h"
 
 #include "math/vector/compile-time/Vector.hpp"
+#include "particles/particleToGrid/EnergyDensity.def"
 
 #include "algorithms/Gamma.hpp"
 
@@ -33,17 +34,6 @@ namespace picongpu
 {
 namespace particleToGrid
 {
-
-struct ComputeEnergyDensityOptions
-{
-    static const uint32_t calcDensity = 0u;
-    static const uint32_t calcEnergy = 1u;
-    static const uint32_t calcEnergyDensity = 2u;
-    static const uint32_t calcCounter = 3u;
-#if(ENABLE_RADIATION == 1)
-    static const uint32_t calcLarmorEnergy = 4u;
-#endif
-};
 
 template<class T_ParticleShape, uint32_t calcType>
 class ComputeEnergyDensityPerFrame

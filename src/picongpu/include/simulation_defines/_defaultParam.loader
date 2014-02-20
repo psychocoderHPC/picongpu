@@ -40,4 +40,5 @@
 #include "simulation_defines/param/visColorScales.param"
 #include "simulation_defines/param/visualization.param"
 #include "simulation_defines/param/radiationConfig.param"
+#include "simulation_defines/param/fileOutput.param"
 #include "simulation_defines/param/fieldBackground.param"

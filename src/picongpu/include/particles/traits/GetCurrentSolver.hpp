@@ -1,5 +1,5 @@
 /**
- * Copyright 2013 Axel Huebl, Heiko Burau, Rene Widera
+ * Copyright 2014 Rene Widera
  *
  * This file is part of PIConGPU. 
  * 
@@ -17,22 +17,21 @@
  * along with PIConGPU.  
  * If not, see <http://www.gnu.org/licenses/>. 
  */ 
- 
+
 #pragma once
 
-#include "types.h"
-
+#include "simulation_defines.hpp"
+#include "traits/GetFlagType.hpp"
 
 namespace picongpu
 {
-using namespace PMacc;
+namespace traits
+{
+template<typename T_Species>
+struct GetCurrentSolver
+{
+    typedef typename GetFlagType<typename T_Species::type::FrameType, current<> >::type::ThisType type;
+};
+} //namespace traits
 
-class FieldJ;
-class FieldB;
-class FieldE;
-
-template< typename T_ParticleDescription>
-class Particles;
-
-
-} //namespace picongpu
+}// namespace picongpu

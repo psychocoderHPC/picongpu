@@ -22,23 +22,13 @@
 
 #pragma once
 
-#if(SIMDIM==DIM3)
-#include "fields/currentDeposition/VillaBune/CurrentVillaBune.hpp"
-#include "fields/currentDeposition/Esirkepov/EsirkepovNative.hpp"
-#endif
-#include "traits/IsSameType.hpp"
-
-
-#include "fields/currentDeposition/Esirkepov/Esirkepov.hpp"
-#include "fields/numericalCellTypes/YeeCell.hpp"
-
+#include "fields/currentDeposition/Solver.hpp"
 
 namespace picongpu
 {
     
     /** /todo: shift this assert to villabune implementation*/
-#endif
-#if (SIMDIM==DIM3)    
+    
     /* ASSERTS for invalid combinations to help the user -------------------- */
     
     /* VillaBune: field to particle interpolation _requires_ the CIC shape
@@ -55,10 +45,7 @@ namespace picongpu
     PMACC_CASSERT_MSG(currentSolverVillaBune_requires_shapeCIC_in_particleConfig, \
                         vVBorOther);
      * 
-
      */
-     #endif
-
 }
 
 

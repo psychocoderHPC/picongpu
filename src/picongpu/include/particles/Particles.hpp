@@ -22,7 +22,6 @@
 
 #include "types.h"
 #include "simulation_classTypes.hpp"
-#include "fields/SimulationFieldHelper.hpp"
 
 #include "fields/Fields.def"
 #include "particles/ParticlesBase.hpp"
@@ -90,5 +89,3 @@ private:
 
 
 } //namespace picongpu
-
-#include "particles/Particles.tpp"

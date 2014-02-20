@@ -1,5 +1,5 @@
 /**
- * Copyright 2013 Axel Huebl, Heiko Burau, Rene Widera
+ * Copyright 2014 Rene Widera
  *
  * This file is part of PIConGPU. 
  * 
@@ -17,12 +17,19 @@
  * along with PIConGPU.  
  * If not, see <http://www.gnu.org/licenses/>. 
  */ 
- 
-/** only PIConGPU programmers should change this file
- * 
- * for test cases use extensionParam.loader
- *
- */
+
 #pragma once
 
-#include "simulation_defines/param/particleTraits.param"
+#include "simulation_defines.hpp"
+#include "traits/GetFlagType.hpp"
+
+namespace picongpu
+{
+
+template<typename T_Species>
+struct GetPusher
+{
+    typedef typename GetFlagType<typename T_Species::type::FrameType, pusher<> >::type::ThisType type;
+};
+
+}// namespace picongpu

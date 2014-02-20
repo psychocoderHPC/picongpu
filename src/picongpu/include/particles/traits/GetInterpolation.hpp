@@ -21,45 +21,18 @@
 #pragma once
 
 #include "simulation_defines.hpp"
-#include "traits/GetMargin.hpp"
+#include "traits/GetFlagType.hpp"
 
 namespace picongpu
 {
-
-template<typename T_Species>
-struct GetCurrentSolver
+namespace traits
 {
-    typedef typename GetFlagType<typename T_Species::type::FrameType, current<> >::type::ThisType type;
-};
-
-template<typename T_Species>
-struct GetPusher
-{
-    typedef typename GetFlagType<typename T_Species::type::FrameType, pusher<> >::type::ThisType type;
-};
-
-template<typename T_Species>
-struct GetShape
-{
-    typedef typename GetFlagType<typename T_Species::type::FrameType, shape<> >::type::ThisType type;
-};
 
 template<typename T_Species>
 struct GetInterpolation
 {
     typedef typename GetFlagType<typename T_Species::type::FrameType, interpolation<> >::type::ThisType type;
 };
-
-template<typename T_Type>
-struct GetLowerMarging
-{
-    typedef typename traits::GetMargin<T_Type>::LowerMargin type;
-};
-
-template<typename T_Type>
-struct GetUpperMarging
-{
-    typedef typename traits::GetMargin<T_Type>::UpperMargin type;
-};
+} //namespace traits
 
 }// namespace picongpu
