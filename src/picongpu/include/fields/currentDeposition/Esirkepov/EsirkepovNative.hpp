@@ -50,7 +50,6 @@ using namespace PMacc;
 template<typename T_ParticleAssign>
 struct EsirkepovNative
 {
-    typedef Esirkepov<T_ParticleAssign> ThisType;
     typedef typename T_ParticleAssign::ChargeAssignment ParticleAssign;
     
     static const int supp = ParticleAssign::support;

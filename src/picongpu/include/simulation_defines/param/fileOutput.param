@@ -31,6 +31,7 @@
 #include "fields/Fields.def"
 #include "particles/Species.hpp"
 #include "particles/particleToGrid/energyDensity.kernel"
+#include "particles/compileTime/traits.hpp"
 
 namespace picongpu
 {
@@ -39,7 +40,7 @@ namespace picongpu
      *  Possible fields: FieldE, FieldB, FieldJ
      */
     typedef typename MakeSeq<FieldE, FieldB>::type NativeFileOutputFields;
-    
+        
     typedef VectorAllSpecies FileOutputParticles;
     
     /** TimeAvg Fields
@@ -49,47 +50,72 @@ namespace picongpu
     /** FieldTmp output (calculated at runtime)
      */
     using namespace particleToGrid;
- /*   
-    typedef ComputeEnergyDensityPerFrame<
-            speciesParticleShape::ParticleShape::ChargeAssignment,
+    
+    /* ############## ParticleDensity section ################################*/
+    
+    template<typename T_Species>
+    struct CreateDensityOperation
+    {
+        typedef typename GetShape<T_Species>::type shapeType;       
+        typedef ComputeEnergyDensityPerFrame<
+            shapeType,
             ComputeEnergyDensityOptions::calcDensity
-        > TmpParticleDensity;
+        > ParticleDensity;
+        
+        typedef FieldTmpOperation< ParticleDensity, typename T_Species::type > type;        
+    };    
     
-    typedef ComputeEnergyDensityPerFrame<
-            speciesParticleShape::ParticleShape::ChargeAssignment,
-            ComputeEnergyDensityOptions::calcEnergyDensity
-        > TmpParticleEnergyDensity;
+    typedef boost::mpl::inserter< boost::mpl::vector<>, boost::mpl::insert<boost::mpl::_1, boost::mpl::_2> > vector_inserter;
+    typedef typename boost::mpl::transform<
+            VectorAllSpecies,
+            CreateDensityOperation<boost::mpl::_1>
+            >::type Density_Seq;
     
-    typedef ComputeEnergyDensityPerFrame<
-            particleShape::Counter::ChargeAssignment,
+    /* ############## ParticleCounter section ################################*/
+    
+    template<typename T_Species>
+    struct CreateCounterOperation
+    {     
+        typedef ComputeEnergyDensityPerFrame<
+            particleShape::Counter,
             ComputeEnergyDensityOptions::calcCounter
-        > TmpParticleCounter;
-*/
-    /** List of solvers that use FieldTmp and electrons */
-    typedef typename MakeSeq<
-/*
-#if (ENABLE_ELECTRONS == 1)
-        FieldTmpOperation< TmpParticleDensity, typename PIC_Electrons::type > ,
-        FieldTmpOperation< TmpParticleEnergyDensity, typename PIC_Electrons::type >
-#endif
-*/
-    >::type PluginsFileOutputFieldsElectrons;
-
-    /** List of solvers that use FieldTmp and ions */
-    typedef typename MakeSeq<
-/*
-#if (ENABLE_IONS == 1)
-        FieldTmpOperation< TmpParticleDensity,typename PIC_Ions::type >,
-        FieldTmpOperation< TmpParticleEnergyDensity, typename PIC_Ions::type >
-#endif
-*/
-    >::type PluginsFileOutputFieldsIons;
+        > ParticleCounter;
+        
+        typedef FieldTmpOperation< ParticleCounter, typename T_Species::type > type;        
+    };    
     
+    typedef boost::mpl::inserter< boost::mpl::vector<>, boost::mpl::insert<boost::mpl::_1, boost::mpl::_2> > vector_inserter;
+    typedef typename boost::mpl::transform<
+            VectorAllSpecies,
+            CreateCounterOperation<boost::mpl::_1>
+            >::type Counter_Seq;
+        
+    /* ############## ParticleCounter section ################################*/
+    
+    template<typename T_Species>
+    struct CreateEnergyDensityOperation
+    {
+        typedef typename GetShape<T_Species>::type shapeType;       
+        typedef ComputeEnergyDensityPerFrame<
+            shapeType,
+            ComputeEnergyDensityOptions::calcEnergyDensity
+        > ParticleEnergyDensity;
+        
+        typedef FieldTmpOperation< ParticleEnergyDensity, typename T_Species::type > type;        
+    };    
+    
+    typedef boost::mpl::inserter< boost::mpl::vector<>, boost::mpl::insert<boost::mpl::_1, boost::mpl::_2> > vector_inserter;
+    typedef typename boost::mpl::transform<
+            VectorAllSpecies,
+            CreateEnergyDensityOperation<boost::mpl::_1>
+            >::type EnergyDensity_Seq;
+
     
     /** This list is use to dump fields to a file. */
     typedef typename MakeSeq<
             NativeFileOutputFields,
-            PluginsFileOutputFieldsElectrons,
-            PluginsFileOutputFieldsIons
+            EnergyDensity_Seq,
+            Counter_Seq,
+            Density_Seq
     >::type FileOutputFields;
 }

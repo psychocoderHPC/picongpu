@@ -50,7 +50,6 @@ struct Esirkepov;
 
 struct Esirkepov<DIM3, ParticleAssign, NumericalCellType>
 {
-    typedef Esirkepov<T_ParticleAssign> ThisType;
     typedef typename T_ParticleAssign::ChargeAssignment ParticleAssign;
     
     static const int supp = ParticleAssign::support;

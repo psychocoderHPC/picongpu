@@ -45,11 +45,12 @@ struct ComputeEnergyDensityOptions
 #endif
 };
 
-template<class AssignmentFunction, uint32_t calcType>
+template<class T_ParticleShape, uint32_t calcType>
 class ComputeEnergyDensityPerFrame
 {
 public:
 
+    typedef typename T_ParticleShape::ChargeAssignment AssignmentFunction;
     static const int supp = AssignmentFunction::support;
 
     static const int lowerMargin = supp / 2;
