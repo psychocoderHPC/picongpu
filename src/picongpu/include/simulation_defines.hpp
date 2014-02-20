@@ -50,5 +50,6 @@ namespace picongpu
 // ##### load unitless
 #include <simulation_defines/_defaultUnitless.loader>
 #include <simulation_defines/extensionUnitless.loader>
+#include <simulation_defines/_defaultPostParam.loader>
 //load starter after user extensions and all params are loaded
 #include <simulation_defines/unitless/starter.unitless>

@@ -1,5 +1,5 @@
 /**
- * Copyright 2013 Axel Huebl, Rene Widera
+ * Copyright 2014 Rene Widera
  *
  * This file is part of PIConGPU. 
  * 
@@ -18,41 +18,21 @@
  * If not, see <http://www.gnu.org/licenses/>. 
  */
 
-
-
 #pragma once
 
-#include "traits/GetMass.hpp"
-#include "traits/GetCharge.hpp"
-#include "particles/Particles.hpp"
-
+#include "simulation_defines.hpp"
 
 namespace picongpu
 {
 
-template<>
-HDINLINE static float_X getMass<typename PIC_Ions::type::FrameType>(float_X weighting)
-{
-    return M_ION*weighting;
-};
+template<typename T_Frame>
+HDINLINE static float_X getCharge(float_X weighting);
 
-template<>
-HDINLINE static float_X getCharge<typename PIC_Ions::type::FrameType>(float_X weighting)
-{
-    return Q_ION*weighting;
-};
 
-template<>
-HDINLINE static float_X getMass<typename PIC_Electrons::type::FrameType>(float_X weighting)
+template<typename T_Frame>
+HDINLINE static float_X getCharge(float_X weighting,const T_Frame&)
 {
-    return M_EL*weighting;
-};
-
-template<>
-HDINLINE static float_X getCharge<typename PIC_Electrons::type::FrameType>(float_X weighting)
-{
-    return Q_EL*weighting;
-};
-
+    return getCharge<T_Frame>(weighting);
 }
 
+}// namespace picongpu

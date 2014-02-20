@@ -16,7 +16,7 @@
  * You should have received a copy of the GNU General Public License 
  * along with PIConGPU.  
  * If not, see <http://www.gnu.org/licenses/>. 
- */
+ */ 
 
 #pragma once
 
@@ -25,27 +25,15 @@
 namespace picongpu
 {
 
-namespace traits
-{
-/**Get margin of a solver
- * class must define a LowerMargin and UpperMargin for any valid solver
- * 
- * \tparam Solver solver which need goast cells for solving a problem
- * \tparam SubSetName a optinal name (id) if solver needs defferent goast cells
- * for different objects
- */
-template<class T_Type>
-struct GetCharge;
-        for (uint32_t i = 0; i < simDim; ++i)
-} //namespace traits
 template<typename T_Frame>
-HDINLINE static float_X getCharge(float_X weighting);
-
+HDINLINE static float_X getMass(float_X weighting);
 
 template<typename T_Frame>
-HDINLINE static float_X getCharge(float_X weighting,const T_Frame&)
+HDINLINE static float_X getMass(float_X weighting,const T_Frame&)
 {
-    return getCharge<T_Frame>(weighting);
+    return getMass<T_Frame>(weighting);
 }
+
+
 
 }// namespace picongpu
