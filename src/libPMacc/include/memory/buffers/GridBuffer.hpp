@@ -1,27 +1,27 @@
 /**
- * Copyright 2013 Rene Widera
+ * Copyright 2013-2014 Rene Widera
  *
- * This file is part of libPMacc. 
- * 
- * libPMacc is free software: you can redistribute it and/or modify 
- * it under the terms of of either the GNU General Public License or 
- * the GNU Lesser General Public License as published by 
- * the Free Software Foundation, either version 3 of the License, or 
- * (at your option) any later version. 
- * libPMacc is distributed in the hope that it will be useful, 
- * but WITHOUT ANY WARRANTY; without even the implied warranty of 
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the 
- * GNU General Public License and the GNU Lesser General Public License 
- * for more details. 
- * 
- * You should have received a copy of the GNU General Public License 
- * and the GNU Lesser General Public License along with libPMacc. 
- * If not, see <http://www.gnu.org/licenses/>. 
+ * This file is part of libPMacc.
+ *
+ * libPMacc is free software: you can redistribute it and/or modify
+ * it under the terms of of either the GNU General Public License or
+ * the GNU Lesser General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * libPMacc is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License and the GNU Lesser General Public License
+ * for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * and the GNU Lesser General Public License along with libPMacc.
+ * If not, see <http://www.gnu.org/licenses/>.
  */
 
 
-#ifndef _GRIDBUFFER_HPP
-#define	_GRIDBUFFER_HPP
+#pragma once
 
 #include <algorithm>
 
@@ -38,6 +38,7 @@
 #include <stdexcept>
 
 #include <set>
+#include <list>
 
 namespace PMacc
 {
@@ -428,30 +429,96 @@ public:
         return ev;
     }
 
+    struct CommObject
+    {
+        uint32_t exchange;
+        bool isSend;
+        EventTask task;
+    };
+
     /**
-     * Starts sync data from own device buffer to neigbhor device buffer.
+     * Starts sync data from own device buffer to neighbor device buffer.
      *
-     * Asynchronously starts syncronization data from internal DeviceBuffer using added
+     * Asynchronously starts synchronization data from internal DeviceBuffer using added
      * Exchange buffers.
      *
      */
     EventTask asyncCommunication(EventTask serialEvent)
     {
+        std::list<CommObject> statusList;
+        std::list<EventTask> resultEventList;
+
         EventTask evR;
         for (uint32_t i = 0; i < maxExchange; ++i)
         {
+            if (hasReceiveExchange(i))
+            {
+                CommObject tmp;
+                tmp.exchange = i;
+                tmp.isSend = false;
+                tmp.task = receiveEvents[i];
+                statusList.push_back(tmp);
+            }
+            ExchangeType sendEx = Mask::getMirroredExchangeType(i);
+            if (hasSendExchange(sendEx))
+            {
+                CommObject tmp;
+                tmp.exchange = sendEx;
+                tmp.isSend = true;
+                tmp.task = sendEvents[sendEx];
+                statusList.push_back(tmp);
+            }
+        }
+       // std::cout<<"comm added"<<std::endl;
 
-            evR += asyncReceive(serialEvent, i);
+        typedef typename std::list<CommObject>::iterator ListIterator;
+
+        while (statusList.empty() != true)
+        {
+            ListIterator iter = statusList.begin();
+            while (iter != statusList.end())
+            {
+                ListIterator tmpIter = iter;
+                ++iter;
+                if ((*tmpIter).task.isFinished())
+                {
+                    CommObject myStatus = (*tmpIter);
+                    statusList.erase(tmpIter);
+                    if (myStatus.isSend)
+                    {
+                        EventTask copyEvent;
+                        asyncSend(serialEvent, myStatus.exchange, copyEvent);
+                        resultEventList.push_back(copyEvent);
+                    }
+                    else
+                    {
+                        EventTask event = asyncReceive(serialEvent, myStatus.exchange);
+                        resultEventList.push_back(event);
+                    }
+                 //   std::cout<<"do "<<myStatus.exchange<<" ["<<myStatus.isSend<<"] "<<std::endl;
+                }
+            }
+        }
+
+      //  std::cout<<"comm handeld"<<std::endl;
+        typename std::list<EventTask>::iterator iter = resultEventList.begin();
+        for (;iter != resultEventList.end();++iter)
+        {
+            evR += (*iter);
+        }
+      //  std::cout<<"events joint"<<std::endl;
+
+        /*    evR += asyncReceive(serialEvent, i);
 
             ExchangeType sendEx = Mask::getMirroredExchangeType(i);
 
             EventTask copyEvent;
-            asyncSend(serialEvent, sendEx, copyEvent);
-            /* add only the copy event, because all work on gpu can run after data is copyed
-             */
-            evR += copyEvent;
+            asyncSend(serialEvent, sendEx, copyEvent);*/
+        /* add only the copy event, because all work on gpu can run after data is copyed
+         */
+        //evR += copyEvent;
 
-        }
+
         return evR;
     }
 
@@ -510,7 +577,7 @@ public:
     }
 
 private:
-    
+
     friend Environment<DIM>;
 
     void init(bool sizeOnDevice, bool buildDeviceBuffer = true, bool buildHostBuffer = true)
@@ -556,6 +623,3 @@ protected:
 };
 
 }
-
-#endif	/* _GRIDBUFFER_HPP */
-
