@@ -107,3 +107,6 @@ struct Unit<globalCellIdx<T_Type> >
 
 }//namespace traits
 } //namespace picongpu
+
+#include "particles/traits/GetCharge.hpp"
+#include "particles/traits/GetMass.hpp"

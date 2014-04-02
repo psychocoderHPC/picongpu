@@ -1,5 +1,5 @@
 /**
- * Copyright 2013-2014 Axel Huebl, Rene Widera, Felix Schmitt
+ * Copyright 2014 Rene Widera
  *
  * This file is part of PIConGPU. 
  * 
@@ -16,8 +16,10 @@
  * You should have received a copy of the GNU General Public License 
  * along with PIConGPU.  
  * If not, see <http://www.gnu.org/licenses/>. 
- */
- 
-#pragma once
+ */ 
 
-#include "particles/particleToGrid/EnergyDensity.kernel"
+
+#include "fields/currentDeposition/Esirkepov/Esirkepov.hpp"
+#include "fields/currentDeposition/VillaBune/CurrentVillaBune.hpp"
+#include "fields/currentDeposition/Esirkepov/EsirkepovNative.hpp"
+#include "fields/numericalCellTypes/YeeCell.hpp"

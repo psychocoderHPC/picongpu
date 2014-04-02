@@ -37,7 +37,6 @@
 #endif
 
 #include "initialization/SimStartInitialiser.hpp"
-#include "particles/Species.hpp"
 
 #include "initialization/IInitPlugin.hpp"
 
@@ -123,7 +122,7 @@ public:
         // the simulation will start after the last saved iteration
         if (restartSim)
         {
-            SimRestartInitialiser<PIC_Electrons, PIC_Ions, simDim> simRestartInitialiser(
+            SimRestartInitialiser<PIC_Electrons::type, PIC_Ions::type, simDim> simRestartInitialiser(
                 restartFile.c_str(), cellDescription->getGridLayout().getDataSpaceWithoutGuarding());
 
             Environment<>::get().DataConnector().initialise(simRestartInitialiser, 0);
@@ -139,7 +138,7 @@ public:
 #endif
         {
             // start simulation using default values
-            SimStartInitialiser<PIC_Electrons, PIC_Ions> simStartInitialiser;
+            SimStartInitialiser<typename PIC_Electrons::type, typename PIC_Ions::type> simStartInitialiser;
             Environment<>::get().DataConnector().initialise(simStartInitialiser, 0);
             __getTransactionEvent().waitForFinished();
 
@@ -178,7 +177,7 @@ public:
 
     virtual void slide(uint32_t currentStep)
     {
-        SimStartInitialiser<PIC_Electrons, PIC_Ions> simStartInitialiser;
+        SimStartInitialiser<PIC_Electrons::type, PIC_Ions::type> simStartInitialiser;
         Environment<>::get().DataConnector().initialise(simStartInitialiser, currentStep);
         __getTransactionEvent().waitForFinished();
     }

@@ -32,7 +32,7 @@
 
 namespace picongpu
 {
-namespace currentSolverEsirkepov
+namespace currentSolver
 {
 using namespace PMacc;
 
@@ -92,7 +92,7 @@ struct Esirkepov<DIM3, T_ParticleShape>
         Line<float3_X> line(oldPos, pos);
         BOOST_AUTO(cursorJ, dataBoxJ.toCursor());
 
-        if (speciesParticleShape::ParticleShape::support % 2 == 1)
+        if (supp % 2 == 1)
         {
             /* odd support
              * shift coordinate system that we always can solve Esirkepov by going
@@ -209,25 +209,7 @@ struct Esirkepov<DIM3, T_ParticleShape>
     }
 };
 
-} //namespace currentSolverEsirkepov
-
-namespace traits
-{
-
-/*Get margin of a solver
- * class must define a LowerMargin and UpperMargin 
- */
-template<uint32_t T_Dim, typename T_ParticleShape>
-struct GetMargin<picongpu::currentSolverEsirkepov::Esirkepov<T_Dim, T_ParticleShape> >
-{
-private:
-    typedef picongpu::currentSolverEsirkepov::Esirkepov<T_Dim, T_ParticleShape> Solver;
-public:
-    typedef typename Solver::LowerMargin LowerMargin;
-    typedef typename Solver::UpperMargin UpperMargin;
-};
-
-} //namespace traits
+} //namespace currentSolver
 
 } //namespace picongpu
 

@@ -1,5 +1,5 @@
 /**
- * Copyright 2013-2014 Axel Huebl, Rene Widera, Felix Schmitt
+ * Copyright 2014 Rene Widera
  *
  * This file is part of PIConGPU. 
  * 
@@ -16,8 +16,24 @@
  * You should have received a copy of the GNU General Public License 
  * along with PIConGPU.  
  * If not, see <http://www.gnu.org/licenses/>. 
- */
- 
+ */ 
+
 #pragma once
 
-#include "particles/particleToGrid/EnergyDensity.kernel"
+#include "simulation_defines.hpp"
+
+namespace picongpu
+{
+
+template<typename T_Frame>
+HDINLINE static float_X getMass(float_X weighting);
+
+template<typename T_Frame>
+HDINLINE static float_X getMass(float_X weighting,const T_Frame&)
+{
+    return getMass<T_Frame>(weighting);
+}
+
+
+
+}// namespace picongpu

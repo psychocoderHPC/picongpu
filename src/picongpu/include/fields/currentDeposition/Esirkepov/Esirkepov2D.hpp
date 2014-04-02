@@ -34,7 +34,7 @@
 
 namespace picongpu
 {
-namespace currentSolverEsirkepov
+namespace currentSolver
 {
 using namespace PMacc;
 
@@ -82,7 +82,7 @@ struct Esirkepov<DIM2, T_ParticleShape>
         Line<float2_X> line(oldPos, pos);
         BOOST_AUTO(cursorJ, dataBoxJ.toCursor());
 
-        if (speciesParticleShape::ParticleShape::support % 2 == 1)
+        if (supp % 2 == 1)
         {
             /* odd support
              * we need only for odd supports a shift because for even supports
@@ -224,6 +224,6 @@ struct Esirkepov<DIM2, T_ParticleShape>
     }
 };
 
-} //namespace currentSolverEsirkepov
+} //namespace currentSolver
 
 } //namespace picongpu

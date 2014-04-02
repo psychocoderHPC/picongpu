@@ -1,5 +1,5 @@
 /**
- * Copyright 2013-2014 Axel Huebl, Rene Widera, Felix Schmitt
+ * Copyright 2013 Rene Widera
  *
  * This file is part of PIConGPU. 
  * 
@@ -17,7 +17,33 @@
  * along with PIConGPU.  
  * If not, see <http://www.gnu.org/licenses/>. 
  */
- 
+
 #pragma once
 
-#include "particles/particleToGrid/EnergyDensity.kernel"
+#include "types.h"
+
+#include <boost/mpl/pair.hpp>
+
+namespace picongpu
+{
+namespace bmpl = boost::mpl;
+
+
+/** create boost mpl pair 
+ * 
+ * @tparam T_Type any type
+ * @resturn ::type boost mpl pair where first and second is set to T_Type
+ */
+template<typename T_Type>
+struct TypeToPointerPair
+{
+    typedef typename T_Type::type* TypePtr;
+    typedef
+    bmpl::pair< T_Type,
+            TypePtr >
+            type;
+};
+
+
+
+}//namespace picongpu

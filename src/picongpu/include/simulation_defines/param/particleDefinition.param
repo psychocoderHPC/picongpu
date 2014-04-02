@@ -22,18 +22,35 @@
 
 #pragma once
 
+#include "simulation_defines.hpp"
 #include "particles/Identifier.hpp"
 #include "compileTime/conversion/MakeSeq.hpp"
 #include "dimensions/DataSpace.hpp"
 #include "identifier/identifier.hpp"
 #include "identifier/alias.hpp"
 #include "identifier/value_identifier.hpp"
+#include "identifier/named_type.hpp"
+
+#include "particles/Particles.hpp"
+
+#include "particles/ParticleDescription.hpp"
+
+
+#include "particles/shapes.hpp"
+#include "algorithms/FieldToParticleInterpolationNative.hpp"
+#include "algorithms/FieldToParticleInterpolation.hpp"
+#include "algorithms/AssignedTrilinearInterpolation.hpp"
+
+#include "fields/currentDeposition/Solver.def"
+#include <boost/mpl/string.hpp>
+
+/*enable (1) or disable (0) ions*/
+#define ENABLE_IONS 1
+/*enable (1) or disable (0) electrons*/
+#define ENABLE_ELECTRONS 1
 
 namespace picongpu
 {
-
-class ElectronMethods;
-class IonMethods;
 
 /** relative (to cell origin) in-cell position of a particle 
  * With this definition we not define any type like float3,double3,...
@@ -47,34 +64,128 @@ alias(position);
 alias(globalCellIdx);
 
 /** specialisation for the relative in-cell position */
-value_identifier(floatD_X,position_pic,floatD_X(0.));
+value_identifier(float3_X,position_pic,float3_X(0.,0.,0.));
 /** momentum at timestep t */
-value_identifier(float3_X,momentum,float3_X(0.));
+value_identifier(float3_X,momentum,float3_X(0.,0.,0.));
 /** momentum at (previous) timestep t-1 */
-value_identifier(float3_X,momentumPrev1,float3_X(0.));  
+value_identifier(float3_X,momentumPrev1,float3_X(0.,0.,0.));  
 /** weighting of the macro particle */
-value_identifier(float_X,weighting,0.0);
+value_identifier(float_X, weighting, 0.0);
 /** use this particle for radiation diagnostics */
-value_identifier(bool,radiationFlag,false);    
+value_identifier(bool, radiationFlag, false);
 /** specialisation global position inside a domain (relative to origin of the 
  * moving window) 
  * \todo: use simDim (problem is that simDim is defined in componentsConfig.param
  * and is loaded after all other param files)
  */
-value_identifier(DataSpace<simDim>,globalCellIdx_pic,DataSpace<simDim>());  
+value_identifier(DataSpace<3>,globalCellIdx_pic,DataSpace<3>());  
 
 /*The next parts is not nice, we change this in a later update with new interfaces
  * \todo: add compile time methods to create particle species
  */
 
 /** describe attributes of a particle*/
-typedef typename MakeSeq<position<position_pic>,momentum,weighting>::type DefaultParticleAttributes;
+typedef typename MakeSeq<position<position_pic>, momentum, weighting>::type DefaultParticleAttributes;
 
-typedef DefaultParticleAttributes ElectronsDataList;
-typedef DefaultParticleAttributes IonsDataList;
 
-/** add methods to particle*/
-typedef typename MakeSeq<ElectronMethods>::type ElectronsMethodsList;
-typedef typename MakeSeq<IonMethods>::type IonsMethodsList;
+/** \todo: not nice, we change this later with nice interfaces
+ * Plugins should add needed attributes
+ */
+
+/*add old momentum for radiation plugin*/
+typedef typename MakeSeq<
+#if(ENABLE_RADIATION == 1)
+momentumPrev1
+#endif
+>::type AttributMomentum_mt1;
+
+/*add old radiation flag for radiation plugin*/
+typedef typename MakeSeq<
+#if(RAD_MARK_PARTICLE>1) || (RAD_ACTIVATE_GAMMA_FILTER!=0)
+radiationFlag
+#endif
+>::type AttributRadiationFlag;
+
+alias(pusher);
+alias(shape);
+alias(interpolation);
+alias(current);
+
+template<uint32_t T_id>
+struct CommunicationId
+{
+    static const uint32_t CommunicationTag=T_id;
+};
+
+typedef
+typename MakeSeq<
+DefaultParticleAttributes,
+AttributMomentum_mt1,
+AttributRadiationFlag
+>::type DefaultAttributesSeq;
+
+/* define which interpolation method is used to interpolate fields to particle*/
+typedef FieldToParticleInterpolation<particleShape::TSC, AssignedTrilinearInterpolation> Field2Particle;
+typedef currentSolver::Esirkepov<simDim,particleShape::TSC> CurrentSolver;
+
+typedef boost::mpl::vector<
+    pusher<PusherBoris>,
+    shape<particleShape::TSC>,
+    interpolation<Field2Particle>,
+    current<CurrentSolver>
+> ParticleFlagsElectrons;
+
+typedef boost::mpl::vector<
+    /*pusher<PusherBoris>,*/
+    shape<particleShape::CIC>,
+    interpolation<FieldToParticleInterpolation<particleShape::CIC, AssignedTrilinearInterpolation> >,
+    current<currentSolver::VillaBune>
+> ParticleFlagsIons;
+
+typedef Particles<ParticleDescription<
+    boost::mpl::string<'e'>,
+    MappingDesc::SuperCellSize,
+    DefaultAttributesSeq, 
+    ParticleFlagsElectrons,
+    CommunicationId<PAR_ELECTRONS> > 
+> p_Electrons;
+typedef Particles<ParticleDescription<     
+    boost::mpl::string<'e'>,
+    MappingDesc::SuperCellSize,
+    DefaultAttributesSeq,
+    ParticleFlagsIons,
+    CommunicationId<PAR_IONS> > 
+> p_Ions;
+
+named_type(p_Electrons,
+           PIC_Electrons,
+           static const size_t memPercent = 50;
+           );
+
+named_type(p_Ions,
+           PIC_Ions,
+           static const size_t memPercent = 50;
+           );
+
+/** \todo: not nice, but this should be changed in the future
+ *   At the moment diable a species is done by defines, in feuture we only support
+ *   adding active particle species to a list
+ */
+typedef typename MakeSeq<
+#if (ENABLE_ELECTRONS == 1)
+PIC_Electrons
+#endif
+>::type Species1;
+
+typedef typename MakeSeq<
+#if (ENABLE_IONS == 1)
+PIC_Ions
+#endif
+>::type Species2;
+
+typedef typename MakeSeq<
+Species1,
+Species2
+>::type VectorAllSpecies;
 
 } //namespace picongpu

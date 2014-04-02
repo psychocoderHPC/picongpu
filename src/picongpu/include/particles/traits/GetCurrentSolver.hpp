@@ -1,5 +1,5 @@
 /**
- * Copyright 2013-2014 Axel Huebl, Rene Widera, Felix Schmitt
+ * Copyright 2014 Rene Widera
  *
  * This file is part of PIConGPU. 
  * 
@@ -16,8 +16,22 @@
  * You should have received a copy of the GNU General Public License 
  * along with PIConGPU.  
  * If not, see <http://www.gnu.org/licenses/>. 
- */
- 
+ */ 
+
 #pragma once
 
-#include "particles/particleToGrid/EnergyDensity.kernel"
+#include "simulation_defines.hpp"
+#include "traits/GetFlagType.hpp"
+
+namespace picongpu
+{
+namespace traits
+{
+template<typename T_Species>
+struct GetCurrentSolver
+{
+    typedef typename GetFlagType<typename T_Species::type::FrameType, current<> >::type::ThisType type;
+};
+} //namespace traits
+
+}// namespace picongpu

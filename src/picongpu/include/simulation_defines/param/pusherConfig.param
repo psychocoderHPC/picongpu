@@ -22,6 +22,9 @@
 
 #pragma once
 
+#include "compileTime/conversion/MakeSeq.hpp"
+#include "identifier/alias.hpp"
+
 /**! discripe particle pusher method
  * Define a solver for current with the name "Pusher"
  * 
@@ -30,17 +33,22 @@
 
 namespace picongpu
 {
+
+
     namespace particlePusherBoris
     {
-
+        
     }
+    
+    struct PusherBoris;
 
 
     namespace particlePusherNone
     {
 
     }
-
+    
+    struct PusherNone;
 
     namespace particlePusherVay
     {
@@ -72,7 +80,9 @@ namespace picongpu
     namespace particlePusherPhot
     {
 
-    }
+    } 
+    
+    typedef typename PMacc::MakeSeq<PusherBoris>::type AllPusher;
 
 }
 

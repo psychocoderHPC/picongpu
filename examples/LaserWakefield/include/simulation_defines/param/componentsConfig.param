@@ -88,19 +88,6 @@ namespace particleInit = particleInitRandomPos;
 #endif
 namespace particlePusher = PARAM_PARTICLEPUSHER;
 
-/*enable (1) or disable (0) ions*/
-#define ENABLE_IONS 0
-/*enable (1) or disable (0) electrons*/
-#define ENABLE_ELECTRONS 1
-
-/** select current solver method -----------------------------------------
- *  - currentSolverEsirkepov: particle shapes - CIC, TSC, PCS (1st to 3rd order)
- *  - currentSolverVillaBune: particle shapes - CIC (1st order) only
- */
-#ifndef PARAM_CURRENTSOLVER
-#define PARAM_CURRENTSOLVER currentSolverEsirkepov
-#endif
-namespace currentSolver = PARAM_CURRENTSOLVER;
 
 /*enable (1) or disable (0) current calculation*/
 #ifndef ENABLE_CURRENT

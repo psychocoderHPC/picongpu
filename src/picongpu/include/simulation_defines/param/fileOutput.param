@@ -1,0 +1,119 @@
+/**
+ * Copyright 2013-2014 Axel Huebl, Rene Widera, Felix Schmitt
+ *
+ * This file is part of PIConGPU. 
+ * 
+ * PIConGPU is free software: you can redistribute it and/or modify 
+ * it under the terms of the GNU General Public License as published by 
+ * the Free Software Foundation, either version 3 of the License, or 
+ * (at your option) any later version. 
+ * 
+ * PIConGPU is distributed in the hope that it will be useful, 
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of 
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the 
+ * GNU General Public License for more details. 
+ * 
+ * You should have received a copy of the GNU General Public License 
+ * along with PIConGPU.  
+ * If not, see <http://www.gnu.org/licenses/>. 
+ */
+ 
+
+
+#pragma once
+
+#include <boost/mpl/vector.hpp>
+#include <boost/mpl/pair.hpp>
+
+#include "compileTime/conversion/MakeSeq.hpp"
+
+/** some forward declarations we need */
+#include "fields/Fields.def"
+#include "particles/particleToGrid/EnergyDensity.def"
+#include "particles/traits/GetShape.hpp"
+
+namespace picongpu
+{
+    /** Note: you will need at least FieldE and FieldB for restart
+     *        capabilities!
+     *  Possible fields: FieldE, FieldB, FieldJ
+     */
+    typedef typename MakeSeq<FieldE, FieldB>::type NativeFileOutputFields;
+        
+    typedef VectorAllSpecies FileOutputParticles;
+    
+    /** TimeAvg Fields
+     * \todo Reduce/Avg on host-side RAM with a plugin
+     */
+    
+    /** FieldTmp output (calculated at runtime)
+     */
+    using namespace particleToGrid;
+    
+    /* ############## ParticleDensity section ################################*/
+   
+    template<typename T_Species>
+    struct CreateDensityOperation
+    {
+        typedef typename GetShape<T_Species>::type shapeType;       
+        typedef ComputeEnergyDensityPerFrame<
+            shapeType,
+            ComputeEnergyDensityOptions::calcDensity
+        > ParticleDensity;
+        
+        typedef FieldTmpOperation< ParticleDensity, typename T_Species::type > type;        
+    };    
+    
+    typedef typename boost::mpl::transform<
+            VectorAllSpecies,
+            CreateDensityOperation<boost::mpl::_1>
+            >::type Density_Seq;
+   
+    /* ############## ParticleCounter section ################################*/
+    
+    template<typename T_Species>
+    struct CreateCounterOperation
+    {     
+        typedef ComputeEnergyDensityPerFrame<
+            particleShape::Counter,
+            ComputeEnergyDensityOptions::calcCounter
+        > ParticleCounter;
+        
+        typedef FieldTmpOperation< ParticleCounter, typename T_Species::type > type;        
+    };    
+    
+    typedef boost::mpl::inserter< boost::mpl::vector<>, boost::mpl::insert<boost::mpl::_1, boost::mpl::_2> > vector_inserter;
+    typedef typename boost::mpl::transform<
+            VectorAllSpecies,
+            CreateCounterOperation<boost::mpl::_1>
+            >::type Counter_Seq;
+       
+    /* ############## ParticleCounter section ################################*/
+    
+    template<typename T_Species>
+    struct CreateEnergyDensityOperation
+    {
+        typedef typename GetShape<T_Species>::type shapeType;       
+        typedef ComputeEnergyDensityPerFrame<
+            shapeType,
+            ComputeEnergyDensityOptions::calcEnergyDensity
+        > ParticleEnergyDensity;
+        
+        typedef FieldTmpOperation< ParticleEnergyDensity, typename T_Species::type > type;        
+    };    
+    
+    typedef boost::mpl::inserter< boost::mpl::vector<>, boost::mpl::insert<boost::mpl::_1, boost::mpl::_2> > vector_inserter;
+    typedef typename boost::mpl::transform<
+            VectorAllSpecies,
+            CreateEnergyDensityOperation<boost::mpl::_1>
+            >::type EnergyDensity_Seq;
+
+    
+    /** This list is use to dump fields to a file. */
+    typedef typename MakeSeq<
+        NativeFileOutputFields,
+        Density_Seq,
+        Counter_Seq,
+        EnergyDensity_Seq            
+    >::type FileOutputFields;
+}

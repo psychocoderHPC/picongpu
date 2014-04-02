@@ -22,42 +22,18 @@
 
 #pragma once
 
-#include <string>
-
 #include "types.h"
 #include "simulation_defines.hpp"
 
+
 namespace picongpu
 {
+namespace currentSolver
+{
+using namespace PMacc;
 
-    struct IonMethods
-    {
-    public:
-        typedef float_X MassType;
-        typedef float_X ChargeType;
-        
-        typedef typename MappingDesc::SuperCellSize SuperCellSize;
+struct VillaBune;
 
-        HDINLINE static float_X getM0_2(const float_X weighting)
-        {
-            return (M_ION * M_ION * weighting * weighting);
-        }
+} //namespace currentSolver
 
-        HDINLINE static MassType getMass(const float_X weighting)
-        {
-            return (M_ION * weighting);
-        }
-
-        HDINLINE static ChargeType getCharge(const float_X weighting)
-        {
-            return (Q_ION * weighting);
-        }
-        
-        enum
-        {
-            CommunicationTag = PAR_IONS
-        };
-
-    };
-
-}//namespace picongpu
+} //namespace picongpu

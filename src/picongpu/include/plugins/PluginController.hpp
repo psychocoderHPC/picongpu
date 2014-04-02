@@ -27,7 +27,6 @@
 #include "simulation_types.hpp"
 
 
-#include "particles/Species.hpp"
 #include "plugins/CountParticles.hpp"
 #include "plugins/EnergyParticles.hpp"
 #include "plugins/EnergyFields.hpp"
@@ -44,7 +43,7 @@
 #include "plugins/radiation/parameters.hpp"
 #include "plugins/Radiation.hpp"
 #endif
-#include "particles/Species.hpp"
+
 #include "simulation_classTypes.hpp"
 
 #include "mappings/kernel/MappingDescription.hpp"
@@ -109,51 +108,50 @@ private:
 
 #if (ENABLE_ELECTRONS == 1)
 #if(PIC_ENABLE_PNG==1)
-    typedef Visualisation<PIC_Electrons, PngCreator> ElectronsPngBuilder;
+    typedef Visualisation<PIC_Electrons::type, PngCreator> ElectronsPngBuilder;
     typedef PngPlugin<ElectronsPngBuilder > PngImageElectrons;
 #endif
-    typedef ParticleDensity<PIC_Electrons, DensityToBinary, float_X> ElectronsBinaryDensityBuilder;
+    typedef ParticleDensity<PIC_Electrons::type, DensityToBinary, float_X> ElectronsBinaryDensityBuilder;
 
 #if(SIMDIM==DIM3)
 #if(PIC_ENABLE_PNG==1)
-    typedef heiko::ParticleDensity<PIC_Electrons> HeikoParticleDensity;   
+    typedef heiko::ParticleDensity<PIC_Electrons::type> HeikoParticleDensity;
+        
 #endif
-
-    typedef ParticleSpectrum<PIC_Electrons> ElectronSpectrum;
-    typedef SliceFieldPrinterMulti<FieldE> SliceFieldEPrinter;
-    typedef SliceFieldPrinterMulti<FieldB> SliceFieldBPrinter;
+    typedef ParticleSpectrum<PIC_Electrons::type> ElectronSpectrum;
+        typedef SliceFieldPrinterMulti<FieldE> SliceFieldEPrinter;
+        typedef SliceFieldPrinterMulti<FieldB> SliceFieldBPrinter;
 #endif
-
-    typedef LiveViewPlugin<PIC_Electrons > LiveImageElectrons;
-    typedef PngPlugin<ElectronsBinaryDensityBuilder > BinDensityElectrons;
-    typedef CountParticles<PIC_Electrons> ElectronCounter;
-    typedef EnergyParticles<PIC_Electrons> EnergyElectrons;
-    typedef PositionsParticles<PIC_Electrons> PositionElectrons;
-    typedef BinEnergyParticles<PIC_Electrons> BinEnergyElectrons;
+    typedef LiveViewPlugin<PIC_Electrons::type > LiveImageElectrons;
+        typedef PngPlugin<ElectronsBinaryDensityBuilder > BinDensityElectrons;
+    typedef CountParticles<PIC_Electrons::type> ElectronCounter;
+    typedef EnergyParticles<PIC_Electrons::type> EnergyElectrons;
+    typedef PositionsParticles<PIC_Electrons::type> PositionElectrons;
+    typedef BinEnergyParticles<PIC_Electrons::type> BinEnergyElectrons;
 #if(ENABLE_RADIATION == 1 && SIMDIM==DIM3)
-    typedef Radiation<PIC_Electrons> RadiationElectrons;
+    typedef Radiation<PIC_Electrons::type> RadiationElectrons;
 #endif
 #endif
 
 #if (ENABLE_IONS == 1)
 #if(PIC_ENABLE_PNG==1)
-    typedef Visualisation<PIC_Ions, PngCreator> IonsPngBuilder;
+    typedef Visualisation<PIC_Ions::type, PngCreator> IonsPngBuilder;
     typedef PngPlugin<IonsPngBuilder > PngImageIons;
 #endif
-    typedef ParticleDensity<PIC_Ions, DensityToBinary, float_X> IonsBinaryDensityBuilder;
+    typedef ParticleDensity<PIC_Ions::type, DensityToBinary, float_X> IonsBinaryDensityBuilder;
     typedef PngPlugin<IonsBinaryDensityBuilder > BinDensityIons;
-    typedef LiveViewPlugin<PIC_Ions > LiveImageIons;
-    typedef CountParticles<PIC_Ions> IonCounter;
-    typedef EnergyParticles<PIC_Ions> EnergyIons;
-    typedef BinEnergyParticles<PIC_Ions> BinEnergyIons;
+    typedef LiveViewPlugin<PIC_Ions::type > LiveImageIons;
+    typedef CountParticles<PIC_Ions::type> IonCounter;
+    typedef EnergyParticles<PIC_Ions::type> EnergyIons;
+    typedef BinEnergyParticles<PIC_Ions::type> BinEnergyIons;
 #endif
 
 #if (ENABLE_HDF5 == 1)
 #if (ENABLE_ELECTRONS == 1)
-    typedef PerSuperCell<PIC_Electrons> ElectronMakroParticleCounterPerSuperCell;
+    typedef PerSuperCell<PIC_Electrons::type> ElectronMakroParticleCounterPerSuperCell;
 #endif
 #if (ENABLE_IONS == 1)
-    typedef PerSuperCell<PIC_Ions> IonMakroParticleCounterPerSuperCell;
+    typedef PerSuperCell<PIC_Ions::type> IonMakroParticleCounterPerSuperCell;
 #endif
 #endif
 

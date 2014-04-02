@@ -35,17 +35,30 @@
 #include "particles/pusher/particlePusherAxl.hpp"
 #endif
 
+#include "compileTime/conversion/MakeSeq.hpp"
+
 namespace picongpu
 {
     namespace particlePusherBoris
     {
         typedef Push<Velocity, Gamma<> > ParticlePusher;
     }
+    
+    struct PusherBoris
+    {
+        typedef particlePusherBoris::ParticlePusher type;
+    };
+    
 
     namespace particlePusherNone
     {
         typedef Push<Velocity, Gamma<> > ParticlePusher;
     }
+    
+    struct PusherNone
+    {
+        typedef particlePusherNone::ParticlePusher type;
+    };
 
     namespace particlePusherVay
     {
