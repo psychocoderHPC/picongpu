@@ -1,5 +1,5 @@
 /**
- * Copyright 2013 Axel Huebl, Heiko Burau, Rene Widera
+ * Copyright 2013-2014 Axel Huebl, Heiko Burau, Rene Widera
  *
  * This file is part of PIConGPU. 
  * 
@@ -35,7 +35,7 @@
 
 namespace picongpu
 {
-namespace currentSolverEsirkepov
+namespace currentSolver
 {
 using namespace PMacc;
 
@@ -155,7 +155,7 @@ struct EsirkepovNative
     }
 };
 
-} //namespace currentSolverEsirkepov
+} //namespace currentSolver
 
 namespace traits
 {
@@ -164,10 +164,10 @@ namespace traits
  * class must define a LowerMargin and UpperMargin 
  */
 template<typename T_ParticleShape>
-struct GetMargin<picongpu::currentSolverEsirkepov::EsirkepovNative<T_ParticleShape> >
+struct GetMargin<picongpu::currentSolver::EsirkepovNative<T_ParticleShape> >
 {
 private:
-    typedef picongpu::currentSolverEsirkepov::EsirkepovNative<T_ParticleShape> Solver;
+    typedef picongpu::currentSolver::EsirkepovNative<T_ParticleShape> Solver;
 public:
     typedef typename Solver::LowerMargin LowerMargin;
     typedef typename Solver::UpperMargin UpperMargin;

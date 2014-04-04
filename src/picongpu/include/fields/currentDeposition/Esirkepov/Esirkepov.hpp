@@ -1,5 +1,5 @@
 /**
- * Copyright 2013 Axel Huebl, Heiko Burau, Rene Widera
+ * Copyright 2013-2014 Axel Huebl, Heiko Burau, Rene Widera
  *
  * This file is part of PIConGPU. 
  * 
@@ -32,7 +32,7 @@
 
 namespace picongpu
 {
-namespace currentSolverEsirkepov
+namespace currentSolver
 {
 using namespace PMacc;
 
@@ -56,7 +56,7 @@ struct Esirkepov<DIM3, T_ParticleShape>
     typedef typename T_ParticleShape::ChargeAssignment ParticleAssign;
     static const int supp = ParticleAssign::support;
 
-    static const int currentLowerMargin = supp / 2 + 1 -(supp + 1) % 2 ;
+    static const int currentLowerMargin = supp / 2 + 1 - (supp + 1) % 2;
     static const int currentUpperMargin = (supp + 1) / 2 + 1;
     typedef PMacc::math::CT::Int<currentLowerMargin, currentLowerMargin, currentLowerMargin> LowerMargin;
     typedef PMacc::math::CT::Int<currentUpperMargin, currentUpperMargin, currentUpperMargin> UpperMargin;
@@ -79,10 +79,11 @@ struct Esirkepov<DIM3, T_ParticleShape>
      * \todo: please fix me that we can use CenteredCell
      */
     template<typename DataBoxJ, typename PosType, typename VelType, typename ChargeType >
-        DINLINE void operator()(DataBoxJ dataBoxJ,
-                                const PosType pos,
-                                const VelType velocity,
-                                const ChargeType charge, const float_X deltaTime)
+    DINLINE void operator()(DataBoxJ dataBoxJ,
+                            const PosType pos,
+                            const VelType velocity,
+                            const ChargeType charge,
+                            const float_X deltaTime)
     {
         this->charge = charge;
         const float3_X deltaPos = float3_X(velocity.x() * deltaTime / cellSize.x(),
@@ -92,7 +93,7 @@ struct Esirkepov<DIM3, T_ParticleShape>
         Line<float3_X> line(oldPos, pos);
         BOOST_AUTO(cursorJ, dataBoxJ.toCursor());
 
-        if (speciesParticleShape::ParticleShape::support % 2 == 1)
+        if (supp % 2 == 1)
         {
             /* odd support
              * shift coordinate system that we always can solve Esirkepov by going
@@ -175,7 +176,7 @@ struct Esirkepov<DIM3, T_ParticleShape>
                 float_X accumulated_J = float_X(0.0);
                 for (int k = begin + offset_k; k < end + offset_k; ++k)
                 {
-                    float_X W = DS(line,k,2) * tmp;
+                    float_X W = DS(line, k, 2) * tmp;
                     accumulated_J += -this->charge * (float_X(1.0) / float_X(CELL_VOLUME * DELTA_T)) * W * cellEdgeLength;
                     /* the branch divergence here still over-compensates for the fewer collisions in the (expensive) atomic adds */
                     if (accumulated_J != float_X(0.0))
@@ -205,29 +206,11 @@ struct Esirkepov<DIM3, T_ParticleShape>
      */
     DINLINE float_X DS(const Line<float3_X>& line, const float_X gridPoint, const float_X d)
     {
-        return ParticleAssign()(gridPoint-line.pos1[d]) - ParticleAssign()(gridPoint-line.pos0[d]);
+        return ParticleAssign()(gridPoint - line.pos1[d]) - ParticleAssign()(gridPoint - line.pos0[d]);
     }
 };
 
-} //namespace currentSolverEsirkepov
-
-namespace traits
-{
-
-/*Get margin of a solver
- * class must define a LowerMargin and UpperMargin 
- */
-template<uint32_t T_Dim, typename T_ParticleShape>
-struct GetMargin<picongpu::currentSolverEsirkepov::Esirkepov<T_Dim, T_ParticleShape> >
-{
-private:
-    typedef picongpu::currentSolverEsirkepov::Esirkepov<T_Dim, T_ParticleShape> Solver;
-public:
-    typedef typename Solver::LowerMargin LowerMargin;
-    typedef typename Solver::UpperMargin UpperMargin;
-};
-
-} //namespace traits
+} //namespace currentSolver
 
 } //namespace picongpu
 

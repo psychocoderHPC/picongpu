@@ -1,5 +1,5 @@
 /**
- * Copyright 2013 Heiko Burau, Rene Widera
+ * Copyright 2013-2014 Heiko Burau, Rene Widera
  *
  * This file is part of PIConGPU. 
  * 
@@ -27,7 +27,7 @@
 
 namespace picongpu
 {
-namespace currentSolverEsirkepov
+namespace currentSolver
 {
 using namespace PMacc;
 
@@ -94,7 +94,7 @@ DINLINE Line<T_Type> rotateOrigin(const Line<T_Type>& line)
     return result;
 }
 
-} //namespace currentSolverEsirkepov
+} //namespace currentSolver
 
 } //namespace picongpu
 
