@@ -30,17 +30,6 @@
 
 namespace picongpu
 {
-    namespace particlePusherBoris
-    {
-
-    }
-
-
-    namespace particlePusherNone
-    {
-
-    }
-
 
     namespace particlePusherVay
     {
@@ -63,18 +52,15 @@ namespace picongpu
         const TrajectoryInterpolationType TrajectoryInterpolation = LINEAR;
 
     }
-    
-    namespace particlePusherFree
+
+    namespace particlePusher
     {
-
-    }
+        struct None;
+        struct Vay;
+        struct Axel;
+        struct Boris;
+        struct Photon;
+        struct Free;
+    } 
     
-    namespace particlePusherPhot
-    {
-
-    }
-
-}
-
-
-
+} //picongpu

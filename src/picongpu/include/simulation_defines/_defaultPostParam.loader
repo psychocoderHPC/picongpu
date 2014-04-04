@@ -1,5 +1,5 @@
 /**
- * Copyright 2013 Axel Huebl, Rene Widera
+ * Copyright 2013 Axel Huebl, Heiko Burau, Rene Widera
  *
  * This file is part of PIConGPU. 
  * 
@@ -18,14 +18,11 @@
  * If not, see <http://www.gnu.org/licenses/>. 
  */ 
  
-
-
+/** only PIConGPU programmers should change this file
+ * 
+ * for test cases use extensionParam.loader
+ *
+ */
 #pragma once
-#include "simulation_defines.hpp"
 
-
-#include "particles/shapes/Counter.hpp"
-#include "particles/shapes/NGP.hpp"
-#include "particles/shapes/CIC.hpp"
-#include "particles/shapes/TSC.hpp"
-#include "particles/shapes/PCS.hpp"
+#include "simulation_defines/param/particleTraits.param"

@@ -72,35 +72,6 @@ namespace gasProfile = PARAM_GASPROFILE;
  */
 namespace particleInit = particleInitRandomPos;
 
-/*! particle pusher Configuration ----------------------------------------
- *  - particlePusherVay   : better suited relativistic boris pusher
- *  - particlePusherBoris : standard boris pusher
- * 
- * For development purposes: ---------------------------------------------
- *  - particlePusherNone  : no particle is pushed
- *  - particlePusherAxl   : a pusher developed at HZDR during 2011 (testing)
- *  - particlePusherFree  : free propagation, ignore fields
- *                            (= free stream model)
- *  - particlePusherPhot  : propagate with c in direction of normalized mom.
- */
-#ifndef PARAM_PARTICLEPUSHER
-#define PARAM_PARTICLEPUSHER particlePusherBoris
-#endif
-namespace particlePusher = PARAM_PARTICLEPUSHER;
-
-/*enable (1) or disable (0) ions*/
-#define ENABLE_IONS 0
-/*enable (1) or disable (0) electrons*/
-#define ENABLE_ELECTRONS 1
-
-/** select current solver method -----------------------------------------
- *  - currentSolverEsirkepov: particle shapes - CIC, TSC, PCS (1st to 3rd order)
- *  - currentSolverVillaBune: particle shapes - CIC (1st order) only
- */
-#ifndef PARAM_CURRENTSOLVER
-#define PARAM_CURRENTSOLVER currentSolverEsirkepov
-#endif
-namespace currentSolver = PARAM_CURRENTSOLVER;
 
 /*enable (1) or disable (0) current calculation*/
 #ifndef ENABLE_CURRENT

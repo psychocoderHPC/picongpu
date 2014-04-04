@@ -38,7 +38,7 @@ using namespace PMacc;
  * paper: "Exact charge conservation scheme for Particle-in-Cell simulation
  *  with an arbitrary form-factor"
  */
-template<uint32_t T_dim,typename ParticleAssign>
+template<uint32_t T_dim,typename ParticleShape>
 struct Esirkepov;
 
 template<typename ParticleAssign>

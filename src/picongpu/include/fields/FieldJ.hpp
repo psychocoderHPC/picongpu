@@ -35,16 +35,16 @@
 /*libPMacc*/
 #include "memory/buffers/GridBuffer.hpp"
 #include "mappings/simulation/GridController.hpp"
-#include "fields/LaserPhysics.hpp"
 #include "memory/boxes/DataBox.hpp"
 #include "memory/boxes/PitchedBox.hpp"
 
 #include "math/Vector.hpp"
+#include "particles/Particles.hpp"
 
 namespace picongpu
 {
     using namespace PMacc;
-    
+   
     // The fieldJ saves the current density j
     //
     // j = current / area
@@ -56,6 +56,7 @@ namespace picongpu
     class FieldJ: public SimulationFieldHelper<MappingDesc>, public ISimulationData
     {
     public:
+                
         typedef float3_X ValueType;
         typedef typename promoteType<float_64, ValueType>::type UnitValueType;
         static const int numComponents = ValueType::dim;
@@ -118,6 +119,25 @@ namespace picongpu
         GridBuffer<ValueType, simDim> fieldJ;
 
         FieldE *fieldE;
+    };
+    
+    template<typename T_SpeciesName,typename T_Area>
+    struct ComputeCurrent
+    {
+        typedef T_SpeciesName SpeciesName;
+        typedef typename SpeciesName::type SpeciesType;
+        static const uint32_t area=T_Area::value;
+
+        template<typename T_StorageTupel>
+        HINLINE void operator()(const RefWrapper<FieldJ*> fieldJ,
+                                const RefWrapper<T_StorageTupel> tupel,
+                                const uint32_t currentStep) const
+        {
+            PMACC_AUTO(speciePtr,tupel.get()[SpeciesName()]);
+            fieldJ.get()->
+            computeCurrent<area,SpeciesType>
+            (*speciePtr,currentStep);
+        }
     };
 
 
