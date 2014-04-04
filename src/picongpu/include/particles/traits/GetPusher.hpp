@@ -1,5 +1,5 @@
 /**
- * Copyright 2013 Rene Widera
+ * Copyright 2014 Rene Widera
  *
  * This file is part of PIConGPU. 
  * 
@@ -21,34 +21,15 @@
 #pragma once
 
 #include "simulation_defines.hpp"
+#include "traits/GetFlagType.hpp"
 
 namespace picongpu
 {
 
-namespace traits
+template<typename T_Species>
+struct GetPusher
 {
-/**Get margin of a solver
- * class must define a LowerMargin and UpperMargin for any valid solver
- * 
- * \tparam Solver solver which need goast cells for solving a problem
- * \tparam SubSetName a optinal name (id) if solver needs defferent goast cells
- * for different objects
- */
-template<class Solver,unsigned int SubSetName=0>
-struct GetMargin;
-
-template<typename T_Type>
-struct GetLowerMarging
-{
-    typedef typename traits::GetMargin<T_Type>::LowerMargin type;
+    typedef typename GetFlagType<typename T_Species::FrameType, pusher<> >::type::ThisType type;
 };
-
-template<typename T_Type>
-struct GetUpperMarging
-{
-    typedef typename traits::GetMargin<T_Type>::UpperMargin type;
-};
-
-} //namespace traits
 
 }// namespace picongpu

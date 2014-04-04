@@ -27,7 +27,6 @@
 #include "simulation_types.hpp"
 
 
-#include "particles/Species.hpp"
 #include "plugins/CountParticles.hpp"
 #include "plugins/EnergyParticles.hpp"
 #include "plugins/EnergyFields.hpp"
@@ -44,7 +43,7 @@
 #include "plugins/radiation/parameters.hpp"
 #include "plugins/Radiation.hpp"
 #endif
-#include "particles/Species.hpp"
+
 #include "simulation_classTypes.hpp"
 
 #include "mappings/kernel/MappingDescription.hpp"
@@ -116,16 +115,15 @@ private:
 
 #if(SIMDIM==DIM3)
 #if(PIC_ENABLE_PNG==1)
-    typedef heiko::ParticleDensity<PIC_Electrons> HeikoParticleDensity;   
+    typedef heiko::ParticleDensity<PIC_Electrons> HeikoParticleDensity;
+        
 #endif
-
     typedef ParticleSpectrum<PIC_Electrons> ElectronSpectrum;
-    typedef SliceFieldPrinterMulti<FieldE> SliceFieldEPrinter;
-    typedef SliceFieldPrinterMulti<FieldB> SliceFieldBPrinter;
+        typedef SliceFieldPrinterMulti<FieldE> SliceFieldEPrinter;
+        typedef SliceFieldPrinterMulti<FieldB> SliceFieldBPrinter;
 #endif
-
     typedef LiveViewPlugin<PIC_Electrons > LiveImageElectrons;
-    typedef PngPlugin<ElectronsBinaryDensityBuilder > BinDensityElectrons;
+        typedef PngPlugin<ElectronsBinaryDensityBuilder > BinDensityElectrons;
     typedef CountParticles<PIC_Electrons> ElectronCounter;
     typedef EnergyParticles<PIC_Electrons> EnergyElectrons;
     typedef PositionsParticles<PIC_Electrons> PositionElectrons;

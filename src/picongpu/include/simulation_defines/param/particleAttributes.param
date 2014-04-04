@@ -1,0 +1,109 @@
+/**
+ * Copyright 2014 Rene Widera
+ *
+ * This file is part of PIConGPU. 
+ * 
+ * PIConGPU is free software: you can redistribute it and/or modify 
+ * it under the terms of the GNU General Public License as published by 
+ * the Free Software Foundation, either version 3 of the License, or 
+ * (at your option) any later version. 
+ * 
+ * PIConGPU is distributed in the hope that it will be useful, 
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of 
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the 
+ * GNU General Public License for more details. 
+ * 
+ * You should have received a copy of the GNU General Public License 
+ * along with PIConGPU.  
+ * If not, see <http://www.gnu.org/licenses/>. 
+ */
+
+
+
+#pragma once
+
+#include "simulation_defines.hpp"
+#include "particles/Identifier.hpp"
+#include "compileTime/conversion/MakeSeq.hpp"
+#include "dimensions/DataSpace.hpp"
+#include "identifier/identifier.hpp"
+#include "identifier/alias.hpp"
+#include "identifier/value_identifier.hpp"
+#include "identifier/named_type.hpp"
+
+#include "particles/Particles.hpp"
+
+#include "particles/ParticleDescription.hpp"
+
+
+#include "particles/shapes.hpp"
+#include "algorithms/FieldToParticleInterpolationNative.hpp"
+#include "algorithms/FieldToParticleInterpolation.hpp"
+#include "algorithms/AssignedTrilinearInterpolation.hpp"
+
+#include "fields/currentDeposition/Solver.def"
+#include <boost/mpl/string.hpp>
+
+
+namespace picongpu
+{
+
+/** relative (to cell origin) in-cell position of a particle 
+ * With this definition we not define any type like float3,double3,...
+ * This is only a name without a specialisation
+ */
+alias(position);
+/** cell index the particle lives in, relative to the moving window origin 
+ * This alias is only used for dumping hdf5, the index is only valid for the
+ * current timestep.
+ */
+alias(globalCellIdx);
+
+/** specialisation for the relative in-cell position */
+value_identifier(float3_X,position_pic,float3_X(0.,0.,0.));
+/** momentum at timestep t */
+value_identifier(float3_X,momentum,float3_X(0.,0.,0.));
+/** momentum at (previous) timestep t-1 */
+value_identifier(float3_X,momentumPrev1,float3_X(0.,0.,0.));  
+/** weighting of the macro particle */
+value_identifier(float_X, weighting, 0.0);
+/** use this particle for radiation diagnostics */
+value_identifier(bool, radiationFlag, false);
+
+/*! Particle Shape definitions --------------------------------------------------
+ *  - particleShape::NGP : 0th order (not implemented)
+ *  - particleShape::CIC : 1st order
+ *  - particleShape::TSC : 2nd order (requires CUDA_ARCH>=sm_20)
+ *  - particleShape::PCS : 3rd order (requires CUDA_ARCH>=sm_20)
+ */
+alias(shape);
+
+/*! particle pusher Configuration ----------------------------------------
+ * - PusherVay : better suited relativistic boris pusher
+ * - PusherBoris : standard boris pusher
+ *
+ * For development purposes: ---------------------------------------------
+ * - PusherNone : no particle is pushed
+ * - PusherAxl : a pusher developed at HZDR during 2011 (testing)
+ * - PusherFree : free propagation, ignore fields
+ * (= free stream model)
+ * - PusherPhot : propagate with c in direction of normalized mom.
+ */
+alias(pusher);
+
+alias(interpolation);
+alias(current);
+
+template<uint32_t T_commTag>
+struct CommunicationId
+{
+    static const uint32_t CommunicationTag=T_commTag;
+};
+
+template<size_t T_memPercent>
+struct PercentMemOnGPU
+{
+    static const size_t memPercent=T_memPercent;
+};
+
+} //namespace picongpu

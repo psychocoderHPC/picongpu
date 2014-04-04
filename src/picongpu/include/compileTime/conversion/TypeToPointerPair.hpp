@@ -16,39 +16,46 @@
  * You should have received a copy of the GNU General Public License 
  * along with PIConGPU.  
  * If not, see <http://www.gnu.org/licenses/>. 
- */ 
+ */
 
 #pragma once
 
-#include "simulation_defines.hpp"
+#include "types.h"
+
+#include <boost/mpl/pair.hpp>
+
 
 namespace picongpu
 {
+namespace bmpl = boost::mpl;
 
-namespace traits
+template<typename T_Type>
+struct NameIt
 {
-/**Get margin of a solver
- * class must define a LowerMargin and UpperMargin for any valid solver
+    typedef T_Type type;
+};
+
+template<typename T_Type>
+struct Cover
+{
+    typedef NameIt<T_Type> type;
+};
+
+/** create boost mpl pair 
  * 
- * \tparam Solver solver which need goast cells for solving a problem
- * \tparam SubSetName a optinal name (id) if solver needs defferent goast cells
- * for different objects
+ * @tparam T_Type any type
+ * @resturn ::type boost mpl pair where first and second is set to T_Type
  */
-template<class Solver,unsigned int SubSetName=0>
-struct GetMargin;
-
 template<typename T_Type>
-struct GetLowerMarging
+struct TypeToPointerPair
 {
-    typedef typename traits::GetMargin<T_Type>::LowerMargin type;
+    typedef T_Type* TypePtr;
+    typedef
+    bmpl::pair< NameIt<T_Type>,
+            TypePtr >
+            type;
 };
 
-template<typename T_Type>
-struct GetUpperMarging
-{
-    typedef typename traits::GetMargin<T_Type>::UpperMargin type;
-};
 
-} //namespace traits
 
-}// namespace picongpu
+}//namespace picongpu

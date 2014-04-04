@@ -16,8 +16,8 @@
  * You should have received a copy of the GNU General Public License 
  * along with PIConGPU.  
  * If not, see <http://www.gnu.org/licenses/>. 
- */ 
- 
+ */
+
 
 
 #pragma once
@@ -28,6 +28,8 @@
 #include "dimensions/TVec.h"
 #include "basicOperations.hpp"
 #include "math/vector/compile-time/Int.hpp"
+#include "traits/IsSameType.hpp"
+#include "particles/shapes/CIC.hpp"
 
 namespace picongpu
 {
@@ -35,13 +37,15 @@ namespace currentSolver
 {
 using namespace PMacc;
 
+template<typename T_ParticleShape>
 struct VillaBune
 {
+
     template<class BoxJ, typename PosType, typename VelType, typename ChargeType >
     DINLINE void operator()(BoxJ& boxJ_par, /*box which is shifted to particles cell*/
-                               const PosType pos,
-                               const VelType velocity,
-                               const ChargeType charge, const float_X deltaTime)
+                            const PosType pos,
+                            const VelType velocity,
+                            const ChargeType charge, const float_X deltaTime)
     {
 
         // normalize deltaPos to innerCell units [0.; 1.)
@@ -63,7 +67,7 @@ private:
 
     template<class Buffer >
     DINLINE void addCurrentSplitX(const float3_X& oldPos, const float3_X& newPos,
-                                     const float_X charge, Buffer & mem, const float_X deltaTime)
+                                  const float_X charge, Buffer & mem, const float_X deltaTime)
     {
 
         if (math::float2int_rd(oldPos.x()) != math::float2int_rd(newPos.x()))
@@ -79,7 +83,7 @@ private:
 
     template<class Buffer >
     DINLINE void addCurrentToSingleCell(float3_X meanPos, const float3_X& deltaPos,
-                                           const float_X charge, Buffer & memIn, const float_X deltaTime)
+                                        const float_X charge, Buffer & memIn, const float_X deltaTime)
     {
         //shift to the cell meanPos belongs to
         //because meanPos may exceed the range [0,1)
@@ -171,7 +175,7 @@ private:
 
     template<class Buffer >
     DINLINE void addCurrentSplitZ(const float3_X &oldPos, const float3_X &newPos,
-                                     const float_X charge, Buffer & mem, const float_X deltaTime)
+                                  const float_X charge, Buffer & mem, const float_X deltaTime)
     {
 
         if (math::float2int_rd(oldPos.z()) != math::float2int_rd(newPos.z()))
@@ -197,7 +201,7 @@ private:
 
     template<class Buffer >
     DINLINE void addCurrentSplitY(const float3_X& oldPos, const float3_X& newPos,
-                                     const float_X charge, Buffer & mem, const float_X deltaTime)
+                                  const float_X charge, Buffer & mem, const float_X deltaTime)
     {
 
         if (math::float2int_rd(oldPos.y()) != math::float2int_rd(newPos.y()))
@@ -218,8 +222,8 @@ private:
 namespace traits
 {
 
-template<>
-struct GetMargin<picongpu::currentSolver::VillaBune>
+template<typename T_ParticleShape>
+struct GetMargin<picongpu::currentSolver::VillaBune<T_ParticleShape> >
 {
     typedef ::PMacc::math::CT::Int < 1, 1, 1 > LowerMargin;
     typedef ::PMacc::math::CT::Int < 2, 2, 2 > UpperMargin;

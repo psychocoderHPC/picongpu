@@ -37,39 +37,44 @@
 
 namespace picongpu
 {
-    namespace particlePusherBoris
-    {
-        typedef Push<Velocity, Gamma<> > ParticlePusher;
-    }
-
-    namespace particlePusherNone
-    {
-        typedef Push<Velocity, Gamma<> > ParticlePusher;
-    }
-
-    namespace particlePusherVay
-    {
-       typedef Push<Velocity, Gamma<> > ParticlePusher;
-    }
-    
-    namespace particlePusherFree
-    {
-
-        typedef Push<Velocity, Gamma<> > ParticlePusher;
-    }
-    
-    namespace particlePusherPhot
-    {
-       typedef Push<Velocity, Gamma<> > ParticlePusher;
-    }
 
 #if(SIMDIM==DIM3)
-    namespace particlePusherAxl
+    namespace particlePusher
     {
-
-        typedef Push<Velocity, Gamma<> > ParticlePusher;
+        struct Axel
+        {
+            typedef particlePusherAxl::Push<Velocity, Gamma<> > type;
+        };
     }
 #endif
+    
+    namespace particlePusher
+    {
+        struct None
+        {
+            typedef particlePusherNone::Push type;
+        };
+    
+        struct Boris
+        {
+            typedef particlePusherBoris::Push<Velocity, Gamma<> > type;
+        };
+        
+        struct Vay
+        {
+            typedef particlePusherVay::Push<Velocity, Gamma<> > type;
+        };
+        
+        struct Free
+        {
+            typedef particlePusherFree::Push<Velocity, Gamma<> > type;
+        };
+        
+        struct Photon
+        {
+            typedef particlePusherPhot::Push<Velocity, Gamma<> > type;
+        };
+    }
 
 }
 
