@@ -318,7 +318,7 @@ public:
         ions->init(*fieldE, *fieldB, *fieldJ, *fieldTmp);
 #endif      
 
-        Environment<>::get().StreamController().addStreams(6);
+        Environment<>::get().StreamController().addStreams(3);
 
         uint32_t step = 0;
 

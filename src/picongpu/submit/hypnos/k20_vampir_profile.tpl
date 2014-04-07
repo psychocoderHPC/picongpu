@@ -66,10 +66,10 @@ export VT_GNU_DEMANGLE=yes
 export VT_PTHREAD_REUSE=yes
 export VT_FILTER_SPEC=!TBG_dstPath/tbg/cuda.filter
 export VT_UNIFY=yes
-export VT_GPUTRACE=yes,cupti,idle,memusage,concurrent
+export VT_GPUTRACE=yes
 export VT_VERBOSE=1
 export VT_CUPTI_METRICS=
-export VT_CUDATRACE_BUFFER_SIZE=200M
+export VT_CUDATRACE_BUFFER_SIZE=300M
 
 
 #set user rights to u=rwx;g=r-x;o=---
@@ -77,14 +77,15 @@ umask 0027
 
 mkdir simOutput 2> /dev/null
 cd simOutput
+mkdir traces
 
 # wait for all nodes to see the output folder
 sleep 1
 
-mpiexec --prefix $MPIHOME -tag-output --display-map -x LIBRARY_PATH -x LD_LIBRARY_PATH -am !TBG_dstPath/tbg/openib.conf  -npernode !TBG_gpusPerNode -n !TBG_tasks !TBG_dstPath/picongpu/bin/cuda_memtest.sh
+i#mpiexec --prefix $MPIHOME -tag-output --display-map -x LIBRARY_PATH -x LD_LIBRARY_PATH -am !TBG_dstPath/tbg/openib.conf  -npernode !TBG_gpusPerNode -n !TBG_tasks !TBG_dstPath/picongpu/bin/cuda_memtest.sh
 
-if [ $? -eq 0 ] ; then
+#if [ $? -eq 0 ] ; then
   mpiexec --prefix $MPIHOME -x LIBRARY_PATH -x LD_LIBRARY_PATH -x VT_MPI_IGNORE_FILTER -x VT_PFORM_GDIR -x VT_FILE_PREFIX -x VT_BUFFER_SIZE -x VT_MAX_FLUSHES -x VT_GNU_DEMANGLE -x VT_PTHREAD_REUSE -x VT_FILTER_SPEC -x VT_UNIFY -x VT_GPUTRACE -x VT_VERBOSE -x VT_CUPTI_METRICS -x VT_CUDATRACE_BUFFER_SIZE -tag-output --display-map -am !TBG_dstPath/tbg/openib.conf -npernode !TBG_gpusPerNode -n !TBG_tasks !TBG_dstPath/picongpu/bin/picongpu !TBG_programParams
-fi
+#fi
 
 mpiexec --prefix $MPIHOME -x LIBRARY_PATH -x LD_LIBRARY_PATH -npernode !TBG_gpusPerNode -n !TBG_tasks killall -9 picongpu
