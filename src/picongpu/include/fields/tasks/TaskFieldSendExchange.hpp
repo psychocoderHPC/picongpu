@@ -16,8 +16,8 @@
  * You should have received a copy of the GNU General Public License 
  * along with PIConGPU.  
  * If not, see <http://www.gnu.org/licenses/>. 
- */ 
- 
+ */
+
 
 
 #ifndef  _TASKFIELDSENDEXCHANGE_HPP
@@ -35,96 +35,104 @@
 namespace PMacc
 {
 
-    template<class Field>
-    class TaskFieldSendExchange : public MPITask
+template<class Field>
+class TaskFieldSendExchange : public MPITask
+{
+public:
+
+    TaskFieldSendExchange(Field &buffer, uint32_t exchange, EventTask ev) :
+    buffer(buffer),
+    exchange(exchange),
+    state(Constructor),
+    initDependency(ev)
     {
-    public:
+    }
 
-        TaskFieldSendExchange(Field &buffer, uint32_t exchange) :
-        buffer(buffer),
-        exchange(exchange),
-        state(Constructor),
-        initDependency(__getTransactionEvent())
-        {
-        }
+    virtual void init()
+    {
+        state = PreInit;
 
-        virtual void init()
+    }
+
+    bool executeIntern()
+    {
+        switch (state)
         {
-            state = Init;
+        case PreInit:
+            if (initDependency.isFinished())
+                state = Init;
+            break;
+        case Init:
+            state = InitWait;
             __startTransaction(initDependency);
             buffer.bashField(exchange);
             initDependency = __endTransaction();
             state = WaitForBash;
-        }
+            break;
+        case WaitForBash:
 
-        bool executeIntern()
-        {
-            switch (state)
+            if (NULL == Environment<>::get().Manager().getITaskIfNotFinished(initDependency.getTaskId()))
             {
-            case Init:
-                break;
-            case WaitForBash:
-
-                if (NULL == Environment<>::get().Manager().getITaskIfNotFinished(initDependency.getTaskId()) )
-                {
-                    state = InitSend;
-                    sendEvent = buffer.getGridBuffer().asyncSend(EventTask(), exchange, initDependency);
-                    state = WaitForSendEnd;
-                }
-
-                break;
-            case InitSend:
-                break;
-            case WaitForSendEnd:
-                if (NULL == Environment<>::get().Manager().getITaskIfNotFinished(sendEvent.getTaskId()))
-                {
-                    state = Finished;
-                    return true;
-                }
-                break;
-            case Finished:
-                return true;
-            default:
-                return false;
+                state = InitSend;
+                sendEvent = buffer.getGridBuffer().asyncSend(EventTask(), exchange, initDependency);
+                state = WaitForSendEnd;
             }
 
+            break;
+        case InitSend:
+            break;
+        case WaitForSendEnd:
+            if (NULL == Environment<>::get().Manager().getITaskIfNotFinished(sendEvent.getTaskId()))
+            {
+                state = Finished;
+                return true;
+            }
+            break;
+        case Finished:
+            return true;
+        default:
             return false;
         }
 
-        virtual ~TaskFieldSendExchange()
-        {
-            notify(this->myId, SENDFINISHED, NULL);
-        }
+        return false;
+    }
 
-        void event(id_t, EventType, IEventData*)
-        {
-        }
+    virtual ~TaskFieldSendExchange()
+    {
+        notify(this->myId, SENDFINISHED, NULL);
+    }
 
-        std::string toString()
-        {
-            return "TaskFieldSendExchange";
-        }
+    void event(id_t, EventType, IEventData*)
+    {
+    }
 
-    private:
+    std::string toString()
+    {
+        return "TaskFieldSendExchange";
+    }
 
-        enum state_t
-        {
-            Constructor,
-            Init,
-            WaitForBash,
-            InitSend,
-            WaitForSendEnd,
-            Finished
+private:
 
-        };
+    enum state_t
+    {
+        Constructor,
+        Init,
+        WaitForBash,
+        InitSend,
+        WaitForSendEnd,
+        Finished,
+        InitWait,
+        PreInit
 
-
-        Field& buffer;
-        state_t state;
-        EventTask sendEvent;
-        EventTask initDependency;
-        uint32_t exchange;
     };
+
+
+    Field& buffer;
+    state_t state;
+    EventTask sendEvent;
+    EventTask initDependency;
+    uint32_t exchange;
+};
 
 } //namespace PMacc
 

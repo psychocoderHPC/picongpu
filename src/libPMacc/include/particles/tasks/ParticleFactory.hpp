@@ -46,9 +46,13 @@ namespace PMacc
         template<class ParBase>
         EventTask createTaskParticlesReceive(ParBase &parBuffer,
         ITask *registeringTask = NULL);
+        
+        template<class ParBase>
+        EventTask createTaskParticlesUpdate(ParBase &parBuffer, uint32_t currentStep,EventTask ev,
+        ITask *registeringTask = NULL);
 
         template<class ParBase>
-        EventTask createTaskReceiveParticlesExchange(ParBase &parBase, uint32_t exchange,
+        EventTask createTaskReceiveParticlesExchange(ParBase &parBase, uint32_t exchange,EventTask ev,
         ITask *registeringTask = NULL);
 
         /**
@@ -62,7 +66,7 @@ namespace PMacc
         ITask *registeringTask = NULL);
 
         template<class ParBase>
-        EventTask createTaskSendParticlesExchange(ParBase &parBase, uint32_t exchange,
+        EventTask createTaskSendParticlesExchange(ParBase &parBase, uint32_t exchange,EventTask ev,
         ITask *registeringTask = NULL);
         
         

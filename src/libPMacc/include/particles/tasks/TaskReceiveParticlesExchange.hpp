@@ -17,8 +17,8 @@
  * You should have received a copy of the GNU General Public License 
  * and the GNU Lesser General Public License along with libPMacc. 
  * If not, see <http://www.gnu.org/licenses/>. 
- */ 
- 
+ */
+
 
 #ifndef _TASKRECEIVEPARTICLESEXCHANGE_HPP
 #define	_TASKRECEIVEPARTICLESEXCHANGE_HPP
@@ -28,126 +28,138 @@
 namespace PMacc
 {
 
-    template<class ParBase>
-    class TaskReceiveParticlesExchange : public MPITask
+template<class ParBase>
+class TaskReceiveParticlesExchange : public MPITask
+{
+public:
+
+    enum
     {
-    public:
+        Dim = DIM3,
+        /* Exchanges in 2D=9 and in 3D=27
+         */
+        Exchanges = 27
+    };
 
-        enum
+    TaskReceiveParticlesExchange(ParBase &parBase, uint32_t exchange, EventTask ev) :
+    parBase(parBase),
+    exchange(exchange),
+    state(Constructor),
+    maxSize(parBase.getParticlesBuffer().getReceiveExchangeStack(exchange).getMaxParticlesCount()),
+    initDependency(ev),
+    lastSize(0)
+    {
+    }
+
+    virtual void init()
+    {
+        state = PreInit;
+
+    }
+
+    bool executeIntern()
+    {
+        switch (state)
         {
-            Dim = DIM3,
-            /* Exchanges in 2D=9 and in 3D=27
-             */
-            Exchanges = 27
-        };
-
-        TaskReceiveParticlesExchange(ParBase &parBase, uint32_t exchange) :
-        parBase(parBase),
-        exchange(exchange),
-        state(Constructor),
-        maxSize(parBase.getParticlesBuffer().getReceiveExchangeStack(exchange).getMaxParticlesCount()),
-        initDependency(__getTransactionEvent()),
-        lastSize(0) { }
-
-        virtual void init()
-        {
-            state = Init;
+        case PreInit:
+            if (initDependency.isFinished())
+                state = Init;
+            break;
+        case Init:
+            state = InitWait;
             lastReceiveEvent = parBase.getParticlesBuffer().asyncReceiveParticles(initDependency, exchange);
             initDependency = lastReceiveEvent;
             state = WaitForReceive;
-        }
+            break;
+        case WaitForReceive:
 
-        bool executeIntern()
-        {
-            switch (state)
+            if (NULL == Environment<>::get().Manager().getITaskIfNotFinished(lastReceiveEvent.getTaskId()))
             {
-                case Init:
-                    break;
-                case WaitForReceive:
-
-                    if (NULL == Environment<>::get().Manager().getITaskIfNotFinished(lastReceiveEvent.getTaskId()))
-                    {
-                        state = InitInsert;
-                        //bash is finished
-                        __startTransaction();
-                        lastSize = parBase.getParticlesBuffer().getReceiveExchangeStack(exchange).getHostParticlesCurrentSize();
-                        parBase.insertParticles(exchange);
-                       // std::cout<<"brecv = "<<parBase.getParticlesBuffer().getReceiveExchangeStack(exchange).getHostCurrentSize()<<std::endl;
-                        tmpEvent = __endTransaction();
-                        state = WaitForInsert;
-                    }
-
-                    break;
-                case InitInsert:
-                    break;
-                case WaitForInsert:
-                    if (NULL == Environment<>::get().Manager().getITaskIfNotFinished(tmpEvent.getTaskId()))
-                    {
-                        state=Wait;
-                        assert(lastSize <= maxSize);
-                        //check for next bash round
-                        if (lastSize == maxSize)
-                        {
-                            std::cerr << "recv max size " << maxSize << " particles" << std::endl;
-                            init(); //call init and run a full send cycle
-                            
-                        }
-                        else
-                        {
-                            state = Finished;
-                            return true;
-                        }
-                    }
-                    break;
-                case Wait:
-                    break;
-                case Finished:
-                    return true;
-                default:
-                    return false;
+                state = InitInsert;
+                //bash is finished
+                __startTransaction();
+                lastSize = parBase.getParticlesBuffer().getReceiveExchangeStack(exchange).getHostParticlesCurrentSize();
+                parBase.insertParticles(exchange);
+                // std::cout<<"brecv = "<<parBase.getParticlesBuffer().getReceiveExchangeStack(exchange).getHostCurrentSize()<<std::endl;
+                tmpEvent = __endTransaction();
+                state = WaitForInsert;
             }
 
+            break;
+        case InitInsert:
+            break;
+        case WaitForInsert:
+            if (NULL == Environment<>::get().Manager().getITaskIfNotFinished(tmpEvent.getTaskId()))
+            {
+                state = Wait;
+                assert(lastSize <= maxSize);
+                //check for next bash round
+                if (lastSize == maxSize)
+                {
+                    std::cerr << "recv max size " << maxSize << " particles" << std::endl;
+                    init(); //call init and run a full send cycle
+
+                }
+                else
+                {
+                    state = Finished;
+                    return true;
+                }
+            }
+            break;
+        case Wait:
+            break;
+        case Finished:
+            return true;
+        default:
             return false;
         }
 
-        virtual ~TaskReceiveParticlesExchange()
-        {
-            notify(this->myId, RECVFINISHED, NULL);
-        }
+        return false;
+    }
 
-        void event(id_t, EventType, IEventData*) { }
+    virtual ~TaskReceiveParticlesExchange()
+    {
+        notify(this->myId, RECVFINISHED, NULL);
+    }
 
-        std::string toString()
-        {
-            return "TaskReceiveParticlesExchange";
-        }
+    void event(id_t, EventType, IEventData*)
+    {
+    }
 
-    private:
+    std::string toString()
+    {
+        return "TaskReceiveParticlesExchange";
+    }
 
-        enum state_t
-        {
-            Constructor,
-            Init,
-            WaitForReceive,
-            InitInsert,
-            WaitForInsert,
-            Wait,
-            Finished
+private:
 
-        };
+    enum state_t
+    {
+        Constructor,
+        Init,
+        WaitForReceive,
+        InitInsert,
+        WaitForInsert,
+        Wait,
+        Finished,
+        InitWait,
+        PreInit
 
-
-
-
-        ParBase& parBase;
-        state_t state;
-        EventTask tmpEvent;
-        EventTask lastReceiveEvent;
-        EventTask initDependency;
-        uint32_t exchange;
-        size_t maxSize;
-        size_t lastSize;
     };
+
+
+
+
+    ParBase& parBase;
+    state_t state;
+    EventTask tmpEvent;
+    EventTask lastReceiveEvent;
+    EventTask initDependency;
+    uint32_t exchange;
+    size_t maxSize;
+    size_t lastSize;
+};
 
 } //namespace PMacc
 

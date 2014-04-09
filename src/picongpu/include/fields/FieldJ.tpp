@@ -107,14 +107,10 @@ GridBuffer<FieldJ::ValueType, simDim> &FieldJ::getGridBuffer( )
 
 EventTask FieldJ::asyncCommunication( EventTask serialEvent )
 {
-    EventTask ret;
-    __startTransaction( serialEvent );
-    FieldFactory::getInstance( ).createTaskFieldReceiveAndInsert( *this );
-    ret = __endTransaction( );
+    EventTask ret= FieldFactory::getInstance( ).createTaskFieldReceiveAndInsert( *this,serialEvent );
 
-    __startTransaction( serialEvent );
-    FieldFactory::getInstance( ).createTaskFieldSend( *this );
-    ret += __endTransaction( );
+    ret+=FieldFactory::getInstance( ).createTaskFieldSend( *this,serialEvent );
+
     return ret;
 }
 

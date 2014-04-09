@@ -40,26 +40,32 @@ class TaskFieldReceiveAndInsertExchange : public MPITask
 {
 public:
 
-    TaskFieldReceiveAndInsertExchange(Field &buffer, uint32_t exchange) :
+    TaskFieldReceiveAndInsertExchange(Field &buffer, uint32_t exchange,EventTask ev) :
     buffer(buffer),
     exchange(exchange),
     state(Constructor),
-    initDependency(__getTransactionEvent())
+    initDependency(ev)
     {
     }
 
     virtual void init()
     {
-        state = Init;
-        initDependency = buffer.getGridBuffer().asyncReceive(initDependency, exchange);
-        state = WaitForReceive;
+        state = PreInit;
+
     }
 
     bool executeIntern()
     {
         switch (state)
         {
+        case PreInit:
+            if (initDependency.isFinished())
+                state = Init;
+            break;
         case Init:
+            state=InitWait;
+            initDependency = buffer.getGridBuffer().asyncReceive(initDependency, exchange);
+            state = WaitForReceive;
             break;
         case WaitForReceive:
             if (NULL == Environment<>::get().Manager().getITaskIfNotFinished(initDependency.getTaskId()))
@@ -100,7 +106,9 @@ private:
         Constructor,
         Init,
         WaitForReceive,
-        Finished
+        Finished,
+            InitWait,
+            PreInit
 
     };
 

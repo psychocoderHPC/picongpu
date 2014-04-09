@@ -104,9 +104,9 @@ public:
     
     void update_beforeCurrent(uint32_t)
     {
-        updateBHalf < CORE+BORDER >();
+        updateBHalf < BORDER >();
         EventTask eRfieldB = fieldB->asyncCommunication(__getTransactionEvent());
-        
+        updateBHalf < CORE>();
         updateE<CORE>();
         __setTransactionEvent(eRfieldB);
         updateE<BORDER>();

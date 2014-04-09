@@ -17,8 +17,8 @@
  * You should have received a copy of the GNU General Public License 
  * and the GNU Lesser General Public License along with libPMacc. 
  * If not, see <http://www.gnu.org/licenses/>. 
- */ 
- 
+ */
+
 #ifndef _TASKPARTICLESRECEIVE_HPP
 #define	_TASKPARTICLESRECEIVE_HPP
 
@@ -30,102 +30,116 @@
 namespace PMacc
 {
 
-    template<class ParBase>
-    class TaskParticlesReceive : public MPITask
+template<class ParBase>
+class TaskParticlesReceive : public MPITask
+{
+public:
+
+    enum
     {
-    public:
+        Dim = DIM3,
+        /* Exchanges in 2D=9 and in 3D=27
+         */
+        Exchanges = 27
+    };
+    EventTask serialEvent;
 
-        enum
+    TaskParticlesReceive(ParBase &parBase) :
+    parBase(parBase),
+    state(Constructor)
+    {
+    }
+
+    virtual void init()
+    {
+        
+        serialEvent = __getTransactionEvent();
+        state = PreInit;
+
+
+    }
+
+    bool executeIntern()
+    {
+        switch (state)
         {
-            Dim = DIM3,
-            /* Exchanges in 2D=9 and in 3D=27
-             */
-            Exchanges = 27
-        };
-
-        TaskParticlesReceive(ParBase &parBase) :
-        parBase(parBase),
-        state(Constructor){ }
-
-        virtual void init()
-        {
-            state = Init;
-            EventTask serialEvent = __getTransactionEvent();
-
+        case PreInit:
+            if (serialEvent.isFinished())
+                state = Init;
+            break;
+        case Init:
+            state = InitWait;
             for (int i = 1; i < Exchanges; ++i)
             {
                 if (parBase.getParticlesBuffer().hasReceiveExchange(i))
                 {
-                    __startAtomicTransaction(serialEvent);
-                    Environment<>::get().ParticleFactory().createTaskReceiveParticlesExchange(parBase, i);
+                    __startAtomicTransaction();
+                    Environment<>::get().ParticleFactory().createTaskReceiveParticlesExchange(parBase, i, EventTask());
                     tmpEvent += __endTransaction();
                 }
             }
-            
+
             state = WaitForReceived;
-        }
+            break;
+        case WaitForReceived:
+            if (NULL == Environment<>::get().Manager().getITaskIfNotFinished(tmpEvent.getTaskId()))
+                state = CallFillGaps;
+            break;
+        case CallFillGaps:
+            state = WaitForFillGaps;
+            __startTransaction();
 
-        bool executeIntern()
-        {
-            switch (state)
-            {
-                case Init:
-                    break;
-                case WaitForReceived:
-                    if (NULL == Environment<>::get().Manager().getITaskIfNotFinished(tmpEvent.getTaskId()))
-                        state = CallFillGaps;
-                    break;
-                case CallFillGaps:
-                    state = WaitForFillGaps;
-                    __startTransaction();
+            parBase.fillBorderGaps();
 
-                    parBase.fillBorderGaps();
-                    
-                    tmpEvent = __endTransaction();
-                    state = Finish;
-                    break;
-                case WaitForFillGaps:
-                    break;
-                case Finish:
-                    return NULL == Environment<>::get().Manager().getITaskIfNotFinished(tmpEvent.getTaskId());
-                default:
-                    return false;
-            }
-
+            tmpEvent = __endTransaction();
+            state = Finish;
+            break;
+        case WaitForFillGaps:
+            break;
+        case Finish:
+            return NULL == Environment<>::get().Manager().getITaskIfNotFinished(tmpEvent.getTaskId());
+        default:
             return false;
         }
 
-        virtual ~TaskParticlesReceive()
-        {
-            notify(this->myId, RECVFINISHED, NULL);
-        }
+        return false;
+    }
 
-        void event(id_t, EventType, IEventData*) { }
+    virtual ~TaskParticlesReceive()
+    {
+        notify(this->myId, RECVFINISHED, NULL);
+    }
 
-        std::string toString()
-        {
-            return "TaskParticlesReceive";
-        }
+    void event(id_t, EventType, IEventData*)
+    {
+    }
 
-    private:
+    std::string toString()
+    {
+        return "TaskParticlesReceive";
+    }
 
-        enum state_t
-        {
-            Constructor,
-            Init,
-            WaitForReceived,
-            CallFillGaps,
-            WaitForFillGaps,
-            Finish
+private:
 
-        };
-
-
-        ParBase& parBase;
-        state_t state;
-        EventTask tmpEvent;
+    enum state_t
+    {
+        Constructor,
+        Init,
+        WaitForReceived,
+        CallFillGaps,
+        WaitForFillGaps,
+        Finish,
+        InitWait,
+        PreInit
 
     };
+
+
+    ParBase& parBase;
+    state_t state;
+    EventTask tmpEvent;
+
+};
 
 } //namespace PMacc
 

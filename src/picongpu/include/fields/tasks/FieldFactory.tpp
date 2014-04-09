@@ -32,37 +32,37 @@ namespace PMacc
 {
 
     template<class Field>
-    inline EventTask FieldFactory::createTaskFieldReceiveAndInsert(Field &buffer,
+    inline EventTask FieldFactory::createTaskFieldReceiveAndInsert(Field &buffer,EventTask ev,
                                                                    ITask *registeringTask)
     {
-        TaskFieldReceiveAndInsert<Field>* task = new TaskFieldReceiveAndInsert<Field > (buffer);
+        TaskFieldReceiveAndInsert<Field>* task = new TaskFieldReceiveAndInsert<Field > (buffer,ev);
 
         return Environment<>::get().Factory().startTask(*task, registeringTask);
     }
 
     template<class Field>
-    inline EventTask FieldFactory::createTaskFieldReceiveAndInsertExchange(Field &buffer, uint32_t exchange,
+    inline EventTask FieldFactory::createTaskFieldReceiveAndInsertExchange(Field &buffer, uint32_t exchange,EventTask ev,
                                                                            ITask *registeringTask)
     {
-        TaskFieldReceiveAndInsertExchange<Field>* task = new TaskFieldReceiveAndInsertExchange<Field > (buffer, exchange);
+        TaskFieldReceiveAndInsertExchange<Field>* task = new TaskFieldReceiveAndInsertExchange<Field > (buffer, exchange,ev);
 
         return Environment<>::get().Factory().startTask(*task, registeringTask);
     }
 
     template<class Field>
-    inline EventTask FieldFactory::createTaskFieldSend(Field &buffer,
+    inline EventTask FieldFactory::createTaskFieldSend(Field &buffer,EventTask ev,
                                                        ITask *registeringTask)
     {
-        TaskFieldSend<Field>* task = new TaskFieldSend<Field > (buffer);
+        TaskFieldSend<Field>* task = new TaskFieldSend<Field > (buffer,ev);
 
         return Environment<>::get().Factory().startTask(*task, registeringTask);
     }
 
     template<class Field>
-    inline EventTask FieldFactory::createTaskFieldSendExchange(Field &buffer, uint32_t exchange,
+    inline EventTask FieldFactory::createTaskFieldSendExchange(Field &buffer, uint32_t exchange,EventTask ev,
                                                                ITask *registeringTask)
     {
-        TaskFieldSendExchange<Field>* task = new TaskFieldSendExchange<Field > (buffer, exchange);
+        TaskFieldSendExchange<Field>* task = new TaskFieldSendExchange<Field > (buffer, exchange,ev);
 
         return Environment<>::get().Factory().startTask(*task, registeringTask);
     }

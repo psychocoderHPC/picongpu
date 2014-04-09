@@ -57,6 +57,7 @@
 #include "memory/boxes/DataBoxDim1Access.hpp"
 #include "nvidia/functors/Add.hpp"
 #include "nvidia/functors/Sub.hpp"
+#include "vt_user.h"
 
 namespace picongpu
 {
@@ -261,6 +262,7 @@ public:
     
     virtual uint32_t init()
     {
+        VT_OFF();
         namespace nvmem = PMacc::nvidia::memory;
         // create simulation data such as fields and particles
         fieldB = new FieldB(*cellDescription);
@@ -345,7 +347,7 @@ public:
         __setTransactionEvent(eRfieldE);
         EventTask eRfieldB = fieldB->asyncCommunication(__getTransactionEvent());
         __setTransactionEvent(eRfieldB);
-
+        VT_ON();
         return step;
     }
 
@@ -360,6 +362,19 @@ public:
      */
     virtual void runOneStep(uint32_t currentStep)
     {
+        /*if(currentStep==0)
+            VT_ON();
+        else if(currentStep==50)
+            VT_OFF();
+        else if(currentStep==948)
+            VT_ON();
+        else if(currentStep==1000)
+            VT_OFF();
+        else if(currentStep==1948)
+            VT_ON();
+        else if(currentStep==2000)
+            VT_OFF();*/
+        
         namespace nvfct = PMacc::nvidia::functors;
 
         /** add background field for particle pusher */
@@ -368,21 +383,24 @@ public:
         (*pushBGField)(fieldB, nvfct::Add(), fieldBackgroundB(fieldB->getUnit()),
                        currentStep, fieldBackgroundB::InfluenceParticlePusher);
 
+        EventTask parEvent = __getTransactionEvent();
 #if (ENABLE_IONS == 1)
         __startTransaction(__getTransactionEvent());
         //std::cout << "Begin update Ions" << std::endl;
-        ions->update(currentStep);
+        //ions->update(currentStep);
+        EventTask eRecvIons=Environment<>::get().ParticleFactory().createTaskParticlesUpdate(*ions,currentStep,parEvent);
         //std::cout << "End update Ions" << std::endl;
-        EventTask eRecvIons = ions->asyncCommunication(__getTransactionEvent());
-        EventTask eIons = __endTransaction();
+       // EventTask eRecvIons = ions->asyncCommunication(__getTransactionEvent());
+        //EventTask eIons = __endTransaction();
 #endif
 #if (ENABLE_ELECTRONS == 1)
         __startTransaction(__getTransactionEvent());
         //std::cout << "Begin update Electrons" << std::endl;
-        electrons->update(currentStep);
+        //electrons->update(currentStep);
+        EventTask eRecvElectrons=Environment<>::get().ParticleFactory().createTaskParticlesUpdate(*electrons,currentStep,parEvent);
         //std::cout << "End update Electrons" << std::endl;
-        EventTask eRecvElectrons = electrons->asyncCommunication(__getTransactionEvent());
-        EventTask eElectrons = __endTransaction();
+        //EventTask eRecvElectrons = electrons->asyncCommunication(__getTransactionEvent());
+        //EventTask eElectrons = __endTransaction();
 #endif
 
         /** remove background field for particle pusher */
@@ -400,13 +418,13 @@ public:
                           currentStep, fieldBackgroundJ::activated);
 
 #if (ENABLE_IONS == 1)
-        __setTransactionEvent(eRecvIons + eIons);
+        __setTransactionEvent(eRecvIons );
 #if (ENABLE_CURRENT ==1)
         fieldJ->computeCurrent < CORE + BORDER, PIC_Ions > (*ions, currentStep);
 #endif
 #endif
 #if (ENABLE_ELECTRONS == 1)
-        __setTransactionEvent(eRecvElectrons + eElectrons);
+        __setTransactionEvent(eRecvElectrons );
 #if (ENABLE_CURRENT ==1)
         fieldJ->computeCurrent < CORE + BORDER, PIC_Electrons > (*electrons, currentStep);
 #endif

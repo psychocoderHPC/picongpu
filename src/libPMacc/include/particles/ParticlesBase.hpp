@@ -54,7 +54,7 @@ public:
      */
     typedef ParticlesBox< FrameType, MappingDesc::Dim> ParticlesBoxType;
 
-protected:
+    virtual void update(uint32_t ) = 0;
 
     enum
     {

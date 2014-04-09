@@ -43,35 +43,40 @@ public:
 
 
     static const uint32_t Dim = picongpu::simDim;
- 
-    TaskFieldReceiveAndInsert(Field &buffer) :
+    EventTask serialEvent;
+
+    TaskFieldReceiveAndInsert(Field &buffer, EventTask ev) :
     buffer(buffer),
-    state(Constructor)
+    state(Constructor),
+    serialEvent(ev)
     {
     }
 
     virtual void init()
     {
-        state = Init;
-        EventTask serialEvent = __getTransactionEvent();
-
-        for (uint32_t i = 1; i < numberOfNeighbors[Dim]; ++i)
-        {
-            if (buffer.getGridBuffer().hasReceiveExchange(i))
-            {
-                __startAtomicTransaction(serialEvent);
-                FieldFactory::getInstance().createTaskFieldReceiveAndInsertExchange(buffer, i);
-                tmpEvent += __endTransaction();
-            }
-        }
-        state = WaitForReceived;
+        state = PreInit;
     }
 
     bool executeIntern()
     {
         switch (state)
         {
+        case PreInit:
+            if (serialEvent.isFinished())
+                state = Init;
+            break;
         case Init:
+            state = InitWait;
+            for (uint32_t i = 1; i < numberOfNeighbors[Dim]; ++i)
+            {
+                if (buffer.getGridBuffer().hasReceiveExchange(i))
+                {
+                    __startAtomicTransaction(serialEvent);
+                    FieldFactory::getInstance().createTaskFieldReceiveAndInsertExchange(buffer, i,EventTask());
+                    tmpEvent += __endTransaction();
+                }
+            }
+            state = WaitForReceived;
             break;
         case WaitForReceived:
             if (NULL == Environment<>::get().Manager().getITaskIfNotFinished(tmpEvent.getTaskId()))
@@ -134,7 +139,9 @@ private:
         Insert,
         WaitInsertFinished,
         WaitForReceived,
-        Finish
+        Finish,
+        InitWait,
+        PreInit
 
     };
 

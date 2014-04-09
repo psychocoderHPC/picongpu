@@ -47,11 +47,11 @@ namespace PMacc
          * @param registeringTask optional pointer to an ITask which should be registered at the new task as an observer
          */
         template<class Field>
-        EventTask createTaskFieldReceiveAndInsert(Field &buffer,
+        EventTask createTaskFieldReceiveAndInsert(Field &buffer,EventTask ev,
         ITask *registeringTask = NULL);
 
         template<class Field>
-        EventTask createTaskFieldReceiveAndInsertExchange(Field &buffer, uint32_t exchange,
+        EventTask createTaskFieldReceiveAndInsertExchange(Field &buffer, uint32_t exchange,EventTask ev,
         ITask *registeringTask = NULL);
 
         /**
@@ -61,11 +61,11 @@ namespace PMacc
          * @param registeringTask optional pointer to an ITask which should be registered at the new task as an observer
          */
         template<class Field>
-        EventTask createTaskFieldSend(Field &buffer,
+        EventTask createTaskFieldSend(Field &buffer,EventTask ev,
         ITask *registeringTask = NULL);
 
         template<class Field>
-        EventTask createTaskFieldSendExchange(Field &buffer, uint32_t exchange,
+        EventTask createTaskFieldSendExchange(Field &buffer, uint32_t exchange,EventTask ev,
         ITask *registeringTask = NULL);
 
         /**

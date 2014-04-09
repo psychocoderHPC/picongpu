@@ -40,6 +40,8 @@ public:
          */
         Exchanges = 27
     };
+    
+    EventTask serialEvent;
 
     TaskParticlesSend(ParBase &parBase) :
     parBase(parBase),
@@ -49,27 +51,33 @@ public:
 
     virtual void init()
     {
-        state = Init;
-        EventTask serialEvent = __getTransactionEvent();
+        state = PreInit;
+        serialEvent = __getTransactionEvent();
 
-        for (int i = 1; i < Exchanges; ++i)
-        {
-            if (parBase.getParticlesBuffer().hasSendExchange(i))
-            {
-                __startAtomicTransaction(serialEvent);
-                Environment<>::get().ParticleFactory().createTaskSendParticlesExchange(parBase, i);
-                tmpEvent += __endTransaction();
-            }
-        }
-
-        state = WaitForSend;
     }
 
     bool executeIntern()
     {
         switch (state)
         {
+        case PreInit:
+            if (serialEvent.isFinished())
+                state = Init;
+            break;
         case Init:
+            state=InitWait;
+            
+            for (int i = 1; i < Exchanges; ++i)
+            {
+                if (parBase.getParticlesBuffer().hasSendExchange(i))
+                {
+                    __startAtomicTransaction();
+                    Environment<>::get().ParticleFactory().createTaskSendParticlesExchange(parBase, i,EventTask());
+                    tmpEvent += __endTransaction();
+                }
+            }
+
+            state = WaitForSend;
             break;
         case WaitForSend:
             return NULL == Environment<>::get().Manager().getITaskIfNotFinished(tmpEvent.getTaskId());
@@ -100,7 +108,9 @@ private:
     {
         Constructor,
         Init,
-        WaitForSend
+        WaitForSend,
+            InitWait,
+            PreInit
 
     };
 

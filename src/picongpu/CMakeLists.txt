@@ -92,10 +92,10 @@ option(VAMPIR_ENABLE "Create PIConGPU with VampirTrace support" OFF)
 
 # set filters: please do NOT use line breaks WITHIN the string!
 set(VT_INST_FILE_FILTER
-    "stl,usr/include,libgpugrid,vector_types.h,Vector.hpp,DeviceBuffer.hpp,DeviceBufferIntern.hpp,Buffer.hpp,StrideMapping.hpp,StrideMappingMethods.hpp,MappingDescription.hpp,AreaMapping.hpp,AreaMappingMethods.hpp,ExchangeMapping.hpp,ExchangeMappingMethods.hpp,DataSpace.hpp,Manager.hpp,Manager.tpp,Transaction.hpp,Transaction.tpp,TransactionManager.hpp,TransactionManager.tpp,Vector.tpp,Mask.hpp,ITask.hpp,EventTask.hpp,EventTask.tpp,StandartAccessor.hpp,StandartNavigator.hpp,HostBuffer.hpp,HostBufferIntern.hpp"
+    "stl,usr/include,libpmacc,vector_types.h,Vector.hpp,DeviceBuffer.hpp,DeviceBufferIntern.hpp,Buffer.hpp,StrideMapping.hpp,StrideMappingMethods.hpp,MappingDescription.hpp,AreaMapping.hpp,AreaMappingMethods.hpp,ExchangeMapping.hpp,ExchangeMappingMethods.hpp,DataSpace.hpp,Manager.hpp,Manager.tpp,Transaction.hpp,Transaction.tpp,TransactionManager.hpp,TransactionManager.tpp,Vector.tpp,Mask.hpp,ITask.hpp,EventTask.hpp,EventTask.tpp,StandartAccessor.hpp,StandartNavigator.hpp,HostBuffer.hpp,HostBufferIntern.hpp"
     CACHE STRING "VampirTrace: Files to exclude from instrumentation")
 set(VT_INST_FUNC_FILTER
-    "vector,Vector,dim3,GPUGrid,execute,allocator,Task,Manager,Transaction,Mask,operator,DataSpace,PitchedBox,Event,new,getGridDim,GetCurrentDataSpaces,MappingDescription,getOffset,getParticlesBuffer,getDataSpace,getInstance"
+    "pmacc,PMacc,picongpu,vector,Vector,dim3,GPUGrid,execute,allocator,Task,Manager,Transaction,Mask,operator,DataSpace,PitchedBox,Event,new,getGridDim,GetCurrentDataSpaces,MappingDescription,getOffset,getParticlesBuffer,getDataSpace,getInstance"
     CACHE STRING "VampirTrace: Functions to exclude from instrumentation")
 
 if(VAMPIR_ENABLE)
@@ -106,7 +106,7 @@ if(VAMPIR_ENABLE)
     endif(NOT VAMPIR_ROOT)
 
     # compile flags
-    execute_process(COMMAND $ENV{VT_ROOT}/bin/vtc++ -vt:hyb -vt:showme-compile
+    execute_process(COMMAND $ENV{VT_ROOT}/bin/vtc++ -vt:hyb -vt:showme-compile -DVTRACE
                     OUTPUT_VARIABLE VT_COMPILEFLAGS
                     RESULT_VARIABLE VT_CONFIG_RETURN)
     if(NOT VT_CONFIG_RETURN EQUAL 0)
@@ -116,7 +116,7 @@ if(VAMPIR_ENABLE)
         string(REGEX REPLACE "(\r?\n)+$" "" VT_COMPILEFLAGS "${VT_COMPILEFLAGS}")
     endif()
     # link flags
-    execute_process(COMMAND $ENV{VT_ROOT}/bin/vtc++ -vt:hyb -vt:showme-link
+    execute_process(COMMAND $ENV{VT_ROOT}/bin/vtc++ -vt:hyb -vt:showme-link  -DVTRACE
                     OUTPUT_VARIABLE VT_LINKFLAGS)
     string(REGEX REPLACE "(\r?\n)+$" "" VT_LINKFLAGS "${VT_LINKFLAGS}")
 

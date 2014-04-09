@@ -171,8 +171,8 @@ void Particles<T_ParticleDescription>::update(uint32_t )
           );
 
 
-    ParticlesBaseType::template shiftParticles < CORE + BORDER > ( );
-    this->fillAllGaps( );
+    //ParticlesBaseType::template shiftParticles < CORE + BORDER > ( );
+   // this->fillAllGaps( );
 
 }
 

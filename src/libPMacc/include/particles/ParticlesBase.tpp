@@ -41,6 +41,7 @@ namespace PMacc
             //std::cout<<"bash "<<exchangeType<<std::endl;
             ExchangeMapping<GUARD, MappingDesc> mapper(this->cellDescription, exchangeType);
 
+            __startAtomicTransaction(__getTransactionEvent());
             particlesBuffer->getSendExchangeStack(exchangeType).setCurrentSize(0);
             dim3 grid(mapper.getGridDim());
 
@@ -48,6 +49,7 @@ namespace PMacc
                     (grid, TileSize)
                     (particlesBuffer->getDeviceParticleBox(),
                     particlesBuffer->getSendExchangeStack(exchangeType).getDeviceExchangePushDataBox(), mapper); 
+            __setTransactionEvent(__endTransaction());
         }
     }
 
@@ -56,7 +58,7 @@ namespace PMacc
     {
         if (particlesBuffer->hasReceiveExchange(exchangeType))
         {
-
+            __startAtomicTransaction(__getTransactionEvent());
             dim3 grid(particlesBuffer->getReceiveExchangeStack(exchangeType).getHostCurrentSize());
             if (grid.x != 0)
             {
@@ -68,6 +70,7 @@ namespace PMacc
                         particlesBuffer->getReceiveExchangeStack(exchangeType).getDeviceExchangePopDataBox(),
                         mapper);
                 }
+            __setTransactionEvent(__endTransaction());
         }
     }
 

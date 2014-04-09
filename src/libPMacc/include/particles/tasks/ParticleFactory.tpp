@@ -26,6 +26,7 @@
 #include "particles/tasks/ParticleFactory.hpp"
 
 #include "particles/tasks/TaskSendParticlesExchange.hpp"
+#include "particles/tasks/TaskParticlesUpdate.hpp"
 #include "particles/tasks/TaskReceiveParticlesExchange.hpp"
 #include "particles/tasks/TaskParticlesReceive.hpp"
 #include "particles/tasks/TaskParticlesSend.hpp"
@@ -33,6 +34,15 @@
 namespace PMacc
 {
 
+    template<class ParBase>
+    inline EventTask ParticleFactory::createTaskParticlesUpdate(ParBase &parBase,uint32_t currentStep,EventTask ev,
+    ITask *registeringTask)
+    {
+        TaskParticlesUpdate<ParBase>* task = new TaskParticlesUpdate<ParBase > (parBase,currentStep,ev);
+
+        return Environment<>::get().Factory().startTask(*task, registeringTask);
+    }
+    
     template<class ParBase>
     inline EventTask ParticleFactory::createTaskParticlesReceive(ParBase &parBase,
     ITask *registeringTask)
@@ -43,10 +53,10 @@ namespace PMacc
     }
 
     template<class ParBase>
-    inline EventTask ParticleFactory::createTaskReceiveParticlesExchange(ParBase &parBase, uint32_t exchange,
+    inline EventTask ParticleFactory::createTaskReceiveParticlesExchange(ParBase &parBase, uint32_t exchange,EventTask ev,
     ITask *registeringTask)
     {
-        TaskReceiveParticlesExchange<ParBase>* task = new TaskReceiveParticlesExchange<ParBase > (parBase, exchange);
+        TaskReceiveParticlesExchange<ParBase>* task = new TaskReceiveParticlesExchange<ParBase > (parBase, exchange,ev);
 
         return Environment<>::get().Factory().startTask(*task, registeringTask);
     }
@@ -61,10 +71,10 @@ namespace PMacc
     }
 
     template<class ParBase>
-    inline EventTask ParticleFactory::createTaskSendParticlesExchange(ParBase &parBase, uint32_t exchange,
+    inline EventTask ParticleFactory::createTaskSendParticlesExchange(ParBase &parBase, uint32_t exchange,EventTask ev,
     ITask *registeringTask)
     {
-        TaskSendParticlesExchange<ParBase>* task = new TaskSendParticlesExchange<ParBase > (parBase, exchange);
+        TaskSendParticlesExchange<ParBase>* task = new TaskSendParticlesExchange<ParBase > (parBase, exchange,ev);
 
         return Environment<>::get().Factory().startTask(*task, registeringTask);
     }
