@@ -60,7 +60,7 @@ struct ZigZag
     static const int end = begin + supp + supp % 2;
 
     static const int dir_begin = -(supp) / 2;
-    static const int dir_end = dir_begin + (supp);
+    static const int dir_end = dir_begin + (supp)+1;
 
     /* begin and end border is calculated for a particle with a support which travels
      * to the negative direction.

@@ -83,7 +83,7 @@ namespace picongpu
      *  - currentSolverVillaBune :  Villasenhor Bunemann (CIC) solver
      *  - currentSolverEsirkepov :  Esirkepov solver for currents
      */
-    namespace currentSolver = currentSolverEsirkepov;
+    namespace currentSolver = currentSolverZigZag;
     /*enable (1) or disable (0) current calculation*/
 #define ENABLE_CURRENT 1
 
