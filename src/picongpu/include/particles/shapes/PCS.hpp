@@ -61,6 +61,7 @@ protected:
 } //namespace shared_PCS
 struct PCS : public picongpu::particleShape::shared_PCS::PCS
 {
+    typedef  picongpu::particleShape::TSC CloudShape;
 
     struct ChargeAssignment : public picongpu::particleShape::shared_PCS::PCS
     {

@@ -66,6 +66,7 @@ protected:
 
 struct TSC : public picongpu::particleShape::shared_TSC::TSC
 {
+    typedef  picongpu::particleShape::CIC CloudShape;
 
     struct ChargeAssignment : public picongpu::particleShape::shared_TSC::TSC
     {
