@@ -27,6 +27,7 @@
 #include "basicOperations.hpp"
 #include <cuSTL/cursor/tools/twistVectorFieldAxes.hpp>
 #include "algorithms/FieldToParticleInterpolation.hpp"
+#include "algorithms/ShiftCoordinateSystem.hpp"
 
 
 namespace picongpu
@@ -44,11 +45,11 @@ using namespace PMacc;
  * 3. order paper: "High-Order Interpolation Algorithms for Charge Conservation in Particle-in-Cell Simulation"
  *                 by Jinqing Yu, Xiaolin Jin, Weimin Zhou, Bin Li, Yuqiu Gu
  */
-template<uint32_t T_Dim,typename T_ParticleShape>
+template<uint32_t T_Dim, typename T_ParticleShape>
 struct ZigZag
 {
     typedef T_ParticleShape ParticleShape;
-    typedef typename ParticleShape::ChargeAssignment ParticleAssign;
+    typedef typename ParticleShape::ChargeAssignmentOnSupport ParticleAssign;
     static const int supp = ParticleAssign::support;
 
     static const int currentLowerMargin = supp / 2 + 1;
@@ -57,10 +58,11 @@ struct ZigZag
     typedef PMacc::math::CT::Int<currentUpperMargin, currentUpperMargin, currentUpperMargin> UpperMargin;
 
     static const int begin = -supp / 2 + (supp + 1) % 2;
-    static const int end = begin + supp + supp % 2;
+    static const int end = begin + supp;
 
-    static const int dir_begin = -(supp) / 2;
-    static const int dir_end = dir_begin + (supp)+1;
+    static const int supp_dir= supp-1;
+    static const int dir_begin = -supp_dir / 2  + (supp_dir + 1) % 2;
+    static const int dir_end = dir_begin + supp_dir;
 
     /* begin and end border is calculated for a particle with a support which travels
      * to the negative direction.
@@ -124,33 +126,49 @@ struct ZigZag
             }
 
             BOOST_AUTO(cursorJ, dataBoxJ.shift(precisionCast<int>(I[l])).toCursor());
+            BOOST_AUTO(cursorJ_x,cursorJ);
 
-            helper(cursorJ, IcP, sign * pos[l][0], sign * r[0], volume_reci, cellSize.x(), deltaTime, charge);
-            helper(twistVectorFieldAxes<PMacc::math::CT::Int < 1, 0, 2 > >(cursorJ), float3_X(IcP[1], IcP[0], IcP[2]), sign * pos[l][1], sign * r[1], volume_reci, cellSize.y(), deltaTime, charge);
-            helper(twistVectorFieldAxes<PMacc::math::CT::Int < 2, 0, 1 > >(cursorJ), float3_X(IcP[2], IcP[0], IcP[1]), sign * pos[l][2], sign * r[2], volume_reci, cellSize.z(), deltaTime, charge);
+            float3_X pos_tmp(IcP);
+            const float_X currentDensity_x = calc_F(sign * pos[l][0], sign * r[0], deltaTime, charge) * volume_reci;
+            ShiftCoordinateSystemOne<supp_dir,0>()(cursorJ_x, pos_tmp, fieldSolver::NumericalCellType::getEFieldPosition().x());
+            ShiftCoordinateSystemOne<supp,1>()(cursorJ_x, pos_tmp, fieldSolver::NumericalCellType::getEFieldPosition().x());
+            ShiftCoordinateSystemOne<supp,2>()(cursorJ_x, pos_tmp, fieldSolver::NumericalCellType::getEFieldPosition().x());
+            helper(cursorJ_x, pos_tmp, currentDensity_x, cellSize.x());
+            
+            pos_tmp=IcP;
+            BOOST_AUTO(cursorJ_y,cursorJ);
+            const float_X currentDensity_y = calc_F(sign * pos[l][1], sign * r[1], deltaTime, charge) * volume_reci;
+            ShiftCoordinateSystemOne<supp,0>()(cursorJ_y, pos_tmp, fieldSolver::NumericalCellType::getEFieldPosition().y());
+            ShiftCoordinateSystemOne<supp_dir,1>()(cursorJ_y, pos_tmp, fieldSolver::NumericalCellType::getEFieldPosition().y());
+            ShiftCoordinateSystemOne<supp,2>()(cursorJ_y, pos_tmp, fieldSolver::NumericalCellType::getEFieldPosition().y());
+            helper(twistVectorFieldAxes<PMacc::math::CT::Int < 1, 0, 2 > >(cursorJ_y), float3_X(pos_tmp[1], pos_tmp[0], pos_tmp[2]), currentDensity_y, cellSize.y());
+            
+            pos_tmp=IcP;
+            BOOST_AUTO(cursorJ_z,cursorJ);
+            const float_X currentDensity_z = calc_F(sign * pos[l][2], sign * r[2], deltaTime, charge) * volume_reci;
+            ShiftCoordinateSystemOne<supp,0>()(cursorJ_z, pos_tmp, fieldSolver::NumericalCellType::getEFieldPosition().z());
+            ShiftCoordinateSystemOne<supp,1>()(cursorJ_z, pos_tmp, fieldSolver::NumericalCellType::getEFieldPosition().z());
+            ShiftCoordinateSystemOne<supp_dir,2>()(cursorJ_z, pos_tmp, fieldSolver::NumericalCellType::getEFieldPosition().z());
+            helper(twistVectorFieldAxes<PMacc::math::CT::Int < 2, 0, 1 > >(cursorJ_z), float3_X(pos_tmp[2], pos_tmp[0], pos_tmp[1]), currentDensity_z, cellSize.z());
         }
     }
 
     template<typename JCurser>
     DINLINE void helper(JCurser dataBoxJ,
                         const float3_X& pos,
-                        const float_X pos_x,
-                        const float_X r,
-                        const float_X volume_reci,
-                        const float_X cellLength,
-                        const float_X deltaTime,
-                        const float_X charge)
+                        const float_X currentDensity,
+                        const float_X cellLength)
     {
 
 
-        typedef typename ParticleShape::CloudShape::ChargeAssignment CloudShapeAssign;
+        typedef typename ParticleShape::CloudShape::ChargeAssignmentOnSupport CloudShapeAssign;
         PMACC_AUTO(shape, ParticleAssign());
         PMACC_AUTO(cloudShapeAssign, CloudShapeAssign());
 
 
         for (int x = dir_begin; x < dir_end; ++x)
         {
-            const float_X F = calc_F(pos_x, r, deltaTime, charge) * cloudShapeAssign(float_X(x) + float_X(0.5) - pos.x());
+            const float_X F = currentDensity * cloudShapeAssign(float_X(x) - pos.x());
 
             for (int y = begin; y < end; ++y)
 
@@ -159,7 +177,7 @@ struct ZigZag
                 for (int z = begin; z < end; ++z)
                 {
                     const DataSpace<DIM3> jIdx(x, y, z);
-                    float_X j = cellLength * volume_reci * F * shape(float_X(z) - pos.z()) * shape_y;
+                    float_X j = cellLength * F * shape(float_X(z) - pos.z()) * shape_y;
                     if (j != float_X(0.0))
                         atomicAddWrapper(&((*dataBoxJ(jIdx)).x()), j);
                 }
@@ -202,7 +220,7 @@ namespace traits
 /*Get margin of a solver
  * class must define a LowerMargin and UpperMargin 
  */
-template<uint32_t T_Dim,typename T_ParticleShape>
+template<uint32_t T_Dim, typename T_ParticleShape>
 struct GetMargin<picongpu::currentSolverZigZag::ZigZag<T_Dim, T_ParticleShape> >
 {
 private:
