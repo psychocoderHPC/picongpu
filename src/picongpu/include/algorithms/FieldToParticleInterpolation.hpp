@@ -46,14 +46,14 @@ struct FieldToParticleInterpolation
     typedef typename T_Shape::ChargeAssignmentOnSupport AssignmentFunction;
     static const int supp = AssignmentFunction::support;
 
-    static const int lowerMargin = supp / 2;
+    static const int lowerMargin = supp / 2 ;
     static const int upperMargin = (supp + 1) / 2;
     typedef typename PMacc::math::CT::make_Int<simDim,lowerMargin>::type LowerMargin;
     typedef typename PMacc::math::CT::make_Int<simDim,upperMargin>::type UpperMargin;
 
     /*(supp + 1) % 2 is 1 for even supports else 0*/
     static const int begin = -supp / 2 + (supp + 1) % 2;
-    static const int end = supp / 2;
+    static const int end = begin+supp-1;
 
     template<class Cursor, class VecVector_ >
     HDINLINE float3_X operator()(Cursor field, const floatD_X & particlePos,
