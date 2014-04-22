@@ -361,24 +361,21 @@ namespace PMacc
     }
 
     template <>
-    inline DataSpace<DIM1>::DataSpace(int x)
+    inline DataSpace<DIM1>::DataSpace(int x):BaseType(x)
     {
-        this->x() = x;
+
     }
 
     template <>
-    inline DataSpace<DIM2>::DataSpace(int x, int y)
+    inline DataSpace<DIM2>::DataSpace(int x, int y):BaseType(x,y)
     {
-        this->x() = x;
-        this->y() = y;
+
     }
 
     template <>
-    inline DataSpace<DIM3>::DataSpace(int x, int y, int z)
+    inline DataSpace<DIM3>::DataSpace(int x, int y, int z) :BaseType(x,y,z)
     {
-        this->x() = x;
-        this->y() = y;
-        this->z() = z;
+  
     }
 
 } //namespace PMacc

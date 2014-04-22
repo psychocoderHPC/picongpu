@@ -31,6 +31,7 @@
 
 #include "fields/currentDeposition/Esirkepov/Esirkepov.hpp"
 #include "fields/currentDeposition/ZigZag/ZigZag.hpp"
+#include "fields/currentDeposition/ZigZag/ZigZagCT.hpp"
 #include "fields/currentDeposition/ZigZag/ZigZagNative.hpp"
 #include "fields/numericalCellTypes/YeeCell.hpp"
 
@@ -61,6 +62,11 @@ namespace picongpu
     namespace currentSolverZigZag
     {
         typedef ZigZag<simDim,typename speciesParticleShape::ParticleShape> CurrentSolver;
+    }
+    
+    namespace currentSolverZigZagCT
+    {
+        typedef ZigZagCT<simDim,typename speciesParticleShape::ParticleShape> CurrentSolver;
     }
     
     namespace currentSolverZigZagNative

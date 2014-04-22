@@ -40,7 +40,6 @@ struct TSC
      */
     static const int support = 3;
 
-protected:
 
     HDINLINE static float_X ff_1st_radius(const float_X x)
     {

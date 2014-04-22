@@ -50,6 +50,11 @@ namespace picongpu
     
     }
     
+    namespace currentSolverZigZagCT
+    {
+    
+    }
+    
     namespace currentSolverZigZagNative
     {
     
