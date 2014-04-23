@@ -77,7 +77,14 @@ namespace algorithms
     /*                      ( const T0, ... , cont TN         ) */             \
     HDINLINE void operator()( BOOST_PP_ENUM_PARAMS(N, const T)) const          \
     {                                                                          \
-    }/*end of operator()*/
+    }                                                                          \
+    PMACC_NO_NVCC_HDWARNING                                                    \
+    template<BOOST_PP_ENUM_PARAMS(N, typename T)>                              \
+    /*                      ( const T0, ... , cont TN         ) */             \
+    HDINLINE void operator()( BOOST_PP_ENUM_PARAMS(N, const T))                \
+    {                                                                          \
+    }
+    /*end of operator()*/
 //########################### end preprocessor definitions #####################
 
 /** Empty functor class with operator() with N parameters
@@ -88,7 +95,10 @@ struct EmptyFunctor
     HDINLINE void operator()() const
     {
     }
-
+    PMACC_NO_NVCC_HDWARNING
+    HDINLINE void operator()() 
+    {
+    }
     /* N=PMACC_MAX_FUNCTOR_OPERATOR_PARAMS
      * create:
      * template<typename T0, ... , TN> 
@@ -121,6 +131,17 @@ struct ForEach;
     template<BOOST_PP_ENUM_PARAMS(N, typename T)>                              \
     /*                      ( const T0& t0, ... , const TN& tN           ) */  \
     HDINLINE void operator()( BOOST_PP_ENUM_BINARY_PARAMS(N, const T, &t)) const \
+    {                                                                          \
+        /*           (t0, ..., tn               ) */                           \
+        FunctorType()(BOOST_PP_ENUM_PARAMS(N, t));                             \
+        /*        (t0, ..., tn               ) */                              \
+        NextCall()(BOOST_PP_ENUM_PARAMS(N, t));                                \
+    } /*end of operator()*/                                                    \
+    PMACC_NO_NVCC_HDWARNING                                                    \
+    /*      <typename T0, ... , typename TN     > */                           \
+    template<BOOST_PP_ENUM_PARAMS(N, typename T)>                              \
+    /*                      ( const T0& t0, ... , const TN& tN           ) */  \
+    HDINLINE void operator()( BOOST_PP_ENUM_BINARY_PARAMS(N, const T, &t))     \
     {                                                                          \
         /*           (t0, ..., tn               ) */                           \
         FunctorType()(BOOST_PP_ENUM_PARAMS(N, t));                             \
@@ -187,6 +208,12 @@ struct ForEach< Accessor<AccessorType>, itBegin, itEnd, Functor_<BOOST_PP_ENUM_P
         FunctorType()();                                                       \
         NextCall()();                                                          \
     }                                                                          \
+    PMACC_NO_NVCC_HDWARNING                                                    \
+    HDINLINE void operator()()                                                 \
+    {                                                                          \
+        FunctorType()();                                                       \
+        NextCall()();                                                          \
+    }                                                                          \
     /* N=PMACC_MAX_FUNCTOR_OPERATOR_PARAMS                                     \
      * template<typename T0, ... , typename TN>                                \
      * create operator()(const T0 t0,...,const TN tN)                          \
@@ -241,6 +268,13 @@ struct ForEach
 
     PMACC_NO_NVCC_HDWARNING
     HDINLINE void operator()() const
+    {
+        FunctorType()();
+        NextCall()();
+    }
+    
+    PMACC_NO_NVCC_HDWARNING
+    HDINLINE void operator()()
     {
         FunctorType()();
         NextCall()();

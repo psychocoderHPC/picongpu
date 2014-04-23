@@ -43,33 +43,33 @@ struct ShiftCoordinateSystem
     template<typename Cursor, typename Vector >
     HDINLINE void operator()(Cursor& cursor, Vector& vector, const floatD_X & fieldPos)
     {
-        
+
 
         if (T_support % 2 == 0)
         {
-            const floatD_X v_pos=vector-fieldPos;
+            const floatD_X v_pos = vector - fieldPos;
             PMacc::math::Int < simDim > intShift;
             for (uint32_t i = 0; i < simDim; ++i)
-                intShift[i]=math::float2int_rd(v_pos[i]);
+                intShift[i] = math::float2int_rd(v_pos[i]);
             cursor = cursor(intShift);
             for (uint32_t i = 0; i < simDim; ++i)
-                vector[i] = v_pos[i]-float_X(intShift[i]);
+                vector[i] = v_pos[i] - float_X(intShift[i]);
         }
         else
         {
             //odd support
-            const floatD_X v_pos=vector-fieldPos;
+            const floatD_X v_pos = vector - fieldPos;
             PMacc::math::Int < simDim > intShift;
             for (uint32_t i = 0; i < simDim; ++i)
-                intShift[i]=int(v_pos[i]>=float_X(0.5));
+                intShift[i] = int(v_pos[i] >= float_X(0.5));
             cursor = cursor(intShift);
             for (uint32_t i = 0; i < simDim; ++i)
-                vector[i] =v_pos[i]- float_X(intShift[i]);
+                vector[i] = v_pos[i] - float_X(intShift[i]);
         }
     }
 };
 
-template<uint32_t T_support,uint32_t dim>
+template<uint32_t T_support, uint32_t dim>
 struct ShiftCoordinateSystemOne
 {
 
@@ -83,24 +83,24 @@ struct ShiftCoordinateSystemOne
     template<typename Cursor, typename Vector >
     HDINLINE void operator()(Cursor& cursor, Vector& vector, const floatD_X & fieldPos)
     {
-        
+
 
         if (T_support % 2 == 0)
         {
-            const float_X v_pos=vector[dim]-fieldPos[dim];
-            PMacc::math::Int < simDim > intShift(0);
-            intShift[dim]=math::float2int_rd(v_pos);
-            cursor = cursor(intShift);
-            vector[dim] = v_pos-float_X(intShift[dim]);
+            const float_X v_pos = vector[dim] - fieldPos[dim];
+            DataSpace<simDim> intShift(DataSpace<simDim>::create(0));
+            intShift[dim] = math::float2int_rd(v_pos);
+            cursor = cursor.shift(intShift);
+            vector[dim] = v_pos - float_X(intShift[dim]);
         }
         else
         {
             //odd support
-            const float_X v_pos=vector[dim]-fieldPos[dim];
-            PMacc::math::Int < simDim > intShift(0);
-            intShift[dim]=int(v_pos>=float_X(0.5));
-            cursor = cursor(intShift);
-            vector[dim] =v_pos- float_X(intShift[dim]);
+            const float_X v_pos = vector[dim] - fieldPos[dim];
+            DataSpace<simDim> intShift(DataSpace<simDim>::create(0));
+            intShift[dim] = int(v_pos >= float_X(0.5));
+            cursor = cursor.shift(intShift);
+            vector[dim] = v_pos - float_X(intShift[dim]);
         }
     }
 };

@@ -180,7 +180,7 @@ struct ShapeIt_y
     }
 };
 
-template<typename T_MathVec, typename T_Shape>
+template<typename T_MathVec, typename T_Shape,typename T_Vec>
 struct ShapeIt_all
 {
     typedef T_MathVec MathVec;
@@ -189,13 +189,14 @@ struct ShapeIt_all
     static const int y=MathVec::y::value;
     static const int z=MathVec::z::value;
     
- //   typedef typename CheckIt<MathVec, MathVec::x::value>::type Check;
+
     
     template<typename T_Cursor>
     HDINLINE void 
-    operator()(T_Cursor& cursor,const int xx,const float_X F,const float3_X &pos)
+    operator()(const RefWrapper<T_Cursor> cursor,const float_X F,const float3_X pos)
     {
-        if(xx!=1)
+        //typedef typename CheckIt<T_Cursor, MathVec::x::value>::type Check;
+        //if(xx!=1)
         {
         CallShape<typename T_Shape::CloudShape,x> shapeX;
         CallShape< T_Shape, y> shapeY;
@@ -209,9 +210,12 @@ struct ShapeIt_all
         const float_X shape_y = shapeY(abs_y);
         const float_X shape_z = shapeZ(abs_z);
 
-        const DataSpace<DIM3> jIdx(x, y, z);
+        DataSpace<DIM3> jIdx;
+        jIdx[T_Vec::x::value]=x;
+        jIdx[T_Vec::y::value]=y;
+        jIdx[T_Vec::z::value]=z;
         const float_X j = F * shape_x*shape_y*shape_z;
-        atomicAddWrapper(&((*cursor(jIdx)).x()), j);
+        atomicAddWrapper(&(cursor.get()(jIdx)[T_Vec::x::value]), j);
         }
        
     }
@@ -307,7 +311,7 @@ struct ZigZagCT
                 IcP[d] = calc_InCellPos(pos[l][d], r[d], I[l][d]);
             }
 
-            BOOST_AUTO(cursorJ, dataBoxJ.shift(precisionCast<int>(I[l])).toCursor());
+            BOOST_AUTO(cursorJ, dataBoxJ.shift(precisionCast<int>(I[l])));
             BOOST_AUTO(cursorJ_x, cursorJ);
 
             float3_X pos_tmp(IcP);
@@ -315,7 +319,7 @@ struct ZigZagCT
             ShiftCoordinateSystemOne<supp_dir, 0>()(cursorJ_x, pos_tmp, fieldSolver::NumericalCellType::getEFieldPosition().x());
             ShiftCoordinateSystemOne<supp, 1>()(cursorJ_x, pos_tmp, fieldSolver::NumericalCellType::getEFieldPosition().x());
             ShiftCoordinateSystemOne<supp, 2>()(cursorJ_x, pos_tmp, fieldSolver::NumericalCellType::getEFieldPosition().x());
-            helper(cursorJ_x, pos_tmp, currentDensity_x, cellSize.x());
+            helper<PMacc::math::CT::Int < 0, 1, 2 > >(cursorJ_x, pos_tmp, currentDensity_x, cellSize.x());
 
             pos_tmp = IcP;
             BOOST_AUTO(cursorJ_y, cursorJ);
@@ -323,7 +327,7 @@ struct ZigZagCT
             ShiftCoordinateSystemOne<supp, 0>()(cursorJ_y, pos_tmp, fieldSolver::NumericalCellType::getEFieldPosition().y());
             ShiftCoordinateSystemOne<supp_dir, 1>()(cursorJ_y, pos_tmp, fieldSolver::NumericalCellType::getEFieldPosition().y());
             ShiftCoordinateSystemOne<supp, 2>()(cursorJ_y, pos_tmp, fieldSolver::NumericalCellType::getEFieldPosition().y());
-            helper(twistVectorFieldAxes<PMacc::math::CT::Int < 1, 0, 2 > >(cursorJ_y), float3_X(pos_tmp[1], pos_tmp[0], pos_tmp[2]), currentDensity_y, cellSize.y());
+            helper<PMacc::math::CT::Int < 1, 0, 2 > >(cursorJ_y, float3_X(pos_tmp[1], pos_tmp[0], pos_tmp[2]), currentDensity_y, cellSize.y());
 
             pos_tmp = IcP;
             BOOST_AUTO(cursorJ_z, cursorJ);
@@ -331,11 +335,11 @@ struct ZigZagCT
             ShiftCoordinateSystemOne<supp, 0>()(cursorJ_z, pos_tmp, fieldSolver::NumericalCellType::getEFieldPosition().z());
             ShiftCoordinateSystemOne<supp, 1>()(cursorJ_z, pos_tmp, fieldSolver::NumericalCellType::getEFieldPosition().z());
             ShiftCoordinateSystemOne<supp_dir, 2>()(cursorJ_z, pos_tmp, fieldSolver::NumericalCellType::getEFieldPosition().z());
-            helper(twistVectorFieldAxes<PMacc::math::CT::Int < 2, 0, 1 > >(cursorJ_z), float3_X(pos_tmp[2], pos_tmp[0], pos_tmp[1]), currentDensity_z, cellSize.z());
+            helper<PMacc::math::CT::Int < 2, 0, 1 > >(cursorJ_z, float3_X(pos_tmp[2], pos_tmp[0], pos_tmp[1]), currentDensity_z, cellSize.z());
         }
     }
 
-    template<typename JCurser>
+    template<typename T_Vec,typename JCurser>
     DINLINE void helper(JCurser dataBoxJ,
                         const float3_X& pos,
                         const float_X currentDensity,
@@ -371,15 +375,15 @@ struct ZigZagCT
             shapeIt(dataBoxJ,x,F, pos);
         }
        */ 
-         for (int x = dir_begin; x < dir_end; ++x){
+    //    for (int x = dir_begin; x < dir_end; ++x){
         
             
        
         float_X F = cellLength * currentDensity; // * cloudShapeAssign(float_X(x) - pos.x());
-        ForEach<CombiTypes, ShapeIt_all<void,ParticleShape> > shapeIt;
-            shapeIt(dataBoxJ,x,F, pos);        
+        ForEach<CombiTypes, ShapeIt_all<void,ParticleShape,T_Vec> > shapeIt;
+            shapeIt(byRef(dataBoxJ),F, pos);        
 
-        }
+    //    }
 /*
         for (int x = dir_begin+1; x < dir_end; ++x)
         {
