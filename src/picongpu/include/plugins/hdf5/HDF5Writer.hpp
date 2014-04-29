@@ -92,11 +92,10 @@ class HDF5Writer : public ISimulationPlugin
 public:
 
     HDF5Writer() :
-    filename("h5"),
-    checkpointFilename(""),
-    restartFilename(""),
-    notifyFrequency(0),
-    lastCheckpoint(-1)
+    filename("h5_data"),
+    checkpointFilename("h5_checkpoint"),
+    restartFilename(""), /* set to checkpointFilename by default */
+    notifyPeriod(0)
     {
         Environment<>::get().PluginConnector().registerPlugin(this);
     }
@@ -109,7 +108,7 @@ public:
     void pluginRegisterHelp(po::options_description& desc)
     {
         desc.add_options()
-            ("hdf5.period", po::value<uint32_t > (&notifyFrequency)->default_value(0),
+            ("hdf5.period", po::value<uint32_t > (&notifyPeriod)->default_value(0),
              "enable HDF5 IO [for each n-th step]")
             ("hdf5.file", po::value<std::string > (&filename)->default_value(filename),
              "HDF5 output filename (prefix)")
@@ -132,16 +131,14 @@ public:
 
     __host__ void notify(uint32_t currentStep)
     {
-        if ((int64_t)currentStep > lastCheckpoint)
-            notificationReceived(currentStep, false);
+        notificationReceived(currentStep, false);
     }
-    
+
     void checkpoint(uint32_t currentStep)
     {
         notificationReceived(currentStep, true);
-        lastCheckpoint = currentStep;
     }
-    
+
     void restart(uint32_t restartStep)
     {
         const uint32_t maxOpenFilesPerNode = 4;
@@ -153,13 +150,13 @@ public:
                         maxOpenFilesPerNode);
 
         mThreadParams.currentStep = restartStep;
-        
+
         /* set attributes for datacollector files */
         DataCollector::FileCreationAttr attr;
         attr.fileAccType = DataCollector::FAT_READ;
         attr.mpiPosition.set(splashMpiPos);
         attr.mpiSize.set(splashMpiSize);
-        
+
         /* open datacollector */
         try
         {
@@ -171,7 +168,7 @@ public:
             std::cerr << e.what() << std::endl;
             throw std::runtime_error("Failed to open datacollector");
         }
-        
+
         /* load number of slides to initialize MovingWindow */
         int slides = 0;
         mThreadParams.dataCollector->readAttribute(restartStep, NULL, "sim_slides", &slides);
@@ -180,21 +177,21 @@ public:
         log<picLog::INPUT_OUTPUT > ("Setting slide count for moving window to %1%") % slides;
         MovingWindow::getInstance().setSlideCounter((uint32_t) slides);
         gc.setNumSlides(slides);
-        
-        DataSpace<simDim> gridPosition = 
+
+        DataSpace<simDim> gridPosition =
                 Environment<simDim>::get().SubGrid().getSimulationBox().getGlobalOffset();
         log<picLog::INPUT_OUTPUT > ("Grid position is %1%") % gridPosition.toString();
-        
+
         ThreadParams *params = &mThreadParams;
-        
+
         /* load all fields */
         ForEach<FileRestartFields, LoadFields<bmpl::_1> > forEachLoadFields;
         forEachLoadFields(ref(params));
-        
+
         /* load all particles */
         ForEach<FileRestartParticles, LoadParticles<bmpl::_1> > forEachLoadSpecies;
         forEachLoadSpecies(ref(params), gridPosition);
-        
+
         /* close datacollector */
         log<picLog::INPUT_OUTPUT > ("HDF5 close DataCollector with file: %1%") % restartFilename;
         mThreadParams.dataCollector->close();
@@ -244,7 +241,7 @@ private:
         }
 
     }
-    
+
     void notificationReceived(uint32_t currentStep, bool isCheckpoint)
     {
         mThreadParams.isCheckpoint = isCheckpoint;
@@ -258,7 +255,7 @@ private:
         std::string fname = filename;
         if (isCheckpoint && (checkpointFilename != ""))
             fname = checkpointFilename;
-        
+
         openH5File(fname);
 
         writeHDF5((void*) &mThreadParams);
@@ -268,35 +265,36 @@ private:
 
     void pluginLoad()
     {
-        if (notifyFrequency > 0)
+        mThreadParams.gridPosition =
+            Environment<simDim>::get().SubGrid().getSimulationBox().getGlobalOffset();
+
+        GridController<simDim> &gc = Environment<simDim>::get().GridController();
+        /* It is important that we never change the mpi_pos after this point
+         * because we get problems with the restart.
+         * Otherwise we do not know which gpu must load the ghost parts around
+         * the sliding window.
+         */
+        mpi_pos = gc.getPosition();
+        mpi_size = gc.getGpuNodes();
+
+        splashMpiPos.set(0, 0, 0);
+        splashMpiSize.set(1, 1, 1);
+
+        for (uint32_t i = 0; i < simDim; ++i)
         {
-            mThreadParams.gridPosition =
-                Environment<simDim>::get().SubGrid().getSimulationBox().getGlobalOffset();
-
-            GridController<simDim> &gc = Environment<simDim>::get().GridController();
-            /* It is important that we never change the mpi_pos after this point 
-             * because we get problems with the restart.
-             * Otherwise we do not know which gpu must load the ghost parts around
-             * the sliding window.
-             */
-            mpi_pos = gc.getPosition();
-            mpi_size = gc.getGpuNodes();
-
-            splashMpiPos.set(0, 0, 0);
-            splashMpiSize.set(1, 1, 1);
-
-            for (uint32_t i = 0; i < simDim; ++i)
-            {
-                splashMpiPos[i] = mpi_pos[i];
-                splashMpiSize[i] = mpi_size[i];
-            }
-
-            Environment<>::get().PluginConnector().setNotificationPeriod(this, notifyFrequency);
+            splashMpiPos[i] = mpi_pos[i];
+            splashMpiSize[i] = mpi_size[i];
         }
-        
+
+        /* only register for notify callback when .period is set on command line */
+        if (notifyPeriod > 0)
+        {
+            Environment<>::get().PluginConnector().setNotificationPeriod(this, notifyPeriod);
+        }
+
         if (restartFilename == "")
         {
-            restartFilename = filename;
+            restartFilename = checkpointFilename;
         }
 
         loaded = true;
@@ -304,8 +302,7 @@ private:
 
     void pluginUnload()
     {
-        if (notifyFrequency > 0)
-            __delete(mThreadParams.dataCollector);
+        __delete(mThreadParams.dataCollector);
     }
 
     typedef PICToSplash<float_X>::type SplashFloatXType;
@@ -353,7 +350,7 @@ private:
         writeMetaAttributes(threadParams);
 
         /* get clean domain info (picongpu view) */
-        DomainInformation domInfo = 
+        DomainInformation domInfo =
                 MovingWindow::getInstance().getActiveDomain(threadParams->currentStep);
 
         /* y direction can be negative for first gpu*/
@@ -375,7 +372,7 @@ private:
 
         if (threadParams->isCheckpoint && MovingWindow::getInstance().isSlidingWindowActive())
         {
-            DomainInformation domInfoGhosts = 
+            DomainInformation domInfoGhosts =
                     MovingWindow::getInstance().getGhostDomain(threadParams->currentStep);
 
             particleOffset = threadParams->gridPosition;
@@ -394,7 +391,7 @@ private:
 
     MappingDesc *cellDescription;
 
-    uint32_t notifyFrequency;
+    uint32_t notifyPeriod;
     int64_t lastCheckpoint;
     std::string filename;
     std::string checkpointFilename;
@@ -409,4 +406,3 @@ private:
 
 } //namespace hdf5
 } //namespace picongpu
-
