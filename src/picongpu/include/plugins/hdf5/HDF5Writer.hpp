@@ -79,7 +79,7 @@ namespace hdf5
 using namespace PMacc;
 
 using namespace splash;
-namespace bmpl = boost::mpl;
+
 
 namespace po = boost::program_options;
 
@@ -92,10 +92,11 @@ class HDF5Writer : public ISimulationPlugin
 public:
 
     HDF5Writer() :
-    filename("h5_data"),
-    checkpointFilename("h5_checkpoint"),
-    restartFilename(""), /* set to checkpointFilename by default */
-    notifyPeriod(0)
+    filename("h5"),
+    checkpointFilename(""),
+    restartFilename(""),
+    notifyFrequency(0),
+    lastCheckpoint(-1)
     {
         Environment<>::get().PluginConnector().registerPlugin(this);
     }
@@ -108,7 +109,7 @@ public:
     void pluginRegisterHelp(po::options_description& desc)
     {
         desc.add_options()
-            ("hdf5.period", po::value<uint32_t > (&notifyPeriod)->default_value(0),
+            ("hdf5.period", po::value<uint32_t > (&notifyFrequency)->default_value(0),
              "enable HDF5 IO [for each n-th step]")
             ("hdf5.file", po::value<std::string > (&filename)->default_value(filename),
              "HDF5 output filename (prefix)")
@@ -131,12 +132,14 @@ public:
 
     __host__ void notify(uint32_t currentStep)
     {
-        notificationReceived(currentStep, false);
+        if ((int64_t)currentStep > lastCheckpoint)
+            notificationReceived(currentStep, false);
     }
     
     void checkpoint(uint32_t currentStep)
     {
         notificationReceived(currentStep, true);
+        lastCheckpoint = currentStep;
     }
     
     void restart(uint32_t restartStep)
@@ -185,11 +188,11 @@ public:
         ThreadParams *params = &mThreadParams;
         
         /* load all fields */
-        ForEach<FileRestartFields, LoadFields<void> > forEachLoadFields;
+        ForEach<FileRestartFields, LoadFields<bmpl::_1> > forEachLoadFields;
         forEachLoadFields(ref(params));
         
         /* load all particles */
-        ForEach<FileRestartParticles, LoadParticles<void> > forEachLoadSpecies;
+        ForEach<FileRestartParticles, LoadParticles<bmpl::_1> > forEachLoadSpecies;
         forEachLoadSpecies(ref(params), gridPosition);
         
         /* close datacollector */
@@ -265,36 +268,35 @@ private:
 
     void pluginLoad()
     {
-        mThreadParams.gridPosition =
-            Environment<simDim>::get().SubGrid().getSimulationBox().getGlobalOffset();
-
-        GridController<simDim> &gc = Environment<simDim>::get().GridController();
-        /* It is important that we never change the mpi_pos after this point 
-         * because we get problems with the restart.
-         * Otherwise we do not know which gpu must load the ghost parts around
-         * the sliding window.
-         */
-        mpi_pos = gc.getPosition();
-        mpi_size = gc.getGpuNodes();
-
-        splashMpiPos.set(0, 0, 0);
-        splashMpiSize.set(1, 1, 1);
-
-        for (uint32_t i = 0; i < simDim; ++i)
+        if (notifyFrequency > 0)
         {
-            splashMpiPos[i] = mpi_pos[i];
-            splashMpiSize[i] = mpi_size[i];
-        }
+            mThreadParams.gridPosition =
+                Environment<simDim>::get().SubGrid().getSimulationBox().getGlobalOffset();
 
-        /* only register for notify callback when .period is set on command line */
-        if (notifyPeriod > 0)
-        {
-            Environment<>::get().PluginConnector().setNotificationPeriod(this, notifyPeriod);
+            GridController<simDim> &gc = Environment<simDim>::get().GridController();
+            /* It is important that we never change the mpi_pos after this point 
+             * because we get problems with the restart.
+             * Otherwise we do not know which gpu must load the ghost parts around
+             * the sliding window.
+             */
+            mpi_pos = gc.getPosition();
+            mpi_size = gc.getGpuNodes();
+
+            splashMpiPos.set(0, 0, 0);
+            splashMpiSize.set(1, 1, 1);
+
+            for (uint32_t i = 0; i < simDim; ++i)
+            {
+                splashMpiPos[i] = mpi_pos[i];
+                splashMpiSize[i] = mpi_size[i];
+            }
+
+            Environment<>::get().PluginConnector().setNotificationPeriod(this, notifyFrequency);
         }
         
         if (restartFilename == "")
         {
-            restartFilename = checkpointFilename;
+            restartFilename = filename;
         }
 
         loaded = true;
@@ -302,7 +304,8 @@ private:
 
     void pluginUnload()
     {
-        __delete(mThreadParams.dataCollector);
+        if (notifyFrequency > 0)
+            __delete(mThreadParams.dataCollector);
     }
 
     typedef PICToSplash<float_X>::type SplashFloatXType;
@@ -359,13 +362,13 @@ private:
 
         /*print all fields*/
         log<picLog::INPUT_OUTPUT > ("HDF5: (begin) writing fields.");
-        ForEach<FileOutputFields, WriteFields<void> > forEachWriteFields;
+        ForEach<FileOutputFields, WriteFields<bmpl::_1> > forEachWriteFields;
         forEachWriteFields(ref(threadParams), domInfo);
         log<picLog::INPUT_OUTPUT > ("HDF5: ( end ) writing fields.");
 
         /*print all particle species*/
         log<picLog::INPUT_OUTPUT > ("HDF5: (begin) writing particle species.");
-        ForEach<FileOutputParticles, WriteSpecies<void> > writeSpecies;
+        ForEach<FileOutputParticles, WriteSpecies<bmpl::_1> > writeSpecies;
         writeSpecies(ref(threadParams), std::string(), domInfo, particleOffset);
         log<picLog::INPUT_OUTPUT > ("HDF5: ( end ) writing particle species.");
 
@@ -391,7 +394,7 @@ private:
 
     MappingDesc *cellDescription;
 
-    uint32_t notifyPeriod;
+    uint32_t notifyFrequency;
     int64_t lastCheckpoint;
     std::string filename;
     std::string checkpointFilename;
