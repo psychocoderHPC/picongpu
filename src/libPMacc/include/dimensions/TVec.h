@@ -1,24 +1,24 @@
 /**
  * Copyright 2013-2014 Axel Huebl, Felix Schmitt, Heiko Burau, Rene Widera
  *
- * This file is part of libPMacc. 
- * 
- * libPMacc is free software: you can redistribute it and/or modify 
- * it under the terms of of either the GNU General Public License or 
- * the GNU Lesser General Public License as published by 
- * the Free Software Foundation, either version 3 of the License, or 
- * (at your option) any later version. 
- * libPMacc is distributed in the hope that it will be useful, 
- * but WITHOUT ANY WARRANTY; without even the implied warranty of 
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the 
- * GNU General Public License and the GNU Lesser General Public License 
- * for more details. 
- * 
- * You should have received a copy of the GNU General Public License 
- * and the GNU Lesser General Public License along with libPMacc. 
- * If not, see <http://www.gnu.org/licenses/>. 
- */ 
- 
+ * This file is part of libPMacc.
+ *
+ * libPMacc is free software: you can redistribute it and/or modify
+ * it under the terms of of either the GNU General Public License or
+ * the GNU Lesser General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ * libPMacc is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License and the GNU Lesser General Public License
+ * for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * and the GNU Lesser General Public License along with libPMacc.
+ * If not, see <http://www.gnu.org/licenses/>.
+ */
+
 #pragma once
 
 #include "dimensions/DataSpace.hpp"
@@ -77,7 +77,7 @@ namespace PMacc
         {
             typedef TVec < X + TVector::x, Y + TVector::y, Z + TVector::z> Result;
         };
-        
+
         template<class TVector>
         struct max
         {
@@ -131,7 +131,7 @@ namespace PMacc
         {
             typedef TVec < X + TVector::x, TVector::y, TVector::z> Result;
         };
-        
+
         template<class TVector>
         struct max
         {
@@ -186,7 +186,7 @@ namespace PMacc
         {
             typedef TVec < X + TVector::x, Y + TVector::y, TVector::z> Result;
         };
-        
+
         template<class TVector>
         struct max
         {
@@ -229,21 +229,21 @@ namespace PMacc
             value = Z
         };
     };
-    
+
     template<typename TVec_>
     struct toVector;
-    
+
     template<uint32_t X, uint32_t Y, uint32_t Z >
     struct toVector<TVec<X,Y,Z> >
     {
         typedef typename math::CT::Int<X,Y,Z> type;
     };
-    
+
     namespace detail
     {
         template<uint32_t T_Dim,typename T_Type >
         struct toTVec;
-    
+
         template<int X, int Y, int Z >
         struct toTVec<3u,math::CT::Int<X,Y,Z> >
         {
@@ -255,7 +255,7 @@ namespace PMacc
         {
             typedef TVec<X::value,Y::value,Z::value> type;
         };
-        
+
         template<int X, int Y, int Z >
         struct toTVec<2u,math::CT::Int<X,Y,Z> >
         {
@@ -268,12 +268,32 @@ namespace PMacc
             typedef TVec<X::value,Y::value> type;
         };
     }
-    
+
     template<typename Vector>
     struct toTVec
     {
         typedef typename detail::toTVec<Vector::dim,Vector>::type type;
     };
-    
 
+    /** cast TVec to given dimension*/
+    template<typename T_Vector,uint32_t T_dim>
+    struct toDim;
+
+    template<typename T_Vector>
+    struct toDim<T_Vector,DIM1>
+    {
+        typedef TVec<T_Vector::x> type;
+    };
+
+    template<typename T_Vector>
+    struct toDim<T_Vector,DIM2>
+    {
+        typedef TVec<T_Vector::x,T_Vector::y> type;
+    };
+
+    template<typename T_Vector>
+    struct toDim<T_Vector,DIM3>
+    {
+        typedef TVec<T_Vector::x,T_Vector::y,T_Vector::z> type;
+    };
 }
