@@ -22,7 +22,6 @@
 #define	FIELDE_KERNEL
 
 #include "dimensions/TVec.h"
-#include "fields/LaserPhysics.hpp"
 
 #include "simulation_classTypes.hpp"
 

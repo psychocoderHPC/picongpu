@@ -71,7 +71,7 @@ namespace picongpu
         MPI_Comm commFileWriter;
 
         typedef PhaseSpace<AssignmentFunction, Species> This;
-        typedef PMacc::math::CT::UInt<TILE_WIDTH, TILE_HEIGHT, TILE_DEPTH> SuperCellSize;
+        typedef typename toVector<SuperCellSize>::type MySuperCellSize;
 
     public:
         enum element_coordinate

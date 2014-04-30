@@ -41,6 +41,10 @@
 
 #include "math/vector/compile-time/Vector.hpp"
 
+#include <boost/mpl/accumulate.hpp>
+#include "particles/traits/GetInterpolation.hpp"
+#include "traits/GetMargin.hpp"
+
 namespace picongpu
 {
     using namespace PMacc;
@@ -57,16 +61,22 @@ namespace picongpu
          *  Problem: buffers don't allow "bigger" exchange during run time.
          *           so let's stay with the maximum guards.
          */
-
         const DataSpace<simDim> coreBorderSize = cellDescription.getGridLayout( ).getDataSpaceWithoutGuarding( );
+         
+        /** \todo: WARNING potential mem overflow risk, we use particle interpolation margin but later on 
+         *  we use energyDesnity.kernel which can use more margin than our interpolation.
+         */        
+        typedef typename bmpl::accumulate<
+            VectorAllSpecies,
+            typename PMacc::math::CT::make_Int<simDim, 0>::type,
+            PMacc::math::CT::max<bmpl::_1, GetLowerMarging< GetInterpolation<bmpl::_2> > >
+        >::type LowerMargin;
 
-        typedef picongpu::FieldToParticleInterpolationNative<
-            speciesParticleShape::ParticleShape,
-            AssignedTrilinearInterpolation> maxMarginsFrameSolver;
-
-        /* The maximum Neighbors we need will be given by the ParticleShape */
-        typedef typename GetMargin<maxMarginsFrameSolver>::LowerMargin LowerMargin;
-        typedef typename GetMargin<maxMarginsFrameSolver>::UpperMargin UpperMargin;
+        typedef typename bmpl::accumulate<
+            VectorAllSpecies,
+            typename PMacc::math::CT::make_Int<simDim, 0>::type,
+            PMacc::math::CT::max<bmpl::_1, GetUpperMarging< GetInterpolation<bmpl::_2> > >
+        >::type UpperMargin;
 
         const DataSpace<simDim> originGuard( LowerMargin( ).toRT( ) );
         const DataSpace<simDim> endGuard( UpperMargin( ).toRT( ) );

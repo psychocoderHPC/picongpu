@@ -47,6 +47,10 @@
 
 #include <list>
 
+#include <boost/mpl/accumulate.hpp>
+#include "particles/traits/GetInterpolation.hpp"
+#include "traits/GetMargin.hpp"
+
 namespace picongpu
 {
 
@@ -59,13 +63,26 @@ fieldE( NULL )
     /*#####create FieldB###############*/
     fieldB = new GridBuffer<ValueType, simDim > ( cellDescription.getGridLayout( ) );
 
+    typedef typename bmpl::accumulate<
+        VectorAllSpecies,
+        typename PMacc::math::CT::make_Int<simDim, 0>::type,
+        PMacc::math::CT::max<bmpl::_1, GetLowerMarging< GetInterpolation<bmpl::_2> > >
+        >::type LowerMarginInterpolation;
+
+    typedef typename bmpl::accumulate<
+        VectorAllSpecies,
+        typename PMacc::math::CT::make_Int<simDim, 0>::type,
+        PMacc::math::CT::max<bmpl::_1, GetUpperMarging< GetInterpolation<bmpl::_2> > >
+        >::type UpperMarginInterpolation;
+    
+    /** \todo loop over all particle species*/
     /* Calculate the maximum Neighbors we need from MAX(ParticleShape, FieldSolver) */
     typedef typename PMacc::math::CT::max<
-        GetMargin<fieldSolver::FieldToParticleInterpolation>::LowerMargin,
+        LowerMarginInterpolation,
         GetMargin<fieldSolver::FieldSolver, FIELD_B>::LowerMargin
         >::type LowerMargin;
     typedef typename PMacc::math::CT::max<
-        GetMargin<fieldSolver::FieldToParticleInterpolation>::UpperMargin,
+        UpperMarginInterpolation,
         GetMargin<fieldSolver::FieldSolver, FIELD_B>::UpperMargin
         >::type UpperMargin;
 

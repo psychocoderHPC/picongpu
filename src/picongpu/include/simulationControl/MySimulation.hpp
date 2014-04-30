@@ -27,8 +27,6 @@
 
 #include "types.h"
 #include "simulationControl/SimulationHelper.hpp"
-#include "simulation_classTypes.hpp"
-#include "simulation_types.hpp"
 #include "simulation_defines.hpp"
 
 #include "eventSystem/EventSystem.hpp"
@@ -49,12 +47,21 @@
 #include "initialization/IInitPlugin.hpp"
 #include "initialization/ParserGridDistribution.hpp"
 
-#include "particles/Species.hpp"
 
 #include "nvidia/reduce/Reduce.hpp"
 #include "memory/boxes/DataBoxDim1Access.hpp"
 #include "nvidia/functors/Add.hpp"
 #include "nvidia/functors/Sub.hpp"
+
+#include "compileTime/conversion/SeqToMap.hpp"
+#include "compileTime/conversion/TypeToPointerPair.hpp"
+
+#include "algorithms/ForEach.hpp"
+#include "RefWrapper.hpp"
+#include "particles/ParticlesFunctors.hpp"
+#include <boost/mpl/int.hpp>
+
+//#include <boost/type_traits.hpp>
 
 namespace picongpu
 {
@@ -62,10 +69,10 @@ using namespace PMacc;
 
 /**
  * Global simulation controller class.
- * 
+ *
  * Initialises simulation data and defines the simulation steps
  * for each iteration.
- * 
+ *
  * @tparam DIM the dimension (2-3) for the simulation
  */
 class MySimulation : public SimulationHelper<simDim>
@@ -75,8 +82,8 @@ public:
     /**
      * Constructor
      */
-    MySimulation() : 
-    laser(NULL), 
+    MySimulation() :
+    laser(NULL),
     fieldB(NULL),
     fieldE(NULL),
     fieldJ(NULL),
@@ -85,13 +92,9 @@ public:
     initialiserController(NULL),
     slidingWindow(false)
     {
-#if (ENABLE_IONS == 1)
-        ions = NULL;
-#endif
-#if (ENABLE_ELECTRONS == 1)
-        electrons = NULL;
 
-#endif
+        ForEach<VectorAllSpecies, particles::AssignNull<bmpl::_1>, Cover<bmpl::_1>  > setPtrToNull;
+        setPtrToNull(byRef(particleStorage));
     }
 
     virtual void pluginRegisterHelp(po::options_description& desc)
@@ -161,13 +164,13 @@ public:
             gpus[i] = devices[i];
             isPeriodic[i] = periodic[i];
         }
-        
+
         Environment<simDim>::get().initDevices(gpus, isPeriodic);
 
         DataSpace<simDim> myGPUpos( Environment<simDim>::get().GridController().getPosition() );
 
         // calculate the number of local grid cells and
-        // the local cell offset to the global box        
+        // the local cell offset to the global box
         for (uint32_t dim = 0; dim < gridDistribution.size(); ++dim)
         {
             // parse string
@@ -183,7 +186,7 @@ public:
             gridSizeLocal[dim] = global_grid_size[dim] / gpus[dim];
             gridOffset[dim] = gridSizeLocal[dim] * myGPUpos[dim];
         }
-        
+
         Environment<simDim>::get().initGrids(global_grid_size, gridSizeLocal, gridOffset);
 
         MovingWindow::getInstance().setGlobalSimSize(global_grid_size);
@@ -240,13 +243,9 @@ public:
 
         __delete(myFieldSolver);
 
-#if (ENABLE_IONS == 1)
-        __delete(ions);
-#endif
-#if (ENABLE_ELECTRONS == 1)
-        __delete(electrons);
+        ForEach<VectorAllSpecies, particles::CallDelete<bmpl::_1> , Cover<bmpl::_1> > deleteParticleMemory;
+        deleteParticleMemory(byRef(particleStorage));
 
-#endif
         __delete(laser);
         __delete(pushBGField);
         __delete(currentBGField);
@@ -254,9 +253,9 @@ public:
 
     void notify(uint32_t)
     {
-        
+
     }
-    
+
     virtual uint32_t init()
     {
         namespace nvmem = PMacc::nvidia::memory;
@@ -272,30 +271,15 @@ public:
 
         laser = new LaserPhysics(cellDescription->getGridLayout());
 
-#if (ENABLE_IONS == 1)
-        ions = new PIC_Ions(cellDescription->getGridLayout(), *cellDescription,
-                PIC_Ions::FrameType::getName());
-#endif
-#if (ENABLE_ELECTRONS == 1)
-        electrons = new PIC_Electrons(cellDescription->getGridLayout(), *cellDescription,
-                PIC_Electrons::FrameType::getName());
-#endif
+        ForEach<VectorAllSpecies, particles::CreateSpecies<bmpl::_1>, Cover<bmpl::_1> > createSpeciesMemory;
+        createSpeciesMemory(byRef(particleStorage), cellDescription);
 
         size_t freeGpuMem(0);
         Environment<>::get().EnvMemoryInfo().getMemoryInfo(&freeGpuMem);
         freeGpuMem -= totalFreeGpuMemory;
 
-#if (ENABLE_IONS == 1)
-        log<picLog::MEMORY > ("free mem before ions %1% MiB") % (freeGpuMem / 1024 / 1024);
-        ions->createParticleBuffer(freeGpuMem * memFractionIons);
-#endif
-#if (ENABLE_ELECTRONS == 1)
-        size_t memElectrons(0);
-        Environment<>::get().EnvMemoryInfo().getMemoryInfo(&memElectrons);
-        memElectrons -= totalFreeGpuMemory;
-        log<picLog::MEMORY > ("free mem before electrons %1% MiB") % (memElectrons / 1024 / 1024);
-        electrons->createParticleBuffer(freeGpuMem * memFractionElectrons);
-#endif
+        ForEach<VectorAllSpecies, particles::CallCreateParticleBuffer<bmpl::_1>, Cover<bmpl::_1> > createParticleBuffer;
+        createParticleBuffer(byRef(particleStorage), freeGpuMem);
 
         Environment<>::get().EnvMemoryInfo().getMemoryInfo(&freeGpuMem);
         log<picLog::MEMORY > ("free mem after all mem is allocated %1% MiB") % (freeGpuMem / 1024 / 1024);
@@ -308,13 +292,10 @@ public:
         // create field solver
         this->myFieldSolver = new fieldSolver::FieldSolver(*cellDescription);
 
-#if (ENABLE_ELECTRONS == 1)
-        electrons->init(*fieldE, *fieldB, *fieldJ, *fieldTmp);
-#endif
 
-#if (ENABLE_IONS == 1)
-        ions->init(*fieldE, *fieldB, *fieldJ, *fieldTmp);
-#endif      
+        ForEach<VectorAllSpecies, particles::CallInit<bmpl::_1>, Cover<bmpl::_1> > particleInit;
+        particleInit(byRef(particleStorage), fieldE, fieldB, fieldJ, fieldTmp);
+
 
         Environment<>::get().StreamController().addStreams(6);
 
@@ -366,22 +347,13 @@ public:
         (*pushBGField)(fieldB, nvfct::Add(), fieldBackgroundB(fieldB->getUnit()),
                        currentStep, fieldBackgroundB::InfluenceParticlePusher);
 
-#if (ENABLE_IONS == 1)
-        __startTransaction(__getTransactionEvent());
-        //std::cout << "Begin update Ions" << std::endl;
-        ions->update(currentStep);
-        //std::cout << "End update Ions" << std::endl;
-        EventTask eRecvIons = ions->asyncCommunication(__getTransactionEvent());
-        EventTask eIons = __endTransaction();
-#endif
-#if (ENABLE_ELECTRONS == 1)
-        __startTransaction(__getTransactionEvent());
-        //std::cout << "Begin update Electrons" << std::endl;
-        electrons->update(currentStep);
-        //std::cout << "End update Electrons" << std::endl;
-        EventTask eRecvElectrons = electrons->asyncCommunication(__getTransactionEvent());
-        EventTask eElectrons = __endTransaction();
-#endif
+
+        EventTask initEvent = __getTransactionEvent();
+        EventTask updateEvent;
+        EventTask commEvent;
+
+        ForEach<VectorAllSpecies, particles::CallUpdate<bmpl::_1>, Cover<bmpl::_1> > particleUpdate;
+        particleUpdate(byRef(particleStorage), currentStep, initEvent, byRef(updateEvent), byRef(commEvent));
 
         /** remove background field for particle pusher */
         (*pushBGField)(fieldE, nvfct::Sub(), fieldBackgroundE(fieldE->getUnit()),
@@ -393,21 +365,12 @@ public:
 
         fieldJ->clear();
 
-        /** add "external" background current */
+        __setTransactionEvent(updateEvent + commEvent);
         (*currentBGField)(fieldJ, nvfct::Add(), fieldBackgroundJ(fieldJ->getUnit()),
                           currentStep, fieldBackgroundJ::activated);
-
-#if (ENABLE_IONS == 1)
-        __setTransactionEvent(eRecvIons + eIons);
 #if (ENABLE_CURRENT ==1)
-        fieldJ->computeCurrent < CORE + BORDER, PIC_Ions > (*ions, currentStep);
-#endif
-#endif
-#if (ENABLE_ELECTRONS == 1)
-        __setTransactionEvent(eRecvElectrons + eElectrons);
-#if (ENABLE_CURRENT ==1)
-        fieldJ->computeCurrent < CORE + BORDER, PIC_Electrons > (*electrons, currentStep);
-#endif
+        ForEach<VectorAllSpecies, ComputeCurrent<bmpl::_1,bmpl::int_<CORE + BORDER> >, Cover<bmpl::_1> > computeCurrent;
+        computeCurrent(byRef(fieldJ),byRef(particleStorage), currentStep);
 #endif
 
 #if  (ENABLE_IONS==1) ||  (ENABLE_ELECTRONS==1) && (ENABLE_CURRENT ==1)
@@ -434,14 +397,8 @@ public:
 
         fieldB->reset(currentStep);
         fieldE->reset(currentStep);
-#if (ENABLE_ELECTRONS == 1)
-        electrons->reset(currentStep);
-#endif
-
-#if (ENABLE_IONS == 1)
-        ions->reset(currentStep);
-#endif
-
+        ForEach<VectorAllSpecies, particles::CallReset<bmpl::_1>, Cover<bmpl::_1> > callReset;
+        callReset(byRef(particleStorage), currentStep);
     }
 
     void slide(uint32_t currentStep)
@@ -474,7 +431,7 @@ private:
     template<uint32_t DIM>
     void checkGridConfiguration(DataSpace<DIM> globalGridSize, GridLayout<DIM>)
     {
-        
+
         for(uint32_t i=0;i<simDim;++i)
         {
         // global size must a devisor of supercell size
@@ -503,13 +460,10 @@ protected:
     cellwiseOperation::CellwiseOperation< CORE + BORDER + GUARD >* pushBGField;
     cellwiseOperation::CellwiseOperation< CORE + BORDER + GUARD >* currentBGField;
 
-    // particles
-#if (ENABLE_IONS == 1)
-    PIC_Ions *ions;
-#endif
-#if (ENABLE_ELECTRONS == 1)
-    PIC_Electrons *electrons;
-#endif
+    typedef typename SeqToMap<VectorAllSpecies, TypeToPointerPair<bmpl::_1> >::type ParticleStorageMap;
+    typedef PMacc::math::MapTuple<ParticleStorageMap> ParticleStorage;
+
+    ParticleStorage particleStorage;
 
     LaserPhysics *laser;
 

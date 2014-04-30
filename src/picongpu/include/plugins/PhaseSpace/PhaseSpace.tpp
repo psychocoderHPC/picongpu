@@ -66,7 +66,7 @@ namespace picongpu
         const uint32_t r_element = this->axis_element.first;
 
         /* CORE + BORDER + GUARD elements for spatial bins */
-        this->r_bins = SuperCellSize().toRT()[r_element]
+        this->r_bins = MySuperCellSize().toRT()[r_element]
                      * this->cellDescription->getGridSuperCells()[r_element];
 
         this->dBuffer = new container::DeviceBuffer<float_PS, 2>( r_bins, this->num_pbins );
@@ -144,19 +144,19 @@ namespace picongpu
     template<uint32_t r_dir>
     void PhaseSpace<AssignmentFunction, Species>::calcPhaseSpace( )
     {
-        const PMacc::math::Int<DIM3> guardCells = precisionCast<int>(SuperCellSize().toRT()) * int(GUARD_SIZE);
+        const PMacc::math::Int<DIM3> guardCells = precisionCast<int>(MySuperCellSize().toRT()) * int(GUARD_SIZE);
         const PMacc::math::Size_t<DIM3> coreBorderSuperCells( this->cellDescription->getGridSuperCells() - 2*int(GUARD_SIZE) );
         const PMacc::math::Size_t<DIM3> coreBorderCells = coreBorderSuperCells *
-            precisionCast<size_t>( SuperCellSize().toRT() );
+            precisionCast<size_t>( MySuperCellSize().toRT() );
 
         /* select CORE + BORDER for all cells
          * CORE + BORDER is contiguous, in cuSTL we call this a "topological spheric zone"
          */
         zone::SphericZone<DIM3> zoneCoreBorder( coreBorderCells, guardCells );
 
-        algorithm::kernel::ForeachBlock<SuperCellSize> forEachSuperCell;
+        algorithm::kernel::ForeachBlock<MySuperCellSize> forEachSuperCell;
 
-        FunctorBlock<Species, SuperCellSize, float_PS, num_pbins, r_dir> functorBlock(
+        FunctorBlock<Species, MySuperCellSize, float_PS, num_pbins, r_dir> functorBlock(
             this->particles->getDeviceParticlesBox(), dBuffer->origin(),
             this->axis_element.second, this->axis_p_range );
 
@@ -216,7 +216,7 @@ namespace picongpu
         forEachCopyWithoutGuard(/* area to work on */
                                 hReducedBuffer_noGuard.zone(),
                                 /* data below - passed to functor operator() */
-                                hReducedBuffer.origin()(SuperCellSize().toRT()[this->axis_element.first] * GUARD_SIZE, 0),
+                                hReducedBuffer.origin()(MySuperCellSize().toRT()[this->axis_element.first] * GUARD_SIZE, 0),
                                 hReducedBuffer_noGuard.origin(),
                                 /* functor */
                                 _2 = _1);

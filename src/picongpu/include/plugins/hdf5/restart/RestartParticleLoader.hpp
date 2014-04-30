@@ -45,7 +45,7 @@ using namespace splash;
 
 /**
  * Helper class for HDF5Writer for loading particle data.
- * 
+ *
  * @tparam BufferType type of particles buffer
  */
 template<class BufferType>
@@ -69,7 +69,7 @@ private:
         *dst = (TYPE*)ptr;
         memset(*dst, 0, sizeof (TYPE) * numParticles);
 
-        // read particles from file 
+        // read particles from file
         dataCollector.read(restartStep,
                            Dimensions(numParticles, 1, 1),
                            Dimensions(particlesLoadOffset, 0, 0),
@@ -189,7 +189,7 @@ public:
                                     dim_cell, *ctInt, subGroup + std::string("/globalCellIdx/") + name_lookup[i],
                                     particleCount, particleOffset);
 
-            // update simulation relative cell positions from file to 
+            // update simulation relative cell positions from file to
             // gpu-relative positions for new configuration
             //if (gridPosition[i] > 0)
             for (uint32_t elem = 0; elem < dim_cell.getScalarSize(); ++elem)
@@ -260,7 +260,7 @@ public:
 
 
             // grab next empty frame
-            if (superCellPos != oldSuperCellPos || localId == TILE_SIZE)
+            if (superCellPos != oldSuperCellPos || localId == SuperCellSize::elements)
             {
                 localId = 0;
                 frame = &(particlesBox.getEmptyFrame());
@@ -269,13 +269,13 @@ public:
             }
 
             for (uint32_t d = 0; d < simDim; ++d)
-                assert(cellPosInSuperCell[d] < tile_size[d]);
+                assert(cellPosInSuperCell[d] < superCellSize[d]);
 
             PMacc::lcellId_t localCellId(DataSpaceOperations<simDim>::map(superCellSize, cellPosInSuperCell));
 
             // write to frame
-            assert(localId < TILE_SIZE);
-            assert((uint32_t) (localCellId) < TILE_SIZE);
+            assert(localId < SuperCellSize::elements);
+            assert((uint32_t) (localCellId) < SuperCellSize::elements);
 
             PMACC_AUTO(particle, ((*frame)[localId]));
 
@@ -328,7 +328,7 @@ public:
         delete ctBool;
 #endif
 #endif
-        
+
         log<picLog::INPUT_OUTPUT > ("Finished loading species '%1%'") % subGroup;
     }
 };
@@ -336,7 +336,7 @@ public:
 
 /**
  * Hepler class for HDF5Writer (forEach operator) to load a particle species from HDF5
- * 
+ *
  * @tparam ParticleType particle class to load
  */
 template< typename ParticleType >

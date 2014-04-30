@@ -1,0 +1,152 @@
+/**
+ * Copyright 2014 Rene Widera
+ *
+ * This file is part of PIConGPU.
+ *
+ * PIConGPU is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * PIConGPU is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with PIConGPU.
+ * If not, see <http://www.gnu.org/licenses/>.
+ */
+
+
+
+#pragma once
+
+#include "simulation_defines.hpp"
+#include "particles/Identifier.hpp"
+#include "compileTime/conversion/MakeSeq.hpp"
+#include "dimensions/DataSpace.hpp"
+#include "identifier/identifier.hpp"
+#include "identifier/alias.hpp"
+#include "identifier/value_identifier.hpp"
+#include "identifier/named_type.hpp"
+
+#include "particles/Particles.hpp"
+
+#include "particles/ParticleDescription.hpp"
+
+
+#include "particles/shapes.hpp"
+#include "algorithms/FieldToParticleInterpolationNative.hpp"
+#include "algorithms/FieldToParticleInterpolation.hpp"
+#include "algorithms/AssignedTrilinearInterpolation.hpp"
+
+#include "fields/currentDeposition/Solver.def"
+#include <boost/mpl/string.hpp>
+
+
+namespace picongpu
+{
+
+/** relative (to cell origin) in-cell position of a particle
+ * With this definition we not define any type like float3,double3,...
+ * This is only a name without a specialisation
+ */
+alias(position);
+/** cell index the particle lives in, relative to the moving window origin
+ * This alias is only used for dumping hdf5, the index is only valid for the
+ * current timestep.
+ */
+alias(globalCellIdx);
+
+/** specialisation for the relative in-cell position */
+value_identifier(float3_X,position_pic,float3_X(0.,0.,0.));
+/** momentum at timestep t */
+value_identifier(float3_X,momentum,float3_X(0.,0.,0.));
+/** momentum at (previous) timestep t-1 */
+value_identifier(float3_X,momentumPrev1,float3_X(0.,0.,0.));
+/** weighting of the macro particle */
+value_identifier(float_X, weighting, 0.0);
+/** use this particle for radiation diagnostics */
+value_identifier(bool, radiationFlag, false);
+
+/** specialisation global position inside a domain (relative to origin of the
+ * moving window)
+ * and is loaded after all other param files)
+ */
+value_identifier(DataSpace<simDim>,globalCellIdx_pic,DataSpace<simDim>());
+
+/*! Particle Shape definitions -------------------------------------------------
+ *  - particles::shapes::NGP : 0th order (not implemented)
+ *  - particles::shapes::CIC : 1st order
+ *  - particles::shapes::TSC : 2nd order (requires CUDA_ARCH>=sm_20)
+ *  - particles::shapes::PCS : 3rd order (requires CUDA_ARCH>=sm_20)
+ *
+ *  example:             typedef particles::shapes::NGP NGPShape;
+ *  use as species flag: shape<NGPShape>
+ */
+alias(shape);
+
+/*! particle pusher configuration ----------------------------------------------
+ *
+ * Define a pusher is optional for particles
+ *
+ * - particles::pusher::Vay : better suited relativistic boris pusher
+ * - particles::pusher::Boris : standard boris pusher
+ *
+ * For development purposes: ---------------------------------------------------
+ * - particles::pusher::None : no particle is pushed
+ * - particles::pusher::Axl : a pusher developed at HZDR during 2011 (testing)
+ * - particles::pusher::Free : free propagation, ignore fields
+ * (= free stream model)
+ * - particles::pusher::Phot : propagate with c in direction of normalized mom.
+ *
+ *  example:             typedef particles::pusher::Boris BorisPusher;
+ *  use as species flag: particlePusher<BorisPusher>
+ */
+alias(particlePusher);
+
+/*! select interpolation for grid (fields) to particle ------------------------- *
+ * - FieldToParticleInterpolation<SHAPE,ASSIGNFUNCTION> : fast function to interpolate
+ *
+ * For development purposes: ---------------------------------------------------
+ * - FieldToParticleInterpolationNative<SHAPE,ASSIGNFUNCTION> : generic version of FieldToParticleInterpolation<...>
+ *
+ *
+ * Possible ASSIGNFUNCTIONs:
+ *
+ * - AssignedTrilinearInterpolation   - use triliniear interpolation
+ *                                      http://en.wikipedia.org/wiki/Trilinear_interpolation
+ *
+ * Possible SHAPEs:
+ *
+ * - @see shape  (particle shapes)
+ *
+ * example: typedef FieldToParticleInterpolation<ElectronShape, AssignedTrilinearInterpolation> Field2Particle;
+ * use as species flag: interpolation<Field2Particle>
+ */
+alias(interpolation);
+
+/*! select current solver method -----------------------------------------------
+ * - Esirkepov<SHAPE>  : particle shapes - CIC, TSC, PCS (1st to 3rd order)
+ * - VillaBune<>       : particle shapes - CIC (1st order) only
+ *
+ * For development purposes: ---------------------------------------------------
+ * - EsirkepovNative<SHAPE> : generic version of currentSolverEsirkepov
+ *   without optimisation (~4x slower and need more shared memory)
+ */
+alias(current);
+
+template<uint32_t T_commTag>
+struct CommunicationId
+{
+    static const uint32_t CommunicationTag=T_commTag;
+};
+
+template<size_t T_memPercent>
+struct PercentMemOnGPU
+{
+    static const size_t memPercent=T_memPercent;
+};
+
+} //namespace picongpu

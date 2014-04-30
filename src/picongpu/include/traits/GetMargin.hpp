@@ -37,6 +37,18 @@ namespace traits
 template<class Solver,unsigned int SubSetName=0>
 struct GetMargin;
 
+template<typename T_Type>
+struct GetLowerMarging
+{
+    typedef typename traits::GetMargin<T_Type>::LowerMargin type;
+};
+
+template<typename T_Type>
+struct GetUpperMarging
+{
+    typedef typename traits::GetMargin<T_Type>::UpperMargin type;
+};
+
 } //namespace traits
 
 }// namespace picongpu
