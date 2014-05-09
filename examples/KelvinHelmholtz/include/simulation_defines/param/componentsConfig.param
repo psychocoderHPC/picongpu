@@ -95,7 +95,8 @@ namespace picongpu
      *  - currentSolverEsirkepovNative: generic version of currentSolverEsirkepov
      *    without optimisation (~4x slower and need more shared memory)
      */
-    namespace currentSolver = currentSolverEsirkepov;
+    namespace currentSolver = currentSolverZigZagCT;
+    //namespace currentSolver = currentSolverEsirkepov;
     /*enable (1) or disable (0) current calculation*/
 #define ENABLE_CURRENT 1
 

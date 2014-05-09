@@ -30,6 +30,9 @@
 
 
 #include "fields/currentDeposition/Esirkepov/Esirkepov.hpp"
+#include "fields/currentDeposition/ZigZag/ZigZag.hpp"
+#include "fields/currentDeposition/ZigZag/ZigZagCT.hpp"
+#include "fields/currentDeposition/ZigZag/ZigZagNative.hpp"
 #include "fields/numericalCellTypes/YeeCell.hpp"
 
 
@@ -49,12 +52,29 @@ namespace picongpu
     }
 #endif
     
-    namespace currentSolverEsirkepov
+        namespace currentSolverEsirkepov
     {
         typedef Esirkepov<simDim,typename speciesParticleShape::ParticleShape> CurrentSolver;
     }
     
-#if (SIMDIM==DIM3)    
+#if (SIMDIM==DIM3)
+        
+    namespace currentSolverZigZag
+    {
+        typedef ZigZag<simDim,typename speciesParticleShape::ParticleShape> CurrentSolver;
+    }
+    
+    namespace currentSolverZigZagCT
+    {
+        typedef ZigZagCT<simDim,typename speciesParticleShape::ParticleShape> CurrentSolver;
+    }
+    
+    namespace currentSolverZigZagNative
+    {
+        typedef ZigZagNative<simDim,typename speciesParticleShape::ParticleShape> CurrentSolver;
+    }
+    
+    
     /* ASSERTS for invalid combinations to help the user -------------------- */
     
     /* VillaBune: field to particle interpolation _requires_ the CIC shape
