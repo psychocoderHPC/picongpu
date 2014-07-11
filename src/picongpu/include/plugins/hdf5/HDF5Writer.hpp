@@ -65,8 +65,8 @@
 
 #include "plugins/hdf5/WriteFields.hpp"
 #include "plugins/hdf5/WriteSpecies.hpp"
+#include "plugins/hdf5/restart/LoadSpecies.hpp"
 #include "plugins/hdf5/restart/RestartFieldLoader.hpp"
-#include "plugins/hdf5/restart/RestartParticleLoader.hpp"
 #include "memory/boxes/DataBoxDim1Access.hpp"
 
 namespace picongpu
@@ -126,6 +126,7 @@ public:
     {
 
         this->cellDescription = cellDescription;
+        mThreadParams.cellDescription = this->cellDescription;
     }
 
     __host__ void notify(uint32_t currentStep)
@@ -199,7 +200,7 @@ public:
         forEachLoadFields(params);
 
         /* load all particles */
-        ForEach<FileCheckpointParticles, LoadParticles<bmpl::_1> > forEachLoadSpecies;
+        ForEach<FileCheckpointParticles, LoadSpecies<bmpl::_1> > forEachLoadSpecies;
         forEachLoadSpecies(params);
 
         /* close datacollector */
