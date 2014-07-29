@@ -19,7 +19,7 @@
  * and the GNU Lesser General Public License along with libPMacc.
  * If not, see <http://www.gnu.org/licenses/>.
  */
- 
+
 
 #pragma once
 
@@ -121,7 +121,7 @@ public:
     virtual void dumpOneStep(uint32_t currentStep)
     {
         Environment<DIM>::get().DataConnector().invalidate();
-        
+
         /* trigger checkpoint notification first to allow plugins to skip standard notify */
         if (checkpointPeriod && (currentStep % checkpointPeriod == 0))
         {
@@ -130,20 +130,20 @@ public:
             {
                 Environment<DIM>::get().Filesystem().createDirectoryWithPermissions(checkpointDirectory);
             }
-            
+
             Environment<DIM>::get().PluginConnector().checkpointPlugins(currentStep,
                                                                         checkpointDirectory);
-            
+
             GridController<DIM> &gc = Environment<DIM>::get().GridController();
             MPI_CHECK(MPI_Barrier(gc.getCommunicator().getMPIComm()));
-            
+
             if (gc.getGlobalRank() == 0)
             {
                 writeCheckpointStep(currentStep);
             }
             numCheckpoints++;
         }
-        
+
         Environment<DIM>::get().PluginConnector().notifyPlugins(currentStep);
     }
 
@@ -151,10 +151,10 @@ public:
     {
         return Environment<DIM>::get().GridController();
     }
-    
+
     void dumpTimes(TimeIntervall &tSimCalculation, TimeIntervall&, double& roundAvg, uint32_t currentStep)
     {
-         /*dump 100% after simulation*/
+        /*dump 100% after simulation*/
         if (output && progress && (currentStep % showProgressAnyStep) == 0)
         {
             tSimCalculation.toggleEnd();
@@ -168,7 +168,7 @@ public:
 
             roundAvg = 0.0; //clear round avg timer
         }
-    
+
     }
 
     /**
@@ -178,6 +178,12 @@ public:
     {
         uint32_t currentStep = init();
         tInit.toggleEnd();
+        if (output)
+        {
+            std::cout << "initialization time: " << tInit.printInterval() <<
+                " = " <<
+                (int) (tInit.getInterval() / 1000.) << " sec" << std::endl;
+        }
 
         TimeIntervall tSimCalculation;
         TimeIntervall tRound;
@@ -192,7 +198,7 @@ public:
         movingWindowCheck(currentStep); //if we restart at any step check if we must slide
 
         /* dump 0% output */
-        dumpTimes(tSimCalculation,tRound,roundAvg,currentStep);
+        dumpTimes(tSimCalculation, tRound, roundAvg, currentStep);
         while (currentStep < runSteps)
         {
             tRound.toggleStart();
@@ -202,8 +208,8 @@ public:
 
             currentStep++;
             /*output after a round*/
-            dumpTimes(tSimCalculation,tRound,roundAvg,currentStep);
-            
+            dumpTimes(tSimCalculation, tRound, roundAvg, currentStep);
+
             movingWindowCheck(currentStep);
             /*dump after simulated step*/
             dumpOneStep(currentStep);
@@ -231,11 +237,11 @@ public:
              "Print time statistics after p percent to stdout")
             ("restart", po::value<bool>(&restartRequested)->zero_tokens(), "Restart simulation")
             ("restart-directory", po::value<std::string>(&restartDirectory)->default_value(restartDirectory),
-                "Directory containing checkpoints for a restart")
+             "Directory containing checkpoints for a restart")
             ("restart-step", po::value<int32_t>(&restartStep), "Checkpoint step to restart from")
             ("checkpoints", po::value<uint32_t>(&checkpointPeriod), "Period for checkpoint creation")
             ("checkpoint-directory", po::value<std::string>(&checkpointDirectory)->default_value(checkpointDirectory),
-                "Directory for checkpoints");
+             "Directory for checkpoints");
     }
 
     std::string pluginGetName() const
@@ -253,11 +259,11 @@ public:
     void pluginUnload()
     {
     }
-    
+
     void restart(uint32_t, const std::string)
     {
     }
-    
+
     void checkpoint(uint32_t, const std::string)
     {
     }
@@ -265,25 +271,25 @@ public:
 protected:
     /* number of simulation steps to compute */
     uint32_t runSteps;
-    
+
     /* period for checkpoint creation */
     uint32_t checkpointPeriod;
-    
+
     /* common directory for checkpoints */
     std::string checkpointDirectory;
-    
+
     /* number of checkpoints written */
     uint32_t numCheckpoints;
-    
+
     /* checkpoint step to restart from */
     int32_t restartStep;
-    
+
     /* common directory for restarts */
     std::string restartDirectory;
-    
+
     /* restart requested */
     bool restartRequested;
-    
+
     /* filename for checkpoint master file with all checkpoint timesteps */
     const std::string CHECKPOINT_MASTER_FILE;
 
@@ -303,7 +309,7 @@ private:
         if (showProgressAnyStep == 0)
             showProgressAnyStep = 1;
     }
-    
+
     /**
      * Append \p checkpointStep to the master checkpoint file
      *
@@ -314,12 +320,12 @@ private:
         std::ofstream file;
         const std::string checkpointMasterFile =
             checkpointDirectory + std::string("/") + CHECKPOINT_MASTER_FILE;
-        
+
         file.open(checkpointMasterFile.c_str(), std::ofstream::app);
-        
+
         if (!file)
             throw std::runtime_error("Failed to write checkpoint master file");
-        
+
         file << checkpointStep << std::endl;
         file.close();
     }
