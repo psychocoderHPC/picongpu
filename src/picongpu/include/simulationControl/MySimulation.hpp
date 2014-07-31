@@ -89,7 +89,7 @@ public:
     initialiserController(NULL),
     slidingWindow(false)
     {
-        ForEach<VectorAllSpecies, particles::AssignNull<bmpl::_1>, MakeIdentifier<bmpl::_1>  > setPtrToNull;
+        ForEach<VectorAllSpecies, particles::AssignNull<bmpl::_1>, MakeIdentifier<bmpl::_1> > setPtrToNull;
         setPtrToNull(forward(particleStorage));
     }
 
@@ -163,7 +163,7 @@ public:
 
         Environment<simDim>::get().initDevices(gpus, isPeriodic);
 
-        DataSpace<simDim> myGPUpos( Environment<simDim>::get().GridController().getPosition() );
+        DataSpace<simDim> myGPUpos(Environment<simDim>::get().GridController().getPosition());
 
         // calculate the number of local grid cells and
         // the local cell offset to the global box
@@ -237,7 +237,7 @@ public:
 
         __delete(myFieldSolver);
 
-        ForEach<VectorAllSpecies, particles::CallDelete<bmpl::_1> , MakeIdentifier<bmpl::_1> > deleteParticleMemory;
+        ForEach<VectorAllSpecies, particles::CallDelete<bmpl::_1>, MakeIdentifier<bmpl::_1> > deleteParticleMemory;
         deleteParticleMemory(forward(particleStorage));
 
         __delete(laser);
@@ -262,8 +262,6 @@ public:
         pushBGField = new cellwiseOperation::CellwiseOperation < CORE + BORDER + GUARD > (*cellDescription);
         currentBGField = new cellwiseOperation::CellwiseOperation < CORE + BORDER + GUARD > (*cellDescription);
 
-        //std::cout<<"Grid x="<<layout.getDataSpace().x()<<" y="<<layout.getDataSpace().y()<<std::endl;
-
         laser = new LaserPhysics(cellDescription->getGridLayout());
 
         ForEach<VectorAllSpecies, particles::CreateSpecies<bmpl::_1>, MakeIdentifier<bmpl::_1> > createSpeciesMemory;
@@ -273,11 +271,18 @@ public:
         Environment<>::get().EnvMemoryInfo().getMemoryInfo(&freeGpuMem);
         freeGpuMem -= totalFreeGpuMemory;
 
+        // initializing the heap for particles
+        mallocMC::initHeap(freeGpuMem);
+
+        log<picLog::MEMORY >("mallocMC: free slots %1% a %2%") %
+            mallocMC::getAvailableSlots(sizeof (typename PIC_Electrons::FrameType)) % sizeof (typename PIC_Electrons::FrameType);
+
         ForEach<VectorAllSpecies, particles::CallCreateParticleBuffer<bmpl::_1>, MakeIdentifier<bmpl::_1> > createParticleBuffer;
         createParticleBuffer(forward(particleStorage), freeGpuMem);
 
         Environment<>::get().EnvMemoryInfo().getMemoryInfo(&freeGpuMem);
         log<picLog::MEMORY > ("free mem after all mem is allocated %1% MiB") % (freeGpuMem / 1024 / 1024);
+
 
         fieldB->init(*fieldE, *laser);
         fieldE->init(*fieldB, *laser);
@@ -310,7 +315,7 @@ public:
                     if (this->restartStep < 0)
                     {
                         throw std::runtime_error(
-                                "Restart failed. You must provide the '--restart-step' argument. See picongpu --help.");
+                                                 "Restart failed. You must provide the '--restart-step' argument. See picongpu --help.");
                     }
                 }
 
@@ -333,11 +338,15 @@ public:
         EventTask eRfieldB = fieldB->asyncCommunication(__getTransactionEvent());
         __setTransactionEvent(eRfieldB);
 
+        log<picLog::MEMORY >("mallocMC: free slots after init %1% %2%") %
+            mallocMC::getAvailableSlots(sizeof (typename PIC_Electrons::FrameType)) % sizeof (typename PIC_Electrons::FrameType);
+
         return step;
     }
 
     virtual ~MySimulation()
     {
+        mallocMC::finalizeHeap();
     }
 
     /**
@@ -377,12 +386,12 @@ public:
         (*currentBGField)(fieldJ, nvfct::Add(), fieldBackgroundJ(fieldJ->getUnit()),
                           currentStep, fieldBackgroundJ::activated);
 #if (ENABLE_CURRENT == 1)
-        ForEach<VectorAllSpecies, ComputeCurrent<bmpl::_1,bmpl::int_<CORE + BORDER> >, MakeIdentifier<bmpl::_1> > computeCurrent;
-        computeCurrent(forward(fieldJ),forward(particleStorage), currentStep);
+        ForEach<VectorAllSpecies, ComputeCurrent < bmpl::_1, bmpl::int_ < CORE + BORDER> >, MakeIdentifier<bmpl::_1> > computeCurrent;
+        computeCurrent(forward(fieldJ), forward(particleStorage), currentStep);
 #endif
 
 #if  (ENABLE_CURRENT == 1)
-        if(bmpl::size<VectorAllSpecies>::type::value>0)
+        if (bmpl::size<VectorAllSpecies>::type::value > 0)
         {
             EventTask eRecvCurrent = fieldJ->asyncCommunication(__getTransactionEvent());
             fieldJ->addCurrentToE<CORE > ();
@@ -443,18 +452,18 @@ private:
     void checkGridConfiguration(DataSpace<DIM> globalGridSize, GridLayout<DIM>)
     {
 
-        for(uint32_t i=0;i<simDim;++i)
+        for (uint32_t i = 0; i < simDim; ++i)
         {
-        // global size must a devisor of supercell size
-        // note: this is redundant, while using the local condition below
+            // global size must a devisor of supercell size
+            // note: this is redundant, while using the local condition below
 
-        assert(globalGridSize[i] % MappingDesc::SuperCellSize::toRT()[i] == 0);
-        // local size must a devisor of supercell size
-        assert(gridSizeLocal[i] % MappingDesc::SuperCellSize::toRT()[i] == 0);
-        // local size must be at least 3 supercells (1x core + 2x border)
-        // note: size of border = guard_size (in supercells)
-        // \todo we have to add the guard_x/y/z for modified supercells here
-        assert( (uint32_t) gridSizeLocal[i] / MappingDesc::SuperCellSize::toRT()[i] >= 3 * GUARD_SIZE);
+            assert(globalGridSize[i] % MappingDesc::SuperCellSize::toRT()[i] == 0);
+            // local size must a devisor of supercell size
+            assert(gridSizeLocal[i] % MappingDesc::SuperCellSize::toRT()[i] == 0);
+            // local size must be at least 3 supercells (1x core + 2x border)
+            // note: size of border = guard_size (in supercells)
+            // \todo we have to add the guard_x/y/z for modified supercells here
+            assert((uint32_t) gridSizeLocal[i] / MappingDesc::SuperCellSize::toRT()[i] >= 3 * GUARD_SIZE);
         }
     }
 
@@ -483,12 +492,14 @@ private:
 
                 if (line.size() > 0)
                 {
-                    try {
+                    try
+                    {
                         lastCheckpointStep = boost::lexical_cast<int32_t>(line);
-                    } catch( boost::bad_lexical_cast const& )
+                    }
+                    catch (boost::bad_lexical_cast const&)
                     {
                         std::cerr << "Warning: checkpoint master file contains invalid data ("
-                                << line << ")" << std::endl;
+                            << line << ")" << std::endl;
                         lastCheckpointStep = -1;
                     }
                 }
