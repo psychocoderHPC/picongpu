@@ -38,7 +38,6 @@ set(CMAKE_PREFIX_PATH "/usr/lib/x86_64-linux-gnu/" "$ENV{MPI_ROOT}"
 # own modules for find_packages
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} ${CMAKE_CURRENT_SOURCE_DIR}/../cmake/)
 
-
 ################################################################################
 # Find CUDA 
 ################################################################################
@@ -258,6 +257,10 @@ endif(Boost_VERSION EQUAL 105500)
 
 find_package(mallocMC REQUIRED)
 include_directories(SYSTEM ${mallocMC_INCLUDE_DIRS})
+
+find_package(mallocMC REQUIRED)
+include_directories(SYSTEM ${mallocMC_INCLUDE_DIRS})
+
 
 ################################################################################
 # PMacc options

@@ -103,7 +103,7 @@ void Particles<T_ParticleDescription>::createParticleBuffer( size_t gpuMemory )
     if ( gpuMemory >= UINT_MAX )
         gpuMemory = (size_t) ( UINT_MAX - 2 );
 
-    this->particlesBuffer->createParticleBuffer( gpuMemory );
+    this->particlesBuffer->createParticleBuffer( );
 
 }
 
@@ -122,13 +122,13 @@ SimulationDataId Particles<T_ParticleDescription>::getUniqueId( )
 template< typename T_ParticleDescription>
 void Particles<T_ParticleDescription>::synchronize( )
 {
-    this->particlesBuffer->deviceToHost( );
+   
 }
 
 template< typename T_ParticleDescription>
 void Particles<T_ParticleDescription>::syncToDevice( )
 {
-    this->particlesBuffer->hostToDevice( );
+
 }
 
 template<typename T_ParticleDescription>

@@ -144,8 +144,11 @@ public:
 
         superCells = new GridBuffer<SuperCell<vint_t>, DIM > (superCellsCount);
 
-        reset();
+    }
 
+    void createParticleBuffer()
+    {
+        reset();
     }
 
     /**
