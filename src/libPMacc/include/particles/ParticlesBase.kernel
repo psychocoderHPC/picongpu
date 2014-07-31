@@ -119,6 +119,8 @@ __global__ void kernelShiftParticles(ParticlesBox<FRAME, Mapping::Dim> pb, Mappi
         const int direction = (*frame)[threadIdx.x][multiMask_] - 2;
         if (direction >= 0) //\todo: weglassen
         {
+            if(direction>=Exchanges)
+                printf("direction is %i ptr %llu\n",direction,(unsigned long long int)frame);
             destParticleIdx = atomicAdd(&(destFramesCounter[direction]), 1);
             (*frame)[threadIdx.x][multiMask_] = 0; //delete particle, later we copy this particle without multiMask
             if (destParticleIdx >= TileSize) anyDestFrameFull = true;

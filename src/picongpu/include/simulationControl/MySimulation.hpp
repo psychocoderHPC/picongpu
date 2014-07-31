@@ -263,8 +263,6 @@ public:
         pushBGField = new cellwiseOperation::CellwiseOperation < CORE + BORDER + GUARD > (*cellDescription);
         currentBGField = new cellwiseOperation::CellwiseOperation < CORE + BORDER + GUARD > (*cellDescription);
 
-        //std::cout<<"Grid x="<<layout.getDataSpace().x()<<" y="<<layout.getDataSpace().y()<<std::endl;
-
         laser = new LaserPhysics(cellDescription->getGridLayout());
 
         ForEach<VectorAllSpecies, particles::CreateSpecies<bmpl::_1>, MakeIdentifier<bmpl::_1> > createSpeciesMemory;
@@ -274,11 +272,18 @@ public:
         Environment<>::get().EnvMemoryInfo().getMemoryInfo(&freeGpuMem);
         freeGpuMem -= totalFreeGpuMemory;
 
+        // initializing the heap for particles
+        mallocMC::initHeap(freeGpuMem);
+
+        log<picLog::MEMORY >("mallocMC: free slots %1% a %2%") %
+            mallocMC::getAvailableSlots(sizeof (typename PIC_Electrons::FrameType)) % sizeof (typename PIC_Electrons::FrameType);
+
         ForEach<VectorAllSpecies, particles::CallCreateParticleBuffer<bmpl::_1>, MakeIdentifier<bmpl::_1> > createParticleBuffer;
         createParticleBuffer(forward(particleStorage), freeGpuMem);
 
         Environment<>::get().EnvMemoryInfo().getMemoryInfo(&freeGpuMem);
         log<picLog::MEMORY > ("free mem after all mem is allocated %1% MiB") % (freeGpuMem / 1024 / 1024);
+
 
         fieldB->init(*fieldE, *laser);
         fieldE->init(*fieldB, *laser);
@@ -336,11 +341,15 @@ public:
         EventTask eRfieldB = fieldB->asyncCommunication(__getTransactionEvent());
         __setTransactionEvent(eRfieldB);
 
+        log<picLog::MEMORY >("mallocMC: free slots after init %1% %2%") %
+            mallocMC::getAvailableSlots(sizeof (typename PIC_Electrons::FrameType)) % sizeof (typename PIC_Electrons::FrameType);
+
         return step;
     }
 
     virtual ~MySimulation()
     {
+        mallocMC::finalizeHeap();
     }
 
     /**
@@ -366,8 +375,6 @@ public:
         ForEach<VectorAllSpecies, particles::CallUpdate<bmpl::_1>, MakeIdentifier<bmpl::_1> > particleUpdate;
         particleUpdate(forward(particleStorage), currentStep, initEvent, forward(updateEvent), forward(commEvent));
 
-        __setTransactionEvent(updateEvent);
-
         /** remove background field for particle pusher */
         (*pushBGField)(fieldE, nvfct::Sub(), fieldBackgroundE(fieldE->getUnit()),
                        currentStep, fieldBackgroundE::InfluenceParticlePusher);
@@ -378,7 +385,7 @@ public:
 
         fieldJ->clear();
 
-        __setTransactionEvent(commEvent);
+        __setTransactionEvent(updateEvent + commEvent);
         (*currentBGField)(fieldJ, nvfct::Add(), fieldBackgroundJ(fieldJ->getUnit()),
                           currentStep, fieldBackgroundJ::activated);
 #if (ENABLE_CURRENT == 1)
