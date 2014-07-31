@@ -45,6 +45,7 @@
 #include "traits/HasFlag.hpp"
 #include "traits/GetFlagType.hpp"
 #include <boost/mpl/contains.hpp>
+#include "particles/memory/dataTypes/Pointer.hpp"
 
 #include "particles/ParticleDescription.hpp"
 #include <boost/mpl/string.hpp>
@@ -149,6 +150,8 @@ public InheritLinearly<typename T_ParticleDescription::MethodsList>,
         return std::string(boost::mpl::c_str<Name>::value);
     }
 
+    Pointer<ThisType> previousFrame;
+    Pointer<ThisType> nextFrame;
 };
 
 namespace traits
