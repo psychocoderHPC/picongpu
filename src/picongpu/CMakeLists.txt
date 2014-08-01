@@ -252,6 +252,12 @@ if(Boost_VERSION EQUAL 105500)
       "${CUDA_NVCC_FLAGS} \"-DBOOST_NOINLINE=__attribute__((noinline))\" ")
 endif(Boost_VERSION EQUAL 105500)
 
+################################################################################
+# Find MallocMC
+################################################################################
+
+find_package(mallocMC REQUIRED)
+include_directories(SYSTEM ${mallocMC_INCLUDE_DIRS})
 
 ################################################################################
 # PMacc options

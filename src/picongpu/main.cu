@@ -29,6 +29,53 @@
  */
 
 
+//include the Heap with the arguments given in the config
+#include "mallocMC/mallocMC_utils.hpp"
+
+// basic files for mallocMC
+#include "mallocMC/mallocMC_overwrites.hpp"
+#include "mallocMC/mallocMC_hostclass.hpp"
+
+// Load all available policies for mallocMC
+#include "mallocMC/CreationPolicies.hpp"
+#include "mallocMC/DistributionPolicies.hpp"
+#include "mallocMC/OOMPolicies.hpp"
+#include "mallocMC/ReservePoolPolicies.hpp"
+#include "mallocMC/AlignmentPolicies.hpp"
+
+// configurate the CreationPolicy "Scatter"
+
+struct ScatterConfig
+{
+    typedef boost::mpl::int_<4*1024*1024> pagesize;
+    typedef boost::mpl::int_<4> accessblocks;
+    typedef boost::mpl::int_<8> regionsize;
+    typedef boost::mpl::int_<2> wastefactor;
+    typedef boost::mpl::bool_<true> resetfreedpages;
+};
+
+
+struct ScatterHashParams{
+    typedef boost::mpl::int_<4*1024*1024*16> hashingK;
+    typedef boost::mpl::int_<4*1024*1024*32> hashingDistMP;
+    typedef boost::mpl::int_<1> hashingDistWP;
+    typedef boost::mpl::int_<4*1024*1024*64> hashingDistWPRel;
+};
+
+// Define a new allocator and call it ScatterAllocator
+// which resembles the behaviour of ScatterAlloc
+typedef mallocMC::Allocator<
+mallocMC::CreationPolicies::Scatter<ScatterConfig,ScatterHashParams>,
+mallocMC::DistributionPolicies::Noop,
+mallocMC::OOMPolicies::ReturnNull,
+mallocMC::ReservePoolPolicies::SimpleCudaMalloc,
+mallocMC::AlignmentPolicies::Shrink<>
+> ScatterAllocator;
+
+//use ScatterAllocator to replace malloc/free
+MALLOCMC_SET_ALLOCATOR_TYPE( ScatterAllocator );
+MALLOCMC_OVERWRITE_MALLOC( );
+
 #include <simulation_defines.hpp>
 #include <mpi.h>
 #include "communication/manager_common.h"
@@ -41,22 +88,22 @@ using namespace picongpu;
  * @param argc count of arguments in argv
  * @param argv arguments of program start
  */
-int main(int argc, char **argv)
+int main( int argc, char **argv )
 {
-    MPI_CHECK(MPI_Init(&argc, &argv));
+    MPI_CHECK( MPI_Init( &argc, &argv ) );
 
     picongpu::simulation_starter::SimStarter sim;
-    if (!sim.parseConfigs(argc, argv))
+    if ( !sim.parseConfigs( argc, argv ) )
     {
-        MPI_CHECK(MPI_Finalize());
+        MPI_CHECK( MPI_Finalize( ) );
         return 1;
     }
 
-    sim.load();
-    sim.start();
-    sim.unload();
+    sim.load( );
+    sim.start( );
+    sim.unload( );
 
-    MPI_CHECK(MPI_Finalize());
+    MPI_CHECK( MPI_Finalize( ) );
 
     return 0;
 }

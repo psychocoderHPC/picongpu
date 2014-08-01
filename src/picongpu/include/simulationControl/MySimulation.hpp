@@ -274,11 +274,8 @@ public:
         Environment<>::get().EnvMemoryInfo().getMemoryInfo(&freeGpuMem);
         freeGpuMem -= totalFreeGpuMemory;
 
-        ForEach<VectorAllSpecies, particles::CallCreateParticleBuffer<bmpl::_1>, MakeIdentifier<bmpl::_1> > createParticleBuffer;
-        createParticleBuffer(forward(particleStorage), freeGpuMem);
-
-        Environment<>::get().EnvMemoryInfo().getMemoryInfo(&freeGpuMem);
-        log<picLog::MEMORY > ("free mem after all mem is allocated %1% MiB") % (freeGpuMem / 1024 / 1024);
+        // initializing the heap for species
+        mallocMC::initHeap(freeGpuMem);
 
         fieldB->init(*fieldE, *laser);
         fieldE->init(*fieldB, *laser);
@@ -336,11 +333,15 @@ public:
         EventTask eRfieldB = fieldB->asyncCommunication(__getTransactionEvent());
         __setTransactionEvent(eRfieldB);
 
+        log<picLog::MEMORY >("mallocMC: free slots after init %1% %2%") %
+            mallocMC::getAvailableSlots(sizeof (typename PIC_Electrons::FrameType)) % sizeof (typename PIC_Electrons::FrameType);
+
         return step;
     }
 
     virtual ~MySimulation()
     {
+        mallocMC::finalizeHeap();
     }
 
     /**
