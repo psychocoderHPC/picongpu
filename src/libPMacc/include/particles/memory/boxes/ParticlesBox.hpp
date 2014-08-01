@@ -62,12 +62,26 @@ public:
      */
     HDINLINE FRAME &getEmptyFrame()
     {
-        FrameType* tmp = new FrameType;
-        if (tmp == NULL)
-            printf("error mem is %llu\n", (unsigned long long int) tmp);
+        FrameType* tmp = NULL;
+        int tests = 0;
+
+        while (tests < 2 && tmp == NULL)
+        {
+            tmp = new FrameType;
+            if (tmp == NULL)
+            {
+                printf("ERROR in getEmptyFrame: after %i retries no memory on GPU\n",tests);
+                //int freeSlots = mallocMC::getAvailableSlots(sizeof (FrameType));
+                //printf("ERROR in getEmptyFrame: after 2 retries no memory on GPU, free slots %i of size %i\n", freeSlots, sizeof (FrameType));
+            }
+            ++tests;
+        }
+        if(tmp==NULL)
+            printf("ERROR in getEmptyFrame: after 2 retries no memory on GPU\n");
+
         /* delete all particles we can not assume that new memory is zeroed */
-        for(int i=0;i< (int)math::CT::volume<typename FrameType::SuperCellSize>::type::value;++i)
-            (*tmp)[i][multiMask_]=0;
+        for (int i = 0; i < (int) math::CT::volume<typename FrameType::SuperCellSize>::type::value; ++i)
+            (*tmp)[i][multiMask_] = 0;
 
         return *(FramePtr(tmp));
     }
@@ -230,7 +244,7 @@ public:
         {
 
             FramePtr prev(last->previousFrame);
-            last->previousFrame = FramePtr(); //delete previous frame of the frame which we remove
+            //            last->previousFrame = FramePtr(); //delete previous frame of the frame which we remove
 
             if (prev.isValid())
             {

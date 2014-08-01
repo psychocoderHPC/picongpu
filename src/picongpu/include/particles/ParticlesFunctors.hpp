@@ -72,40 +72,6 @@ struct CreateSpecies
     }
 };
 
-template<typename T_Species>
-struct GetMemoryFactor
-{
-    typedef bmpl::integral_c<size_t, T_Species::FrameType::memFactor> type;
-};
-
-template<typename T_Type>
-struct CallCreateParticleBuffer
-{
-    typedef T_Type SpeciesName;
-    typedef typename SpeciesName::type SpeciesType;
-
-    template<typename T_StorageTuple>
-    HINLINE void operator()(T_StorageTuple& tuple, const size_t freeGpuMem) const
-    {
-
-        const size_t myMemFactor = SpeciesType::FrameType::memFactor;
-        typedef typename bmpl::accumulate<
-            VectorAllSpecies,
-            bmpl::integral_c<size_t, 0>,
-            bmpl::plus<bmpl::_1, GetMemoryFactor<bmpl::_2> >
-            >::type AccumulatedMemFactors;
-
-        const size_t accumulatedMemFactors = AccumulatedMemFactors::value;
-        size_t byte = freeGpuMem * myMemFactor / accumulatedMemFactors;
-
-        log<picLog::MEMORY > ("create %1% MiB for species %2%") %
-            (byte / 1024 / 1024) %
-            SpeciesType::FrameType::getName();
-
-        tuple[SpeciesName()]->createParticleBuffer(byte);
-    }
-};
-
 template<typename T_Type>
 struct CallInit
 {
