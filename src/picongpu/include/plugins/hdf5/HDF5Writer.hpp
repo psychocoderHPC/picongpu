@@ -138,6 +138,7 @@ public:
 
     __host__ void notify(uint32_t currentStep)
     {
+        if(currentStep!=805) return; /* scorep: only dump one hdf5 file*/
         notificationReceived(currentStep, false);
     }
 

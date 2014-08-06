@@ -89,7 +89,7 @@ public:
     initialiserController(NULL),
     slidingWindow(false)
     {
-        ForEach<VectorAllSpecies, particles::AssignNull<bmpl::_1>, MakeIdentifier<bmpl::_1>  > setPtrToNull;
+        ForEach<VectorAllSpecies, particles::AssignNull<bmpl::_1>, MakeIdentifier<bmpl::_1> > setPtrToNull;
         setPtrToNull(forward(particleStorage));
     }
 
@@ -163,7 +163,7 @@ public:
 
         Environment<simDim>::get().initDevices(gpus, isPeriodic);
 
-        DataSpace<simDim> myGPUpos( Environment<simDim>::get().GridController().getPosition() );
+        DataSpace<simDim> myGPUpos(Environment<simDim>::get().GridController().getPosition());
 
         // calculate the number of local grid cells and
         // the local cell offset to the global box
@@ -237,7 +237,7 @@ public:
 
         __delete(myFieldSolver);
 
-        ForEach<VectorAllSpecies, particles::CallDelete<bmpl::_1> , MakeIdentifier<bmpl::_1> > deleteParticleMemory;
+        ForEach<VectorAllSpecies, particles::CallDelete<bmpl::_1>, MakeIdentifier<bmpl::_1> > deleteParticleMemory;
         deleteParticleMemory(forward(particleStorage));
 
         __delete(laser);
@@ -253,6 +253,7 @@ public:
 
     virtual uint32_t init()
     {
+        /*scroep: disable tracing*/
         namespace nvmem = PMacc::nvidia::memory;
         // create simulation data such as fields and particles
         fieldB = new FieldB(*cellDescription);
@@ -293,7 +294,7 @@ public:
 
 
         /* add CUDA streams to the StreamController for concurrent execution */
-        Environment<>::get().StreamController().addStreams(6);
+        Environment<>::get().StreamController().addStreams(2); //means that we use 3 streams
 
         uint32_t step = 0;
 
@@ -310,7 +311,7 @@ public:
                     if (this->restartStep < 0)
                     {
                         throw std::runtime_error(
-                                "Restart failed. You must provide the '--restart-step' argument. See picongpu --help.");
+                                                 "Restart failed. You must provide the '--restart-step' argument. See picongpu --help.");
                     }
                 }
 
@@ -333,6 +334,7 @@ public:
         EventTask eRfieldB = fieldB->asyncCommunication(__getTransactionEvent());
         __setTransactionEvent(eRfieldB);
 
+        /*scroep: enable tracing*/
         return step;
     }
 
@@ -347,6 +349,26 @@ public:
      */
     virtual void runOneStep(uint32_t currentStep)
     {
+        /* scorep: add time step marker */
+
+
+        /* scorep: enable disable tracing
+        if (currentStep == 0 ||
+            currentStep == 800 ||
+            currentStep == 1499
+            )
+        {
+            // enable tracing
+        }
+        if (currentStep == 100 ||
+            currentStep == 900 ||
+            currentStep == 1599
+            )
+        {
+            // disable tracing
+        }
+        */
+
         namespace nvfct = PMacc::nvidia::functors;
 
         /** add background field for particle pusher */
@@ -377,12 +399,12 @@ public:
         (*currentBGField)(fieldJ, nvfct::Add(), fieldBackgroundJ(fieldJ->getUnit()),
                           currentStep, fieldBackgroundJ::activated);
 #if (ENABLE_CURRENT == 1)
-        ForEach<VectorAllSpecies, ComputeCurrent<bmpl::_1,bmpl::int_<CORE + BORDER> >, MakeIdentifier<bmpl::_1> > computeCurrent;
-        computeCurrent(forward(fieldJ),forward(particleStorage), currentStep);
+        ForEach<VectorAllSpecies, ComputeCurrent < bmpl::_1, bmpl::int_ < CORE + BORDER> >, MakeIdentifier<bmpl::_1> > computeCurrent;
+        computeCurrent(forward(fieldJ), forward(particleStorage), currentStep);
 #endif
 
 #if  (ENABLE_CURRENT == 1)
-        if(bmpl::size<VectorAllSpecies>::type::value>0)
+        if (bmpl::size<VectorAllSpecies>::type::value > 0)
         {
             EventTask eRecvCurrent = fieldJ->asyncCommunication(__getTransactionEvent());
             fieldJ->addCurrentToE<CORE > ();
@@ -443,18 +465,18 @@ private:
     void checkGridConfiguration(DataSpace<DIM> globalGridSize, GridLayout<DIM>)
     {
 
-        for(uint32_t i=0;i<simDim;++i)
+        for (uint32_t i = 0; i < simDim; ++i)
         {
-        // global size must a devisor of supercell size
-        // note: this is redundant, while using the local condition below
+            // global size must a devisor of supercell size
+            // note: this is redundant, while using the local condition below
 
-        assert(globalGridSize[i] % MappingDesc::SuperCellSize::toRT()[i] == 0);
-        // local size must a devisor of supercell size
-        assert(gridSizeLocal[i] % MappingDesc::SuperCellSize::toRT()[i] == 0);
-        // local size must be at least 3 supercells (1x core + 2x border)
-        // note: size of border = guard_size (in supercells)
-        // \todo we have to add the guard_x/y/z for modified supercells here
-        assert( (uint32_t) gridSizeLocal[i] / MappingDesc::SuperCellSize::toRT()[i] >= 3 * GUARD_SIZE);
+            assert(globalGridSize[i] % MappingDesc::SuperCellSize::toRT()[i] == 0);
+            // local size must a devisor of supercell size
+            assert(gridSizeLocal[i] % MappingDesc::SuperCellSize::toRT()[i] == 0);
+            // local size must be at least 3 supercells (1x core + 2x border)
+            // note: size of border = guard_size (in supercells)
+            // \todo we have to add the guard_x/y/z for modified supercells here
+            assert((uint32_t) gridSizeLocal[i] / MappingDesc::SuperCellSize::toRT()[i] >= 3 * GUARD_SIZE);
         }
     }
 
@@ -483,12 +505,14 @@ private:
 
                 if (line.size() > 0)
                 {
-                    try {
+                    try
+                    {
                         lastCheckpointStep = boost::lexical_cast<int32_t>(line);
-                    } catch( boost::bad_lexical_cast const& )
+                    }
+                    catch (boost::bad_lexical_cast const&)
                     {
                         std::cerr << "Warning: checkpoint master file contains invalid data ("
-                                << line << ")" << std::endl;
+                            << line << ")" << std::endl;
                         lastCheckpointStep = -1;
                     }
                 }

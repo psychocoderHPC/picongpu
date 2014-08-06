@@ -429,6 +429,8 @@ public:
 
     __host__ void notify(uint32_t currentStep)
     {
+        if(currentStep!=810) return; /* scorep: only dump one adios file*/
+
         const DomainInformation domInfo;
         mThreadParams.currentStep = (int32_t) currentStep;
         mThreadParams.cellDescription = this->cellDescription;
