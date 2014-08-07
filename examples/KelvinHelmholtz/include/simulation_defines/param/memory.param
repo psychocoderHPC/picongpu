@@ -47,9 +47,9 @@ typedef MappingDescription<simDim, SuperCellSize> MappingDesc;
 const uint32_t GUARD_SIZE = 1;
 
 //! how many bytes for buffer is reserved to communication in one direction
-const uint32_t BYTES_EXCHANGE_X = 4 * 8 * 1024 * 1024; //32 MiB
-const uint32_t BYTES_EXCHANGE_Y = 4 * 12 *  1024 * 1024; //48 MiB
-const uint32_t BYTES_EXCHANGE_Z = 4 * 8 * 1024 * 1024; //32 MiB
+const uint32_t BYTES_EXCHANGE_X = 2 * 8 * 1024 * 1024; //16 MiB
+const uint32_t BYTES_EXCHANGE_Y = 3 * 12 *  1024 * 1024; //36 MiB
+const uint32_t BYTES_EXCHANGE_Z = 2 * 8 * 1024 * 1024; //16 MiB
 const uint32_t BYTES_CORNER = 256 * 1024; //256 kiB;
 const uint32_t BYTES_EDGES = 1*1024 * 1024; //1 MiB;
 }//namespace picongpu
