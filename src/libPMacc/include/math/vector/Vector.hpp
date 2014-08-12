@@ -35,6 +35,125 @@
 
 namespace PMacc
 {
+
+template<typename T_Type, typename T_size, int T_dim>
+class StaticHandle
+{
+public:
+    static const int dim = T_dim;
+    static const uint32_t size = T_size::value;
+    typedef T_Type Type;
+    typedef StaticHandle<T_Type, T_size, T_dim> This;
+
+    Type ptr[T_dim];
+
+public:
+
+    template<class> struct result;
+
+    // HDINLINE StaticHandle(Type* ptrIn) : ptr(ptrIn)
+    // {
+    // }
+
+    //template< class T_Vector>
+
+
+
+
+
+    template<class F, typename TKey>
+    struct result<F(TKey)>
+    {
+        typedef Type& type;
+    };
+
+    template<class F, typename TKey>
+    struct result<const F(TKey)>
+    {
+        typedef const Type& type;
+    };
+
+    HDINLINE
+    Type& operator[](const int idx)
+    {
+        return ptr[size * idx];
+    }
+
+    HDINLINE
+    const Type& operator[](const int idx) const
+    {
+        return ptr[size * idx];
+    }
+
+    template< class T_Vector>
+    HDINLINE This&
+    operator=(const T_Vector& rhs)
+    {
+        const int dimR = T_Vector::dim;
+        for (int i = 0; i < dimR; i++)
+            (*this)[i] = rhs[i];
+        return *this;
+    }
+
+
+    HDINLINE This&
+    operator=(const This& rhs)
+    {
+        const int dimR = This::dim;
+        for (int i = 0; i < dimR; i++)
+            (*this)[i] = rhs[i];
+        return *this;
+    }
+
+    template< class T_Vector>
+    HDINLINE This&
+    operator+=(const T_Vector&
+               other)
+    {
+        const int dimR = T_Vector::dim;
+        for (int i = 0; i < dimR; i++)
+            (*this)[i] += other[i];
+        return *this;
+    }
+
+    template< class T_Vector>
+    HDINLINE This&
+    operator/=(const T_Vector&
+               other)
+    {
+        const int dimR = T_Vector::dim;
+        for (int i = 0; i < dimR; i++)
+            (*this)[i] /= other[i];
+        return *this;
+    }
+
+    template< class T_Vector>
+    HDINLINE This&
+    operator*=(const T_Vector&
+               other)
+    {
+        const int dimR = T_Vector::dim;
+        for (int i = 0; i < dimR; i++)
+            (*this)[i] *= other[i];
+        return *this;
+    }
+
+    template< class T_Vector>
+    HDINLINE This&
+    operator-=(const T_Vector&
+               other)
+    {
+        const int dimR = T_Vector::dim;
+        for (int i = 0; i < dimR; i++)
+            (*this)[i] -= other[i];
+        return *this;
+    }
+
+    private:
+        HDINLINE StaticHandle(const This& other);
+
+};
+
 namespace math
 {
 namespace detail
@@ -84,7 +203,7 @@ struct Vector : private T_Storage<T_Type, T_dim>, protected T_Accessor, protecte
     typedef Vector<type, dim, Accessor, Navigator, T_Storage> This;
 
     /*Vectors without elements are not allowed*/
-    PMACC_CASSERT_MSG(math_Vector__with_DIM_0_is_not_allowed,dim > 0);
+    PMACC_CASSERT_MSG(math_Vector__with_DIM_0_is_not_allowed, dim > 0);
 
     template<class> struct result;
 
@@ -107,7 +226,7 @@ struct Vector : private T_Storage<T_Type, T_dim>, protected T_Accessor, protecte
     HDINLINE
     Vector(const type x, const type y)
     {
-        PMACC_CASSERT_MSG(math_Vector__constructor_is_only_allowed_for_DIM2,dim == 2);
+        PMACC_CASSERT_MSG(math_Vector__constructor_is_only_allowed_for_DIM2, dim == 2);
         (*this)[0] = x;
         (*this)[1] = y;
     }
@@ -115,7 +234,7 @@ struct Vector : private T_Storage<T_Type, T_dim>, protected T_Accessor, protecte
     HDINLINE
     Vector(const type x, const type y, const type z)
     {
-        PMACC_CASSERT_MSG(math_Vector__constructor_is_only_allowed_for_DIM3,dim == 3);
+        PMACC_CASSERT_MSG(math_Vector__constructor_is_only_allowed_for_DIM3, dim == 3);
         (*this)[0] = x;
         (*this)[1] = y;
         (*this)[2] = z;
@@ -132,6 +251,14 @@ struct Vector : private T_Storage<T_Type, T_dim>, protected T_Accessor, protecte
     {
         for (int i = 0; i < dim; i++)
             (*this)[i] = other[i];
+    }
+
+    template<typename T_TypeH, typename T_size>
+    HDINLINE Vector(const PMacc::StaticHandle<T_TypeH, T_size, dim>& other)
+    {
+        for (int i = 0; i < dim; i++)
+            (*this)[i] = other[i];
+
     }
 
     template<
@@ -193,13 +320,13 @@ struct Vector : private T_Storage<T_Type, T_dim>, protected T_Accessor, protecte
 
     HDINLINE type & y()
     {
-        PMACC_CASSERT_MSG(math_Vector__access_to_y_is_not_allowed_for_DIM_lesser_than_2,dim >= 2);
+        PMACC_CASSERT_MSG(math_Vector__access_to_y_is_not_allowed_for_DIM_lesser_than_2, dim >= 2);
         return (*this)[1];
     }
 
     HDINLINE type & z()
     {
-        PMACC_CASSERT_MSG(math_Vector__access_to_z_is_not_allowed_for_DIM_lesser_than_3,dim >= 3);
+        PMACC_CASSERT_MSG(math_Vector__access_to_z_is_not_allowed_for_DIM_lesser_than_3, dim >= 3);
         return (*this)[2];
     }
 
@@ -210,20 +337,20 @@ struct Vector : private T_Storage<T_Type, T_dim>, protected T_Accessor, protecte
 
     HDINLINE const type & y() const
     {
-        PMACC_CASSERT_MSG(math_Vector__access_to_y_is_not_allowed_for_DIM_lesser_than_2,dim >= 2);
+        PMACC_CASSERT_MSG(math_Vector__access_to_y_is_not_allowed_for_DIM_lesser_than_2, dim >= 2);
         return (*this)[1];
     }
 
     HDINLINE const type & z() const
     {
-        PMACC_CASSERT_MSG(math_Vector__access_to_z_is_not_allowed_for_DIM_lesser_than_3,dim >= 3);
+        PMACC_CASSERT_MSG(math_Vector__access_to_z_is_not_allowed_for_DIM_lesser_than_3, dim >= 3);
         return (*this)[2];
     }
 
     template<int shrinkedDim >
     HDINLINE Vector<type, shrinkedDim, Accessor, Navigator, T_Storage> shrink(const int startIdx = 0) const
     {
-        PMACC_CASSERT_MSG(math_Vector__shrinkedDim_DIM_must_be_lesser_or_equal_to_Vector_DIM,shrinkedDim <= dim);
+        PMACC_CASSERT_MSG(math_Vector__shrinkedDim_DIM_must_be_lesser_or_equal_to_Vector_DIM, shrinkedDim <= dim);
         Vector<type, shrinkedDim, Accessor, Navigator> result;
         for (int i = 0; i < shrinkedDim; i++)
             result[i] = (*this)[(startIdx + i) % dim];
@@ -400,13 +527,13 @@ struct Vector : private T_Storage<T_Type, T_dim>, protected T_Accessor, protecte
     {
         std::string locale_enclosing_begin;
         std::string locale_enclosing_end;
-        size_t enclosing_size=enclosings.size();
+        size_t enclosing_size = enclosings.size();
 
-        if(enclosing_size > 0)
+        if (enclosing_size > 0)
         {
             /* % avoid out of memory access */
-            locale_enclosing_begin=enclosings[0%enclosing_size];
-            locale_enclosing_end=enclosings[1%enclosing_size];
+            locale_enclosing_begin = enclosings[0 % enclosing_size];
+            locale_enclosing_end = enclosings[1 % enclosing_size];
         }
 
         std::stringstream stream;

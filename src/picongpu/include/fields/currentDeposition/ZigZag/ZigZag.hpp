@@ -281,7 +281,7 @@ struct ZigZag
                 inCellPos[d] = calc_InCellPos(pos_tmp, tmpRelayPoint, I[parId][d]);
                 flux[d] = sign * calc_chargeFlux(pos_tmp, tmpRelayPoint, deltaTime, charge) * volume_reci * cellSize[d];
             }
-            
+
             /* this loop is only needed for 2D, we need a flux in z direction */
             for (uint32_t d = simDim; d < 3; ++d)
             {

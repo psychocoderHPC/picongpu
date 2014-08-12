@@ -23,6 +23,7 @@
 #pragma once
 
 #include "types.h"
+#include "math/Vector.hpp"
 
 
 namespace PMacc
@@ -65,6 +66,48 @@ public:
     const Type& operator[](const int idx) const
     {
         return data[idx];
+    }
+};
+
+
+
+template<typename T_Type, typename T_size, int T_dim,typename T_Accessor,typename T_Navigator,template<typename,int> class T_Storage>
+class StaticArray<PMacc::math::Vector< T_Type, T_dim, T_Accessor, T_Navigator, T_Storage>,T_size>
+{
+public:
+    static const uint32_t size = T_size::value;
+    typedef T_Type Type;
+
+
+    typedef StaticHandle<Type,T_size,T_dim> Handle;
+    Type data[size*T_dim];
+
+public:
+
+    template<class> struct result;
+
+    template<class F, typename TKey>
+    struct result<F(TKey)>
+    {
+        typedef Handle& type;
+    };
+
+    template<class F, typename TKey>
+    struct result<const F(TKey)>
+    {
+        typedef const Handle& type;
+    };
+
+    HDINLINE
+    Handle& operator[](const int idx)
+    {
+        return *((Handle*)(data+idx));//Handle(data+idx*T_dim);
+    }
+
+    HDINLINE
+    const Handle& operator[](const int idx) const
+    {
+        return *((Handle*)(data+idx)); //Handle(data+idx*T_dim);
     }
 };
 

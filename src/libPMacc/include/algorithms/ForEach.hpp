@@ -44,6 +44,7 @@
 #include <boost/preprocessor/control/if.hpp>
 #include <boost/preprocessor/comparison/not_equal.hpp>
 #include <boost/preprocessor/repetition/enum_trailing.hpp>
+#include <boost/preprocessor/cat.hpp>
 #include <boost/mpl/apply.hpp>
 #include <boost/mpl/transform.hpp>
 #include "forward.hpp"
@@ -72,6 +73,8 @@ namespace PMacc
 namespace algorithms
 {
 
+#define PMACC_REF(_, n, text) text##n &
+
 //########################### definitions for preprocessor #####################
 /** create operator() for EmptyFunctor
  *
@@ -91,10 +94,11 @@ namespace algorithms
     /*  if N != 0 we add ```>``` */                                            \
     BOOST_PP_IF(BOOST_PP_NOT_EQUAL(N,0),>,BOOST_PP_EMPTY())                    \
     HDINLINE void                                                              \
-    /*        ( const T0, ... , cont TN         ) */                           \
-    operator()( BOOST_PP_ENUM_PARAMS(N, const T)) PMACC_PP_CONST               \
+    /*        ( const T0, ... , cont TN&         ) */                           \
+    operator()( BOOST_PP_ENUM(N,PMACC_REF, const T)) PMACC_PP_CONST            \
     {                                                                          \
     }/*end of operator()*/
+
 
 
 /** makro creates getForwardedValue(tn) */
@@ -243,6 +247,7 @@ struct ForEach
 #undef PMACC_FOREACH_OPERATOR
 #undef PMACC_FOREACH_OPERATOR_NO_USAGE
 #undef PMACC_GET_FORWARDED_VALUE
+#undef PMACC_REF
 
 } // namespace forEach
 } // namespace algorithms

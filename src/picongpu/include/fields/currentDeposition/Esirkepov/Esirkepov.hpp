@@ -76,7 +76,7 @@ struct Esirkepov<T_ParticleShape, DIM3>
         const float3_X deltaPos = float3_X(velocity.x() * deltaTime / cellSize.x(),
                                            velocity.y() * deltaTime / cellSize.y(),
                                            velocity.z() * deltaTime / cellSize.z());
-        const PosType oldPos = pos - deltaPos;
+        const floatD_X oldPos = pos - deltaPos;
         Line<float3_X> line(oldPos, pos);
         BOOST_AUTO(cursorJ, dataBoxJ.toCursor());
 
