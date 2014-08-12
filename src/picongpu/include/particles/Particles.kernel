@@ -181,7 +181,7 @@ __global__ void kernelAddTemperature(ParticlesBox<FRAME, simDim> pb, float_X ene
             // and a macroEnergy now.
             const float3_X mom = tmpRand * (float_X) math::sqrt(
                                                                 precisionCast<sqrt_X > (
-                                                                                   macroEnergy * getMass<FRAME>(macroWeighting)
+                                                                                        macroEnergy * getMass<FRAME>(macroWeighting)
                                                                                         )
                                                                 );
             particle[momentum_] += mom;
@@ -270,7 +270,7 @@ __global__ void kernelSetDrift(ParBox pb,
 
                 PMACC_AUTO(particle, ((*frame)[linearThreadIdx]));
                 const float_X macroWeighting = particle[weighting_];
-                const float_X macroMass =  getMass<FRAME>(macroWeighting);
+                const float_X macroMass = getMass<FRAME>(macroWeighting);
 
 
                 const float_64 PARTICLE_INIT_DRIFT_BETA =
@@ -309,7 +309,7 @@ __global__ void kernelSetDrift(ParBox pb,
     }
 }
 
-template<class BlockDescription_, class ParBox, class BBox, class EBox, class Mapping, class FrameSolver>
+template<int workerMultiplier, class BlockDescription_, class ParBox, class BBox, class EBox, class Mapping, class FrameSolver>
 __global__ void kernelMoveAndMarkParticles(ParBox pb,
                                            EBox fieldE,
                                            BBox fieldB,
@@ -317,11 +317,17 @@ __global__ void kernelMoveAndMarkParticles(ParBox pb,
                                            Mapping mapper)
 {
     typedef typename BlockDescription_::SuperCellSize SuperCellSize;
+    const uint32_t cellsPerSuperCell = PMacc::math::CT::volume<SuperCellSize>::type::value;
+
     const DataSpace<simDim> block(mapper.getSuperCellIndex(DataSpace<simDim > (blockIdx)));
 
 
     const DataSpace<simDim > threadIndex(threadIdx);
     const int linearThreadIdx = DataSpaceOperations<simDim>::template map<SuperCellSize > (threadIndex);
+
+    const uint32_t virtualBlockId = linearThreadIdx / cellsPerSuperCell;
+    /* move linearThreadIdx for all threads to [0;cellsPerSuperCell) */
+    const int virtualLinearId = linearThreadIdx - (virtualBlockId * cellsPerSuperCell);
 
 
     const DataSpace<simDim> blockCell = block * SuperCellSize::toRT();
@@ -335,12 +341,22 @@ __global__ void kernelMoveAndMarkParticles(ParBox pb,
 
     __syncthreads(); /*wait that all shared memory is initialised*/
 
-    if (linearThreadIdx == 0)
+    if (virtualLinearId == 0)
     {
         mustShift = 0;
     }
+
+
     frame = &(pb.getLastFrame(block, isValid));
-    particlesInSuperCell = pb.getSuperCell(block).getSizeLastFrame();
+    if (isValid && virtualBlockId == 0)
+        particlesInSuperCell = pb.getSuperCell(block).getSizeLastFrame();
+
+    /* select N-th (N=virtualBlockId) frame from the end of the list*/
+    for (int i = 1; (i <= virtualBlockId) && isValid; ++i)
+    {
+        particlesInSuperCell = PMacc::math::CT::volume<SuperCellSize>::type::value;
+        frame = &(pb.getPreviousFrame(*frame, isValid));
+    }
 
     PMACC_AUTO(cachedB, CachedBox::create < 0, typename BBox::ValueType > (BlockDescription_()));
     PMACC_AUTO(cachedE, CachedBox::create < 1, typename EBox::ValueType > (BlockDescription_()));
@@ -353,7 +369,7 @@ __global__ void kernelMoveAndMarkParticles(ParBox pb,
     PMACC_AUTO(fieldBBlock, fieldB.shift(blockCell));
 
     nvidia::functors::Assign assign;
-    ThreadCollective<BlockDescription_> collectiv(linearThreadIdx);
+    ThreadCollective<BlockDescription_, cellsPerSuperCell * workerMultiplier> collectiv(linearThreadIdx);
     collectiv(
               assign,
               cachedB,
@@ -371,17 +387,19 @@ __global__ void kernelMoveAndMarkParticles(ParBox pb,
     /*move oder frames and call frame solver*/
     while (isValid)
     {
-        if (linearThreadIdx < particlesInSuperCell)
+        if (virtualLinearId < particlesInSuperCell)
         {
-            frameSolver(*frame, linearThreadIdx, cachedB, cachedE, mustShift);
+            frameSolver(*frame, virtualLinearId, cachedB, cachedE, mustShift);
         }
-        frame = &(pb.getPreviousFrame(*frame, isValid));
         particlesInSuperCell = PMacc::math::CT::volume<SuperCellSize>::type::value;
-
+        for (int i = 0; (i < workerMultiplier) && isValid; ++i)
+        {
+            frame = &(pb.getPreviousFrame(*frame, isValid));
+        }
     }
     __syncthreads();
     /*set in SuperCell the mustShift flag which is a optimization for shift particles and fillGaps*/
-    if (linearThreadIdx == 0 && mustShift == 1)
+    if (virtualLinearId == 0 && mustShift == 1)
     {
         pb.getSuperCell(mapper.getSuperCellIndex(DataSpace<simDim > (blockIdx))).setMustShift(true);
     }
@@ -412,7 +430,7 @@ struct PushParticlePerFrame
 
         EType eField = Field2ParticleInterpolation()
             (eBox.shift(localCell).toCursor(), pos, NumericalCellType::getEFieldPosition());
-        BType bField =Field2ParticleInterpolation()
+        BType bField = Field2ParticleInterpolation()
             (bBox.shift(localCell).toCursor(), pos, NumericalCellType::getBFieldPosition());
 
         float3_X mom = particle[momentum_];

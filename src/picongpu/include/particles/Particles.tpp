@@ -146,6 +146,11 @@ void Particles<T_ParticleDescription>::init( FieldE &fieldE, FieldB &fieldB, Fie
 template<typename T_ParticleDescription>
 void Particles<T_ParticleDescription>::update(uint32_t )
 {
+     /** tune paramter to use more threads than cells in a supercell
+     *  valid domain: 1 <= workerMultiplier
+     */
+    const int workerMultiplier = 2;
+
     typedef typename HasFlag<FrameType,particlePusher<> >::type hasPusher;
     typedef typename GetFlagType<FrameType,particlePusher<> >::type FoundPusher;
 
@@ -168,10 +173,11 @@ void Particles<T_ParticleDescription>::update(uint32_t )
         UpperMargin
         > BlockArea;
 
-    dim3 block( MappingDesc::SuperCellSize::toRT().toDim3() );
+    DataSpace<simDim> blockSize( SuperCellSize::toRT( ) );
+    blockSize[simDim-1]*=workerMultiplier;
 
-    __picKernelArea( kernelMoveAndMarkParticles<BlockArea>, this->cellDescription, CORE + BORDER )
-        (block)
+    __picKernelArea( (kernelMoveAndMarkParticles<workerMultiplier,BlockArea>), this->cellDescription, CORE + BORDER )
+        (blockSize)
         ( this->getDeviceParticlesBox( ),
           this->fieldE->getDeviceDataBox( ),
           this->fieldB->getDeviceDataBox( ),

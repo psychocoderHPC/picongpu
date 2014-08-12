@@ -213,7 +213,7 @@ void FieldJ::computeCurrent( ParticlesClass &parClass, uint32_t ) throw (std::in
     /** tune paramter to use more threads than cells in a supercell
      *  valid domain: 1 <= workerMultiplier
      */
-    const int workerMultiplier = 2;
+    const int workerMultiplier = 3;
 
     typedef typename ParticlesClass::FrameType FrameType;
     typedef typename GetFlagType<FrameType, current<> >::type::ThisType ParticleCurrentSolver;
