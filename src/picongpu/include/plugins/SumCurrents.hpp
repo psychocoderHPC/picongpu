@@ -91,7 +91,7 @@ private:
     MappingDesc *cellDescription;
     uint32_t notifyFrequency;
 
-    GridBuffer<float3_X, DIM1> *sumcurrents;
+    GridBuffer<BufferDefinition<float3_X, DIM1> > *sumcurrents;
 
 public:
 
@@ -169,7 +169,7 @@ private:
     {
         if (notifyFrequency > 0)
         {
-            sumcurrents = new GridBuffer<float3_X, DIM1 > (DataSpace<DIM1 > (1)); //create one int on gpu und host
+            sumcurrents = new GridBuffer<BufferDefinition<float3_X, DIM1 > >(DataSpace<DIM1 > (1)); //create one int on gpu und host
 
             Environment<>::get().PluginConnector().setNotificationPeriod(this, notifyFrequency);
         }

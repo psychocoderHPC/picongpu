@@ -32,8 +32,8 @@ namespace picongpu
 {
     namespace gasHomogenous
     {
-        template<class Type>
-        bool gasSetup( GridBuffer<Type, simDim>&, Window& )
+        template<class T_GridBuffer>
+        bool gasSetup( T_GridBuffer&, Window& )
         {
             return true;
         }

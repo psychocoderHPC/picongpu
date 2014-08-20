@@ -36,12 +36,17 @@
 namespace PMacc
 {
 
-template <class TYPE, unsigned DIM>
+template <typename T_BufferDef>
 class TaskReceiveMPI : public MPITask
 {
 public:
 
-    TaskReceiveMPI(Exchange<TYPE, DIM> *exchange) :
+    typedef T_BufferDef BufferDef;
+
+    typedef typename BufferDef::ValueType TYPE;
+    static const unsigned int DIM = BufferDef::dim;
+
+    TaskReceiveMPI(Exchange<BufferDef> *exchange) :
     MPITask(),
     exchange(exchange)
     {
@@ -52,11 +57,11 @@ public:
     {
         __startAtomicTransaction();
         this->request = Environment<DIM>::get().EnvironmentController()
-                .getCommunicator().startReceive(
-                                                exchange->getExchangeType(),
-                                                (char*) exchange->getHostBuffer().getBasePointer(),
-                                                exchange->getHostBuffer().getDataSpace().productOfComponents() * sizeof (TYPE),
-                                                exchange->getCommunicationTag());
+            .getCommunicator().startReceive(
+                                            exchange->getExchangeType(),
+                                            (char*) exchange->getHostBuffer().getBasePointer(),
+                                            exchange->getHostBuffer().getDataSpace().productOfComponents() * sizeof (TYPE),
+                                            exchange->getCommunicationTag());
         __endTransaction();
     }
 
@@ -68,7 +73,7 @@ public:
         if (this->request == NULL)
             throw std::runtime_error("request was NULL (call executeIntern after freed");
 
-        int flag=0;
+        int flag = 0;
         MPI_CHECK(MPI_Test(this->request, &flag, &(this->status)));
 
         if (flag) //finished
@@ -107,7 +112,7 @@ public:
     }
 
 private:
-    Exchange<TYPE, DIM> *exchange;
+    Exchange<BufferDef> *exchange;
     MPI_Request *request;
     MPI_Status status;
 };

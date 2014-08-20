@@ -1,5 +1,5 @@
 /**
- * Copyright 2013 Heiko Burau, Rene Widera
+ * Copyright 2014 Rene Widera
  *
  * This file is part of libPMacc.
  *
@@ -20,30 +20,46 @@
  * If not, see <http://www.gnu.org/licenses/>.
  */
 
-#ifndef CONTAINER_PSEUDOBUFFER_HPP
-#define CONTAINER_PSEUDOBUFFER_HPP
+#pragma once
 
-#include "memory/buffers/DeviceBuffer.hpp"
-#include "memory/buffers/HostBuffer.hpp"
-#include "cuSTL/container/CartBuffer.hpp"
+#include "types.h"
+#include <cassert>
 
 namespace PMacc
 {
-namespace container
-{
 
-template<typename Type, int dim>
-struct PseudoBuffer : public container::CartBuffer<Type, dim>
+class ConstBufferSize
 {
-    template<typename _Type>
-    PseudoBuffer(PMacc::DeviceBuffer<BufferDefinition<_Type, dim> > & devBuffer);
-    template<typename _Type>
-    PseudoBuffer(PMacc::HostBuffer<BufferDefinition<_Type, dim> >& hostBuffer);
+public:
+
+    ConstBufferSize(size_t sizeIn, size_t maxSizeIn) : size(sizeIn)
+    {
+        assert(sizeIn == maxSizeIn);
+    }
+
+    virtual ~ConstBufferSize()
+    {
+    }
+
+    /*! returns the current size (count of elements)
+     * @return current size
+     */
+    virtual size_t getCurrentSize()
+    {
+        return size;
+    }
+
+    /*! ignore any set call but checks that new size is equal than old size
+     * @param newsize new current size
+     */
+    virtual void setCurrentSize(size_t newsize)
+    {
+        assert(newsize == size);
+    }
+
+private:
+
+    const size_t size;
 };
 
-} // container
-} // PMacc
-
-#include "PseudoBuffer.tpp"
-
-#endif // CONTAINER_PSEUDOBUFFER_HPP
+} //namespace PMacc

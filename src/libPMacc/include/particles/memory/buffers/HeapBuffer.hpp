@@ -32,7 +32,6 @@
 namespace PMacc
 {
 
-
 /**
  * Represents a RingBuffer and an actual data buffer and can generate HeapDataBoxes.
  *
@@ -41,9 +40,15 @@ namespace PMacc
  * @tparam BORDERVALUE datatype used for indexed border values (TYPE by default)
  */
 template <class TYPE, class VALUE, class BORDERVALUE = VALUE>
-class HeapBuffer : public GridBuffer<VALUE, DIM1, BORDERVALUE>
+class HeapBuffer :
+public GridBuffer<BufferDefinition<VALUE, DIM1, ConstBufferSize>, BufferDefinition<BORDERVALUE, DIM1, ConstBufferSize> >
 {
 public:
+
+    typedef GridBuffer<
+    BufferDefinition<VALUE, DIM1, ConstBufferSize>,
+    BufferDefinition<BORDERVALUE, DIM1, ConstBufferSize>
+    > MyGridBuffer;
 
     enum
     {
@@ -56,7 +61,7 @@ public:
      * \see GridBuffer
      */
     HeapBuffer(DataSpace<DIM1> dataSpace) :
-    GridBuffer<VALUE, DIM1, BORDERVALUE>(dataSpace), ringBuffer(NULL)
+    MyGridBuffer(dataSpace), ringBuffer(NULL)
     {
         ringBuffer = new RingBuffer<TYPE, TYPE > (dataSpace.productOfComponents());
     }

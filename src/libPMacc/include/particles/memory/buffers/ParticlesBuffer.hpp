@@ -72,12 +72,13 @@ public:
     template<uint32_t T_size>
     struct OperatorCreatePairStaticArray
     {
+
         template<typename X>
         struct apply
         {
             typedef
             bmpl::pair<X,
-            StaticArray< typename X::type, bmpl::integral_c<uint32_t,T_size> >
+            StaticArray< typename X::type, bmpl::integral_c<uint32_t, T_size> >
             > type;
         };
     };
@@ -125,6 +126,24 @@ private:
 
 public:
 
+    typedef GridBuffer<
+    BufferDefinition<PopPushType, DIM1>,
+    BufferDefinition<PopPushType, DIM1, BufferSize>
+    > IndexGridBuffer;
+
+    typedef GridBuffer<
+    BufferDefinition<ParticleType, DIM1>,
+    BufferDefinition<ParticleTypeBorder, DIM1, BufferSize>
+    > FrameGridBufferExchanges;
+
+    typedef GridBuffer<
+    BufferDefinition<vint_t, DIM1>
+    > FrameLinkBuffer;
+
+    typedef GridBuffer<
+    BufferDefinition<SuperCell<vint_t>, DIM>
+    > SuperCellsBuffer;
+
     /**
      * Constructor.
      *
@@ -136,13 +155,13 @@ public:
     superCellSize(superCellSize), gridSize(layout), frames(NULL), framesExchanges(NULL), nextFrames(NULL), prevFrames(NULL)
     {
 
-        exchangeMemoryIndexer = new GridBuffer<PopPushType, DIM1 > (DataSpace<DIM1 > (0));
-        framesExchanges = new GridBuffer< ParticleType, DIM1, ParticleTypeBorder > (DataSpace<DIM1 > (0));
+        exchangeMemoryIndexer = new IndexGridBuffer(DataSpace<DIM1 > (0));
+        framesExchanges = new FrameGridBufferExchanges(DataSpace<DIM1 > (0));
 
         //std::cout << "size: " << sizeof (ParticleType) << " " << sizeof (ParticleTypeBorder) << std::endl;
         DataSpace<DIM> superCellsCount = gridSize / superCellSize;
 
-        superCells = new GridBuffer<SuperCell<vint_t>, DIM > (superCellsCount);
+        superCells = new SuperCellsBuffer(superCellsCount);
 
     }
 
@@ -153,8 +172,8 @@ public:
 
         frames = new HeapBuffer<vint_t, ParticleType, ParticleTypeBorder > (DataSpace<DIM1 > (numFrames));
 
-        nextFrames = new GridBuffer<vint_t, DIM1 > (DataSpace<DIM1 > (numFrames));
-        prevFrames = new GridBuffer<vint_t, DIM1 > (DataSpace<DIM1 > (numFrames));
+        nextFrames = new FrameLinkBuffer(DataSpace<DIM1 > (numFrames));
+        prevFrames = new FrameLinkBuffer(DataSpace<DIM1 > (numFrames));
 
         /** \fixme use own log level, like log<ggLog::MEMORY >
          */
@@ -411,13 +430,13 @@ public:
     }
 
 private:
-    GridBuffer<PopPushType, DIM1> *exchangeMemoryIndexer;
+    IndexGridBuffer *exchangeMemoryIndexer;
 
-    GridBuffer<SuperCell<vint_t>, DIM> *superCells;
-    GridBuffer<vint_t, DIM1> *nextFrames;
-    GridBuffer<vint_t, DIM1> *prevFrames;
+    SuperCellsBuffer *superCells;
+    FrameLinkBuffer *nextFrames;
+    FrameLinkBuffer *prevFrames;
     /*gridbuffer for hold borderFrames, we need a own buffer to create first exchanges without core momory*/
-    GridBuffer< ParticleType, DIM1, ParticleTypeBorder> *framesExchanges;
+    FrameGridBufferExchanges *framesExchanges;
     HeapBuffer<vint_t, ParticleType, ParticleTypeBorder> *frames;
 
     DataSpace<DIM> superCellSize;

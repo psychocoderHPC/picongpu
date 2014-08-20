@@ -568,7 +568,7 @@ public:
         int elements = img->getGridLayout().getDataSpace().productOfComponents();
 
         //Add one dimension access to 2d DataBox
-        typedef DataBoxDim1Access<typename GridBuffer<float3_X, DIM2 >::DataBoxType> D1Box;
+        typedef DataBoxDim1Access<typename GridBuffer<BufferDefinition<float3_X, DIM2> >::DataBoxType> D1Box;
         D1Box d1access(img->getDeviceBuffer().getDataBox(), img->getGridLayout().getDataSpace());
 
 #if (EM_FIELD_SCALE_CHANNEL1 == -1 || EM_FIELD_SCALE_CHANNEL2 == -1 || EM_FIELD_SCALE_CHANNEL3 == -1)
@@ -661,7 +661,7 @@ public:
             header = MessageHeader::create();
             header->update(*cellDescription, window, transpose, 0, cellSizeArr, gpus);
 
-            img = new GridBuffer<float3_X, DIM2 > (header->node.maxSize);
+            img = new GridBuffer<BufferDefinition<float3_X, DIM2> > (header->node.maxSize);
 
             bool isDrawing = doDrawing();
             isMaster = gather.init(isDrawing);
@@ -694,7 +694,7 @@ private:
     MappingDesc *cellDescription;
     SimulationDataId particleTag;
 
-    GridBuffer<float3_X, DIM2 > *img;
+    GridBuffer<BufferDefinition<float3_X, DIM2> > *img;
 
     int sliceOffset;
     uint32_t notifyFrequency;

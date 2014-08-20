@@ -166,7 +166,7 @@ public:
              *
              * all values are zero after initialization
              */
-            GridBuffer<uint32_t, DIM1> counterBuffer(DataSpace<DIM1>(3));
+            GridBuffer<BufferDefinition<uint32_t, DIM1> > counterBuffer(DataSpace<DIM1>(3));
 
             const uint32_t cellsInSuperCell = PMacc::math::CT::volume<SuperCellSize>::type::value;
 

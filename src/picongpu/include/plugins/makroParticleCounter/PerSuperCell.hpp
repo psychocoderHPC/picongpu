@@ -113,7 +113,7 @@ private:
 
 
     typedef MappingDesc::SuperCellSize SuperCellSize;
-    typedef GridBuffer<size_t, simDim> GridBufferType;
+    typedef GridBuffer<BufferDefinition<size_t, simDim> > GridBufferType;
 
     ParticlesType *particles;
 
@@ -197,10 +197,10 @@ private:
     void pluginUnload()
     {
         __delete(localResult);
-        
+
         if (dataCollector)
             dataCollector->finalize();
-        
+
         __delete(dataCollector);
     }
 

@@ -35,174 +35,187 @@
 namespace PMacc
 {
 
-    template <class TYPE, unsigned DIM>
-    class HostBuffer;
-    template <class TYPE, unsigned DIM>
-    class DeviceBuffer;
+template <typename>
+class HostBuffer;
+template <typename>
+class DeviceBuffer;
 
-    template <class TYPE, unsigned DIM>
-    class TaskCopyDeviceToHostBase : public StreamTask
+template <typename T_BufferDef>
+class TaskCopyDeviceToHostBase : public StreamTask
+{
+public:
+
+    typedef T_BufferDef BufferDef;
+    typedef typename BufferDef::ValueType TYPE;
+    static const unsigned int DIM = BufferDef::dim;
+
+    TaskCopyDeviceToHostBase(DeviceBuffer<BufferDef>& src, HostBuffer<BufferDef>& dst) :
+    StreamTask()
     {
-    public:
+        this->host = &dst;
+        this->device = &src;
+    }
 
-        TaskCopyDeviceToHostBase( DeviceBuffer<TYPE, DIM>& src, HostBuffer<TYPE, DIM>& dst) :
-        StreamTask()
-        {
-            this->host =  & dst;
-            this->device =  & src;
-        }
-
-        virtual ~TaskCopyDeviceToHostBase()
-        {
-            notify(this->myId, COPYDEVICE2HOST, NULL);
-            //std::cout<<"destructor TaskD2H"<<std::endl;
-        }
-
-        bool executeIntern()
-        {
-            return isFinished();
-        }
-
-        void event(id_t, EventType, IEventData*)
-        {
-        }
-
-        std::string toString()
-        {
-            return "TaskCopyDeviceToHost";
-        }
-
-        virtual void init()
-        {
-           // __startAtomicTransaction( __getTransactionEvent());
-            size_t current_size = device->getCurrentSize();
-            host->setCurrentSize(current_size);
-            DataSpace<DIM> devCurrentSize = device->getCurrentDataSpace(current_size);
-            if (host->is1D() && device->is1D())
-                fastCopy(device->getPointer(),host->getPointer(),  devCurrentSize.productOfComponents());
-            else
-                copy(devCurrentSize);
-
-            this->activate();
-           // __setTransactionEvent(__endTransaction());
-        }
-
-    protected:
-
-        virtual void copy(DataSpace<DIM> &devCurrentSize) = 0;
-
-        void fastCopy(TYPE* src,TYPE* dst,  size_t size)
-        {
-            CUDA_CHECK(cudaMemcpyAsync(dst,
-                                       src,
-                                       size * sizeof (TYPE),
-                                       cudaMemcpyDeviceToHost,
-                                       this->getCudaStream()));
-            //std::cout<<"-----------fast D2H"<<std::endl;;
-        }
-
-        HostBuffer<TYPE, DIM> *host;
-        DeviceBuffer<TYPE, DIM> *device;
-    };
-
-    template <class TYPE, unsigned DIM>
-    class TaskCopyDeviceToHost;
-
-    template <class TYPE>
-    class TaskCopyDeviceToHost<TYPE, DIM1> : public TaskCopyDeviceToHostBase<TYPE, DIM1>
+    virtual ~TaskCopyDeviceToHostBase()
     {
-    public:
+        notify(this->myId, COPYDEVICE2HOST, NULL);
+        //std::cout<<"destructor TaskD2H"<<std::endl;
+    }
 
-        TaskCopyDeviceToHost( DeviceBuffer<TYPE, DIM1>& src, HostBuffer<TYPE, DIM1>& dst) :
-        TaskCopyDeviceToHostBase<TYPE, DIM1>(src, dst)
-        {
-        }
-
-    private:
-
-        virtual void copy(DataSpace<DIM1> &devCurrentSize)
-        {
-            //std::cout << "dev2host: " << this->getCudaStream() << std::endl;
-
-            CUDA_CHECK(cudaMemcpyAsync(this->host->getBasePointer(),
-                                       this->device->getPointer(),
-                                       devCurrentSize[0] * sizeof (TYPE),
-                                       cudaMemcpyDeviceToHost,
-                                       this->getCudaStream()));
-
-        }
-
-    };
-
-    template <class TYPE>
-    class TaskCopyDeviceToHost<TYPE, DIM2> : public TaskCopyDeviceToHostBase<TYPE, DIM2>
+    bool executeIntern()
     {
-    public:
+        return isFinished();
+    }
 
-        TaskCopyDeviceToHost(DeviceBuffer<TYPE, DIM2>& src, HostBuffer<TYPE, DIM2>& dst) :
-        TaskCopyDeviceToHostBase<TYPE, DIM2>(src, dst)
-        {
-        }
-
-    private:
-
-        virtual void copy(DataSpace<DIM2> &devCurrentSize)
-        {
-            CUDA_CHECK(cudaMemcpy2DAsync(this->host->getBasePointer(),
-                                         this->host->getDataSpace()[0] * sizeof (TYPE), /*this is pitch*/
-                                         this->device->getPointer(),
-                                         this->device->getPitch(), /*this is pitch*/
-                                         devCurrentSize[0] * sizeof (TYPE),
-                                         devCurrentSize[1],
-                                         cudaMemcpyDeviceToHost,
-                                         this->getCudaStream()));
-
-        }
-
-    };
-
-    template <class TYPE>
-    class TaskCopyDeviceToHost<TYPE, DIM3> : public TaskCopyDeviceToHostBase<TYPE, DIM3>
+    void event(id_t, EventType, IEventData*)
     {
-    public:
+    }
 
-        TaskCopyDeviceToHost( DeviceBuffer<TYPE, DIM3>& src, HostBuffer<TYPE, DIM3>& dst) :
-        TaskCopyDeviceToHostBase<TYPE, DIM3>(src, dst)
-        {
-        }
+    std::string toString()
+    {
+        return "TaskCopyDeviceToHost";
+    }
 
-    private:
+    virtual void init()
+    {
+        // __startAtomicTransaction( __getTransactionEvent());
+        size_t current_size = device->getCurrentSize();
+        host->setCurrentSize(current_size);
+        DataSpace<DIM> devCurrentSize = device->getCurrentDataSpace(current_size);
+        if (host->is1D() && device->is1D())
+            fastCopy(device->getPointer(), host->getPointer(), devCurrentSize.productOfComponents());
+        else
+            copy(devCurrentSize);
 
-        virtual void copy(DataSpace<DIM3> &devCurrentSize)
-        {
-            cudaPitchedPtr hostPtr;
-            hostPtr.pitch = this->host->getDataSpace()[0] * sizeof (TYPE);
-            hostPtr.ptr = this->host->getBasePointer();
-            hostPtr.xsize = this->host->getDataSpace()[0] * sizeof (TYPE);
-            hostPtr.ysize = this->host->getDataSpace()[1];
+        this->activate();
+        // __setTransactionEvent(__endTransaction());
+    }
 
-            cudaMemcpy3DParms params;
-            params.srcArray = NULL;
-            params.srcPos = make_cudaPos(this->device->getOffset()[0] * sizeof (TYPE),
-                                         this->device->getOffset()[1],
-                                         this->device->getOffset()[2]);
-            params.srcPtr = this->device->getCudaPitched();
+protected:
 
-            params.dstArray = NULL;
-            params.dstPos = make_cudaPos(0, 0, 0);
-            params.dstPtr = hostPtr;
+    virtual void copy(DataSpace<DIM> &devCurrentSize) = 0;
 
-            params.extent = make_cudaExtent(
-                                            devCurrentSize[0] * sizeof (TYPE),
-                                            devCurrentSize[1],
-                                            devCurrentSize[2]);
-            params.kind = cudaMemcpyDeviceToHost;
+    void fastCopy(TYPE* src, TYPE* dst, size_t size)
+    {
+        CUDA_CHECK(cudaMemcpyAsync(dst,
+                                   src,
+                                   size * sizeof (TYPE),
+                                   cudaMemcpyDeviceToHost,
+                                   this->getCudaStream()));
+        //std::cout<<"-----------fast D2H"<<std::endl;;
+    }
 
-            CUDA_CHECK(cudaMemcpy3DAsync(&params, this->getCudaStream()));
+    HostBuffer<BufferDef> *host;
+    DeviceBuffer<BufferDef> *device;
+};
 
-        }
+template <class TYPE, unsigned DIM, typename T_SizeDefinition>
+class TaskCopyDeviceToHost;
 
-    };
+template <class TYPE, typename T_SizeDefinition>
+class TaskCopyDeviceToHost<TYPE, DIM1, T_SizeDefinition> :
+public TaskCopyDeviceToHostBase<BufferDefinition<TYPE, DIM1, T_SizeDefinition> >
+{
+public:
+
+    typedef BufferDefinition<TYPE, DIM1, T_SizeDefinition> BufferDef;
+
+    TaskCopyDeviceToHost(DeviceBuffer<BufferDef>& src, HostBuffer<BufferDef>& dst) :
+    TaskCopyDeviceToHostBase<BufferDef>(src, dst)
+    {
+    }
+
+private:
+
+    virtual void copy(DataSpace<DIM1> &devCurrentSize)
+    {
+        //std::cout << "dev2host: " << this->getCudaStream() << std::endl;
+
+        CUDA_CHECK(cudaMemcpyAsync(this->host->getBasePointer(),
+                                   this->device->getPointer(),
+                                   devCurrentSize[0] * sizeof (TYPE),
+                                   cudaMemcpyDeviceToHost,
+                                   this->getCudaStream()));
+
+    }
+
+};
+
+template <class TYPE, typename T_SizeDefinition>
+class TaskCopyDeviceToHost<TYPE, DIM2, T_SizeDefinition> :
+public TaskCopyDeviceToHostBase<BufferDefinition<TYPE, DIM2, T_SizeDefinition> >
+{
+public:
+
+    typedef BufferDefinition<TYPE, DIM2, T_SizeDefinition> BufferDef;
+
+    TaskCopyDeviceToHost(DeviceBuffer<BufferDef>& src, HostBuffer<BufferDef>& dst) :
+    TaskCopyDeviceToHostBase<BufferDef>(src, dst)
+    {
+    }
+
+private:
+
+    virtual void copy(DataSpace<DIM2> &devCurrentSize)
+    {
+        CUDA_CHECK(cudaMemcpy2DAsync(this->host->getBasePointer(),
+                                     this->host->getDataSpace()[0] * sizeof (TYPE), /*this is pitch*/
+                                     this->device->getPointer(),
+                                     this->device->getPitch(), /*this is pitch*/
+                                     devCurrentSize[0] * sizeof (TYPE),
+                                     devCurrentSize[1],
+                                     cudaMemcpyDeviceToHost,
+                                     this->getCudaStream()));
+
+    }
+
+};
+
+template <class TYPE, typename T_SizeDefinition>
+class TaskCopyDeviceToHost<TYPE, DIM3, T_SizeDefinition> :
+public TaskCopyDeviceToHostBase<BufferDefinition<TYPE, DIM3, T_SizeDefinition> >
+{
+public:
+
+    typedef BufferDefinition<TYPE, DIM3, T_SizeDefinition> BufferDef;
+
+    TaskCopyDeviceToHost(DeviceBuffer<BufferDef>& src, HostBuffer<BufferDef>& dst) :
+    TaskCopyDeviceToHostBase<BufferDef>(src, dst)
+    {
+    }
+
+private:
+
+    virtual void copy(DataSpace<DIM3> &devCurrentSize)
+    {
+        cudaPitchedPtr hostPtr;
+        hostPtr.pitch = this->host->getDataSpace()[0] * sizeof (TYPE);
+        hostPtr.ptr = this->host->getBasePointer();
+        hostPtr.xsize = this->host->getDataSpace()[0] * sizeof (TYPE);
+        hostPtr.ysize = this->host->getDataSpace()[1];
+
+        cudaMemcpy3DParms params;
+        params.srcArray = NULL;
+        params.srcPos = make_cudaPos(this->device->getOffset()[0] * sizeof (TYPE),
+                                     this->device->getOffset()[1],
+                                     this->device->getOffset()[2]);
+        params.srcPtr = this->device->getCudaPitched();
+
+        params.dstArray = NULL;
+        params.dstPos = make_cudaPos(0, 0, 0);
+        params.dstPtr = hostPtr;
+
+        params.extent = make_cudaExtent(
+                                        devCurrentSize[0] * sizeof (TYPE),
+                                        devCurrentSize[1],
+                                        devCurrentSize[2]);
+        params.kind = cudaMemcpyDeviceToHost;
+
+        CUDA_CHECK(cudaMemcpy3DAsync(&params, this->getCudaStream()));
+
+    }
+
+};
 
 } //namespace PMacc
 

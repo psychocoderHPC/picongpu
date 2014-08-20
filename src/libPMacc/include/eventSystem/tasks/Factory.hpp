@@ -30,13 +30,13 @@
 
 namespace PMacc
 {
-    template <class TYPE, unsigned DIM>
+    template <typename >
     class HostBuffer;
 
-    template <class TYPE, unsigned DIM>
+    template <typename>
     class DeviceBuffer;
 
-    template <class TYPE, unsigned DIM>
+    template <typename>
     class Exchange;
 
     class TaskKernel;
@@ -56,8 +56,8 @@ namespace PMacc
          * @param dst DeviceBuffer to copy data to
          * @param registeringTask optional pointer to an ITask which should be registered at the new task as an observer
          */
-        template <class TYPE, unsigned DIM>
-        EventTask createTaskCopyHostToDevice(HostBuffer<TYPE, DIM>& src, DeviceBuffer<TYPE, DIM>& dst,
+        template <typename T_BufferDef>
+        EventTask createTaskCopyHostToDevice(HostBuffer<T_BufferDef>& src, DeviceBuffer<T_BufferDef>& dst,
         ITask *registeringTask = NULL);
 
         /**
@@ -66,9 +66,9 @@ namespace PMacc
          * @param dst HostBuffer to copy data to
          * @param registeringTask optional pointer to an ITask which should be registered at the new task as an observer
          */
-        template <class TYPE, unsigned DIM>
-        EventTask createTaskCopyDeviceToHost(DeviceBuffer<TYPE, DIM>& src,
-        HostBuffer<TYPE, DIM>& dst,
+        template <typename T_BufferDef>
+        EventTask createTaskCopyDeviceToHost(DeviceBuffer<T_BufferDef>& src,
+        HostBuffer<T_BufferDef>& dst,
         ITask *registeringTask = NULL);
 
         /**
@@ -77,8 +77,8 @@ namespace PMacc
          * @param dst DeviceBuffer to copy data to
          * @param registeringTask optional pointer to an ITask which should be registered at the new task as an observer
          */
-        template <class TYPE, unsigned DIM>
-        EventTask createTaskCopyDeviceToDevice( DeviceBuffer<TYPE, DIM>& src, DeviceBuffer<TYPE, DIM>& dst,
+        template <typename T_BufferDef>
+        EventTask createTaskCopyDeviceToDevice( DeviceBuffer<T_BufferDef>& src, DeviceBuffer<T_BufferDef>& dst,
         ITask *registeringTask = NULL);
 
         /**
@@ -87,8 +87,8 @@ namespace PMacc
          * @param task_out returns the newly created task
          * @param registeringTask optional pointer to an ITask which should be registered at the new task as an observer
          */
-        template <class TYPE, unsigned DIM>
-        EventTask createTaskReceive(Exchange<TYPE, DIM> &ex,
+        template <typename T_BufferDef>
+        EventTask createTaskReceive(Exchange<T_BufferDef> &ex,
         ITask *registeringTask = NULL);
 
         /**
@@ -97,8 +97,8 @@ namespace PMacc
          * @param task_in TaskReceive to register at new TaskSend
          * @param registeringTask optional pointer to an ITask which should be registered at the new task as an observer
          */
-        template <class TYPE, unsigned DIM>
-        EventTask createTaskSend(Exchange<TYPE, DIM> &ex, EventTask &copyEvent,
+        template <typename T_BufferDef>
+        EventTask createTaskSend(Exchange<T_BufferDef> &ex, EventTask &copyEvent,
         ITask *registeringTask = NULL);
 
         /**
@@ -106,8 +106,8 @@ namespace PMacc
          * @param exchange Exchange to create new TaskSendMPI with
          * @param registeringTask optional pointer to an ITask which should be registered at the new task as an observer
          */
-        template <class TYPE, unsigned DIM>
-        EventTask createTaskSendMPI(Exchange<TYPE, DIM> *ex,
+        template <typename T_BufferDef>
+        EventTask createTaskSendMPI(Exchange<T_BufferDef> *ex,
         ITask *registeringTask = NULL);
 
         /**
@@ -115,8 +115,8 @@ namespace PMacc
          * @param ex Exchange to create new TaskReceiveMPI with
          * @param registeringTask optional pointer to an ITask which should be registered at the new task as an observer
          */
-        template <class TYPE, unsigned DIM>
-        EventTask createTaskReceiveMPI(Exchange<TYPE, DIM> *ex,
+        template <typename T_BufferDef>
+        EventTask createTaskReceiveMPI(Exchange<T_BufferDef> *ex,
         ITask *registeringTask = NULL);
 
         /**
@@ -125,8 +125,8 @@ namespace PMacc
          * @param value value to be set in the DeviceBuffer
          * @param registeringTask optional pointer to an ITask which should be registered at the new task as an observer
          */
-        template <class TYPE, unsigned DIM>
-        EventTask createTaskSetValue(DeviceBuffer<TYPE, DIM>& dst, const TYPE& value,
+        template <typename T_BufferDef>
+        EventTask createTaskSetValue(DeviceBuffer<T_BufferDef>& dst, const typename T_BufferDef::ValueType& value,
         ITask *registeringTask = NULL);
 
         /**
@@ -135,8 +135,8 @@ namespace PMacc
          * @param size size to be set on DeviceBuffer
          * @param registeringTask optional pointer to an ITask which should be registered at the new task as an observer
          */
-        template <class TYPE, unsigned DIM>
-        EventTask createTaskSetCurrentSizeOnDevice(DeviceBuffer<TYPE, DIM>& dst, size_t size,
+        template <typename T_BufferDef>
+        EventTask createTaskSetCurrentSizeOnDevice(DeviceBuffer<T_BufferDef>& dst, size_t size,
         ITask *registeringTask = NULL);
 
         /**
@@ -144,8 +144,8 @@ namespace PMacc
          * @param buffer DeviceBuffer to get current size from
          * @param registeringTask optional pointer to an ITask which should be registered at the new task as an observer
          */
-        template <class TYPE, unsigned DIM>
-        EventTask createTaskGetCurrentSizeFromDevice(DeviceBuffer<TYPE, DIM>& buffer,
+        template <typename T_BufferDef>
+        EventTask createTaskGetCurrentSizeFromDevice(DeviceBuffer<T_BufferDef>& buffer,
         ITask *registeringTask = NULL);
 
         /**

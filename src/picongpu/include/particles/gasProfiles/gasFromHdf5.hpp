@@ -36,8 +36,8 @@ namespace picongpu
     namespace gasFromHdf5
     {
 
-        template<class Type>
-        bool gasSetup(GridBuffer<Type, simDim> &fieldBuffer, Window &window)
+        template<class T_GridBuffer>
+        bool gasSetup(T_GridBuffer &fieldBuffer, Window &window)
         {
             GridController<simDim> &gc = Environment<simDim>::get().GridController();
             DomainInformation domInfo;
@@ -165,7 +165,7 @@ namespace picongpu
                     /* get the databox of the host buffer */
                     PMACC_AUTO(dataBox, fieldBuffer.getHostBuffer().getDataBox());
                     /* get a 1D access object to the databox */
-                    typedef DataBoxDim1Access< typename GridBuffer<Type, simDim >::DataBoxType > D1Box;
+                    typedef DataBoxDim1Access< typename T_GridBuffer::DataBoxType > D1Box;
                     DataSpace<simDim> guards = fieldBuffer.getGridLayout().getGuard();
                     D1Box d1RAccess(dataBox.shift(guards + accessOffset), accessSpace);
 
@@ -177,7 +177,7 @@ namespace picongpu
 
                     __delete(tmpBfr);
                 }
-                
+
                 pdc.close();
 
                 /* copy host data to the device */

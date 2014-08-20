@@ -61,7 +61,7 @@ SimulationFieldHelper<MappingDesc>( cellDescription ),
 fieldE( NULL )
 {
     /*#####create FieldB###############*/
-    fieldB = new GridBuffer<ValueType, simDim > ( cellDescription.getGridLayout( ) );
+    fieldB = new MyBuffer ( cellDescription.getGridLayout( ) );
 
     typedef typename bmpl::accumulate<
         VectorAllSpecies,
@@ -159,7 +159,7 @@ FieldB::DataBoxType FieldB::getDeviceDataBox( )
     return fieldB->getDeviceBuffer( ).getDataBox( );
 }
 
-GridBuffer<FieldB::ValueType, simDim> &FieldB::getGridBuffer( )
+typename FieldB::MyBuffer &FieldB::getGridBuffer( )
 {
 
     return *fieldB;

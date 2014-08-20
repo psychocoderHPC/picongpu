@@ -34,8 +34,6 @@
 namespace PMacc
 {
 
-
-
 /**
  * Combines two GridBuffers.
  *
@@ -69,9 +67,9 @@ public:
     RingBuffer(DataSpace<DIM1> numElements, bool fill = true)
     {
 
-        ringData = new GridBuffer<VALUE, DIM1 > (numElements);
+        ringData = new GridBuffer<BufferDefinition<VALUE, DIM1, ConstBufferSize> > (numElements);
         /*memory for PUSH,POP,ERR */
-        ringDataSizes = new GridBuffer<TYPE, DIM1 > (DataSpace<DIM1 > (3));
+        ringDataSizes = new GridBuffer<BufferDefinition<TYPE, DIM1, ConstBufferSize >> (DataSpace<DIM1 > (3));
 
         if (fill)
         {
@@ -179,8 +177,8 @@ public:
         return ringData->getHostBuffer().getDataSpace().productOfComponents();
     }
 private:
-    GridBuffer<VALUE, DIM1> *ringData;
-    GridBuffer<TYPE, DIM1> *ringDataSizes;
+    GridBuffer<BufferDefinition<VALUE, DIM1, ConstBufferSize> > *ringData;
+    GridBuffer<BufferDefinition<TYPE, DIM1, ConstBufferSize> > *ringDataSizes;
 };
 }
 

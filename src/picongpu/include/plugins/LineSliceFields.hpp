@@ -104,7 +104,7 @@ namespace picongpu
         MappingDesc *cellDescription;
         uint32_t notifyFrequency;
 
-        GridBuffer<float3_X, DIM1> *sliceDataField;
+        GridBuffer<BufferDefinition<float3_X, DIM1> > *sliceDataField;
 
         std::ofstream outfile;
 
@@ -210,7 +210,7 @@ namespace picongpu
 
                 // create as much storage as cells in the direction we are interested in:
                 // on gpu und host
-                sliceDataField = new GridBuffer<float3_X, DIM1 >
+                sliceDataField = new GridBuffer<BufferDefinition<float3_X, DIM1 > >
                         (DataSpace<DIM1 > (nrOfGpuCells.y()));
 
                 Environment<>::get().PluginConnector().setNotificationPeriod(this, notifyFrequency);

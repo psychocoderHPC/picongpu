@@ -42,15 +42,16 @@ __global__ void kernelSetValueOnDeviceMemory(size_t* pointer, const size_t size)
 namespace PMacc
 {
 
-template <class TYPE, unsigned DIM>
+template <typename>
 class DeviceBuffer;
 
-template <class TYPE, unsigned DIM>
+template <typename T_BufferDef>
 class TaskSetCurrentSizeOnDevice : public StreamTask
 {
 public:
+    typedef T_BufferDef BufferDef;
 
-    TaskSetCurrentSizeOnDevice(DeviceBuffer<TYPE, DIM>& dst, size_t size) :
+    TaskSetCurrentSizeOnDevice(DeviceBuffer<BufferDef>& dst, size_t size) :
     StreamTask(),
     size(size)
     {
@@ -86,13 +87,13 @@ private:
     void setSize() throw (std::runtime_error)
     {
         kernelSetValueOnDeviceMemory
-            << < 1, 1, 0, this->getCudaStream() >> >
+            <<< 1, 1, 0, this->getCudaStream() >>>
             (destination->getCurrentSizeOnDevicePointer(), size);
 
         activate();
     }
 
-    DeviceBuffer<TYPE, DIM> *destination;
+    DeviceBuffer<BufferDef> *destination;
     const size_t size;
 };
 

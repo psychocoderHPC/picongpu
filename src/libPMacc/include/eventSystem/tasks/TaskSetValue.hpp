@@ -98,7 +98,7 @@ __global__ void kernelSetValue(DataBox data, const T_ValueType value, const Spac
 }
 
 
-template <class TYPE, unsigned DIM>
+template <typename>
 class DeviceBuffer;
 
 /** Set all cells of a GridBuffer on the device to a given value
@@ -107,17 +107,19 @@ class DeviceBuffer;
  * T_dim   = dimension of the GridBuffer
  * T_isSmallValue = true if T_ValueType can be send via kernel parameter (on cuda T_ValueType must be smaller than 256 byte)
  */
-template <class T_ValueType, unsigned T_dim, bool T_isSmallValue>
+template <typename T_BufferDef, bool T_isSmallValue>
 class TaskSetValue;
 
-template <class T_ValueType, unsigned T_dim>
+template <typename T_BufferDef>
 class TaskSetValueBase : public StreamTask
 {
 public:
-    typedef T_ValueType ValueType;
-    static const uint32_t dim = T_dim;
+    typedef T_BufferDef BufferDef;
 
-    TaskSetValueBase(DeviceBuffer<ValueType, dim>& dst, const ValueType& value) :
+    typedef typename BufferDef::ValueType ValueType;
+    static const unsigned int dim = BufferDef::dim;
+
+    TaskSetValueBase(DeviceBuffer<BufferDef>& dst, const ValueType& value) :
     StreamTask(),
     value(value)
     {
@@ -148,21 +150,23 @@ protected:
         return "TaskSetValue";
     }
 
-    DeviceBuffer<ValueType, dim> *destination;
+    DeviceBuffer<BufferDef> *destination;
     ValueType value;
 };
 
 /** implementation for small values (<= 256byte)
  */
-template <class T_ValueType, unsigned T_dim>
-class TaskSetValue<T_ValueType, T_dim, true> : public TaskSetValueBase<T_ValueType, T_dim>
+template <typename T_BufferDef>
+class TaskSetValue<T_BufferDef, true> : public TaskSetValueBase<T_BufferDef>
 {
 public:
-    typedef T_ValueType ValueType;
-    static const uint32_t dim = T_dim;
+    typedef T_BufferDef BufferDef;
 
-    TaskSetValue(DeviceBuffer<ValueType, dim>& dst, const ValueType& value) :
-    TaskSetValueBase<ValueType, dim>(dst, value)
+    typedef typename BufferDef::ValueType ValueType;
+    static const unsigned int dim = BufferDef::dim;
+
+    TaskSetValue(DeviceBuffer<T_BufferDef>& dst, const ValueType& value) :
+    TaskSetValueBase<T_BufferDef>(dst, value)
     {
     }
 
@@ -192,15 +196,17 @@ public:
  * This class uses CUDA memcopy to copy an instance of T_ValueType to the GPU
  * and runs a kernel which assigns this value to all cells.
  */
-template <class T_ValueType, unsigned T_dim>
-class TaskSetValue<T_ValueType, T_dim, false> : public TaskSetValueBase<T_ValueType, T_dim>
+template <typename T_BufferDef>
+class TaskSetValue<T_BufferDef, false> : public TaskSetValueBase<T_BufferDef>
 {
 public:
-    typedef T_ValueType ValueType;
-    static const uint32_t dim = T_dim;
+    typedef T_BufferDef BufferDef;
 
-    TaskSetValue(DeviceBuffer<ValueType, dim>& dst, const ValueType& value) :
-    TaskSetValueBase<ValueType, dim>(dst, value), valuePointer_host(NULL)
+    typedef typename BufferDef::ValueType ValueType;
+    static const unsigned int dim = BufferDef::dim;
+
+    TaskSetValue(DeviceBuffer<BufferDef>& dst, const ValueType& value) :
+    TaskSetValueBase<BufferDef>(dst, value), valuePointer_host(NULL)
     {
     }
 

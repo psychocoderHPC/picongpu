@@ -31,149 +31,152 @@
 namespace PMacc
 {
 
+/**
+ * Can be used for creating several DataBox types from an Exchange.
+ *
+ * @tparam FRAME frame datatype
+ */
+template<class FRAME, class FRAMEINDEX, unsigned DIM>
+class StackExchangeBuffer
+{
+public:
 
+    typedef Exchange<BufferDefinition<FRAME, DIM1, BufferSize> > StackExchange;
+    typedef Exchange<BufferDefinition<FRAME, DIM1, BufferSize> > StackIndexExchange;
 
     /**
-     * Can be used for creating several DataBox types from an Exchange.
+     * Create a stack from any ExchangeBuffer<FRAME,DIM>.
      *
-     * @tparam FRAME frame datatype
+     * If the stack's internal GridBuffer has no sizeOnDevice, no device querys are allowed.
+     *
+     * @param stack Exchange
      */
-    template<class FRAME, class FRAMEINDEX, unsigned DIM>
-    class StackExchangeBuffer
+    StackExchangeBuffer(
+                        StackExchange &stack,
+                        StackIndexExchange &stackIndexer) :
+    stack(stack), stackIndexer(stackIndexer)
     {
-    public:
 
-        /**
-         * Create a stack from any ExchangeBuffer<FRAME,DIM>.
-         *
-         * If the stack's internal GridBuffer has no sizeOnDevice, no device querys are allowed.
-         *
-         * @param stack Exchange
-         */
-        StackExchangeBuffer(Exchange<FRAME, DIM1> &stack, Exchange<FRAMEINDEX, DIM1> &stackIndexer) :
-        stack(stack), stackIndexer(stackIndexer)
-        {
+    }
 
-        }
+    /**
+     * Returns a PushDataBox for the internal HostBuffer.
+     *
+     * @return PushDataBox for host buffer
+     */
+    ExchangePushDataBox<vint_t, FRAME, DIM> getHostExchangePushDataBox()
+    {
+        return ExchangePushDataBox<vint_t, FRAME, DIM > (
+                                                         stack.getHostBuffer().getBasePointer(),
+                                                         stack.getHostBuffer().getCurrentSizePointer(),
+                                                         stack.getHostBuffer().getDataSpace().productOfComponents(),
+                                                         PushDataBox<vint_t, FRAMEINDEX > (
+                                                                                           stackIndexer.getHostBuffer().getBasePointer(),
+                                                                                           stackIndexer.getHostBuffer().getCurrentSizePointer()));
+    }
 
-        /**
-         * Returns a PushDataBox for the internal HostBuffer.
-         *
-         * @return PushDataBox for host buffer
-         */
-        ExchangePushDataBox<vint_t, FRAME, DIM> getHostExchangePushDataBox()
-        {
-            return ExchangePushDataBox<vint_t, FRAME, DIM > (
-                                                             stack.getHostBuffer().getBasePointer(),
-                                                             stack.getHostBuffer().getCurrentSizePointer(),
-                                                             stack.getHostBuffer().getDataSpace().productOfComponents(),
-                                                             PushDataBox<vint_t, FRAMEINDEX > (
-                                                                                               stackIndexer.getHostBuffer().getBasePointer(),
-                                                                                               stackIndexer.getHostBuffer().getCurrentSizePointer()));
-        }
+    /**
+     * Returns a PopDataBox for the internal HostBuffer.
+     *
+     * @return PopDataBox for host buffer
+     */
+    ExchangePopDataBox<vint_t, FRAME, DIM> getHostExchangePopDataBox()
+    {
+        return ExchangePopDataBox<vint_t, FRAME, DIM > (
+                                                        stack.getHostBuffer().getBasePointer(),
+                                                        PopDataBox<vint_t, FRAMEINDEX > (
+                                                                                         stackIndexer.getHostBuffer().getBasePointer(),
+                                                                                         (vint_t*) stackIndexer.getHostBuffer().getCurrentSizePointer(),
+                                                                                         (vint_t) stackIndexer.getHostBuffer().getCurrentSize()));
+    }
 
-        /**
-         * Returns a PopDataBox for the internal HostBuffer.
-         *
-         * @return PopDataBox for host buffer
-         */
-        ExchangePopDataBox<vint_t, FRAME, DIM> getHostExchangePopDataBox()
-        {
-            return ExchangePopDataBox<vint_t, FRAME, DIM > (
-                                                            stack.getHostBuffer().getBasePointer(),
-                                                            PopDataBox<vint_t, FRAMEINDEX > (
-                                                                                             stackIndexer.getHostBuffer().getBasePointer(),
-                                                                                             (vint_t*) stackIndexer.getHostBuffer().getCurrentSizePointer(),
-                                                                                             (vint_t) stackIndexer.getHostBuffer().getCurrentSize()));
-        }
+    /**
+     * Returns a PushDataBox for the internal DeviceBuffer.
+     *
+     * @return PushDataBox for device buffer
+     */
+    ExchangePushDataBox<vint_t, FRAME, DIM> getDeviceExchangePushDataBox()
+    {
+        assert(stack.getDeviceBuffer().hasCurrentSizeOnDevice() == true);
+        assert(stackIndexer.getDeviceBuffer().hasCurrentSizeOnDevice() == true);
+        return ExchangePushDataBox<vint_t, FRAME, DIM > (
+                                                         stack.getDeviceBuffer().getBasePointer(),
+                                                         (vint_t*) stack.getDeviceBuffer().getCurrentSizeOnDevicePointer(),
+                                                         stack.getDeviceBuffer().getDataSpace().productOfComponents(),
+                                                         PushDataBox<vint_t, FRAMEINDEX > (
+                                                                                           stackIndexer.getDeviceBuffer().getBasePointer(),
+                                                                                           (vint_t*) stackIndexer.getDeviceBuffer().getCurrentSizeOnDevicePointer()));
+    }
 
-        /**
-         * Returns a PushDataBox for the internal DeviceBuffer.
-         *
-         * @return PushDataBox for device buffer
-         */
-        ExchangePushDataBox<vint_t, FRAME, DIM> getDeviceExchangePushDataBox()
-        {
-            assert(stack.getDeviceBuffer().hasCurrentSizeOnDevice() == true);
-            assert(stackIndexer.getDeviceBuffer().hasCurrentSizeOnDevice() == true);
-            return ExchangePushDataBox<vint_t, FRAME, DIM > (
-                                                             stack.getDeviceBuffer().getBasePointer(),
-                                                             (vint_t*) stack.getDeviceBuffer().getCurrentSizeOnDevicePointer(),
-                                                             stack.getDeviceBuffer().getDataSpace().productOfComponents(),
-                                                             PushDataBox<vint_t, FRAMEINDEX > (
-                                                                                               stackIndexer.getDeviceBuffer().getBasePointer(),
-                                                                                               (vint_t*) stackIndexer.getDeviceBuffer().getCurrentSizeOnDevicePointer()));
-        }
+    /**
+     * Returns a PopDataBox for the internal DeviceBuffer.
+     *
+     * @return PopDataBox for device buffer
+     */
+    ExchangePopDataBox<vint_t, FRAME, DIM> getDeviceExchangePopDataBox()
+    {
+        return ExchangePopDataBox<vint_t, FRAME, DIM > (
+                                                        stack.getDeviceBuffer().getBasePointer(),
+                                                        PopDataBox<vint_t, FRAMEINDEX > (
+                                                                                         stackIndexer.getDeviceBuffer().getBasePointer(),
+                                                                                         (vint_t*) stackIndexer.getDeviceBuffer().getCurrentSizeOnDevicePointer(),
+                                                                                         (vint_t) stackIndexer.getDeviceBuffer().getCurrentSize()));
+    }
 
-        /**
-         * Returns a PopDataBox for the internal DeviceBuffer.
-         *
-         * @return PopDataBox for device buffer
-         */
-        ExchangePopDataBox<vint_t, FRAME, DIM> getDeviceExchangePopDataBox()
-        {
-            return ExchangePopDataBox<vint_t, FRAME, DIM > (
-                                                            stack.getDeviceBuffer().getBasePointer(),
-                                                            PopDataBox<vint_t, FRAMEINDEX > (
-                                                                                             stackIndexer.getDeviceBuffer().getBasePointer(),
-                                                                                             (vint_t*) stackIndexer.getDeviceBuffer().getCurrentSizeOnDevicePointer(),
-                                                                                             (vint_t) stackIndexer.getDeviceBuffer().getCurrentSize()));
-        }
+    void setCurrentSize(const size_t size)
+    {
+        // do host and device setCurrentSize parallel
+        EventTask split = __getTransactionEvent();
+        __startTransaction(split);
+        stackIndexer.getHostBuffer().setCurrentSize(size);
+        stack.getHostBuffer().setCurrentSize(size);
+        EventTask e1 = __endTransaction();
 
-        void setCurrentSize(const size_t size)
-        {
-            // do host and device setCurrentSize parallel
-            EventTask split = __getTransactionEvent();
-            __startTransaction(split);
-            stackIndexer.getHostBuffer().setCurrentSize(size);
-            stack.getHostBuffer().setCurrentSize(size);
-            EventTask e1 = __endTransaction();
+        __startTransaction(split);
+        stackIndexer.getDeviceBuffer().setCurrentSize(size);
+        EventTask e2 = __endTransaction();
+        __startTransaction(split);
+        stack.getDeviceBuffer().setCurrentSize(size);
+        EventTask e3 = __endTransaction();
 
-            __startTransaction(split);
-            stackIndexer.getDeviceBuffer().setCurrentSize(size);
-            EventTask e2 = __endTransaction();
-            __startTransaction(split);
-            stack.getDeviceBuffer().setCurrentSize(size);
-            EventTask e3 = __endTransaction();
+        __setTransactionEvent(e1 + e2 + e3);
+    }
 
-            __setTransactionEvent(e1 + e2 + e3);
-        }
+    size_t getHostCurrentSize()
+    {
+        return stackIndexer.getHostBuffer().getCurrentSize();
+    }
 
-        size_t getHostCurrentSize()
-        {
-            return stackIndexer.getHostBuffer().getCurrentSize();
-        }
+    size_t getDeviceCurrentSize()
+    {
+        return stackIndexer.getDeviceBuffer().getCurrentSize();
+    }
 
-        size_t getDeviceCurrentSize()
-        {
-            return stackIndexer.getDeviceBuffer().getCurrentSize();
-        }
+    size_t getDeviceParticlesCurrentSize()
+    {
+        return stack.getDeviceBuffer().getCurrentSize();
+    }
 
-        size_t getDeviceParticlesCurrentSize()
-        {
-            return stack.getDeviceBuffer().getCurrentSize();
-        }
+    size_t getHostParticlesCurrentSize()
+    {
+        return stack.getHostBuffer().getCurrentSize();
+    }
 
-        size_t getHostParticlesCurrentSize()
-        {
-            return stack.getHostBuffer().getCurrentSize();
-        }
+    size_t getMaxParticlesCount()
+    {
+        return stack.getHostBuffer().getDataSpace().productOfComponents();
+    }
 
-        size_t getMaxParticlesCount()
-        {
-            return stack.getHostBuffer().getDataSpace().productOfComponents();
-        }
+private:
 
-    private:
+    StackExchange &getExchangeBuffer()
+    {
+        return stack;
+    }
 
-        Exchange<FRAME, DIM1> &getExchangeBuffer()
-        {
-            return stack;
-        }
-
-        Exchange<FRAME, DIM1>& stack;
-        Exchange<FRAMEINDEX, DIM1>& stackIndexer;
-    };
+    StackExchange &stack;
+    StackIndexExchange &stackIndexer;
+};
 }
 
 #endif	/* STACKEXCHANGEBUFFER_HPP */

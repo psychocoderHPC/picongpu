@@ -41,7 +41,7 @@ namespace picongpu
     {
     public:
 
-      typedef GridBuffer<float_X, DIM1>::DataBoxType DBoxType;
+      typedef GridBuffer<BufferDefinition<float_X, DIM1> >::DataBoxType DBoxType;
 
       FreqFunctor(void)
       { }
@@ -73,12 +73,12 @@ namespace picongpu
            __delete(frequencyBuffer);
       }
 
-      typedef GridBuffer<picongpu::float_X, DIM1>::DataBoxType DBoxType;
+      typedef GridBuffer<BufferDefinition<picongpu::float_X, DIM1> >::DataBoxType DBoxType;
 
       HINLINE void Init(const std::string path )
       {
 
-	frequencyBuffer = new GridBuffer<float_X, DIM1>(DataSpace<DIM1> (N_omega));
+	frequencyBuffer = new GridBuffer<BufferDefinition< float_X, DIM1>(DataSpace<DIM1> > (N_omega));
 
 
 	DBoxType frequencyDB = frequencyBuffer->getHostBuffer().getDataBox();
@@ -117,7 +117,7 @@ namespace picongpu
       }
 
     private:
-      GridBuffer<float_X, DIM1>* frequencyBuffer;
+      GridBuffer<BufferDefinition<float_X, DIM1> >* frequencyBuffer;
     };
 
 

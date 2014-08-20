@@ -40,12 +40,14 @@ namespace PMacc
 
 
 
-    template <class TYPE, unsigned DIM>
+    template <typename T_BufferDef>
     class TaskSend : public MPITask
     {
     public:
 
-        TaskSend(Exchange<TYPE, DIM> &ex, EventTask& copyEvent) :
+        typedef T_BufferDef BufferDef;
+
+        TaskSend(Exchange<BufferDef> &ex, EventTask& copyEvent) :
         exchange(&ex),
         copyEvent(copyEvent),
         state(Constructor)
@@ -136,7 +138,7 @@ namespace PMacc
         };
 
 
-        Exchange<TYPE, DIM> *exchange;
+        Exchange<BufferDef> *exchange;
         EventTask& copyEvent;
         state_t state;
     };

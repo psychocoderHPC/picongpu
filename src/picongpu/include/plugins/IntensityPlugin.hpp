@@ -119,8 +119,8 @@ private:
     typedef MappingDesc::SuperCellSize SuperCellSize;
 
 
-    GridBuffer<float, DIM1> *localMaxIntensity;
-    GridBuffer<float, DIM1> *localIntegratedIntensity;
+    GridBuffer<BufferDefinition<float, DIM1> > *localMaxIntensity;
+    GridBuffer<BufferDefinition<float, DIM1> >*localIntegratedIntensity;
     MappingDesc *cellDescription;
     uint32_t notifyFrequency;
 
@@ -186,8 +186,8 @@ private:
             writeToFile = Environment<simDim>::get().GridController().getGlobalRank() == 0;
             int yCells = cellDescription->getGridLayout().getDataSpaceWithoutGuarding().y();
 
-            localMaxIntensity = new GridBuffer<float, DIM1 > (DataSpace<DIM1 > (yCells)); //create one int on gpu und host
-            localIntegratedIntensity = new GridBuffer<float, DIM1 > (DataSpace<DIM1 > (yCells)); //create one int on gpu und host
+            localMaxIntensity = new GridBuffer<BufferDefinition<float, DIM1> > (DataSpace<DIM1 > (yCells)); //create one int on gpu und host
+            localIntegratedIntensity = new GridBuffer<BufferDefinition<float, DIM1> > (DataSpace<DIM1 > (yCells)); //create one int on gpu und host
 
             if (writeToFile)
             {

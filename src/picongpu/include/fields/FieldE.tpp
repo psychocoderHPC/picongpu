@@ -56,7 +56,7 @@ FieldE::FieldE( MappingDesc cellDescription ) :
 SimulationFieldHelper<MappingDesc>( cellDescription ),
 fieldB( NULL )
 {
-    fieldE = new GridBuffer<ValueType, simDim > ( cellDescription.getGridLayout( ) );
+    fieldE = new MyBuffer( cellDescription.getGridLayout( ) );
 
     typedef typename bmpl::accumulate<
         VectorAllSpecies,
@@ -69,7 +69,7 @@ fieldB( NULL )
         typename PMacc::math::CT::make_Int<simDim, 0>::type,
         PMacc::math::CT::max<bmpl::_1, GetUpperMargin< GetInterpolation<bmpl::_2> > >
         >::type UpperMarginInterpolation;
-    
+
     /* Calculate the maximum Neighbors we need from MAX(ParticleShape, FieldSolver) */
     typedef typename PMacc::math::CT::max<
         LowerMarginInterpolation,
@@ -141,7 +141,7 @@ FieldE::DataBoxType FieldE::getHostDataBox( )
     return fieldE->getHostBuffer( ).getDataBox( );
 }
 
-GridBuffer<FieldE::ValueType, simDim> &FieldE::getGridBuffer( )
+typename FieldE::MyBuffer &FieldE::getGridBuffer( )
 {
     return *fieldE;
 }

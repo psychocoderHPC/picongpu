@@ -31,9 +31,9 @@ namespace picongpu
 {
 namespace gasGaussianCloud
 {
-    
-template<class Type>
-bool gasSetup( GridBuffer<Type, simDim>&, Window& )
+
+template<class T_GridBuffer>
+bool gasSetup( T_GridBuffer&, Window& )
 {
     return true;
 }
@@ -54,7 +54,7 @@ DINLINE float_X calcNormedDensity( floatD_X pos, const DataSpace<DIM>&, FieldBox
     float_X density=1;
     for(uint32_t d=0;d<simDim;++d)
     density *= math::exp(GAS_FACTOR * __powf(exponent[d], GAS_POWER));
-    
+
     return density;
 }
 } //namespace gasGaussianCloud

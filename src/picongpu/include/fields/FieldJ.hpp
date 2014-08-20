@@ -64,6 +64,8 @@ public:
 
     typedef DataBox<PitchedBox<ValueType, simDim> > DataBoxType;
 
+    typedef GridBuffer<BufferDefinition<ValueType, simDim> > MyBuffer;
+
     FieldJ(MappingDesc cellDescription);
 
     virtual ~FieldJ();
@@ -110,7 +112,7 @@ public:
         return fieldJ.getHostBuffer().getDataBox();
     }
 
-    GridBuffer<ValueType, simDim> &getGridBuffer();
+    MyBuffer &getGridBuffer();
 
     /* Bash particles in a direction.
      * Copy all particles from the guard of a direction to the device exchange buffer
@@ -123,7 +125,7 @@ public:
 
 private:
 
-    GridBuffer<ValueType, simDim> fieldJ;
+    MyBuffer fieldJ;
 
     FieldE *fieldE;
 };

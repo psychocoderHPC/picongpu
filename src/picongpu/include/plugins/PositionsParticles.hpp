@@ -166,7 +166,7 @@ private:
 
     ParticlesType *particles;
 
-    GridBuffer<SglParticle<FloatPos>, DIM1> *gParticle;
+    GridBuffer<BufferDefinition<SglParticle<FloatPos>, DIM1> > *gParticle;
 
     MappingDesc *cellDescription;
     uint32_t notifyFrequency;
@@ -233,7 +233,7 @@ private:
         if (notifyFrequency > 0)
         {
             //create one float3_X on gpu und host
-            gParticle = new GridBuffer<SglParticle<FloatPos>, DIM1 > (DataSpace<DIM1 > (1));
+            gParticle = new GridBuffer<BufferDefinition<SglParticle<FloatPos>, DIM1 > >(DataSpace<DIM1 > (1));
 
             Environment<>::get().PluginConnector().setNotificationPeriod(this, notifyFrequency);
         }

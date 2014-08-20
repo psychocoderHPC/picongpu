@@ -37,30 +37,36 @@ namespace PMacc
 /**
  * Internal implementation of the HostBuffer interface.
  */
-template <class TYPE, unsigned DIM>
-class HostBufferIntern : public HostBuffer<TYPE, DIM>
+template <typename T_BufferDef>
+class HostBufferIntern : public HostBuffer<T_BufferDef>
 {
 public:
 
-    typedef typename DeviceBuffer<TYPE, DIM>::DataBoxType DataBoxType;
+    typedef T_BufferDef BufferDef;
+    typedef typename BufferDef::ValueType TYPE;
+    static const unsigned int DIM = BufferDef::dim;
+
+    typedef HostBufferIntern<BufferDef> This;
+    typedef HostBuffer<BufferDef> Base;
+    typedef typename Base::DataBoxType DataBoxType;
 
     /**
      * constructor
      * @param dataSpace DataSpace describing the size of the HostBufferIntern to be created
      */
     HostBufferIntern(DataSpace<DIM> dataSpace) throw (std::bad_alloc) :
-    HostBuffer<TYPE, DIM>(dataSpace),
-    pointer(NULL),ownPointer(true)
+    Base(dataSpace),
+    pointer(NULL), ownPointer(true)
     {
         CUDA_CHECK(cudaMallocHost(&pointer, dataSpace.productOfComponents() * sizeof (TYPE)));
         reset(false);
     }
 
-    HostBufferIntern(HostBufferIntern& source, DataSpace<DIM> dataSpace, DataSpace<DIM> offset=DataSpace<DIM>())  :
-    HostBuffer<TYPE, DIM>(dataSpace),
-    pointer(NULL),ownPointer(false)
+    HostBufferIntern(HostBufferIntern& source, DataSpace<DIM> dataSpace, DataSpace<DIM> offset = DataSpace<DIM>()) :
+    Base(dataSpace),
+    pointer(NULL), ownPointer(false)
     {
-        pointer=&(source.getDataBox()(offset));/*fix me, this is a bad way*/
+        pointer = &(source.getDataBox()(offset)); /*fix me, this is a bad way*/
         reset(true);
     }
 
@@ -92,7 +98,8 @@ public:
         return pointer;
     }
 
-    void copyFrom(DeviceBuffer<TYPE, DIM>& other)
+
+    void copyFrom(DeviceBuffer<BufferDef>& other)
     {
         assert(this->isMyDataSpaceGreaterThan(other.getCurrentDataSpace()));
         Environment<>::get().Factory().createTaskCopyDeviceToHost(other, *this);

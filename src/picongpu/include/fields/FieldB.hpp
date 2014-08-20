@@ -45,60 +45,62 @@
 
 namespace picongpu
 {
-    using namespace PMacc;
+using namespace PMacc;
 
-    class FieldB : public SimulationFieldHelper<MappingDesc>, public ISimulationData
-    {
-    public:
-        typedef float3_X ValueType;
-        typedef typename promoteType<float_64, ValueType>::type UnitValueType;
-        static const int numComponents = ValueType::dim;
+class FieldB : public SimulationFieldHelper<MappingDesc>, public ISimulationData
+{
+public:
+    typedef float3_X ValueType;
+    typedef typename promoteType<float_64, ValueType>::type UnitValueType;
+    static const int numComponents = ValueType::dim;
 
-        typedef DataBox<PitchedBox<ValueType, simDim> > DataBoxType;
+    typedef GridBuffer<BufferDefinition<ValueType, simDim> > MyBuffer;
 
-        typedef MappingDesc::SuperCellSize SuperCellSize;
+    typedef DataBox<PitchedBox<ValueType, simDim> > DataBoxType;
 
-        FieldB( MappingDesc cellDescription);
+    typedef MappingDesc::SuperCellSize SuperCellSize;
 
-        virtual ~FieldB();
+    FieldB(MappingDesc cellDescription);
 
-        virtual void reset(uint32_t currentStep);
+    virtual ~FieldB();
 
-        static UnitValueType getUnit();
+    virtual void reset(uint32_t currentStep);
 
-        static std::string getName();
+    static UnitValueType getUnit();
 
-        static uint32_t getCommTag();
+    static std::string getName();
 
-        virtual EventTask asyncCommunication(EventTask serialEvent);
+    static uint32_t getCommTag();
 
-        void init(FieldE &fieldE, LaserPhysics &laserPhysics);
+    virtual EventTask asyncCommunication(EventTask serialEvent);
 
-        DataBoxType getHostDataBox();
+    void init(FieldE &fieldE, LaserPhysics &laserPhysics);
 
-        GridLayout<simDim> getGridLayout();
+    DataBoxType getHostDataBox();
 
-        DataBoxType getDeviceDataBox();
+    GridLayout<simDim> getGridLayout();
 
-        GridBuffer<ValueType, simDim> &getGridBuffer();
+    DataBoxType getDeviceDataBox();
 
-        SimulationDataId getUniqueId();
+    MyBuffer &getGridBuffer();
 
-        void synchronize();
+    SimulationDataId getUniqueId();
 
-        void syncToDevice();
+    void synchronize();
 
-    private:
+    void syncToDevice();
 
-        void absorbeBorder();
+private:
 
-        void laserManipulation(uint32_t currentStep);
+    void absorbeBorder();
 
-        GridBuffer<ValueType, simDim> *fieldB;
+    void laserManipulation(uint32_t currentStep);
 
-        FieldE *fieldE;
-        LaserPhysics *laser;
-    };
+    MyBuffer *fieldB;
+
+    FieldE *fieldE;
+    LaserPhysics *laser;
+};
 
 
 }

@@ -102,13 +102,13 @@ __global__ void kernelBinEnergyParticles(ParticlesBox<FRAME, simDim> pb,
 
     __syncthreads();
     if (!isValid)
-      return; /* end kernel if we have no frames */
+        return; /* end kernel if we have no frames */
 
     while (isValid)
     {
         if (linearThreadIdx < particlesInSuperCell)
         {
-            PMACC_AUTO(particle,(*frame)[linearThreadIdx]);
+            PMACC_AUTO(particle, (*frame)[linearThreadIdx]);
             /* kinetic Energy for Particles: E^2 = p^2*c^2 + m^2*c^4
              *                                   = c^2 * [p^2 + m^2*c^2] */
             const float3_X mom = particle[momentum_];
@@ -130,7 +130,7 @@ __global__ void kernelBinEnergyParticles(ParticlesBox<FRAME, simDim> pb,
                 /* \todo: this is a duplication of the code in EnergyParticles - in separate file? */
                 const float_X mom2 = math::abs2(mom);
                 const float_X weighting = particle[weighting_];
-                const float_X mass = getMass(weighting,*frame);
+                const float_X mass = getMass(weighting, *frame);
                 const float_X c2 = SPEED_OF_LIGHT * SPEED_OF_LIGHT;
 
                 Gamma<> calcGamma;
@@ -153,7 +153,7 @@ __global__ void kernelBinEnergyParticles(ParticlesBox<FRAME, simDim> pb,
 
                 /* +1 move value from 1 to numBins+1 */
                 int binNumber = math::floor((_local_energy - minEnergy) /
-                                      (maxEnergy - minEnergy) * (float) numBins) + 1;
+                                            (maxEnergy - minEnergy) * (float) numBins) + 1;
 
                 const int maxBin = numBins + 1;
                 /* same as
@@ -203,7 +203,7 @@ private:
 
     ParticlesType *particles;
 
-    GridBuffer<double, DIM1> *gBins;
+    GridBuffer< BufferDefinition<double, DIM1> > *gBins;
     MappingDesc *cellDescription;
 
     std::string analyzerName;
@@ -297,7 +297,7 @@ private:
             realNumBins = numBins + 2;
 
             /* create an array of double on gpu und host */
-            gBins = new GridBuffer<double, DIM1 > (DataSpace<DIM1 > (realNumBins));
+            gBins = new GridBuffer< BufferDefinition<double, DIM1 > >(DataSpace<DIM1 > (realNumBins));
             binReduced = new double[realNumBins];
             for (int i = 0; i < realNumBins; ++i)
             {
@@ -389,7 +389,7 @@ private:
             /* write data to file */
             double count_particles = 0.0;
             outFile << currentStep << " "
-                    << std::scientific; /*  for floating points, ignored for ints */
+                << std::scientific; /*  for floating points, ignored for ints */
 
             for (int i = 0; i < realNumBins; ++i)
             {

@@ -116,7 +116,7 @@ void FieldJ::synchronize( )
     fieldJ.deviceToHost( );
 }
 
-GridBuffer<FieldJ::ValueType, simDim> &FieldJ::getGridBuffer( )
+typename FieldJ::MyBuffer &FieldJ::getGridBuffer( )
 {
     return fieldJ;
 }

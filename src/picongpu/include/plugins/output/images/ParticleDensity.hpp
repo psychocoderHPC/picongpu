@@ -314,7 +314,7 @@ public:
             this->header = MessageHeader::create();
             header->update(*cellDescription, window, transpose, 0, cellSizeArr, gpus);
 
-            img = new GridBuffer<Type_, DIM2 > (header->node.maxSize);
+            img = new GridBuffer<BufferDefinition<Type_, DIM2> > (header->node.maxSize);
 
             isMaster = gather.init(doDrawing());
         }
@@ -339,7 +339,7 @@ private:
     MappingDesc *cellDescription;
     SimulationDataId particleTag;
 
-    GridBuffer<Type_, DIM2> *img;
+    GridBuffer<BufferDefinition<Type_, DIM2> > *img;
 
     int sliceOffset;
     uint32_t notifyFrequency;

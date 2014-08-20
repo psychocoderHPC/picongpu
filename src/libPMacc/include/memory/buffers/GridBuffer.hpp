@@ -31,9 +31,10 @@
 #include "memory/dataTypes/Mask.hpp"
 
 #include "mappings/simulation/EnvironmentController.hpp"
-#include "memory/buffers/ExchangeIntern.hpp"
+
 #include "memory/buffers/HostBufferIntern.hpp"
 #include "memory/buffers/DeviceBufferIntern.hpp"
+#include "memory/buffers/Exchange.hpp"
 
 #include <sstream>
 #include <stdexcept>
@@ -92,10 +93,16 @@ private:
  * @tparam DIM dimension of the buffers
  * @tparam BORDERTYPE optional type for border data in the buffers. TYPE is used by default.
  */
-template <class TYPE, unsigned DIM, class BORDERTYPE = TYPE>
+template <typename T_BufferDef, typename T_BorderBufferDef = T_BufferDef>
 class GridBuffer
 {
 public:
+
+    typedef T_BufferDef BufferDef;
+    typedef T_BorderBufferDef BorderBufferDef;
+
+    typedef typename BufferDef::ValueType TYPE;
+    static const unsigned int DIM = BufferDef::dim;
 
     typedef DataBox<PitchedBox<TYPE, DIM> > DataBoxType;
 
@@ -134,13 +141,13 @@ public:
      * @param gridLayout layout of the buffers, including border-cells
      * @param sizeOnDevice if true, size information exists on device, too.
      */
-    GridBuffer(DeviceBuffer<TYPE, DIM>& otherDeviceBuffer, GridLayout<DIM> gridLayout, bool sizeOnDevice = false) :
+    GridBuffer(DeviceBuffer<BufferDef>& otherDeviceBuffer, GridLayout<DIM> gridLayout, bool sizeOnDevice = false) :
     gridLayout(gridLayout),
     hasOneExchange(false),
     maxExchange(0)
     {
         init(sizeOnDevice, false);
-        this->deviceBuffer = new DeviceBufferIntern<TYPE, DIM >
+        this->deviceBuffer = new DeviceBufferIntern<BufferDef >
             (otherDeviceBuffer,
              this->gridLayout.getDataSpace(),
              DataSpace<DIM > (),
@@ -148,9 +155,9 @@ public:
     }
 
     GridBuffer(
-               HostBuffer<TYPE, DIM>& otherHostBuffer,
+               HostBuffer<BufferDef>& otherHostBuffer,
                DataSpace<DIM > offsetHost,
-               DeviceBuffer<TYPE, DIM>& otherDeviceBuffer,
+               DeviceBuffer<BufferDef>& otherDeviceBuffer,
                DataSpace<DIM > offsetDevice,
                GridLayout<DIM> gridLayout,
                bool sizeOnDevice = false) :
@@ -159,12 +166,12 @@ public:
     maxExchange(0)
     {
         init(sizeOnDevice, false, false);
-        this->deviceBuffer = new DeviceBufferIntern<TYPE, DIM >
+        this->deviceBuffer = new DeviceBufferIntern<BufferDef >
             (otherDeviceBuffer,
              this->gridLayout.getDataSpace(),
              offsetDevice, sizeOnDevice);
-        this->hostBuffer = new HostBufferIntern<TYPE, DIM >
-            (*((HostBufferIntern<TYPE, DIM>*) & otherHostBuffer),
+        this->hostBuffer = new HostBufferIntern<BufferDef >
+            (*((HostBufferIntern<BufferDef>*) & otherHostBuffer),
              this->gridLayout.getDataSpace(),
              offsetHost);
     }
@@ -246,20 +253,20 @@ public:
                 }
                 //std::cout<<"Add Exchange: send="<<ex<<" receive="<<Mask::getMirroredExchangeType((ExchangeType)ex)<<std::endl;
                 maxExchange = std::max(maxExchange, ex + 1u);
-                sendExchanges[ex] = new ExchangeIntern<BORDERTYPE, DIM > (*deviceBuffer, gridLayout, guardingCells,
-                                                                          (ExchangeType) ex, uniqCommunicationTag,
-                                                                          dataPlace == GUARD ? BORDER : GUARD, sizeOnDevice);
+                sendExchanges[ex] = new Exchange<BorderBufferDef > (*deviceBuffer, gridLayout, guardingCells,
+                                                                    (ExchangeType) ex, uniqCommunicationTag,
+                                                                    dataPlace == GUARD ? BORDER : GUARD, sizeOnDevice);
                 ExchangeType recvex = Mask::getMirroredExchangeType(ex);
                 maxExchange = std::max(maxExchange, recvex + 1u);
                 receiveExchanges[recvex] =
-                    new ExchangeIntern<BORDERTYPE, DIM > (
-                                                          *deviceBuffer,
-                                                          gridLayout,
-                                                          guardingCells,
-                                                          recvex,
-                                                          uniqCommunicationTag,
-                                                          dataPlace == GUARD ? GUARD : BORDER,
-                                                          sizeOnDevice);
+                    new Exchange<BorderBufferDef> (
+                                                   *deviceBuffer,
+                                                   gridLayout,
+                                                   guardingCells,
+                                                   recvex,
+                                                   uniqCommunicationTag,
+                                                   dataPlace == GUARD ? GUARD : BORDER,
+                                                   sizeOnDevice);
             }
         }
     }
@@ -310,13 +317,13 @@ public:
 
                     //GridLayout<DIM> memoryLayout(size);
                     maxExchange = std::max(maxExchange, ex + 1u);
-                    sendExchanges[ex] = new ExchangeIntern<BORDERTYPE, DIM > (/*memoryLayout*/ dataSpace,
-                                                                              ex, uniqCommunicationTag, sizeOnDevice);
+                    sendExchanges[ex] = new Exchange<BorderBufferDef > (/*memoryLayout*/ dataSpace,
+                                                                        ex, uniqCommunicationTag, sizeOnDevice);
 
                     ExchangeType recvex = Mask::getMirroredExchangeType(ex);
                     maxExchange = std::max(maxExchange, recvex + 1u);
-                    receiveExchanges[recvex] = new ExchangeIntern<BORDERTYPE, DIM > (/*memoryLayout*/ dataSpace,
-                                                                                     recvex, uniqCommunicationTag, sizeOnDevice);
+                    receiveExchanges[recvex] = new Exchange<BorderBufferDef > (/*memoryLayout*/ dataSpace,
+                                                                               recvex, uniqCommunicationTag, sizeOnDevice);
                 }
             }
         }
@@ -353,7 +360,7 @@ public:
      * @param ex the direction to query
      * @return the Exchange for sending data
      */
-    Exchange<BORDERTYPE, DIM>& getSendExchange(uint32_t ex) const
+    Exchange<BorderBufferDef>& getSendExchange(uint32_t ex) const
     {
         return *sendExchanges[ex];
     }
@@ -367,7 +374,7 @@ public:
      * @param ex the direction to query
      * @return the Exchange for receiving data
      */
-    Exchange<BORDERTYPE, DIM>& getReceiveExchange(uint32_t ex) const
+    Exchange<BorderBufferDef>& getReceiveExchange(uint32_t ex) const
     {
         return *receiveExchanges[ex];
     }
@@ -399,7 +406,7 @@ public:
      *
      * @return internal HostBuffer
      */
-    HostBuffer<TYPE, DIM>& getHostBuffer() const
+    HostBuffer<BufferDef>& getHostBuffer() const
     {
         return *(this->hostBuffer);
     }
@@ -409,7 +416,7 @@ public:
      *
      * @return internal DeviceBuffer
      */
-    DeviceBuffer<TYPE, DIM>& getDeviceBuffer() const
+    DeviceBuffer<BufferDef>& getDeviceBuffer() const
     {
         return *(this->deviceBuffer);
     }
@@ -511,7 +518,7 @@ public:
     }
 
 private:
-    
+
     friend Environment<DIM>;
 
     void init(bool sizeOnDevice, bool buildDeviceBuffer = true, bool buildHostBuffer = true)
@@ -527,19 +534,19 @@ private:
         }
         if (buildDeviceBuffer)
         {
-            this->deviceBuffer = new DeviceBufferIntern<TYPE, DIM > (gridLayout.getDataSpace(), sizeOnDevice);
+            this->deviceBuffer = new DeviceBufferIntern<BufferDef > (gridLayout.getDataSpace(), sizeOnDevice);
         }
         if (buildHostBuffer)
         {
-            this->hostBuffer = new HostBufferIntern<TYPE, DIM > (gridLayout.getDataSpace());
+            this->hostBuffer = new HostBufferIntern<BufferDef > (gridLayout.getDataSpace());
         }
     }
 
 protected:
 
 
-    HostBufferIntern<TYPE, DIM>* hostBuffer;
-    DeviceBufferIntern<TYPE, DIM>* deviceBuffer;
+    HostBufferIntern<BufferDef>* hostBuffer;
+    DeviceBufferIntern<BufferDef>* deviceBuffer;
     /*if we hase one exchange we not check if communicationtag has used before*/
     bool hasOneExchange;
     uint32_t lastUsedCommunicationTag;
@@ -548,8 +555,8 @@ protected:
     Mask sendMask;
     Mask receiveMask;
 
-    ExchangeIntern<BORDERTYPE, DIM>* sendExchanges[27];
-    ExchangeIntern<BORDERTYPE, DIM>* receiveExchanges[27];
+    Exchange<BorderBufferDef>* sendExchanges[27];
+    Exchange<BorderBufferDef>* receiveExchanges[27];
     EventTask receiveEvents[27];
     EventTask sendEvents[27];
 

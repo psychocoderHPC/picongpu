@@ -21,8 +21,7 @@
  */
 
 
-#ifndef REDUCE_HPP
-#define	REDUCE_HPP
+#pragma once
 
 #include "types.h"
 
@@ -108,7 +107,7 @@ namespace PMacc
                 byte(byte), sharedMemByte(sharedMemByte), reduceBuffer(NULL)
                 {
 
-                    reduceBuffer = new GridBuffer<char, DIM1 > (DataSpace<DIM1 > (byte));
+                    reduceBuffer = new GridBuffer<BufferDefinition<char, DIM1 > > (DataSpace<DIM1 > (byte));
                 }
 
                 /* Reduce elements in global gpu memeory
@@ -227,7 +226,7 @@ namespace PMacc
                 }
 
                 /*global gpu buffer for reduce steps*/
-                GridBuffer<char, DIM1 > *reduceBuffer;
+                GridBuffer< BufferDefinition<char, DIM1 > > *reduceBuffer;
                 /*buffer size limit in bytes on gpu*/
                 uint32_t byte;
                 /*shared memory limit in byte for one block*/
@@ -237,6 +236,3 @@ namespace PMacc
         }
     }
 }
-
-#endif	/* REDUCE_HPP */
-

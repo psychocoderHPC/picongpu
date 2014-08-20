@@ -39,15 +39,18 @@ namespace PMacc
  * For all pmacc tasks and functions this buffer looks like native device buffer
  * but in real it is stored in host memory.
  */
-template <class TYPE, unsigned DIM>
-class MappedBufferIntern : public DeviceBuffer<TYPE, DIM>
+template <class TYPE, unsigned DIM, class T_SizeDefinition>
+class MappedBufferIntern : public DeviceBuffer<TYPE, DIMT_SizeDefinition>
 {
 public:
 
-    typedef typename DeviceBuffer<TYPE, DIM>::DataBoxType DataBoxType;
+    typedef T_SizeDefinition SizeDefinition;
+    typedef MappedBufferIntern<TYPE, DIM, SizeDefinition> This;
+    typedef DeviceBuffer<TYPE, DIM, SizeDefinition> Base;
+    typedef typename Base::DataBoxType DataBoxType;
 
     MappedBufferIntern(DataSpace<DIM> dataSpace) throw (std::bad_alloc) :
-    DeviceBuffer<TYPE, DIM>(dataSpace),
+    Base(dataSpace),
     pointer(NULL), ownPointer(true)
     {
         CUDA_CHECK(cudaMallocHost(&pointer, dataSpace.productOfComponents() * sizeof (TYPE), cudaHostAllocMapped));
@@ -90,7 +93,8 @@ public:
         return (TYPE*) this->getCudaPitched().ptr;
     }
 
-    void copyFrom(HostBuffer<TYPE, DIM>& other)
+    template<class T_OtherSizeDefinition>
+    void copyFrom(HostBuffer<TYPE, DIM, T_OtherSizeDefinition>& other)
     {
         __startAtomicTransaction(__getTransactionEvent());
         assert(this->isMyDataSpaceGreaterThan(other.getCurrentDataSpace()));
@@ -98,7 +102,8 @@ public:
         __setTransactionEvent(__endTransaction());
     }
 
-    void copyFrom(DeviceBuffer<TYPE, DIM>& other)
+    template<class T_OtherSizeDefinition>
+    void copyFrom(DeviceBuffer<TYPE, DIM, T_OtherSizeDefinition>& other)
     {
         __startAtomicTransaction(__getTransactionEvent());
         assert(this->isMyDataSpaceGreaterThan(other.getCurrentDataSpace()));
@@ -128,11 +133,6 @@ public:
     {
         return false;
     }
-    
-    virtual size_t* getCurrentSizeHostSidePointer()
-    {
-        return this->current_size;
-    }
 
     size_t* getCurrentSizeOnDevicePointer() throw (std::runtime_error)
     {
@@ -154,21 +154,21 @@ public:
         __startOperation(ITask::TASK_CUDA);
         TYPE* dPointer;
         cudaHostGetDevicePointer(&dPointer, pointer, 0);
-        
+
         /* on 1D memory we have no size for y, therefore we set y to 1 to
          * get a valid cudaPitchedPtr
          */
-        int size_y=1;
-        if(DIM>DIM1)
-            size_y= this->data_space[1];
-            
+        int size_y = 1;
+        if (DIM > DIM1)
+            size_y = this->data_space[1];
+
         return make_cudaPitchedPtr(dPointer,
                                    this->data_space.x() * sizeof (TYPE),
                                    this->data_space.x(),
                                    size_y
                                    );
     }
-    
+
     size_t getPitch() const
     {
         return this->data_space.x() * sizeof (TYPE);

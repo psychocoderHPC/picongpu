@@ -57,6 +57,8 @@ namespace picongpu
 
         typedef DataBox<PitchedBox<ValueType, simDim> > DataBoxType;
 
+        typedef GridBuffer<BufferDefinition<ValueType, simDim> > MyBuffer;
+
 
         FieldE(MappingDesc cellDescription);
 
@@ -78,7 +80,7 @@ namespace picongpu
 
         DataBoxType getHostDataBox();
 
-        GridBuffer<ValueType,simDim>& getGridBuffer();
+        MyBuffer& getGridBuffer();
 
         GridLayout<simDim> getGridLayout();
 
@@ -95,7 +97,7 @@ namespace picongpu
         void absorbeBorder();
 
 
-        GridBuffer<ValueType,simDim> *fieldE;
+        MyBuffer *fieldE;
 
         FieldB *fieldB;
 

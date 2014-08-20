@@ -21,69 +21,65 @@
  */
 
 
-#include "memory/buffers/Buffer.hpp"
-#include "dimensions/DataSpace.hpp"
-
-
 #ifndef _HOSTBUFFER_HPP
 #define	_HOSTBUFFER_HPP
+
+#include "memory/buffers/Buffer.hpp"
+#include "dimensions/DataSpace.hpp"
 
 namespace PMacc
 {
 
-    class EventTask;
+class EventTask;
 
-    template <class TYPE, unsigned DIM>
-    class DeviceBuffer;
+template <typename>
+class DeviceBuffer;
+
+/**
+ * Interface for a DIM-dimensional Buffer of type TYPE on the host
+ *
+ * @tparam TYPE datatype for buffer data
+ * @tparam DIM dimension of the buffer
+ */
+template <typename T_BufferDef>
+class HostBuffer : public Buffer<T_BufferDef>
+{
+public:
+
+    typedef T_BufferDef BufferDef;
+    typedef typename BufferDef::ValueType TYPE;
+    static const unsigned int DIM = BufferDef::dim;
+
+    typedef HostBuffer<BufferDef> This;
+    typedef Buffer<BufferDef> Base;
 
     /**
-     * Interface for a DIM-dimensional Buffer of type TYPE on the host
+     * Copies the data from the given DeviceBuffer to this HostBuffer.
      *
-     * @tparam TYPE datatype for buffer data
-     * @tparam DIM dimension of the buffer
+     * @param other DeviceBuffer to copy data from
      */
-    template <class TYPE, unsigned DIM>
-    class HostBuffer : public Buffer<TYPE, DIM>
+    virtual void copyFrom(DeviceBuffer<BufferDef>& other) = 0;
+
+    /**
+     * Destructor.
+     */
+    virtual ~HostBuffer()
     {
-    public:
-        /**
-         * Copies the data from the given DeviceBuffer to this HostBuffer.
-         *
-         * @param other DeviceBuffer to copy data from
-         */
-        virtual void copyFrom(DeviceBuffer<TYPE, DIM>& other) = 0;
-
-        /**
-         * Returns the current size pointer.
-         *
-         * @return pointer to current size
-         */
-        virtual size_t* getCurrentSizePointer()
-        {
-            __startOperation(ITask::TASK_HOST);
-            return this->current_size;
-        }
-        
-        /**
-         * Destructor.
-         */
-        virtual ~HostBuffer()
-        {
-        };
-
-    protected:
-
-        /**
-         * Constructor.
-         *
-         * @param dataSpace size of each dimension of the buffer
-         */
-        HostBuffer(DataSpace<DIM> dataSpace) :
-        Buffer<TYPE, DIM>(dataSpace)
-        {
-
-        }
     };
+
+protected:
+
+    /**
+     * Constructor.
+     *
+     * @param dataSpace size of each dimension of the buffer
+     */
+    HostBuffer(DataSpace<DIM> dataSpace) :
+    Base(dataSpace)
+    {
+
+    }
+};
 
 } //namespace PMacc
 

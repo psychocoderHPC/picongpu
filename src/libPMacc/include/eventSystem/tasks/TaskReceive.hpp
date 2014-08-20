@@ -36,12 +36,14 @@ namespace PMacc
 {
 
 
-    template <class TYPE, unsigned DIM>
+    template <typename T_BufferDef>
     class TaskReceive : public MPITask
     {
     public:
 
-        TaskReceive(Exchange<TYPE, DIM> &ex) :
+        typedef T_BufferDef BufferDef;
+
+        TaskReceive(Exchange<BufferDef> &ex) :
         exchange(&ex),
         state(Constructor)
         {
@@ -140,7 +142,7 @@ namespace PMacc
         };
 
 
-        Exchange<TYPE, DIM> *exchange;
+        Exchange<BufferDef> *exchange;
         state_t state;
         size_t newBufferSize;
     };

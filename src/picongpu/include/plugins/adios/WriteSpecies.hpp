@@ -131,7 +131,7 @@ public:
 
             dim3 block(PMacc::math::CT::volume<SuperCellSize>::type::value);
 
-            GridBuffer<int, DIM1> counterBuffer(DataSpace<DIM1>(1));
+            GridBuffer< BufferDefinition<int, DIM1> > counterBuffer(DataSpace<DIM1>(1));
             AreaMapping < CORE + BORDER, MappingDesc > mapper(*(params->cellDescription));
 
             __cudaKernel(copySpecies)

@@ -31,13 +31,13 @@ namespace picongpu
 {
 namespace gasSphereFlanks
 {
-    
-template<class Type>
-bool gasSetup( GridBuffer<Type, simDim>&, Window& )
+
+template<class T_GridBuffer>
+bool gasSetup( T_GridBuffer&, Window& )
 {
     return true;
 }
-        
+
 /** Calculate the gas density, divided by the maximum density GAS_DENSITY
  *
  * @param pos as 3D length vector offset to global left top front cell

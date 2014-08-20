@@ -57,6 +57,8 @@ namespace picongpu
         typedef MappingDesc::SuperCellSize SuperCellSize;
         typedef DataBox<PitchedBox<ValueType, simDim> > DataBoxType;
 
+        typedef GridBuffer<BufferDefinition<ValueType, simDim> > MyBuffer;
+
         MappingDesc getCellDescription()
         {
             return this->cellDescription;
@@ -83,7 +85,7 @@ namespace picongpu
 
         DataBoxType getHostDataBox( );
 
-        GridBuffer<ValueType, simDim>& getGridBuffer( );
+        MyBuffer& getGridBuffer( );
 
         GridLayout<simDim> getGridLayout( );
 
@@ -106,7 +108,7 @@ namespace picongpu
         void insertField( uint32_t exchangeType );
 
     private:
-        GridBuffer<ValueType, simDim> *fieldTmp;
+        MyBuffer *fieldTmp;
 
     };
 

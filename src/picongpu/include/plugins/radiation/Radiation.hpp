@@ -82,7 +82,7 @@ private:
      * [omega_1(theta_1),omega_2(theta_1),...,omega_N-omega(theta_1),
      *   omega_1(theta_2),omega_2(theta_2),...,omega_N-omega(theta_N-theta)]
      */
-    GridBuffer<Amplitude, DIM1> *radiation;
+    GridBuffer<BufferDefinition<Amplitude, DIM1> > *radiation;
     radiation_frequencies::InitFreqFunctor freqInit;
     radiation_frequencies::FreqFunctor freqFkt;
 
@@ -232,7 +232,7 @@ private:
             isMaster = reduce.hasResult(mpi::reduceMethods::Reduce());
             const int elements_amplitude = radiation_frequencies::N_omega * parameters::N_observer; // storage for amplitude results on GPU
 
-            radiation = new GridBuffer<Amplitude, DIM1 > (DataSpace<DIM1 > (elements_amplitude)); //create one int on gpu und host
+            radiation = new GridBuffer<BufferDefinition<Amplitude, DIM1> > (DataSpace<DIM1 > (elements_amplitude)); //create one int on gpu und host
 
             freqInit.Init(pathOmegaList);
             freqFkt = freqInit.getFunctor();
@@ -240,7 +240,7 @@ private:
 
             Environment<>::get().PluginConnector().setNotificationPeriod(this, notifyFrequency);
             PMacc::Filesystem<simDim>& fs = Environment<simDim>::get().Filesystem();
-            
+
             if (isMaster && totalRad)
             {
                 fs.createDirectory("radRestart");

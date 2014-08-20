@@ -53,7 +53,7 @@ namespace picongpu
     SimulationFieldHelper<MappingDesc>( cellDescription ),
     fieldTmp( NULL )
     {
-        fieldTmp = new GridBuffer<ValueType, simDim > ( cellDescription.getGridLayout( ) );
+        fieldTmp = new MyBuffer( cellDescription.getGridLayout( ) );
 
         /** \todo The exchange has to be resetted and set again regarding the
          *  temporary "Fill-"Functor we want to use.
@@ -254,7 +254,7 @@ namespace picongpu
         return fieldTmp->getHostBuffer( ).getDataBox( );
     }
 
-    GridBuffer<typename FieldTmp::ValueType, simDim> &FieldTmp::getGridBuffer( )
+    typename FieldTmp::MyBuffer &FieldTmp::getGridBuffer( )
     {
         return *fieldTmp;
     }

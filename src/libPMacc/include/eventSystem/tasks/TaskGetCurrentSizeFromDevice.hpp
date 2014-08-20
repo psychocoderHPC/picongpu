@@ -38,26 +38,27 @@ namespace PMacc
 {
 
 
-template <class TYPE, unsigned DIM>
+template <typename>
 class DeviceBuffer;
 
-template <class TYPE, unsigned DIM>
+template <typename T_BufferDef>
 class TaskGetCurrentSizeFromDevice : public StreamTask
 {
 public:
+    typedef T_BufferDef BufferDef;
 
-    TaskGetCurrentSizeFromDevice(DeviceBuffer<TYPE,DIM>& buffer):
+    TaskGetCurrentSizeFromDevice(DeviceBuffer<BufferDef>& buffer) :
     StreamTask()
     {
-        this->buffer =  & buffer;
+        this->buffer = &buffer;
     }
 
     virtual ~TaskGetCurrentSizeFromDevice()
     {
-        notify(this->myId,GETVALUE, NULL);
+        notify(this->myId, GETVALUE, NULL);
     }
 
-    bool executeIntern() throw(std::runtime_error)
+    bool executeIntern() throw (std::runtime_error)
     {
         return isFinished();
     }
@@ -83,7 +84,7 @@ public:
 
 private:
 
-    DeviceBuffer<TYPE, DIM> *buffer;
+    DeviceBuffer<BufferDef> *buffer;
 };
 
 } //namespace PMacc
