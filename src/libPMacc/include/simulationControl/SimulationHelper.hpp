@@ -197,16 +197,40 @@ public:
 
         movingWindowCheck(currentStep); //if we restart at any step check if we must slide
 
+        /* scorep: add time step marker 0*/
+
         /* dump 0% output */
         dumpTimes(tSimCalculation, tRound, roundAvg, currentStep);
         while (currentStep < runSteps)
         {
+
             tRound.toggleStart();
             runOneStep(currentStep);
             tRound.toggleEnd();
             roundAvg += tRound.getInterval();
 
             currentStep++;
+            /* scorep: add time step marker */
+
+            /* scorep: enable tracing
+            if (currentStep == 800 ||
+                currentStep == 1499
+                )
+            {
+                // enable tracing
+            }
+            */
+
+            /* scorep: disable tracing
+            if (currentStep == 100 ||
+                currentStep == 900 ||
+                currentStep == 1599
+            )
+            {
+                // disable tracing
+            }
+            */
+
             /*output after a round*/
             dumpTimes(tSimCalculation, tRound, roundAvg, currentStep);
 
@@ -214,6 +238,8 @@ public:
             /*dump after simulated step*/
             dumpOneStep(currentStep);
         }
+
+        /* scorep: enable tracing that we trace the function exit */
 
         //simulatation end
         Environment<>::get().Manager().waitForAllTasks();

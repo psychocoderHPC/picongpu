@@ -349,26 +349,6 @@ public:
      */
     virtual void runOneStep(uint32_t currentStep)
     {
-        /* scorep: add time step marker */
-
-
-        /* scorep: enable disable tracing
-        if (currentStep == 0 ||
-            currentStep == 800 ||
-            currentStep == 1499
-            )
-        {
-            // enable tracing
-        }
-        if (currentStep == 100 ||
-            currentStep == 900 ||
-            currentStep == 1599
-            )
-        {
-            // disable tracing
-        }
-        */
-
         namespace nvfct = PMacc::nvidia::functors;
 
         /** add background field for particle pusher */
