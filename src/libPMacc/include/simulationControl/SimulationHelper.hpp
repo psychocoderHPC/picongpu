@@ -197,7 +197,7 @@ public:
 
         movingWindowCheck(currentStep); //if we restart at any step check if we must slide
 
-        /* scorep: add time step marker 0*/
+        /* scorep: add time step 0 marker*/
 
         /* dump 0% output */
         dumpTimes(tSimCalculation, tRound, roundAvg, currentStep);
@@ -210,8 +210,7 @@ public:
             roundAvg += tRound.getInterval();
 
             currentStep++;
-            /* scorep: add time step marker */
-
+            
             /* scorep: enable tracing
             if (currentStep == 800 ||
                 currentStep == 1499
@@ -230,6 +229,8 @@ public:
                 // disable tracing
             }
             */
+
+            /* scorep: add time step marker */
 
             /*output after a round*/
             dumpTimes(tSimCalculation, tRound, roundAvg, currentStep);
