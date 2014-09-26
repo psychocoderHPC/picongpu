@@ -22,7 +22,7 @@
 
 #pragma once
 
-#include "particles/shapes.hpp"
+#include "particles/startPosition/Functors.def"
 
 namespace picongpu
 {
@@ -73,32 +73,32 @@ namespace picongpu
      *  unit: none */
     const float_X MIN_WEIGHTING = 10.0;
 
-    namespace particleInitRandomPos
+namespace particles
+{
+namespace startPosition
+{
+
+    struct RandomParamater
     {
         /** Count of particles per cell at initial state
          *  unit: none */
-        const uint32_t NUM_PARTICLES_PER_CELL = 2;
-    }
+        static const uint32_t numParticlesPerCell = 2;
+    };
+    /* definition of random particle start*/
+    typedef RandomImpl<RandomParamater> Random;
 
-    namespace particleInitQuietStart
+    struct QuietParameter
     {
         /** Count of particles per cell per direction at initial state
          *  unit: none */
-        const uint32_t NUM_PARTICLES_PER_CELL_X = 1;
-        const uint32_t NUM_PARTICLES_PER_CELL_Y = 2;
-        const uint32_t NUM_PARTICLES_PER_CELL_Z = 1;
+       typedef typename mCT::shrinkTo<mCT::Int<1, 2, 1>, simDim>::type numParticlesPerDimension;
+    };
 
-        /* Do not change this */
-#if(SIMDIM==DIM3)
-        const uint32_t NUM_PARTICLES_PER_CELL = NUM_PARTICLES_PER_CELL_X
-                                              * NUM_PARTICLES_PER_CELL_Y
-                                              * NUM_PARTICLES_PER_CELL_Z;
-#elif(SIMDIM==DIM2)
-        const uint32_t NUM_PARTICLES_PER_CELL = NUM_PARTICLES_PER_CELL_X
-                                              * NUM_PARTICLES_PER_CELL_Y;
-#endif
-    }
-
-}
+    /* definition of random particle start*/
+    typedef QuietImpl<QuietParameter> Quiet;
 
 
+} //namespace startPosition
+} //namespace particles
+
+} //namespac picongpu

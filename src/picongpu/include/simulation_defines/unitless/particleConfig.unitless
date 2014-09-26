@@ -56,5 +56,4 @@ namespace picongpu
 
 // include implemented particle initializations
 //
-#include "particles/init/particleInitRandomPos.hpp"
-#include "particles/init/particleInitQuietStart.hpp"
+#include "particles/startPosition/Functors.hpp"

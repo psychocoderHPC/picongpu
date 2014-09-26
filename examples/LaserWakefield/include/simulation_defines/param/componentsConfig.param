@@ -54,21 +54,6 @@ namespace laserProfile = laserGaussianBeam;
 #endif
 namespace fieldSolver = PARAM_FIELDSOLVER;
 
-/*! Gas Configuration------------------------------------------------------
- * Select a normed gas density profile
- *  - gasGaussian : super - gaussian density profile
- *  - gasGaussianCloud : super - gaussian density profile with a center position
- *  - gasLinExp : piecewise linear-exponential profile (linear first)
- *  - gasHomogenous : constant gas density with a certain length
- *  - gasSphereFlanks : constant sphere droplet with exponential decr envelope
- *  - gasFreeFormula: use a custom formula (slower)
- *  - gasFromHdf5: load gas density from HDF5 file
- *  - gasNone : just stay with a vacuum
- */
-#ifndef PARAM_GASPROFILE
-#define PARAM_GASPROFILE gasGaussian
-#endif
-namespace gasProfile = PARAM_GASPROFILE;
 
 /*! Particle Initialization ----------------------------------------------
  *  - particleInitRandomPos  : distribute your particles uniformly random

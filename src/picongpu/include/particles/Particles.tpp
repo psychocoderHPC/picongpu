@@ -188,9 +188,9 @@ void Particles<T_ParticleDescription>::reset( uint32_t )
 }
 
 template< typename T_ParticleDescription>
-void Particles<T_ParticleDescription>::initFill( uint32_t currentStep )
+template<typename T_GasFunctor,typename T_PositionFunctor>
+void Particles<T_ParticleDescription>::initGass(T_GasFunctor& gasFunctor,T_PositionFunctor& positionFunctor,uint32_t currentStep)
 {
-    Window window = MovingWindow::getInstance( ).getWindow( currentStep );
     const uint32_t numSlides = MovingWindow::getInstance().getSlideCounter( currentStep );
     const SubGrid<simDim>& subGrid = Environment<simDim>::get().SubGrid();
 
@@ -199,37 +199,19 @@ void Particles<T_ParticleDescription>::initFill( uint32_t currentStep )
     DataSpace<simDim> gpuCellOffset = subGrid.getLocalDomain().offset;
     gpuCellOffset.y( ) += numSlides * localCells.y( );
 
-    GlobalSeed globalSeed;
-    mpi::SeedPerRank<simDim> seedPerRank;
-    uint32_t seed = seedPerRank( globalSeed(), FrameType::CommunicationTag );
-    seed ^= POSITION_SEED;
     dim3 block( MappingDesc::SuperCellSize::toRT( ).toDim3() );
 
-    if ( gasProfile::GAS_ENABLED )
-    {
-        const DataSpace<simDim> globalNrOfCells = subGrid.getGlobalDomain().size;
+    __picKernelArea( kernelFillGridWithParticles, this->cellDescription, CORE + BORDER + GUARD )
+        (block)
+        ( gasFunctor,positionFunctor,this->particlesBuffer->getDeviceParticleBox( ),
+          gpuCellOffset
+          );
 
-        PMACC_AUTO( &fieldTmpGridBuffer, this->fieldTmp->getGridBuffer() );
-        FieldTmp::DataBoxType dataBox = fieldTmpGridBuffer.getDeviceBuffer().getDataBox();
-
-        if (!gasProfile::gasSetup(fieldTmpGridBuffer, window))
-        {
-            log<picLog::SIMULATION_STATE > ("Failed to setup gas profile");
-        }
-
-        __picKernelArea( kernelFillGridWithParticles, this->cellDescription, CORE + BORDER + GUARD )
-            (block)
-            ( this->particlesBuffer->getDeviceParticleBox( ),
-              this->particlesBuffer->hasSendExchange( TOP ),
-              gpuCellOffset,
-              seed,
-              globalNrOfCells.y( ),
-              dataBox.shift(this->fieldTmp->getGridLayout().getGuard()));
-    }
 
     this->fillAllGaps( );
 
-    log<picLog::SIMULATION_STATE > ( "Wait for init particles finished (y offset = %1%)" ) % gpuCellOffset.y( );
+    log<picLog::SIMULATION_STATE > ( "Wait for init species %2% finished (y offset = %1%)" ) %
+    gpuCellOffset.y( ) % FrameType::getName();
     __getTransactionEvent( ).waitForFinished( );
 }
 

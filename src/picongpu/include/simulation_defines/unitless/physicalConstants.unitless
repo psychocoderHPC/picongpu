@@ -24,11 +24,11 @@
 namespace picongpu
 {
     /** Unit of Speed */
-    const double UNIT_SPEED = SI::SPEED_OF_LIGHT_SI;
+    const float_64 UNIT_SPEED = SI::SPEED_OF_LIGHT_SI;
     /** Unit of time */
-    const double UNIT_TIME = SI::DELTA_T_SI;
+    const float_64 UNIT_TIME = SI::DELTA_T_SI;
     /** Unit of length */
-    const double UNIT_LENGTH = UNIT_TIME*UNIT_SPEED;
+    const float_64 UNIT_LENGTH = UNIT_TIME*UNIT_SPEED;
 
 #if(SIMDIM==DIM3)
     namespace SI
@@ -92,5 +92,41 @@ namespace picongpu
 
     // = 1/c^2
     const float_X MUE0_EPS0 = float_X(1. / SPEED_OF_LIGHT / SPEED_OF_LIGHT);
+
+    namespace traits
+    {
+        template<>
+        struct GetUnitValue<unit_time>
+        {
+            typedef float_64 type;
+
+            HDINLINE type operator()()
+            {
+                return UNIT_TIME;
+            }
+        };
+
+        template<>
+        struct GetUnitValue<unit_length>
+        {
+            typedef float_64 type;
+
+            HDINLINE type operator()()
+            {
+                return UNIT_LENGTH;
+            }
+        };
+
+        template<>
+        struct GetUnitValue<unit_mass>
+        {
+            typedef float_64 type;
+
+            HDINLINE type operator()()
+            {
+                return UNIT_MASS;
+            }
+        };
+    }
 
 } //namespace picongpu

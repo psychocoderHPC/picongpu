@@ -1,5 +1,5 @@
 /**
- * Copyright 2013 Axel Huebl, Heiko Burau, Rene Widera
+ * Copyright 2013-2014 Axel Huebl, Heiko Burau, Rene Widera
  *
  * This file is part of PIConGPU.
  *
@@ -19,40 +19,29 @@
  */
 
 
+#pragma once
 
-#ifndef PARTICLEINITQUIETSTART_HPP
-#define	PARTICLEINITQUIETSTART_HPP
 
-#include "types.h"
 #include "simulation_defines.hpp"
-#include "ppFunctions.hpp"
+#include "particles/startPosition/MakroParticleCfg.hpp"
 
 namespace picongpu
 {
-namespace particleInitQuietStart
+namespace particles
+{
+namespace startPosition
 {
 
-class particleInitMethods
+template<typename T_ParamClass>
+struct QuietImpl
 {
-public:
-
-    DINLINE particleInitMethods()
-    {
-        for (uint32_t i = 0; i < simDim; ++i)
-            numParInCell[i] = num_particle_per_cell[i];
-    }
-
     /** Distributes the initial particles lattice-like within the cell.
      *
      * @param rng a reference to an initialized, UNIFORM random number generator
-     * @param totalNumParsPerCell the total number of particles to init for this cell
      * @param curParticle the number of this particle: [0, totalNumParsPerCell-1]
      * @return float3_X with components between [0.0, 1.0)
      */
-    template <class UNIRNG>
-    DINLINE floatD_X getPosition(UNIRNG& rng,
-                                 const uint32_t totalNumParsPerCell,
-                                 const uint32_t curParticle)
+    DINLINE floatD_X getPosition(const uint32_t curParticle)
     {
         // spacing between particles in each direction in the cell
         DataSpace<simDim> numParDirection(numParInCell);
@@ -78,8 +67,10 @@ public:
      * @param realElPerCell  the number of real electrons in this cell
      * @return macroWeighting the intended weighting per macro particle
      */
-    DINLINE float_X reduceParticlesToSatisfyMinWeighting(uint32_t& numParsPerCell,
-                                                         const float_X realElPerCell)
+    template<typename T_CellSizeType>
+    DINLINE MakroParticleCfg mapRealToMakroParticle(const float_X realElPerCell,
+                                                    const DataSpace<simDim>&,
+                                                    const T_CellSizeType&)
     {
         float_X macroWeighting = float_X(0.0);
         if (numParsPerCell > 0)
@@ -104,17 +95,18 @@ public:
             else
                 macroWeighting = float_X(0.0);
         }
-        return macroWeighting;
+
+        MakroParticleCfg makroParCfg;
+        makroParCfg.weighting=macroWeighting;
+        makroParCfg.numParticlesPerCell=numParInCell.productOfComponents();
+
+        return makroParCfg;
     }
 
 protected:
 
     DataSpace<simDim> numParInCell;
 };
-}
-}
-
-#endif	/* PARTICLEINITQUIETSTART_HPP */
-
-
-
+} //namespace particlesStartPosition
+} //namespace particles
+} //namespace picongpu

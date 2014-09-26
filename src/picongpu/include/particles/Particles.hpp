@@ -60,7 +60,8 @@ public:
 
     void update(uint32_t currentStep);
 
-    void initFill(uint32_t currentStep);
+    template<typename T_GasFunctor,typename T_PositionFunctor>
+    void initGass(T_GasFunctor& gasFunctor,T_PositionFunctor& positionFunctor,uint32_t currentStep);
 
     template< typename t_ParticleDescription>
     void deviceCloneFrom(Particles<t_ParticleDescription> &src);

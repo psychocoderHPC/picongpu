@@ -44,7 +44,7 @@ public:
      * Constructor
      * Size and offset initialized to 0 (empty selection)
      */
-    Selection(void)
+    HDINLINE Selection(void)
     {
         for (uint32_t i = 0; i < DIM; ++i)
         {
@@ -58,7 +58,7 @@ public:
      *
      * @param other Selection to copy information from
      */
-    Selection(const Selection<DIM>& other) :
+    HDINLINE Selection(const Selection<DIM>& other) :
     size(other.size),
     offset(other.offset)
     {
@@ -71,7 +71,7 @@ public:
      *
      * @param size DataSpace for selection size
      */
-    Selection(DataSpace<DIM> size) :
+    HDINLINE Selection(DataSpace<DIM> size) :
     size(size)
     {
         for (uint32_t i = 0; i < DIM; ++i)
@@ -86,7 +86,7 @@ public:
      * @param size DataSpace for selection size
      * @param offset DataSpace for selection offset
      */
-    Selection(DataSpace<DIM> size, DataSpace<DIM> offset) :
+    HDINLINE Selection(DataSpace<DIM> size, DataSpace<DIM> offset) :
     size(size),
     offset(offset)
     {

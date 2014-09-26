@@ -64,7 +64,7 @@ public:
         // start simulation using default values
         log<picLog::SIMULATION_STATE > ("Starting simulation from timestep 0");
 
-        SimStartInitialiser<PIC_Electrons, PIC_Ions> simStartInitialiser;
+        SimStartInitialiser simStartInitialiser;
         Environment<>::get().DataConnector().initialise(simStartInitialiser, 0);
         __getTransactionEvent().waitForFinished();
 
@@ -100,9 +100,9 @@ public:
                                  (1./math::sqrt(INV_CELL2_SUM)) %
                                  (SPEED_OF_LIGHT * DELTA_T);
 
-            if (gasProfile::GAS_ENABLED)
-                log<picLog::PHYSICS >("omega_pe * dt <= 0.1 ? %1%") %
-                                     (sqrt(GAS_DENSITY * Q_EL / M_EL * Q_EL / EPS0) * DELTA_T);
+//            if (gasProfile::GAS_ENABLED)
+//                log<picLog::PHYSICS >("omega_pe * dt <= 0.1 ? %1%") %
+//                                     (sqrt(GAS_DENSITY * Q_EL / M_EL * Q_EL / EPS0) * DELTA_T);
             if (laserProfile::INIT_TIME > float_X(0.0))
                 log<picLog::PHYSICS >("y-cells per wavelength: %1%") %
                                      (laserProfile::WAVE_LENGTH / CELL_HEIGHT);
@@ -148,7 +148,7 @@ public:
 
     virtual void slide(uint32_t currentStep)
     {
-        SimStartInitialiser<PIC_Electrons, PIC_Ions> simStartInitialiser;
+        SimStartInitialiser simStartInitialiser;
         Environment<>::get().DataConnector().initialise(simStartInitialiser, currentStep);
         __getTransactionEvent().waitForFinished();
     }
