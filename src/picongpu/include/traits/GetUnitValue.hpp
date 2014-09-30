@@ -1,5 +1,5 @@
 /**
- * Copyright 2013-2014 Axel Huebl, Felix Schmitt, Heiko Burau, Rene Widera
+ * Copyright 2013 Rene Widera
  *
  * This file is part of PIConGPU.
  *
@@ -18,42 +18,33 @@
  * If not, see <http://www.gnu.org/licenses/>.
  */
 
+#pragma once
 
-
-#ifndef SIMSTARTINITIALISER_HPP
-#define	SIMSTARTINITIALISER_HPP
-
-#include "simulation_types.hpp"
-#include "dataManagement/AbstractInitialiser.hpp"
-//#include "dataManagement/DataConnector.hpp"
-
-#include "Environment.hpp"
 
 namespace picongpu
 {
 
-/**
- * Simulation startup initialiser.
- *
- * Initialises a new simulation from default values.
- * DataConnector has to be used with a FIFO compliant IDataSorter.
- *
- */
-class SimStartInitialiser : public AbstractInitialiser
+namespace traits
 {
-public:
+/** Get the value of a unit
+ *
+ * \tparam T_Identifier any identifier
+ */
+template<typename T_Identifier>
+struct GetUnitValue;
 
-    void init(ISimulationData& data, uint32_t currentStep)
-    {
+} //namespace traits
 
-    }
-
-    virtual ~SimStartInitialiser()
-    {
-
-    }
-};
+template<typename T_Identifier>
+HDINLINE float_64 getUnitValue()
+{
+    return traits::GetUnitValue<T_Identifier>()();
 }
 
-#endif	/* SIMSTARTINITIALISER_HPP */
+template<typename T_Identifier>
+HDINLINE float_64 getUnitValue(const T_Identifier&)
+{
+    return getUnitValue<T_Identifier>();
+}
 
+}// namespace picongpu

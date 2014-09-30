@@ -29,6 +29,7 @@
 #include "particles/shapes.hpp"
 
 #include "fields/currentDeposition/Solver.def"
+#include "particles/InitFunctors.hpp"
 
 
 /*enable (1) or disable (0) electrons*/
@@ -88,5 +89,7 @@ typedef PARAM_CURRENTSOLVER UsedParticleCurrentSolver;
 #define PARAM_PARTICLEPUSHER particles::pusher::Boris
 #endif
 typedef PARAM_PARTICLEPUSHER UsedParticlePusher;
+
+typedef bmpl::vector1<particles::CreateGas<gasProfiles::Gaussian,particles::startPosition::Random> > UsedInitMethods;
 
 }//namespace picongpu

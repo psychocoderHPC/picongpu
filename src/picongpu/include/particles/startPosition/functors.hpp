@@ -1,5 +1,5 @@
 /**
- * Copyright 2013-2014 Axel Huebl, Rene Widera, Felix Schmitt
+ * Copyright 2013-2014 Axel Huebl, Heiko Burau, Rene Widera
  *
  * This file is part of PIConGPU.
  *
@@ -19,20 +19,6 @@
  */
 
 
-
 #pragma once
-
-
-namespace picongpu
-
-{
-#if(SIMDIM==DIM3)
-    const float_X GAS_DENSITY = float_X(SI::GAS_DENSITY_NORMED*UNIT_LENGTH*UNIT_LENGTH*UNIT_LENGTH);
-#elif(SIMDIM==DIM2)
-    const float_X GAS_DENSITY = float_X(SI::GAS_DENSITY_NORMED*UNIT_LENGTH*UNIT_LENGTH);
-#endif
-
-
-} //namespace picongpu
-
-#include "particles/gasProfiles/profiles.hpp"
+#include "particles/startPosition/QuietImpl.hpp"
+#include "particles/startPosition/RandomImpl.hpp"

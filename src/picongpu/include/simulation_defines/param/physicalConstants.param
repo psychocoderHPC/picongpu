@@ -22,8 +22,15 @@
 
 #pragma once
 
+#include "identifier/identifier.hpp"
+#include "traits/GetUnitValue.hpp"
+
 namespace picongpu
 {
+    identifier(unit_time);
+    identifier(unit_length);
+    identifier(unit_mass);
+
     const float_64 PI = 3.141592653589793238462643383279502884197169399;
 
     namespace SI

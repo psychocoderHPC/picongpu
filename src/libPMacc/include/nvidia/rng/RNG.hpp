@@ -42,6 +42,10 @@ class RNG : public RNGMethod
 {
 public:
 
+    HINLINE RNG()
+    {
+    }
+
     /*
      * \param rngMethod instance of generator
      * \param distribution instance of distribution functor
@@ -60,7 +64,7 @@ public:
     }
 
 private:
-    const PMACC_ALIGN(op, Distribution);
+    PMACC_ALIGN(op, Distribution);
 };
 
 /* create a random number generator on gpu
