@@ -25,6 +25,7 @@
 #include "particles/traits/GetCharge.hpp"
 #include "fields/currentDeposition/Solver.hpp"
 #include "particles/Particles.tpp"
+#include "particles/manipulators/manipulators.hpp"
 
 namespace picongpu
 {

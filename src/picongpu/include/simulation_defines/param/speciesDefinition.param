@@ -79,7 +79,8 @@ typedef bmpl::vector<
     particlePusher<UsedParticlePusher>,
     shape<UsedParticleShape>,
     interpolation<UsedField2Particle>,
-    current<UsedParticleCurrentSolver>
+    current<UsedParticleCurrentSolver>,
+    initMethods<UsedInitMethods>
 > ParticleFlagsElectrons;
 
 /*define specie electrons*/

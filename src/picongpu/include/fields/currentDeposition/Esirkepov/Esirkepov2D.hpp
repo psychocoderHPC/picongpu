@@ -21,9 +21,7 @@
 #pragma once
 
 #include "simulation_defines.hpp"
-#include "types.h"
 #include "math/vector/UInt.hpp"
-#include "types.h"
 #include "cuSTL/cursor/Cursor.hpp"
 #include "basicOperations.hpp"
 #include <cuSTL/cursor/tools/twistVectorFieldAxes.hpp>
