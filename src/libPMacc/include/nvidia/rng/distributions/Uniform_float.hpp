@@ -1,5 +1,5 @@
 /**
- * Copyright 2013 Axel Huebl, Heiko Burau, Rene Widera
+ * Copyright 2013-2014 Axel Huebl, Heiko Burau, Rene Widera
  *
  * This file is part of libPMacc.
  *
@@ -43,7 +43,7 @@ namespace PMacc
                 public:
                     typedef float Type;
 
-                    DINLINE Uniform_float()
+                    HDINLINE Uniform_float()
                     {
                     }
 

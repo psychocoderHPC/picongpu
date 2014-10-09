@@ -51,25 +51,6 @@ namespace picongpu
      */
     namespace fieldSolver = fieldSolverYee;
 
-    /*! Gas Configuration-----------------------------------------------------
-     * Select a normed gas density profile
-     *  - gasGaussian : super - gaussian density profile
-     *  - gasGaussianCloud : super - gaussian density profile with a center position
-     *  - gasLinExp : piecewise linear-exponential profile (linear first)
-     *  - gasHomogenous : constant gas density with a certain length
-     *  - gasSphereFlanks : constant sphere droplet with exponential decr envelope
-     *  - gasFreeFormula: use a custom formula (slower)
-     *  - gasFromHdf5: load gas density from HDF5 file
-     *  - gasNone : just stay with a vacuum
-     */
-    namespace gasProfile = gasHomogenous;
-
-    /*! Particle Initialization ----------------------------------------------
-     *  - particleInitRandomPos  : distribute your particles uniformly random
-     *  - particleInitQuietStart : distribute your particles latice-like
-     */
-    namespace particleInit = particleInitQuietStart;
-
     /*enable (1) or disable (0) current calculation*/
 #define ENABLE_CURRENT 1
 

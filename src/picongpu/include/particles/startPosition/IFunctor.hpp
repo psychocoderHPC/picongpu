@@ -19,40 +19,40 @@
  */
 
 
+#pragma once
 
-#ifndef GASNONE_HPP
-#define	GASNONE_HPP
-
-#include "types.h"
 #include "simulation_defines.hpp"
-#include "memory/buffers/GridBuffer.hpp"
-#include "simulationControl/Window.hpp"
+#include "particles/startPosition/MakroParticleCfg.hpp"
 
 namespace picongpu
 {
-    namespace gasNone
+
+namespace particles
+{
+namespace startPosition
+{
+
+template<typename T_Base>
+struct IFunctor : private T_Base
+{
+    typedef T_Base Base;
+
+    HINLINE IFunctor(uint32_t currentStep) : Base(currentStep)
     {
-        template<class Type>
-        bool gasSetup( GridBuffer<Type, simDim>&, Window& )
-        {
-            return true;
-        }
-
-        /** Calculate the gas density, divided by the maximum density GAS_DENSITY
-         *
-         * @return float_X between 0.0 and 1.0
-         */
-        template<unsigned DIM, typename FieldBox>
-        DINLINE float_X calcNormedDensity( floatD_X pos, const DataSpace<DIM>&, FieldBox )
-        {
-
-            return float_X(0.0);
-
-        }
     }
-}
 
-#endif	/* GASNONE_HPP */
+    DINLINE floatD_X operator()(const uint32_t currentParticleIdx)
+    {
+        return Base::operator()(currentParticleIdx);
+    }
 
+    DINLINE MakroParticleCfg mapRealToMakroParticle(const float_X realElPerCell,
+                                                     const DataSpace<simDim>& localCellIdx)
+    {
+        return Base::mapRealToMakroParticle(realElPerCell,localCellIdx);
+    }
+};
 
-
+} //namespace startPosition
+} //namespace particles
+} //namespace picongpu

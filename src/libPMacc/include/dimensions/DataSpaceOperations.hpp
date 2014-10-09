@@ -51,7 +51,7 @@ namespace PMacc
          * DIM-dimensional target grid.
          */
         template<class TVEC>
-        static HDINLINE DataSpace<DIM> map(uint32_t pos);
+        static HDINLINE DataSpace<DIM> map(int pos);
 
         /**
          * Reduces the DataSpace object ds of dimension DIM to a DataSpace object of dimension DIM-1.
@@ -90,13 +90,13 @@ namespace PMacc
     public:
 
         template<class TVEC>
-        static HDINLINE DataSpace<DIM1> map(uint32_t pos)
+        static HDINLINE DataSpace<DIM1> map(int pos)
         {
             return DataSpace<DIM1 > (pos);
         }
 
         template<class TVEC>
-        static HDINLINE uint32_t map(const DataSpace<DIM1>& pos)
+        static HDINLINE int map(const DataSpace<DIM1>& pos)
         {
             return pos.x();
         }
@@ -144,23 +144,23 @@ namespace PMacc
     public:
 
         template<class TVEC>
-        static HDINLINE DataSpace<DIM2> map(uint32_t pos)
+        static HDINLINE DataSpace<DIM2> map(int pos)
         {
             return DataSpace<DIM2 > (pos % TVEC::x::value, pos / TVEC::x::value);
         }
 
         template<class TVEC>
-        static HDINLINE uint32_t map(const DataSpace<DIM2>& pos)
+        static HDINLINE int map(const DataSpace<DIM2>& pos)
         {
             return pos.y() * TVEC::x::value + pos.x();
         }
 
-        static HDINLINE DataSpace<DIM2> map(const DataSpace<DIM2>& size, uint32_t pos)
+        static HDINLINE DataSpace<DIM2> map(const DataSpace<DIM2>& size, int pos)
         {
             return DataSpace<DIM2 > (pos % size.x(), pos / size.x());
         }
 
-        static HDINLINE uint32_t map(const DataSpace<DIM2>& size, const DataSpace<DIM2>& pos)
+        static HDINLINE int map(const DataSpace<DIM2>& size, const DataSpace<DIM2>& pos)
         {
             return pos.y() * size.x() + pos.x();
         }
@@ -251,14 +251,14 @@ namespace PMacc
     public:
 
         template<class TVEC>
-        static HDINLINE DataSpace<DIM3> map(uint32_t pos)
+        static HDINLINE DataSpace<DIM3> map(int pos)
         {
             return DataSpace<DIM3 > (pos % TVEC::x::value,
                                     (pos % (TVEC::x::value * TVEC::y::value)) / TVEC::x::value,
                                      pos / (TVEC::x::value * TVEC::y::value));
         }
 
-        static HDINLINE DataSpace<DIM3> map(const DataSpace<DIM3>& size, uint32_t pos)
+        static HDINLINE DataSpace<DIM3> map(const DataSpace<DIM3>& size, int pos)
         {
             return DataSpace<DIM3 > (pos % size.x(),
                                      (pos % (size.x() * size.y())) / size.x(),
@@ -266,12 +266,12 @@ namespace PMacc
         }
 
         template<class TVEC>
-        static HDINLINE uint32_t map(const DataSpace<DIM3>& pos)
+        static HDINLINE int map(const DataSpace<DIM3>& pos)
         {
             return pos.z() * TVEC::x::value * TVEC::y::value + pos.y() * TVEC::x::value + pos.x();
         }
 
-        static HDINLINE uint32_t map(const DataSpace<DIM3>& size, const DataSpace<DIM3>& pos)
+        static HDINLINE int map(const DataSpace<DIM3>& size, const DataSpace<DIM3>& pos)
         {
             return pos.z() * size.x() * size.y() + pos.y() * size.x() + pos.x();
         }
