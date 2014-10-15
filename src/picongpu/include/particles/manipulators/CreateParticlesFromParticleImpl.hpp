@@ -49,7 +49,7 @@ template<typename T_Functor, typename T_DestSpeciesName, typename T_Count, typen
 struct CreateParticlesFromParticleImpl : private T_Functor
 {
     typedef typename MakeIdentifier<T_SpeciesName>::type SpeciesName;
-    typedef typename MakeIdentifier<PIC_Electrons>::type DestSpeciesName;
+    typedef typename MakeIdentifier<T_DestSpeciesName>::type DestSpeciesName;
     typedef typename DestSpeciesName::type DestSpeciesType;
     typedef typename DestSpeciesType::FrameType DestFrameType;
     typedef typename DestSpeciesType::ParticlesBoxType DestParticlesBoxType;
