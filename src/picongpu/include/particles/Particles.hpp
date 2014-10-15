@@ -29,6 +29,7 @@
 #include "particles/memory/buffers/ParticlesBuffer.hpp"
 
 #include "dataManagement/ISimulationData.hpp"
+#include "traits/GetDataBoxType.hpp"
 
 #include <curand_kernel.h>
 
@@ -88,6 +89,17 @@ private:
 
     curandState* randState;
 };
+
+namespace traits
+{
+
+template<typename T_ParticleDescription>
+struct GetDataBoxType<picongpu::Particles<T_ParticleDescription> >
+{
+    typedef typename picongpu::Particles<T_ParticleDescription>::ParticlesBoxType type;
+};
+
+} //namespace traits
 
 
 } //namespace picongpu

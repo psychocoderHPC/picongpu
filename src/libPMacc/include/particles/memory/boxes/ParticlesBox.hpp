@@ -55,6 +55,10 @@ public:
 
     }
 
+    HINLINE ParticlesBox()
+    {
+    }
+
     /**
      * Returns an empty frame from data heap.
      *
@@ -70,13 +74,13 @@ public:
             tmp = new FrameType;
             if (tmp == NULL)
             {
-                printf("ERROR in getEmptyFrame: after %i retries no memory on GPU\n",tests);
+                printf("ERROR in getEmptyFrame: after %i retries no memory on GPU\n", tests);
                 //int freeSlots = mallocMC::getAvailableSlots(sizeof (FrameType));
                 //printf("ERROR in getEmptyFrame: after 2 retries no memory on GPU, free slots %i of size %i\n", freeSlots, sizeof (FrameType));
             }
             ++tests;
         }
-        if(tmp==NULL)
+        if (tmp == NULL)
             printf("ERROR in getEmptyFrame: after 2 retries no memory on GPU\n");
 
         /* delete all particles we can not assume that new memory is zeroed */

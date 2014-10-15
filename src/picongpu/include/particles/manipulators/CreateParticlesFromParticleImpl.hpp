@@ -51,14 +51,15 @@ struct CreateParticlesFromParticleImpl : private T_Functor
     typedef typename MakeIdentifier<T_SpeciesName>::type SpeciesName;
     typedef typename MakeIdentifier<T_DestSpeciesName>::type DestSpeciesName;
     typedef typename DestSpeciesName::type DestSpeciesType;
-    typedef typename DestSpeciesType::FrameType DestFrameType;
-    typedef typename DestSpeciesType::ParticlesBoxType DestParticlesBoxType;
+
     typedef T_Functor Functor;
     static const uint32_t particlePerParticle = T_Count::value;
     static const int cellsInSuperCell = (int)PMacc::math::CT::volume<SuperCellSize>::type::value;
 
     HINLINE CreateParticlesFromParticleImpl(uint32_t currentStep) : Functor(currentStep)
     {
+        typedef typename DestSpeciesType::FrameType DestFrameType;
+        typedef typename DestSpeciesType::ParticlesBoxType DestParticlesBoxType;
         guardCells = SuperCellSize::toRT(); //\todo: ask mapper or any other class
         DataConnector &dc = Environment<>::get().DataConnector();
         DestSpeciesType& destSpecies = dc.getData<DestSpeciesType > (DestFrameType::getName(), true);
@@ -69,6 +70,8 @@ struct CreateParticlesFromParticleImpl : private T_Functor
     template<typename T_Particle>
     DINLINE void operator()(const DataSpace<simDim>& localCellIdx, T_Particle& particle, const bool isParticle)
     {
+        typedef typename DestSpeciesType::FrameType DestFrameType;
+        typedef typename DestSpeciesType::ParticlesBoxType DestParticlesBoxType;
         typedef typename SpeciesName::type SpeciesType;
         typedef typename SpeciesType::FrameType FrameType;
 
@@ -155,7 +158,7 @@ struct CreateParticlesFromParticleImpl : private T_Functor
 private:
 
     DataSpace<simDim> guardCells;
-    DestParticlesBoxType destParBox;
+    typename traits::GetDataBoxType<DestSpeciesType>::type destParBox;
     bool firstCall;
 };
 
