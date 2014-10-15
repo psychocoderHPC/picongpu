@@ -21,14 +21,14 @@
 
 #pragma once
 
-#include "particles/gasProfiles/IProfile.hpp"
-#include "particles/gasProfiles/GaussianImpl.hpp"
-#include "particles/gasProfiles/HomogenousImpl.hpp"
-#include "particles/gasProfiles/LinearExponentialImpl.hpp"
-#include "particles/gasProfiles/GaussianCloudImpl.hpp"
-#include "particles/gasProfiles/SphereFlanksImpl.hpp"
-#include "particles/gasProfiles/FreeFormulaImpl.hpp"
+namespace picongpu
+{
 
-#if (ENABLE_HDF5 == 1)
-#include "particles/gasProfiles/FromHDF5Impl.hpp"
-#endif
+namespace gasProfiles
+{
+
+template<typename T_ParamClass>
+struct FreeFormulaImpl;
+
+} //namespace gasProfiles
+} //namespace picongpu
