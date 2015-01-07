@@ -108,7 +108,7 @@ struct TemperatureImpl : private T_ValueFunctor
             const float3_X mom = tmpRand * (float_X) math::sqrt(
                                                                 precisionCast<sqrt_X > (
                                                                                         macroEnergy *
-                                                                                        attribute::getMass<FrameType>(macroWeighting,particle)
+                                                                                        attribute::getMass(macroWeighting,particle)
                                                                                         )
                                                                 );
             ValueFunctor::operator()(particle[momentum_], mom);
