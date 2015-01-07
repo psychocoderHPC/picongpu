@@ -89,5 +89,16 @@ private:
     curandState* randState;
 };
 
+namespace traits
+{
+
+template<typename T_ParticleDescription>
+struct GetDataBoxType<picongpu::Particles<T_ParticleDescription> >
+{
+    typedef typename picongpu::Particles<T_ParticleDescription>::ParticlesBoxType type;
+};
+
+} //namespace traits
+
 
 } //namespace picongpu
