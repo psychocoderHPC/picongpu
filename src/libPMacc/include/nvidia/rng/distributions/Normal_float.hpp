@@ -1,5 +1,5 @@
 /**
- * Copyright 2013 Heiko Burau, Rene Widera
+ * Copyright 2013-2014 Heiko Burau, Rene Widera
  *
  * This file is part of libPMacc.
  *
@@ -43,7 +43,7 @@ namespace PMacc
                 public:
                     typedef float Type;
 
-                    DINLINE Normal_float()
+                    HDINLINE Normal_float()
                     {
                     }
 
