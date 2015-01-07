@@ -31,7 +31,6 @@
 namespace PMacc
 {
 
-
 /**
  * Represents an abstraction between actual data in memory and their indizes in a RingDataBox.
  *
@@ -44,6 +43,10 @@ class HeapDataBox : public DataBox<PitchedBox<VALUE, DIM1> >
 public:
 
     typedef VALUE Type;
+
+    HINLINE HeapDataBox()
+    {
+    }
 
     /**
      * Constructor.
@@ -65,12 +68,14 @@ public:
      */
     HDINLINE VALUE &pop()
     {
+
         TYPE addr = virtualMemory.pop();
         return (*this)[addr];
     }
 
     HDINLINE TYPE popIdx()
     {
+
         return virtualMemory.pop();
     }
 
@@ -83,13 +88,14 @@ public:
     {
 
         //const double x = (double) sizeof (VALUE);
-       // TYPE index = floor((double) ((size_t) (&old) - (size_t)this->fixedPointer) / x + 0.00001);
-        TYPE index = ((size_t) (&old) - (size_t) ((VALUE*)(this->fixedPointer))) / sizeof(VALUE);
+        // TYPE index = floor((double) ((size_t) (&old) - (size_t)this->fixedPointer) / x + 0.00001);
+
+        TYPE index = ((size_t) (&old) - (size_t) ((VALUE*) (this->fixedPointer))) / sizeof (VALUE);
         virtualMemory.push(index);
 
         /*
-         TYPE index = ((size_t) (&old) - (size_t) ((VALUE*)(this->fixedPointer))) / sizeof(VALUE);
-         virtualMemory.push(index);*/
+        TYPE index = ((size_t) (&old) - (size_t) ((VALUE*)(this->fixedPointer))) / sizeof(VALUE);
+        virtualMemory.push(index);*/
     }
 
     HDINLINE void pushIdx(const TYPE idx)
@@ -98,7 +104,7 @@ public:
     }
 
 protected:
-    PMACC_ALIGN8(virtualMemory,RingDataBox<TYPE, TYPE>);
+    PMACC_ALIGN8(virtualMemory, RingDataBox<TYPE, TYPE>);
 };
 
 }
