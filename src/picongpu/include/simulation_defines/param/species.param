@@ -26,9 +26,11 @@
 #include "algorithms/FieldToParticleInterpolationNative.hpp"
 #include "algorithms/FieldToParticleInterpolation.hpp"
 #include "algorithms/AssignedTrilinearInterpolation.hpp"
-#include "particles/shapes.hpp"
 
 #include "fields/currentDeposition/Solver.def"
+
+#include "particles/InitFunctors.hpp"
+#include "particles/manipulators/manipulators.def"
 
 
 /*enable (1) or disable (0) electrons*/
@@ -79,5 +81,11 @@ typedef currentSolver::Esirkepov<UsedParticleShape> UsedParticleCurrentSolver;
  * - particles::pusher::Phot : propagate with c in direction of normalized mom.
  */
 typedef particles::pusher::Boris UsedParticlePusher;
+
+typedef bmpl::vector3<
+    particles::CreateGas<gasProfiles::Gaussian,particles::startPosition::Random>,
+    particles::Manipulate<manipulators::AssignXDriftToLowerHalfXPosition>,
+    particles::Manipulate<manipulators::AddTemperature>
+    > UsedInitMethods;
 
 }//namespace picongpu

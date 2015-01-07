@@ -33,7 +33,6 @@
 namespace PMacc
 {
 
-
 /**
  * A Box which allows adding (at the end) and removing elements (from the front) in atomic operations.
  *
@@ -51,6 +50,10 @@ private:
         PUSH, POP, ERR
     };
 public:
+
+    HINLINE RingDataBox()
+    {
+    }
 
     /**
      * Constructor.
