@@ -79,6 +79,9 @@ alias(interpolation);
 /*! alias for particle current solver @see species.param */
 alias(current);
 
+/*! alias for particle init methods @see species.param */
+alias(initMethods);
+
 template<uint32_t T_commTag>
 struct CommunicationId
 {
