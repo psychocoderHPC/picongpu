@@ -54,11 +54,14 @@ namespace picongpu
          * http://www.tf.uni-kiel.de/matwis/amat/mw1_ge/kap_6/basics/m6_2_1.html
          */
         const float_64  GAS_DENSITY_NORMED= SI::GAS_DENSITY_SI*UNIT_LENGTH;
-     } //namespace SI
-    /** Number of electrons per particle (= macro particle weighting)
-     *  unit: none */
-    const float_X TYPICAL_NUM_PARTICLE_PER_MAKROPARTICLE = float_64(SI::GAS_DENSITY_NORMED*SI::CELL_WIDTH_SI*SI::CELL_HEIGHT_SI )
-                                / float_64(particles::TYPICAL_PARTICLES_PER_CELL);
+    } //namespace SI
+    namespace particles
+    {
+        /** Number of electrons per particle (= macro particle weighting)
+         *  unit: none */
+        const float_X TYPICAL_NUM_PARTICLE_PER_MAKROPARTICLE = float_64(SI::GAS_DENSITY_NORMED*SI::CELL_WIDTH_SI*SI::CELL_HEIGHT_SI )
+                                    / float_64(particles::TYPICAL_PARTICLES_PER_CELL);
+    }
 #endif
 
 
