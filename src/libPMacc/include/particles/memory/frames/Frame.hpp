@@ -56,6 +56,19 @@ namespace PMacc
 namespace pmath = PMacc::math;
 namespace pmacc = PMacc;
 
+
+template<typename T>
+struct PrefPtr
+{
+    PMACC_ALIGN(previousFrame,typename traits::Resolve<Pointer<T> >::type);
+};
+
+template<typename T>
+struct NextPtr
+{
+    PMACC_ALIGN( nextFrame,typename traits::Resolve<Pointer<T> >::type);
+};
+
 /** Frame is a storage for arbitrary number >0 of Particles with attributes
  *
  * @tparam T_CreatePairOperator unary template operator to create a boost pair
@@ -69,9 +82,15 @@ namespace pmacc = PMacc;
  */
 template<typename T_CreatePairOperator,
 typename T_ParticleDescription >
+struct Frame;
+
+template<typename T_CreatePairOperator,
+typename T_ParticleDescription >
 struct Frame :
 public InheritLinearly<typename T_ParticleDescription::MethodsList>,
-    protected pmath::MapTuple<typename SeqToMap<typename T_ParticleDescription::ValueTypeSeq, T_CreatePairOperator>::type, pmath::AlignedData>
+    protected pmath::MapTuple<typename SeqToMap<typename T_ParticleDescription::ValueTypeSeq, T_CreatePairOperator>::type, pmath::AlignedData>,
+    public PrefPtr<Frame<T_CreatePairOperator,T_ParticleDescription> >,
+    public NextPtr<Frame<T_CreatePairOperator,T_ParticleDescription> >
 {
     typedef T_ParticleDescription ParticleDescription;
     typedef typename ParticleDescription::Name Name;
@@ -149,9 +168,6 @@ public InheritLinearly<typename T_ParticleDescription::MethodsList>,
     {
         return std::string(boost::mpl::c_str<Name>::value);
     }
-
-    Pointer<ThisType> previousFrame;
-    Pointer<ThisType> nextFrame;
 };
 
 namespace traits
