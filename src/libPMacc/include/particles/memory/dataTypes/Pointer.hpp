@@ -33,12 +33,13 @@ class Pointer
 public:
 
     typedef TYPE type;
+    typedef type* PtrType;
 
     HDINLINE Pointer() : ptr(NULL)
     {
     }
 
-    HDINLINE Pointer(type * const ptrIn) : ptr(ptrIn)
+    HDINLINE Pointer(PtrType const ptrIn) : ptr(ptrIn)
     {
        // if (ptrIn == NULL)
            // printf("error Pointer %llu\n", (unsigned long long int) ptrIn);
@@ -55,7 +56,7 @@ public:
         return *ptr;
     }
 
-    HDINLINE type* operator->()
+    HDINLINE PtrType operator->()
     {
         return ptr;
     }
@@ -75,7 +76,7 @@ public:
         return ptr != NULL;
     }
 
-    type * ptr;
+    PMACC_ALIGN(ptr,PtrType);
 };
 
 } //namespace PMacc

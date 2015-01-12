@@ -20,10 +20,10 @@
  * If not, see <http://www.gnu.org/licenses/>.
  */
 
-#ifndef SUPERCELL_HPP
-#define	SUPERCELL_HPP
+#pragma once
 
 #include "types.h"
+#include "particles/memory/dataTypes/Pointer.hpp"
 
 
 namespace PMacc
@@ -42,22 +42,22 @@ public:
     {
     }
 
-    HDINLINE void* FirstFramePtr()
+    HDINLINE TYPE* FirstFramePtr()
     {
         return firstFramePtr;
     }
 
-    HDINLINE void* LastFramePtr()
+    HDINLINE TYPE* LastFramePtr()
     {
         return lastFramePtr;
     }
 
-    HDINLINE void* FirstFramePtr() const
+    HDINLINE const TYPE* FirstFramePtr() const
     {
         return firstFramePtr;
     }
 
-    HDINLINE void* LastFramePtr() const
+    HDINLINE const TYPE* LastFramePtr() const
     {
         return lastFramePtr;
     }
@@ -82,14 +82,11 @@ public:
         sizeLastFrame = size;
     }
 
-    PMACC_ALIGN(firstFramePtr, void*);
-    PMACC_ALIGN(lastFramePtr, void*);
+    PMACC_ALIGN(firstFramePtr, TYPE*);
+    PMACC_ALIGN(lastFramePtr, TYPE*);
 private:
     PMACC_ALIGN(mustShiftVal, bool);
     PMACC_ALIGN(sizeLastFrame, lcellId_t);
 };
 
 } //end namespace
-
-#endif	/* SUPERCELL_HPP */
-

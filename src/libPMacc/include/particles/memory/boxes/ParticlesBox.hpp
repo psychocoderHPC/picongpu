@@ -46,15 +46,16 @@ public:
 
     typedef FRAME FrameType;
     typedef Pointer<FrameType> FramePtr;
+    typedef SuperCell<FrameType> SuperCellType;
 
     static const uint32_t Dim = DIM;
 
     HINLINE ParticlesBox()
     {
-        
+
     }
 
-    HDINLINE ParticlesBox(const DataBox<PitchedBox<SuperCell<vint_t>, DIM> > &superCells) :
+    HDINLINE ParticlesBox(const DataBox<PitchedBox<SuperCellType, DIM> > &superCells) :
     superCells(superCells)
     {
 
@@ -123,7 +124,7 @@ public:
      */
     HDINLINE FRAME& getLastFrame(const DataSpace<DIM> &idx, bool &isValid)
     {
-        FramePtr tmp = FramePtr((FrameType*) (superCells(idx).LastFramePtr()));
+        FramePtr tmp = FramePtr(superCells(idx).LastFramePtr());
         isValid = tmp.isValid();
         return *tmp;
     }
@@ -136,7 +137,7 @@ public:
      */
     HDINLINE FRAME& getFirstFrame(const DataSpace<DIM> &idx, bool &isValid)
     {
-        FramePtr tmp = FramePtr((FrameType*) (superCells(idx).FirstFramePtr()));
+        FramePtr tmp = FramePtr(superCells(idx).FirstFramePtr());
         isValid = tmp.isValid();
         return *tmp;
 
@@ -151,10 +152,10 @@ public:
     HDINLINE void setAsFirstFrame(FRAME &frameIn, const DataSpace<DIM> &idx)
     {
         FramePtr frame(&frameIn);
-        void** firstFrameNativPtr = &(superCells(idx).firstFramePtr);
+        FrameType** firstFrameNativPtr = &(superCells(idx).firstFramePtr);
 
         frame->previousFrame = FramePtr();
-        frame->nextFrame = FramePtr((FrameType*) (*firstFrameNativPtr));
+        frame->nextFrame = FramePtr(*firstFrameNativPtr);
 #if defined(__CUDA_ARCH__)
         /* - takes care that `next[index]` is visible to all threads on the gpu
          * - this is needed because later on in this method we change `next`
@@ -164,7 +165,7 @@ public:
 #endif
 
 #if !defined(__CUDA_ARCH__) // Host code path
-        FramePtr oldFirstFramePtr((FrameType*) (*firstFrameNativPtr));
+        FramePtr oldFirstFramePtr(*firstFrameNativPtr);
         *firstFrameNativPtr = frame.ptr;
 #else
         FramePtr oldFirstFramePtr((FrameType*) atomicExch((unsigned long long int*) firstFrameNativPtr, (unsigned long long int) frame.ptr));
@@ -190,10 +191,10 @@ public:
     HDINLINE void setAsLastFrame(FRAME &frameIn, const DataSpace<DIM> &idx)
     {
         FramePtr frame(&frameIn);
-        void** lastFrameNativPtr = &(superCells(idx).lastFramePtr);
+        FrameType** lastFrameNativPtr = &(superCells(idx).lastFramePtr);
 
         frame->nextFrame = FramePtr();
-        frame->previousFrame = FramePtr((FrameType*) (*lastFrameNativPtr));
+        frame->previousFrame = FramePtr(*lastFrameNativPtr);
 #if defined(__CUDA_ARCH__)
         /* - takes care that `next[index]` is visible to all threads on the gpu
          * - this is needed because later on in this method we change `next`
@@ -203,7 +204,7 @@ public:
 #endif
 
 #if !defined(__CUDA_ARCH__) // Host code path
-        FramePtr oldLastFramePtr((FrameType*) (*lastFrameNativPtr));
+        FramePtr oldLastFramePtr(*lastFrameNativPtr);
         *lastFrameNativPtr = frame.ptr;
 #else
         FramePtr oldLastFramePtr((FrameType*) atomicExch((unsigned long long int*) lastFrameNativPtr, (unsigned long long int) frame.ptr));
@@ -230,9 +231,9 @@ public:
     HDINLINE bool removeLastFrame(const DataSpace<DIM> &idx)
     {
         //!\todo this is not thread save
-        void** lastFrameNativPtr = &(superCells(idx).lastFramePtr);
+        FrameType** lastFrameNativPtr = &(superCells(idx).lastFramePtr);
 
-        FramePtr last((FrameType*) (*lastFrameNativPtr));
+        FramePtr last(*lastFrameNativPtr);
         if (last.isValid())
         {
 
@@ -255,7 +256,7 @@ public:
         return false;
     }
 
-    HDINLINE SuperCell<vint_t> &getSuperCell(DataSpace<DIM> idx)
+    HDINLINE SuperCellType &getSuperCell(DataSpace<DIM> idx)
     {
         return superCells(idx);
     }
@@ -264,7 +265,7 @@ private:
 
 
 
-    PMACC_ALIGN8(superCells, DataBox<PitchedBox<SuperCell<vint_t>, DIM> >);
+    PMACC_ALIGN8(superCells, DataBox<PitchedBox<SuperCellType, DIM> >);
 
 };
 

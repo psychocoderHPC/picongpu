@@ -114,6 +114,9 @@ public:
     typedef Frame<OperatorCreatePairStaticArray<1u >, ParticleDescriptionBorder> ParticleTypeBorder;
 
 
+    typedef ParticleType FrameType;
+    typedef SuperCell<FrameType> SuperCellType;
+
 private:
 
     /*this is only for internel calculations*/
@@ -143,7 +146,7 @@ public:
         //std::cout << "size: " << sizeof (ParticleType) << " " << sizeof (ParticleTypeBorder) << std::endl;
         DataSpace<DIM> superCellsCount = gridSize / superCellSize;
 
-        superCells = new GridBuffer<SuperCell<vint_t>, DIM > (superCellsCount);
+        superCells = new GridBuffer<SuperCellType, DIM > (superCellsCount);
 
     }
 
@@ -168,8 +171,8 @@ public:
     void reset()
     {
 
-        superCells->getDeviceBuffer().setValue(SuperCell<vint_t > ());
-        superCells->getHostBuffer().setValue(SuperCell<vint_t > ());
+        superCells->getDeviceBuffer().setValue(SuperCellType ());
+        superCells->getHostBuffer().setValue(SuperCellType ());
     }
 
     /**
@@ -309,7 +312,7 @@ public:
 private:
     GridBuffer<PopPushType, DIM1> *exchangeMemoryIndexer;
 
-    GridBuffer<SuperCell<vint_t>, DIM> *superCells;
+    GridBuffer<SuperCellType, DIM> *superCells;
     /*gridbuffer for hold borderFrames, we need a own buffer to create first exchanges without core momory*/
     GridBuffer< ParticleType, DIM1, ParticleTypeBorder> *framesExchanges;
 
