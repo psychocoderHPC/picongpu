@@ -40,13 +40,14 @@ namespace PMacc
  * @tparam DIM dimension of data (1-3)
  */
 template<class FRAME, unsigned DIM>
-class ParticlesBox
+class ParticlesBox : protected DataBox<PitchedBox<SuperCell<FRAME>, DIM> >
 {
 public:
 
     typedef FRAME FrameType;
     typedef Pointer<FrameType> FramePtr;
     typedef SuperCell<FrameType> SuperCellType;
+    typedef DataBox<PitchedBox<SuperCell<FRAME>, DIM> > BaseType;
 
     static const uint32_t Dim = DIM;
 
@@ -56,7 +57,7 @@ public:
     }
 
     HDINLINE ParticlesBox(const DataBox<PitchedBox<SuperCellType, DIM> > &superCells) :
-    superCells(superCells)
+    BaseType(superCells)
     {
 
     }
@@ -124,7 +125,7 @@ public:
      */
     HDINLINE FRAME& getLastFrame(const DataSpace<DIM> &idx, bool &isValid)
     {
-        FramePtr tmp = FramePtr(superCells(idx).LastFramePtr());
+        FramePtr tmp = FramePtr(getSuperCell(idx).LastFramePtr());
         isValid = tmp.isValid();
         return *tmp;
     }
@@ -137,7 +138,7 @@ public:
      */
     HDINLINE FRAME& getFirstFrame(const DataSpace<DIM> &idx, bool &isValid)
     {
-        FramePtr tmp = FramePtr(superCells(idx).FirstFramePtr());
+        FramePtr tmp = FramePtr(getSuperCell(idx).FirstFramePtr());
         isValid = tmp.isValid();
         return *tmp;
 
@@ -152,7 +153,7 @@ public:
     HDINLINE void setAsFirstFrame(FRAME &frameIn, const DataSpace<DIM> &idx)
     {
         FramePtr frame(&frameIn);
-        FrameType** firstFrameNativPtr = &(superCells(idx).firstFramePtr);
+        FrameType** firstFrameNativPtr = &(getSuperCell(idx).firstFramePtr);
 
         frame->previousFrame = FramePtr();
         frame->nextFrame = FramePtr(*firstFrameNativPtr);
@@ -178,7 +179,7 @@ public:
         else
         {
             //we add the first frame in supercell
-            superCells(idx).lastFramePtr = frame.ptr;
+            getSuperCell(idx).lastFramePtr = frame.ptr;
         }
     }
 
@@ -191,7 +192,7 @@ public:
     HDINLINE void setAsLastFrame(FRAME &frameIn, const DataSpace<DIM> &idx)
     {
         FramePtr frame(&frameIn);
-        FrameType** lastFrameNativPtr = &(superCells(idx).lastFramePtr);
+        FrameType** lastFrameNativPtr = &(getSuperCell(idx).lastFramePtr);
 
         frame->nextFrame = FramePtr();
         frame->previousFrame = FramePtr(*lastFrameNativPtr);
@@ -217,7 +218,7 @@ public:
         else
         {
             //we add the first frame in supercell
-            superCells(idx).firstFramePtr = frame.ptr;
+            getSuperCell(idx).firstFramePtr = frame.ptr;
         }
     }
 
@@ -231,7 +232,7 @@ public:
     HDINLINE bool removeLastFrame(const DataSpace<DIM> &idx)
     {
         //!\todo this is not thread save
-        FrameType** lastFrameNativPtr = &(superCells(idx).lastFramePtr);
+        FrameType** lastFrameNativPtr = &(getSuperCell(idx).lastFramePtr);
 
         FramePtr last(*lastFrameNativPtr);
         if (last.isValid())
@@ -248,24 +249,18 @@ public:
                 return true;
             }
             //remove last frame of supercell
-            superCells(idx).firstFramePtr = NULL;
-            superCells(idx).lastFramePtr = NULL;
+            getSuperCell(idx).firstFramePtr = NULL;
+            getSuperCell(idx).lastFramePtr = NULL;
 
             removeFrame(*last);
         }
         return false;
     }
 
-    HDINLINE SuperCellType &getSuperCell(DataSpace<DIM> idx)
+    HDINLINE SuperCellType& getSuperCell(DataSpace<DIM> idx)
     {
-        return superCells(idx);
+        return BaseType::operator()(idx);
     }
-
-private:
-
-
-
-    PMACC_ALIGN8(superCells, DataBox<PitchedBox<SuperCellType, DIM> >);
 
 };
 

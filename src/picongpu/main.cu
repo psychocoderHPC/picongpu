@@ -51,7 +51,7 @@ struct ScatterConfig
     typedef boost::mpl::int_<4> accessblocks;
     typedef boost::mpl::int_<8> regionsize;
     typedef boost::mpl::int_<2> wastefactor;
-    typedef boost::mpl::bool_<true> resetfreedpages;
+    typedef boost::mpl::bool_<false> resetfreedpages;
 };
 
 
