@@ -28,6 +28,12 @@
  * @author Heiko Burau, Rene Widera, Wolfgang Hoenig, Felix Schmitt, Axel Huebl, Michael Bussmann, Guido Juckeland
  */
 
+#include <cuda.h>
+/*template<typename T>
+__global__ void setToZero(T* ptr)
+{
+      ptr[threadIdx.x]=0;
+}*/
 
 //include the Heap with the arguments given in the config
 #include "mallocMC/mallocMC_utils.hpp"
@@ -51,7 +57,7 @@ struct ScatterConfig
     typedef boost::mpl::int_<4> accessblocks;
     typedef boost::mpl::int_<8> regionsize;
     typedef boost::mpl::int_<2> wastefactor;
-    typedef boost::mpl::bool_<false> resetfreedpages;
+    typedef boost::mpl::bool_<true> resetfreedpages;
 };
 
 

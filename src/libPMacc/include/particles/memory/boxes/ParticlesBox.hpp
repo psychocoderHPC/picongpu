@@ -33,6 +33,11 @@
 namespace PMacc
 {
 
+template<typename T>
+__global__ void setToZero(T& obj)
+{
+      obj[threadIdx.x][multiMask_]=0;
+}
 /**
  * A DIM-dimensional Box holding frames with particle data.
  *
@@ -74,8 +79,11 @@ public:
         if (tmp != NULL)
         {
             /* delete all particles we can not assume that new memory is zeroed */
-            for (int i = 0; i < (int) math::CT::volume<typename FrameType::SuperCellSize>::type::value; ++i)
+           /* for (int i = 0; i < (int) math::CT::volume<typename FrameType::SuperCellSize>::type::value; ++i)
                 (*tmp)[i][multiMask_] = 0;
+            */
+            const int threads=(int)math::CT::volume<typename FrameType::SuperCellSize>::type::value;
+            PMacc::setToZero<<<1,threads>>>(*tmp);
         }
 
         return *(FramePtr(tmp));

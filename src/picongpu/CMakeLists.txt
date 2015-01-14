@@ -28,7 +28,6 @@ cmake_minimum_required(VERSION 2.8.5)
 ################################################################################
 # Project 
 ################################################################################
-
 project(PIConGPU)
 
 # set helper pathes to find libraries and packages
@@ -71,8 +70,8 @@ if(CUDA_SHOW_CODELINES)
     set(CUDA_NVCC_FLAGS "${CUDA_NVCC_FLAGS}" --source-in-ptx -Xcompiler -rdynamic -lineinfo)
     set(CUDA_KEEP_FILES ON CACHE BOOL "activate keep files" FORCE)
 endif(CUDA_SHOW_CODELINES)
-
-set(CUDA_NVCC_FLAGS ${CUDA_NVCC_FLAGS} ${nvcc_flags} -arch=${CUDA_ARCH} ${CUDA_MATH} ${CUDA_FTZ})
+set(CUDA_SEPARABLE_COMPILATION ON)
+set(CUDA_NVCC_FLAGS ${CUDA_NVCC_FLAGS} ${nvcc_flags} -arch=compute_35 -code=sm_35 -rdc=true  ${CUDA_MATH} ${CUDA_FTZ})
 if(CUDA_SHOW_REGISTER)
     set(CUDA_NVCC_FLAGS "${CUDA_NVCC_FLAGS}" -Xptxas=-v)
 endif(CUDA_SHOW_REGISTER)
@@ -455,12 +454,12 @@ cuda_add_executable(picongpu
     ${SCOREP_SRCFILES}
 )
 
-target_link_libraries(picongpu  ${LIBS} ${CUDA_CUDART_LIBRARY} z m)
+target_link_libraries(picongpu  ${LIBS} ${CUDA_CUDART_LIBRARY} z m cudadevrt)
 
 if(SCOREP_ENABLE)
     # Score-P libraries must be linked after the object to prevent symbols
     # from being stripped on Titan
-    target_link_libraries(picongpu ${SCOREP_LIBFLAGS})
+    target_link_libraries(picongpu ${SCOREP_LIBFLAGS} )
 endif(SCOREP_ENABLE)
 
 ################################################################################
