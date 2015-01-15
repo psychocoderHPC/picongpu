@@ -103,16 +103,17 @@ typedef Particles<ParticleDescription<
 
 
 typedef bmpl::vector<
-   /* particles::CloneSpecies<PIC_Ions>,*/
-    particles::Manipulate<
+    particles::CloneSpecies<PIC_Ions>,
+    /*particles::Manipulate<
         particles::manipulators::CreateParticlesFromParticleImpl<particles::manipulators::Assign,bmpl::_1,bmpl::size_t<1> >,
         typename MakeIdentifier<PIC_Ions>::type
     >,
-    /*particles::CreateGas<gasProfiles::Homogenous,particles::startPosition::Quiet>,*/
-    particles::FillAllGaps<>,
+    particles::CreateGas<gasProfiles::Homogenous,particles::startPosition::Quiet>,
+    particles::FillAllGaps<>,*/
     particles::Manipulate<particles::manipulators::AssignXDriftPrositiveToLowerQuarterYPosition>,
     particles::Manipulate<particles::manipulators::AssignXDriftNegativeToMiddleHalfYPosition>,
-    particles::Manipulate<particles::manipulators::AssignXDriftPrositiveToUpperQuarterYPosition>
+    particles::Manipulate<particles::manipulators::AssignXDriftPrositiveToUpperQuarterYPosition>,
+    particles::Manipulate<particles::manipulators::AddTemperature>,
     > UsedInitMethodsElectrons;
 
 typedef bmpl::vector<
