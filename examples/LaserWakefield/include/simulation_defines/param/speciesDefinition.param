@@ -72,49 +72,11 @@ AttributRadiationFlag
 
 /*########################### define species #################################*/
 
-
-/*--------------------------- ions -------------------------------------------*/
-
 typedef bmpl::vector<
-    particles::CreateGas<gasProfiles::Homogenous,particles::startPosition::Quiet>,
-    particles::Manipulate<particles::manipulators::AssignXDriftPrositiveToLowerQuarterYPosition>,
-    particles::Manipulate<particles::manipulators::AssignXDriftNegativeToMiddleHalfYPosition>,
-    particles::Manipulate<particles::manipulators::AssignXDriftPrositiveToUpperQuarterYPosition>
-    > UsedInitMethodsIons;
-
-typedef bmpl::vector<
-    particlePusher<UsedParticlePusher>,
-    shape<UsedParticleShape>,
-    interpolation<UsedField2Particle>,
-    current<UsedParticleCurrentSolver>,
-    initMethods<UsedInitMethodsIons>
-> ParticleFlagsIons;
-
-/*define specie ions*/
-typedef Particles<ParticleDescription<
-    bmpl::string<'i'>,
-    SuperCellSize,
-    DefaultAttributesSeq,
-    ParticleFlagsIons,
-    typename MakeSeq<CommunicationId<PAR_IONS>,MemoryFactor<2> >::type >
-> PIC_Ions;
+    particles::CreateGas<gasProfiles::Gaussian,particles::startPosition::Random>
+    > UsedInitMethodsElectrons;
 
 /*--------------------------- electrons --------------------------------------*/
-
-
-typedef bmpl::vector<
-    particles::CloneSpecies<PIC_Ions>,
-    /*particles::Manipulate<
-        particles::manipulators::CreateParticlesFromParticleImpl<particles::manipulators::Assign,bmpl::_1,bmpl::size_t<1> >,
-        typename MakeIdentifier<PIC_Ions>::type
-    >,
-    particles::CreateGas<gasProfiles::Homogenous,particles::startPosition::Quiet>,
-    particles::FillAllGaps<>,*/
-    particles::Manipulate<particles::manipulators::AssignXDriftPrositiveToLowerQuarterYPosition>,
-    particles::Manipulate<particles::manipulators::AssignXDriftNegativeToMiddleHalfYPosition>,
-    particles::Manipulate<particles::manipulators::AssignXDriftPrositiveToUpperQuarterYPosition>,
-    particles::Manipulate<particles::manipulators::AddTemperature>
-    > UsedInitMethodsElectrons;
 
 typedef bmpl::vector<
     particlePusher<UsedParticlePusher>,
@@ -133,6 +95,28 @@ typedef Particles<ParticleDescription<
     typename MakeSeq<CommunicationId<PAR_ELECTRONS>,MemoryFactor<2> >::type  >
 > PIC_Electrons;
 
+/*--------------------------- ions -------------------------------------------*/
+
+typedef bmpl::vector<
+    particles::CloneSpecies<PIC_Electrons>
+    > UsedInitMethodsIons;
+
+typedef bmpl::vector<
+    particlePusher<UsedParticlePusher>,
+    shape<UsedParticleShape>,
+    interpolation<UsedField2Particle>,
+    current<UsedParticleCurrentSolver>,
+    initMethods<UsedInitMethodsIons>
+> ParticleFlagsIons;
+
+/*define specie ions*/
+typedef Particles<ParticleDescription<
+    bmpl::string<'i'>,
+    SuperCellSize,
+    DefaultAttributesSeq,
+    ParticleFlagsIons,
+    typename MakeSeq<CommunicationId<PAR_IONS>,MemoryFactor<2> >::type >
+> PIC_Ions;
 
 /*########################### end species ####################################*/
 
@@ -153,8 +137,8 @@ PIC_Ions
 >::type Species2;
 
 typedef typename MakeSeq<
-Species2,
-Species1
+Species1,
+Species2
 >::type VectorAllSpecies;
 
 
