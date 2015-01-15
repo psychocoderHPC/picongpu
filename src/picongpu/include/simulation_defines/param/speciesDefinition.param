@@ -72,6 +72,9 @@ AttributRadiationFlag
 
 /*########################### define species #################################*/
 
+typedef bmpl::vector<
+    particles::CreateGas<gasProfiles::SphereFlanks,particles::startPosition::Random>
+    > UsedInitMethodsElectrons;
 
 /*--------------------------- electrons --------------------------------------*/
 
@@ -80,7 +83,7 @@ typedef bmpl::vector<
     shape<UsedParticleShape>,
     interpolation<UsedField2Particle>,
     current<UsedParticleCurrentSolver>,
-    initMethods<UsedInitMethods>
+    initMethods<UsedInitMethodsElectrons>
 > ParticleFlagsElectrons;
 
 /*define specie electrons*/
@@ -94,12 +97,16 @@ typedef Particles<ParticleDescription<
 
 /*--------------------------- ions -------------------------------------------*/
 
-typedef particles::shapes::CIC IonShape;
+typedef bmpl::vector<
+    particles::CloneSpecies<PIC_Electrons>
+    > UsedInitMethodsIons;
+
 typedef bmpl::vector<
     particlePusher<UsedParticlePusher>,
     shape<UsedParticleShape>,
     interpolation<UsedField2Particle>,
-    current<UsedParticleCurrentSolver>
+    current<UsedParticleCurrentSolver>,
+    initMethods<UsedInitMethodsIons>
 > ParticleFlagsIons;
 
 /*define specie ions*/
