@@ -73,7 +73,7 @@ AttributRadiationFlag
 /*########################### define species #################################*/
 
 typedef bmpl::vector<
-    particles::CreateGas<gasProfiles::SphereFlanks,particles::startPosition::Random>
+    particles::CreateGas<gasProfiles::Gaussian,particles::startPosition::Random>
     > UsedInitMethodsElectrons;
 
 /*--------------------------- electrons --------------------------------------*/
