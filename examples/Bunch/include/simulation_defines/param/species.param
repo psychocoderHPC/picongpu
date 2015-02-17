@@ -29,6 +29,7 @@
 #include "particles/shapes.hpp"
 
 #include "fields/currentDeposition/Solver.def"
+#include "particles/InitFunctors.hpp"
 
 
 /*enable (1) or disable (0) electrons*/

@@ -81,6 +81,9 @@ chargeState
 
 /*########################### define species #################################*/
 
+typedef bmpl::vector<
+    particles::CreateGas<gasProfiles::Gaussian,particles::startPosition::Random>
+    > UsedInitMethodsElectrons;
 
 /*--------------------------- electrons --------------------------------------*/
 
@@ -88,7 +91,8 @@ typedef bmpl::vector<
     particlePusher<UsedParticlePusher>,
     shape<UsedParticleShape>,
     interpolation<UsedField2Particle>,
-    current<UsedParticleCurrentSolver>
+    current<UsedParticleCurrentSolver>,
+    initMethods<UsedInitMethodsElectrons>
 > ParticleFlagsElectrons;
 
 /* define species: electrons */
@@ -102,6 +106,10 @@ typedef Particles<ParticleDescription<
 
 /*--------------------------- ions -------------------------------------------*/
 
+typedef bmpl::vector<
+    particles::CloneSpecies<PIC_Electrons>
+    > UsedInitMethodsIons;
+    
 /*! Specify (chemical) element
  * 
  * Proton and neutron numbers define the chemical element that the ion species
@@ -137,7 +145,8 @@ typedef bmpl::vector<
     particlePusher<UsedParticlePusher>,
     shape<UsedParticleShape>,
     interpolation<UsedField2Particle>,
-    current<UsedParticleCurrentSolver>, 
+    current<UsedParticleCurrentSolver>,
+    initMethods<UsedInitMethodsIons>, 
     #if(PARAM_IONIZATION == 1)
     ionizer<particles::ionization::BSI<PIC_Electrons> >,
     #endif
