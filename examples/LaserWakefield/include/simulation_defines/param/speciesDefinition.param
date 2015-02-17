@@ -34,6 +34,7 @@
 #include "particles/ParticleDescription.hpp"
 #include <boost/mpl/string.hpp>
 
+#include "particles/InitFunctors.hpp"
 #include "particles/ionization/byField/ionizers.def"
 
 namespace picongpu
@@ -81,6 +82,9 @@ chargeState
 
 /*########################### define species #################################*/
 
+typedef bmpl::vector<
+    particles::CreateGas<gasProfiles::Gaussian,particles::startPosition::Random>
+    > UsedInitMethodsElectrons;
 
 /*--------------------------- electrons --------------------------------------*/
 
@@ -88,7 +92,8 @@ typedef bmpl::vector<
     particlePusher<UsedParticlePusher>,
     shape<UsedParticleShape>,
     interpolation<UsedField2Particle>,
-    current<UsedParticleCurrentSolver>
+    current<UsedParticleCurrentSolver>,
+    initMethods<UsedInitMethodsElectrons>
 > ParticleFlagsElectrons;
 
 /* define species: electrons */
@@ -102,17 +107,21 @@ typedef Particles<ParticleDescription<
 
 /*--------------------------- ions -------------------------------------------*/
 
+typedef bmpl::vector<
+    particles::CloneSpecies<PIC_Electrons>
+    > UsedInitMethodsIons;
+
 /*! Specify (chemical) element
- * 
+ *
  * Proton and neutron numbers define the chemical element that the ion species
- * is based on. This value can be non-integer for physical models taking  
- * charge shielding effects into account. 
+ * is based on. This value can be non-integer for physical models taking
+ * charge shielding effects into account.
  * @see http://en.wikipedia.org/wiki/Effective_nuclear_charge
- * 
- * It is wrapped into a struct because of C++ restricting floats from being 
- * template arguments. 
- * 
- * Do not forget to set the correct mass of the atom in 
+ *
+ * It is wrapped into a struct because of C++ restricting floats from being
+ * template arguments.
+ *
+ * Do not forget to set the correct mass of the atom in
  * @see physicalConstants.param !
  */
 struct Helium
@@ -122,13 +131,13 @@ struct Helium
 };
 
 /*! Ionization Model Configuration ----------------------------------------
- * 
+ *
  * For development purposes: ---------------------------------------------
  * - None : no particle is ionized
  * - BSI : simple barrier suppression ionization
- * 
+ *
  * Usage: Add a flag to the list of particle flags that has the following structure
- * 
+ *
  *        ionizer<IonizationModel<Species2BCreated> >
  */
 
@@ -137,7 +146,8 @@ typedef bmpl::vector<
     particlePusher<UsedParticlePusher>,
     shape<UsedParticleShape>,
     interpolation<UsedField2Particle>,
-    current<UsedParticleCurrentSolver>, 
+    current<UsedParticleCurrentSolver>,
+    initMethods<UsedInitMethodsIons>,
     #if(PARAM_IONIZATION == 1)
     ionizer<particles::ionization::BSI<PIC_Electrons> >,
     #endif
