@@ -22,6 +22,7 @@
 #pragma once
 
 #include "particles/gasProfiles/IProfile.def"
+#include "particles/gasProfiles/FreeFormulaImpl.def"
 #include "particles/gasProfiles/GaussianImpl.def"
 #include "particles/gasProfiles/HomogenousImpl.def"
 #include "particles/gasProfiles/LinearExponentialImpl.def"

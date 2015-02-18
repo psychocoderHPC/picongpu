@@ -39,9 +39,9 @@ struct IProfile : private T_Base
     {
     }
 
-    HDINLINE float_X operator()(const DataSpace<simDim>& localCellIdx)
+    HDINLINE float_X operator()(const DataSpace<simDim>& totalCellOffset)
     {
-        return Base::operator()(localCellIdx);
+        return Base::operator()(totalCellOffset);
     }
 };
 

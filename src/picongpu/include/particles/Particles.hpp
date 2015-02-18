@@ -1,5 +1,5 @@
 /**
- * Copyright 2013-2014 Axel Huebl, Heiko Burau, Rene Widera, Felix Schmitt, 
+ * Copyright 2013-2014 Axel Huebl, Heiko Burau, Rene Widera, Felix Schmitt,
  *                     Marco Garten
  *
  * This file is part of PIConGPU.
@@ -62,21 +62,21 @@ public:
 
     void update(uint32_t currentStep);
 
-    template<typename T_GasFunctor,typename T_PositionFunctor>
-    void initGas(T_GasFunctor& gasFunctor,T_PositionFunctor& positionFunctor);
+    template<typename T_GasFunctor, typename T_PositionFunctor>
+    void initGas(T_GasFunctor& gasFunctor, T_PositionFunctor& positionFunctor, const uint32_t currentStep);
 
     template< typename t_ParticleDescription>
     void deviceCloneFrom(Particles<t_ParticleDescription> &src);
 
     template<typename T_Functor>
-    void manipulateAllParticles(uint32_t currentStep,T_Functor& functor);
+    void manipulateAllParticles(uint32_t currentStep, T_Functor& functor);
 
     SimulationDataId getUniqueId();
 
     void synchronize();
 
     void syncToDevice();
-    
+
     //Ionization
     template<typename T_Elec>
     void ionize(T_Elec electrons, uint32_t currentStep);

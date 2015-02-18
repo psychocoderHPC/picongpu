@@ -45,7 +45,7 @@ struct HomogenousImpl
      * @param totalCellOffset total offset including all slides [in cells]
      * @return float_X always 1.0
      */
-    HDINLINE float_X operator()(const DataSpace<simDim>& localCellIdx)
+    HDINLINE float_X operator()(const DataSpace<simDim>& totalCellOffset)
     {
 
         return float_X(1.0);

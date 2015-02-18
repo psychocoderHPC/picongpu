@@ -43,18 +43,13 @@ struct SphereFlanksImpl : public T_ParamClass
 
     HINLINE SphereFlanksImpl(uint32_t currentStep)
     {
-        const uint32_t numSlides = MovingWindow::getInstance().getSlideCounter(currentStep);
-        const SubGrid<simDim>& subGrid = Environment<simDim>::get().SubGrid();
-        DataSpace<simDim> localCells = subGrid.getLocalDomain().size;
-        gpuCellOffset = subGrid.getLocalDomain().offset;
-        gpuCellOffset.y() += numSlides * localCells.y();
     }
 
     /** Calculate the gas density
      *
      * @param totalCellOffset total offset including all slides [in cells]
      */
-    HDINLINE float_X operator()(const DataSpace<simDim>& localCellIdx)
+    HDINLINE float_X operator()(const DataSpace<simDim>& totalCellOffset)
     {
         const float_64 unit_length = UNIT_LENGTH;
         const float_X vacuum_y = float_64(ParamClass::vacuum_y_cells) * cellSize.y();
@@ -65,7 +60,7 @@ struct SphereFlanksImpl : public T_ParamClass
 
 
         const floatD_X globalCellPos(
-                                     precisionCast<float_X>(gpuCellOffset + localCellIdx) *
+                                     precisionCast<float_X>(totalCellOffset) *
                                      cellSize
                                      );
 
@@ -86,11 +81,6 @@ struct SphereFlanksImpl : public T_ParamClass
         else
             return math::exp((r - radius) * exponent);
     }
-
-protected:
-
-    DataSpace<simDim> gpuCellOffset;
-
 };
 } //namespace gasProfiles
 } //namespace picongpu

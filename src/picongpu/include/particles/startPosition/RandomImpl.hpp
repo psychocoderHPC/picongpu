@@ -45,8 +45,7 @@ struct RandomImpl
     typedef T_ParamClass ParamClass;
     typedef T_SpeciesName SpeciesName;
 
-
-    HINLINE RandomImpl(uint32_t currentStep) : isInitialized(false)
+    HINLINE RandomImpl(uint32_t currentStep) 
     {
         typedef typename SpeciesName::type SpeciesType;
         typedef typename SpeciesType::FrameType FrameType;
@@ -57,6 +56,16 @@ struct RandomImpl
 
         const SubGrid<simDim>& subGrid = Environment<simDim>::get().SubGrid();
         localCells = subGrid.getLocalDomain().size;
+        localDomainOffset = subGrid.getLocalDomain().offset;
+    }
+
+    DINLINE void init(const DataSpace<simDim>& totalCellOffset)
+    {
+        const DataSpace<simDim> localCellIdx(totalCellOffset - localDomainOffset);
+        const uint32_t cellIdx = DataSpaceOperations<simDim>::map(
+                                                                  localCells,
+                                                                  localCellIdx);
+        rng = nvrng::create(rngMethods::Xor(seed, cellIdx), rngDistributions::Uniform_float());
     }
 
     /** Distributes the initial particles uniformly random within the cell.
@@ -83,20 +92,9 @@ struct RandomImpl
      * @param realElPerCell  the number of real electrons in this cell
      * @return macroWeighting the intended weighting per macro particle
      */
-    DINLINE MakroParticleCfg mapRealToMakroParticle(
-                                                    const float_X realParticlesPerCell,
-                                                    const DataSpace<simDim>& localCellIdx)
+    DINLINE MakroParticleCfg mapRealToMakroParticle(const float_X realParticlesPerCell)
     {
         uint32_t numParsPerCell = ParamClass::numParticlesPerCell;
-
-        if (!isInitialized)
-        {
-            const uint32_t cellIdx = DataSpaceOperations<simDim>::map(
-                                                              localCells,
-                                                              localCellIdx);
-            rng = nvrng::create(rngMethods::Xor(seed, cellIdx), rngDistributions::Uniform_float());
-            isInitialized = true;
-        }
         float_X macroWeighting = float_X(0.0);
         if (numParsPerCell > 0)
             macroWeighting = realParticlesPerCell / float_X(numParsPerCell);
@@ -119,10 +117,11 @@ struct RandomImpl
 
 protected:
     typedef PMacc::nvidia::rng::RNG<rngMethods::Xor, rngDistributions::Uniform_float> RngType;
-    RngType rng;
-    bool isInitialized;
-    uint32_t seed;
-    DataSpace<simDim> localCells;
+
+    PMACC_ALIGN(rng, RngType);
+    PMACC_ALIGN(seed,uint32_t);
+    PMACC_ALIGN(localCells, DataSpace<simDim>);
+    PMACC_ALIGN(localDomainOffset, DataSpace<simDim>);
 };
 
 } //namespace particlesStartPosition

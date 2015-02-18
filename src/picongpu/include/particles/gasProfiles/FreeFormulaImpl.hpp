@@ -43,29 +43,20 @@ struct FreeFormulaImpl : public T_ParamClass
 
     HINLINE FreeFormulaImpl(uint32_t currentStep)
     {
-        const uint32_t numSlides = MovingWindow::getInstance().getSlideCounter(currentStep);
-        const SubGrid<simDim>& subGrid = Environment<simDim>::get().SubGrid();
-        DataSpace<simDim> localCells = subGrid.getLocalDomain().size;
-        gpuCellOffset = subGrid.getLocalDomain().offset;
-        gpuCellOffset.y() += numSlides * localCells.y();
     }
 
     /** Calculate the gas density
      *
      * @param totalCellOffset total offset including all slides [in cells]
      */
-    HDINLINE float_X operator()(const DataSpace<simDim>& localCellIdx)
+    HDINLINE float_X operator()(const DataSpace<simDim>& totalCellOffset)
     {
         const float_64 unit_length = UNIT_LENGTH;
 
-        float_X density = ParamClass::operator()( gpuCellOffset + localCellIdx, unit_length );
+        float_X density = ParamClass::operator()( totalCellOffset, unit_length );
 
         return density;
     }
-
-protected:
-
-    DataSpace<simDim> gpuCellOffset;
 
 };
 } //namespace gasProfiles

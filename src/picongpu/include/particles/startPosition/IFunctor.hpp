@@ -41,15 +41,19 @@ struct IFunctor : private T_Base
     {
     }
 
+    DINLINE void init(const DataSpace<simDim>& totalCellOffset)
+    {
+        Base::init(totalCellOffset);
+    }
+
     DINLINE floatD_X operator()(const uint32_t currentParticleIdx)
     {
         return Base::operator()(currentParticleIdx);
     }
 
-    DINLINE MakroParticleCfg mapRealToMakroParticle(const float_X realElPerCell,
-                                                     const DataSpace<simDim>& localCellIdx)
+    DINLINE MakroParticleCfg mapRealToMakroParticle(const float_X realElPerCell)
     {
-        return Base::mapRealToMakroParticle(realElPerCell,localCellIdx);
+        return Base::mapRealToMakroParticle(realElPerCell);
     }
 };
 

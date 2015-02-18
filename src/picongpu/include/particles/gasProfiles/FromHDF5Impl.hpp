@@ -49,15 +49,18 @@ struct FromHDF5Impl : public T_ParamClass
     {
         PMACC_AUTO(window, MovingWindow::getInstance().getWindow(currentStep));
         loadHDF5(window);
+        const SubGrid<simDim>& subGrid = Environment<simDim>::get().SubGrid();
+        localDomainOffset = subGrid.getLocalDomain().offset;
     }
 
     /** Calculate the gas density from HDF5 file
      *
      * @param totalCellOffset total offset including all slides [in cells]
      */
-    HDINLINE float_X operator()(const DataSpace<simDim>& localCellIdx)
+    HDINLINE float_X operator()(const DataSpace<simDim>& totalCellOffset)
     {
-        return precisionCast<float_X>(deviceDataBox(localCellIdx + SuperCellSize::toRT()).x());
+        const DataSpace<simDim> localCellIdx(totalCellOffset - localDomainOffset);
+        return precisionCast<float_X>(deviceDataBox(localCellIdx + SuperCellSize::toRT()*int(GUARD_SIZE)).x());
     }
 
 private:
@@ -223,7 +226,8 @@ private:
         return;
     }
 
-    FieldTmp::DataBoxType deviceDataBox;
+    PMACC_ALIGN(deviceDataBox,FieldTmp::DataBoxType);
+    PMACC_ALIGN(localDomainOffset,DataSpace<simDim>);
 
 };
 } //namespace gasProfiles

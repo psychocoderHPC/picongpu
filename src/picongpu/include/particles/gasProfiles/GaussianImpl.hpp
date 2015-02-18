@@ -43,18 +43,13 @@ struct GaussianImpl : public T_ParamClass
 
     HINLINE GaussianImpl(uint32_t currentStep)
     {
-        const uint32_t numSlides = MovingWindow::getInstance().getSlideCounter(currentStep);
-        const SubGrid<simDim>& subGrid = Environment<simDim>::get().SubGrid();
-        DataSpace<simDim> localCells = subGrid.getLocalDomain().size;
-        gpuCellOffset = subGrid.getLocalDomain().offset;
-        gpuCellOffset.y() += numSlides * localCells.y();
     }
 
     /** Calculate the gas density
      *
      * @param totalCellOffset total offset including all slides [in cells]
      */
-    HDINLINE float_X operator()(const DataSpace<simDim>& localCellIdx)
+    HDINLINE float_X operator()(const DataSpace<simDim>& totalCellOffset)
     {
         const float_X vacuum_y = float_64(ParamClass::VACUUM_CELLS_Y) * cellSize.y();
         const float_X gas_center_left = ParamClass::SI::GAS_CENTER_LEFT / UNIT_LENGTH;
@@ -63,9 +58,9 @@ struct GaussianImpl : public T_ParamClass
         const float_X gas_sigma_right = ParamClass::SI::GAS_SIGMA_RIGHT / UNIT_LENGTH;
 
         const floatD_X globalCellPos(
-                                                           precisionCast<float_X>(gpuCellOffset + localCellIdx) *
-                                                           cellSize
-                                                           );
+                                     precisionCast<float_X>(totalCellOffset) *
+                                     cellSize
+                                     );
 
         if (globalCellPos.y() * cellSize.y() < vacuum_y)
         {
@@ -86,11 +81,6 @@ struct GaussianImpl : public T_ParamClass
         const float_X density = math::exp(float_X(ParamClass::GAS_FACTOR) * math::pow(exponent, gas_power));
         return density;
     }
-
-protected:
-
-    DataSpace<simDim> gpuCellOffset;
-
 };
 } //namespace gasProfiles
 } //namespace picongpu

@@ -42,6 +42,11 @@ struct QuietImpl
     {
     }
 
+    DINLINE void init(const DataSpace<simDim>& totalCellOffset)
+    {
+        
+    }
+
     /** Distributes the initial particles lattice-like within the cell.
      *
      * @param rng a reference to an initialized, UNIFORM random number generator
@@ -74,8 +79,7 @@ struct QuietImpl
      * @param realElPerCell  the number of real electrons in this cell
      * @return macroWeighting the intended weighting per macro particle
      */
-    DINLINE MakroParticleCfg mapRealToMakroParticle(const float_X realElPerCell,
-                                                    const DataSpace<simDim>&)
+    DINLINE MakroParticleCfg mapRealToMakroParticle(const float_X realElPerCell)
     {
         float_X macroWeighting = float_X(0.0);
         uint32_t numParsPerCell=numParInCell.productOfComponents();

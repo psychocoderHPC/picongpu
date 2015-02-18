@@ -43,19 +43,13 @@ struct LinearExponentialImpl : public T_ParamClass
     HINLINE LinearExponentialImpl(uint32_t currentStep)
     {
 
-        const uint32_t numSlides = MovingWindow::getInstance().getSlideCounter(currentStep);
-        const SubGrid<simDim>& subGrid = Environment<simDim>::get().SubGrid();
-        DataSpace<simDim> localCells = subGrid.getLocalDomain().size;
-        gpuCellOffset = subGrid.getLocalDomain().offset;
-        gpuCellOffset.y() += numSlides * localCells.y();
-
     }
 
     /* Calculate the gas density
-     * 
+     *
      * @param totalCellOffset total offset including all slides [in cells]
      */
-    HDINLINE float_X operator()(const DataSpace<simDim>& localCellIdx)
+    HDINLINE float_X operator()(const DataSpace<simDim>& totalCellOffset)
     {
         const float_X vacuum_y = float_64(ParamClass::VACUUM_CELLS_Y) * cellSize.y();
         const float_X gas_a = ParamClass::SI::GAS_A * UNIT_LENGTH;
@@ -63,7 +57,7 @@ struct LinearExponentialImpl : public T_ParamClass
         const float_X gas_y_max = ParamClass::SI::GAS_Y_MAX / UNIT_LENGTH;
 
         const floatD_X globalCellPos(
-                                     precisionCast<float_X>(gpuCellOffset + localCellIdx) *
+                                     precisionCast<float_X>(totalCellOffset) *
                                      cellSize
                                      );
         float_X density = float_X(0.0);
@@ -81,10 +75,6 @@ struct LinearExponentialImpl : public T_ParamClass
 
         return density;
     }
-
-private:
-
-    DataSpace<simDim> gpuCellOffset;
 };
 } //namespace gasProfiles
 } //namespace picongpu

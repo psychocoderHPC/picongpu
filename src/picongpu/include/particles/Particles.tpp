@@ -156,8 +156,8 @@ void Particles<T_ParticleDescription>::update( uint32_t )
     typedef typename PMacc::traits::Resolve<SelectPusher>::type::type ParticlePush;
 
     typedef typename PMacc::traits::Resolve<
-        typename GetFlagType<FrameType,interpolation<> >::type
-    >::type InterpolationScheme;
+        typename GetFlagType<FrameType, interpolation<> >::type
+        >::type InterpolationScheme;
 
     typedef typename GetMargin<InterpolationScheme>::LowerMargin LowerMargin;
     typedef typename GetMargin<InterpolationScheme>::UpperMargin UpperMargin;
@@ -193,13 +193,22 @@ void Particles<T_ParticleDescription>::reset( uint32_t )
 
 template< typename T_ParticleDescription>
 template<typename T_GasFunctor, typename T_PositionFunctor>
-void Particles<T_ParticleDescription>::initGas( T_GasFunctor& gasFunctor, T_PositionFunctor& positionFunctor )
+void Particles<T_ParticleDescription>::initGas( T_GasFunctor& gasFunctor,
+                                                T_PositionFunctor& positionFunctor,
+                                                const uint32_t currentStep )
 {
-    log<picLog::SIMULATION_STATE > ( "start create gas for species %1%" ) % FrameType::getName();
+    log<picLog::SIMULATION_STATE > ( "start create gas for species %1%" ) % FrameType::getName( );
+
+    const uint32_t numSlides = MovingWindow::getInstance( ).getSlideCounter( currentStep );
+    const SubGrid<simDim>& subGrid = Environment<simDim>::get( ).SubGrid( );
+    DataSpace<simDim> localCells = subGrid.getLocalDomain( ).size;
+    DataSpace<simDim> totalGpuCellOffset = subGrid.getLocalDomain( ).offset;
+    totalGpuCellOffset.y( ) += numSlides * localCells.y( );
+
     dim3 block( MappingDesc::SuperCellSize::toRT( ).toDim3( ) );
     __picKernelArea( kernelFillGridWithParticles, this->cellDescription, CORE + BORDER )
         (block)
-        ( gasFunctor, positionFunctor, this->particlesBuffer->getDeviceParticleBox( ) );
+        ( gasFunctor, positionFunctor, totalGpuCellOffset, this->particlesBuffer->getDeviceParticleBox( ) );
 
 
     this->fillAllGaps( );
@@ -213,7 +222,7 @@ void Particles<T_ParticleDescription>::deviceCloneFrom( Particles< t_ParticleDes
 
     __picKernelArea( kernelCloneParticles, this->cellDescription, CORE + BORDER )
         (block) ( this->getDeviceParticlesBox( ), src.getDeviceParticlesBox( ) );
-    log<picLog::SIMULATION_STATE > ( "start clone species %1%" ) % FrameType::getName();
+    log<picLog::SIMULATION_STATE > ( "start clone species %1%" ) % FrameType::getName( );
     this->fillAllGaps( );
 }
 
@@ -224,10 +233,10 @@ void Particles<T_ParticleDescription>::manipulateAllParticles( uint32_t currentS
 
     dim3 block( MappingDesc::SuperCellSize::toRT( ).toDim3( ) );
 
-    __picKernelArea( kernelManipulateAllParticles, this->cellDescription, CORE + BORDER  )
+    __picKernelArea( kernelManipulateAllParticles, this->cellDescription, CORE + BORDER )
         (block)
         ( this->particlesBuffer->getDeviceParticleBox( ),
-          functor);
+          functor );
 }
 
 } // end namespace

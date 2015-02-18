@@ -126,7 +126,7 @@ struct CreateGas
         PMACC_AUTO(speciesPtr, tuple[SpeciesName()]);
         GasFunctor gasFunctor(currentStep);
         PositionFunctor positionFunctor(currentStep);
-        speciesPtr->initGas(gasFunctor, positionFunctor);
+        speciesPtr->initGas(gasFunctor, positionFunctor, currentStep);
     }
 };
 
