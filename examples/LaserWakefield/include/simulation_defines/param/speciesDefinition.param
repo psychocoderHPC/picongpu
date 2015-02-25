@@ -73,10 +73,9 @@ AttributRadiationFlag
 /* attribute sequence for species: ions */
 typedef
 typename MakeSeq<
-DefaultParticleAttributes,
+DefaultParticleAttributes
 AttributMomentum_mt1,
 AttributRadiationFlag,
-boundElectrons
 >::type AttributeSeqIons;
 
 /*########################### end particle attributes ########################*/
@@ -95,12 +94,21 @@ typedef bmpl::vector<
 
 /* define species: electrons */
 typedef Particles<ParticleDescription<
-    bmpl::string<'e'>,
+    bmpl::string<'e','H'>,
     SuperCellSize,
     AttributeSeqElectrons,
     ParticleFlagsElectrons,
     typename MakeSeq<CommunicationId<PAR_ELECTRONS> >::type  >
 > PIC_Electrons;
+
+/* define species: electrons */
+typedef Particles<ParticleDescription<
+    bmpl::string<'e','C'>,
+    SuperCellSize,
+    AttributeSeqElectrons,
+    ParticleFlagsElectrons,
+    typename MakeSeq<CommunicationId<PAR_ELECTRONS+1> >::type  >
+> PIC_ElectronsC;
 
 /*--------------------------- ions -------------------------------------------*/
 
@@ -120,40 +128,50 @@ typedef Particles<ParticleDescription<
 struct Hydrogen
 {
     static const float_X numberOfProtons  = 1.0;
-    static const float_X numberOfNeutrons = 0.0;
+    static const float_X numberOfNeutrons = 1.0;
 };
 
-/*! Ionization Model Configuration ----------------------------------------
- *
- * For development purposes: ---------------------------------------------
- * - None : no particle is ionized
- * - BSI : simple barrier suppression ionization
- *
- * Usage: Add a flag to the list of particle flags that has the following structure
- *
- *        ionizer<IonizationModel<Species2BCreated> >
- */
-
-typedef particles::shapes::CIC IonShape;
 typedef bmpl::vector<
     particlePusher<UsedParticlePusher>,
     shape<UsedParticleShape>,
     interpolation<UsedField2Particle>,
     current<UsedParticleCurrentSolver>,
-    #if(PARAM_IONIZATION == 1)
-    ionizer<particles::ionization::BSI<PIC_Electrons> >,
-    #endif
     atomicNumbers<Hydrogen>
 > ParticleFlagsIons;
 
 /* define species: ions */
 typedef Particles<ParticleDescription<
-    bmpl::string<'i'>,
+    bmpl::string<'i','H'>,
     SuperCellSize,
     AttributeSeqIons,
     ParticleFlagsIons,
     typename MakeSeq<CommunicationId<PAR_IONS> >::type >
 > PIC_Ions;
+
+//##### carbon
+
+struct Carbon
+{
+    static const float_X numberOfProtons  = 6.0;
+    static const float_X numberOfNeutrons = 6.0;
+};
+typedef bmpl::vector<
+    particlePusher<UsedParticlePusher>,
+    shape<UsedParticleShape>,
+    interpolation<UsedField2Particle>,
+    current<UsedParticleCurrentSolver>,
+    atomicNumbers<Carbon>
+> ParticleFlagsIonsC;
+
+/* define species: ions */
+typedef Particles<ParticleDescription<
+    bmpl::string<'i','C'>,
+    SuperCellSize,
+    AttributeSeqIons,
+    ParticleFlagsIonsC,
+    typename MakeSeq<CommunicationId<PAR_ELECTRONS+2> >::type >
+> PIC_IonsC;
+
 
 /*########################### end species ####################################*/
 
@@ -175,7 +193,9 @@ PIC_Ions
 
 typedef typename MakeSeq<
 Species1,
-Species2
+Species2,
+PIC_IonsC,
+PIC_ElectronsC
 >::type VectorAllSpecies;
 
 

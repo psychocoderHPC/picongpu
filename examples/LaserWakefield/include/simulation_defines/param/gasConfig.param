@@ -43,39 +43,46 @@ const double GAS_DENSITY_SI = 1.e25;
 //##########################################################################
 namespace gasProfiles
 {
-struct GaussianParameter
+
+/** Middle of the constant sphere
+ *  unit: meter */
+CONST_VECTOR(float_64, simDim, SphereFlanksParam_center, 8.0e3, 8.0e3, 8.0e3);
+
+struct SphereFlanksParam
 {
-    /** Gas Formular:
-                const float_X exponent = fabs((y - GAS_CENTER) / GAS_SIGMA);
-                const float_X density = __expf(GAS_FACTOR*__powf(exponent, GAS_POWER));
-
-        takes GAS_CENTER_LEFT for y < GAS_CENTER_LEFT,
-              GAS_CENTER_RIGHT for y > GAS_CENTER_RIGHT,
-        and exponent = float_X(0.0) for GAS_CENTER_LEFT < y < GAS_CENTER_RIGHT */
-    static const float_X GAS_FACTOR = -1.0;
-    static const float_X GAS_POWER = 4.0;
-
     /** height of vacuum area on top border
      *      this vacuum is really important because of the laser initialization,
      *      which is done in the first cell of the simulation
      *  unit: cells */
-    static const uint32_t VACUUM_CELLS_Y = 50;
+    static const uint32_t vacuum_y_cells = 50;
 
     struct SI
     {
-        /** The central position of the gas distribution
+        /** Radius of the constant sphere
          *  unit: meter */
-        static const float_64 GAS_CENTER_LEFT = 8.0e-5;
-        static const float_64 GAS_CENTER_RIGHT = 10.0e-5;
-        /** the distance from GAS_CENTER until the gas density decreases to its 1/e-th part
+        static const float_64 r = 1.0e3;
+
+        /** Inner radius if you want to build a shell/ring
          *  unit: meter */
-        static const float_64 GAS_SIGMA_LEFT = 8.0e-5;
-        static const float_64 GAS_SIGMA_RIGHT = 8.0e-5;
+        static const float_64 ri = 0.0;
+
+        /** Middle of the constant sphere
+         *  unit: meter */
+        const SphereFlanksParam_center_t center;
+
+        /** Parameters for the exponential slope
+         *  For radius > GAS_R_SI:
+         *    let radius' = radius - r
+         *    \rho = exp[ - radius' * exponent ]
+         *  unit: 1/m
+         */
+        static const float_64 exponent = 1.0e-3;
+
     };
 };
 
-/* definition of GasGaussian*/
-typedef GaussianImpl<GaussianParameter> Gaussian;
+/* definition of gas sphere with flanks*/
+typedef SphereFlanksImpl<SphereFlanksParam> SphereFlanks;
 
 }//namespace gasProfiles
 
