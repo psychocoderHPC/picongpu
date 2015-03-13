@@ -119,7 +119,7 @@ public:
 
         PMacc::Filesystem<DIM>::getInstance();
 
-        setDevice((int) (PMacc::GridController<DIM>::getInstance().getHostRank()));
+       // setDevice((int) (PMacc::GridController<DIM>::getInstance().getHostRank()));
 
         StreamController::getInstance().activate();
 
@@ -144,16 +144,6 @@ public:
     void finalize()
     {
     }
-
-private:
-
-    Environment()
-    {
-    }
-
-    Environment(const Environment&);
-
-    Environment& operator=(const Environment&);
 
     void setDevice(int deviceNumber)
     {
@@ -181,19 +171,23 @@ private:
         if (devProp.computeMode == cudaComputeModeDefault)
             maxTries = 1;
 
+        cudaStream_t testStream;
+
         for (int deviceOffset = 0; deviceOffset < maxTries; ++deviceOffset)
         {
             const int tryDeviceId = (deviceOffset + deviceNumber) % num_gpus;
             rc = cudaSetDevice(tryDeviceId);
             if (rc == cudaSuccess)
+                rc = cudaStreamCreate(&testStream);
+            if (rc == cudaSuccess)
             {
                 cudaDeviceProp dprop;
                 cudaGetDeviceProperties(&dprop, deviceNumber);
                 log<ggLog::CUDA_RT > ("Set device to %1%: %2%") % tryDeviceId % dprop.name;
-                CUDA_CHECK(cudaSetDeviceFlags(cudaDeviceScheduleSpin));
+               // CUDA_CHECK(cudaSetDeviceFlags(cudaDeviceScheduleSpin));
                 break;
             }
-            else if (rc == cudaErrorDeviceAlreadyInUse)
+            else if (rc == cudaErrorDeviceAlreadyInUse || rc == cudaErrorDevicesUnavailable)
             {
                 log<ggLog::CUDA_RT > ("Device %1% already in use, try next.") % tryDeviceId;
                 continue;
@@ -204,6 +198,19 @@ private:
             }
         }
     }
+
+
+private:
+
+    Environment()
+    {
+    }
+
+    Environment(const Environment&);
+
+    Environment& operator=(const Environment&);
+
+
 };
 
 #define __startTransaction(...) (Environment<>::get().TransactionManager().startTransaction(__VA_ARGS__))

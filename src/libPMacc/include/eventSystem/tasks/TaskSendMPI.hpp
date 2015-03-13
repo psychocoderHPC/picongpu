@@ -50,12 +50,33 @@ public:
     virtual void init()
     {
         __startTransaction();
+#if(PMACC_ENABLE_GPUDIRECT==0)
         this->request = Environment<DIM>::get().EnvironmentController()
                 .getCommunicator().startSend(
                                              exchange->getExchangeType(),
                                              (char*) exchange->getHostBuffer().getPointer(),
                                              exchange->getHostBuffer().getCurrentSize() * sizeof (TYPE),
                                              exchange->getCommunicationTag());
+#else
+        if (exchange->hasDeviceDoubleBuffer())
+        {
+            this->request = Environment<DIM>::get().EnvironmentController()
+                    .getCommunicator().startSend(
+                                                 exchange->getExchangeType(),
+                                                 (char*) exchange->getDeviceDoubleBuffer().getPointer(),
+                                                 exchange->getDeviceDoubleBuffer().getCurrentSize() * sizeof (TYPE),
+                                                 exchange->getCommunicationTag());
+        }
+        else
+        {
+            this->request = Environment<DIM>::get().EnvironmentController()
+                  .getCommunicator().startSend(
+                                               exchange->getExchangeType(),
+                                               (char*) exchange->getDeviceBuffer().getPointer(),
+                                               exchange->getDeviceBuffer().getCurrentSize() * sizeof (TYPE),
+                                               exchange->getCommunicationTag());
+        }
+#endif
         __endTransaction();
     }
 

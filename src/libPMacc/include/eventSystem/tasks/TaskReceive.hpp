@@ -62,27 +62,47 @@ namespace PMacc
                 case RunCopy:
                     state = WaitForFinish;
                     __startAtomicTransaction();
-                    exchange->getHostBuffer().setCurrentSize(newBufferSize);
                     if (exchange->hasDeviceDoubleBuffer())
                     {
 
+#if(PMACC_ENABLE_GPUDIRECT==0)
+                        exchange->getHostBuffer().setCurrentSize(newBufferSize);
                         Environment<>::get().Factory().createTaskCopyHostToDevice(exchange->getHostBuffer(),
                                                                                      exchange->getDeviceDoubleBuffer());
+#else
+                        exchange->getDeviceDoubleBuffer().setCurrentSize(newBufferSize);
+#endif
                         Environment<>::get().Factory().createTaskCopyDeviceToDevice(exchange->getDeviceDoubleBuffer(),
                                                                                        exchange->getDeviceBuffer(),
                                                                                        this);
                     }
                     else
                     {
-
+#if(PMACC_ENABLE_GPUDIRECT==0)
+                        exchange->getHostBuffer().setCurrentSize(newBufferSize);
                         Environment<>::get().Factory().createTaskCopyHostToDevice(exchange->getHostBuffer(),
                                                                                      exchange->getDeviceBuffer(),
                                                                                      this);
+#else
+                        exchange->getDeviceBuffer().setCurrentSize(newBufferSize);
+                        setSizeEvent=__getTransactionEvent();
+                        state = WaitForSetSize;
+#endif
+
                     }
                     __endTransaction();
                     break;
                 case WaitForFinish:
                     break;
+#if(PMACC_ENABLE_GPUDIRECT==1)
+                case WaitForSetSize:
+                    if (NULL == Environment<>::get().Manager().getITaskIfNotFinished(setSizeEvent.getTaskId()))
+                    {
+                        state = Finish;
+                        return true;
+                    }
+                    break;
+#endif
                 case Finish:
                     return true;
                 default:
@@ -124,7 +144,11 @@ namespace PMacc
 
         std::string toString()
         {
-            return "TaskReceive";
+            std::stringstream dbuff;
+            dbuff<<exchange->hasDeviceDoubleBuffer();
+            std::stringstream step;
+            step<<state;
+            return std::string("TaskReceive ")+step.str()+std::string(" ")+dbuff.str();
         }
 
     private:
@@ -135,6 +159,7 @@ namespace PMacc
             WaitForReceived,
             RunCopy,
             WaitForFinish,
+            WaitForSetSize,
             Finish
 
         };
@@ -143,6 +168,10 @@ namespace PMacc
         Exchange<TYPE, DIM> *exchange;
         state_t state;
         size_t newBufferSize;
+#if(PMACC_ENABLE_GPUDIRECT==1)
+        EventTask setSizeEvent;
+#endif
+
     };
 
 } //namespace PMacc

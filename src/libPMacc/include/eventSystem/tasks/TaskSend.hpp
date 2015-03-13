@@ -59,17 +59,24 @@ namespace PMacc
             if (exchange->hasDeviceDoubleBuffer())
             {
                 Environment<>::get().Factory().createTaskCopyDeviceToDevice(exchange->getDeviceBuffer(),
-                                                                               exchange->getDeviceDoubleBuffer()
+                                                                               exchange->getDeviceDoubleBuffer(),
+                                                                               this
                                                                                );
+#if(PMACC_ENABLE_GPUDIRECT==0)
                 copyEvent = Environment<>::get().Factory().createTaskCopyDeviceToHost(exchange->getDeviceDoubleBuffer(),
                                                                                          exchange->getHostBuffer(),
                                                                                          this);
+#endif
             }
             else
             {
+#if(PMACC_ENABLE_GPUDIRECT==0)
                 copyEvent = Environment<>::get().Factory().createTaskCopyDeviceToHost(exchange->getDeviceBuffer(),
                                                                                          exchange->getHostBuffer(),
                                                                                          this);
+#else
+                state=DeviceToHostFinished;
+#endif
             }
             __endTransaction(); //we need no blocking because we get a singnal if transaction is finished
 
@@ -105,6 +112,13 @@ namespace PMacc
 
         void event(id_t, EventType type, IEventData*)
         {
+#if(PMACC_ENABLE_GPUDIRECT==1)
+            if (type == COPYDEVICE2DEVICE)
+            {
+                state = DeviceToHostFinished;
+                executeIntern();
+            }
+#endif
             if (type == COPYDEVICE2HOST)
             {
                 state = DeviceToHostFinished;

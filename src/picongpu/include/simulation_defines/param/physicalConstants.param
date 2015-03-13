@@ -31,7 +31,7 @@ namespace picongpu
      *  use-cases, e.g. energy-binning algorithms. */
     const float_X GAMMA_THRESH = float_X(1.005);
 
-    /** This limit is used to decide between a pure 1-sqrt(1-x) calculation 
+    /** This limit is used to decide between a pure 1-sqrt(1-x) calculation
      *  and a 5th order Taylor approximation of 1-sqrt(1-x) to avoid halving
      *  of significant digits due to the sqrt() evaluation at x = 1/gamma^2 near 0.0.
      *  With 0.18 the relative error between Taylor approximation and real value
@@ -57,7 +57,7 @@ namespace picongpu
 
         // Ion / Proton / Positron properties
         /** unit: kg */
-        const float_64 ION_MASS_SI = 1.6726217e-27;
+        const float_64 ION_MASS_SI = ELECTRON_MASS_SI;
         /** unit: C */
         const float_64 ION_CHARGE_SI = -1.0 * ELECTRON_CHARGE_SI;
     }

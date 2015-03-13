@@ -51,12 +51,34 @@ public:
     virtual void init()
     {
         __startAtomicTransaction();
+#if(PMACC_ENABLE_GPUDIRECT==0)
         this->request = Environment<DIM>::get().EnvironmentController()
                 .getCommunicator().startReceive(
                                                 exchange->getExchangeType(),
                                                 (char*) exchange->getHostBuffer().getBasePointer(),
                                                 exchange->getHostBuffer().getDataSpace().productOfComponents() * sizeof (TYPE),
                                                 exchange->getCommunicationTag());
+#else
+        if (exchange->hasDeviceDoubleBuffer())
+        {
+            this->request = Environment<DIM>::get().EnvironmentController()
+                   .getCommunicator().startReceive(
+                                                   exchange->getExchangeType(),
+                                                   (char*) exchange->getDeviceDoubleBuffer().getPointer(),
+                                                   exchange->getDeviceDoubleBuffer().getDataSpace().productOfComponents() * sizeof (TYPE),
+                                                   exchange->getCommunicationTag());
+        }
+        else
+        {
+            this->request = Environment<DIM>::get().EnvironmentController()
+               .getCommunicator().startReceive(
+                                               exchange->getExchangeType(),
+                                               (char*) exchange->getDeviceBuffer().getPointer(),
+                                               exchange->getDeviceBuffer().getDataSpace().productOfComponents() * sizeof (TYPE),
+                                               exchange->getCommunicationTag());
+        }
+#endif
+
         __endTransaction();
     }
 
@@ -103,7 +125,9 @@ public:
 
     std::string toString()
     {
-        return "TaskReceiveMPI";
+        std::stringstream step;
+            step<<exchange->hasDeviceDoubleBuffer();
+        return std::string("TaskReceiveMPI ")+step.str();
     }
 
 private:

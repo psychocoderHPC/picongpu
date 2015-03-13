@@ -279,6 +279,14 @@ if(PMACC_BLOCKING_KERNEL)
     add_definitions(-DPMACC_SYNC_KERNEL=1)
 endif(PMACC_BLOCKING_KERNEL)
 
+option(PMACC_ENABLE_GPUDIRECT 
+       "Activate gpudirect for mpi communication" OFF)
+if(PMACC_ENABLE_GPUDIRECT)
+    add_definitions(-DPMACC_ENABLE_GPUDIRECT=1)
+else(PMACC_ENABLE_GPUDIRECT)
+    add_definitions(-DPMACC_ENABLE_GPUDIRECT=0)
+endif(PMACC_ENABLE_GPUDIRECT)
+
 set(PMACC_VERBOSE "0" CACHE STRING "Set verbosity level for libPMacc")
 add_definitions(-DPMACC_VERBOSE_LVL=${PMACC_VERBOSE})
 

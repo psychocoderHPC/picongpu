@@ -85,6 +85,7 @@ using namespace picongpu;
  */
 int main(int argc, char **argv)
 {
+    PMacc::Environment<>::get().setDevice(0);
     MPI_CHECK(MPI_Init(&argc, &argv));
 
     picongpu::simulation_starter::SimStarter sim;
