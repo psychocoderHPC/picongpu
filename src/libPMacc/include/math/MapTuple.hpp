@@ -42,32 +42,23 @@
 #include <boost/preprocessor/cat.hpp>
 #include <boost/static_assert.hpp>
 
+#include <particles/boostExtension/InheritLinearly.hpp>
+
 namespace PMacc
 {
 namespace math
 {
 
-#ifndef MAPTUPLE_MAX_DIM
-#define MAPTUPLE_MAX_DIM 8
-#endif
-
-#define CONSTRUCTOR(Z, N, _) \
-    template<BOOST_PP_ENUM_PARAMS(N, typename Arg)> \
-    HDINLINE \
-    MapTuple(BOOST_PP_ENUM_BINARY_PARAMS(N, const Arg, &arg)) \
-    : data(arg0), \
-      base(BOOST_PP_ENUM_SHIFTED_PARAMS(N, arg)) \
-    { \
-        BOOST_STATIC_ASSERT(dim == N); \
-    }
 
 
 namespace mpl = boost::mpl;
 
-template<typename ValueType_>
+template<typename T_Pair>
 struct AlignedData
 {
-    typedef ValueType_ ValueType;
+    typedef typename T_Pair::first Key;
+    typedef typename T_Pair::second ValueType;
+
     PMACC_ALIGN(value, ValueType);
 
     HDINLINE AlignedData()
@@ -77,12 +68,19 @@ struct AlignedData
     HDINLINE AlignedData(const ValueType& value) : value(value)
     {
     }
+
+    HDINLINE ValueType& operator[](const Key)
+    {
+        return value;
+    }
 };
 
-template<typename ValueType_>
+template<typename T_Pair>
 struct NativeData
 {
-    typedef ValueType_ ValueType;
+    typedef typename T_Pair::first Key;
+    typedef typename T_Pair::second ValueType;
+
     ValueType value;
 
     HDINLINE NativeData()
@@ -92,35 +90,20 @@ struct NativeData
     HDINLINE NativeData(const ValueType& value) : value(value)
     {
     }
+
+    HDINLINE ValueType& operator[](const Key)
+    {
+        return value;
+    }
+
 };
 
-template<typename Map_, template<typename> class PODType = NativeData, bool ListEmpty = mpl::empty<Map_>::type::value>
-class MapTuple;
-
-template<typename Map_, template<typename> class PODType>
-class MapTuple<Map_, PODType, true>
+template<typename Map_, template<typename> class PODType = NativeData>
+struct MapTuple : public InheritLinearly2<Map_,PODType>
 {
-};
-
-template<typename Map_, template<typename> class PODType>
-class MapTuple<Map_, PODType, false>
-: public MapTuple<typename mpl::erase_key<
-Map_, typename mpl::deref<typename mpl::begin<Map_>::type>::type::first>::type, PODType
->
-{
-public:
     typedef Map_ Map;
     static const int dim = mpl::size<Map>::type::value;
-private:
-   
-    typedef MapTuple<typename mpl::erase_key<
-    Map, typename mpl::deref<typename mpl::begin<Map>::type>::type::first>::type, PODType> base;
-
-    typedef typename mpl::deref<typename mpl::begin<Map>::type>::type::first Key;
-    typedef typename mpl::deref<typename mpl::begin<Map>::type>::type::second Value;
-
-    PODType<Value> data;
-public:
+    typedef MapTuple<Map,PODType> ThisType;
 
     template<class> struct result;
 
@@ -128,94 +111,24 @@ public:
     struct result<F(TKey)>
     {
         typedef typename mpl::at<Map, TKey>::type& type;
-       // typedef typename mpl::at<F, TKey>::type& type2;
+
     };
-    
+
     template<class F, class TKey>
     struct result<const F(TKey)>
     {
-                 
+
         typedef const typename mpl::at<Map, TKey>::type& type;
     };
-/*
-    template<class T_Map,template<typename> class T_PODType,bool T_isEnd,class TKey>
-    struct result<const MapTuple<T_Map,T_PODType,T_isEnd>(TKey)>
-    {
-        typedef const typename mpl::at<Map, TKey>::type& type;
-    };
-*/
-    HDINLINE MapTuple()
-    {
-    }
 
-    template<typename Arg0>
-    HDINLINE MapTuple(const Arg0& arg0) : data(arg0)
+    template<typename T_Key>
+    HDINLINE typename boost::result_of<ThisType(T_Key)>::type operator[](const T_Key key)
     {
-        BOOST_STATIC_ASSERT(dim == 1);
-    }
-
-    BOOST_PP_REPEAT_FROM_TO(2, BOOST_PP_INC(MAPTUPLE_MAX_DIM), CONSTRUCTOR, _)
-
-
-    HDINLINE Value& operator[](const Key)
-    {
-        return this->data.value;
-    }
-
-    HDINLINE const Value& operator[](const Key) const
-    {
-        return this->data.value;
-    }
-
-    template<typename TKey>
-    HDINLINE
-    typename mpl::at<Map, TKey>::type&
-    operator[](const TKey)
-    {
-        return base::operator[](TKey());
-    }
-
-    template<typename TKey>
-    HDINLINE
-    const
-    typename mpl::at<Map, TKey>::type&
-    operator[](const TKey) const
-    {
-        return base::operator[](TKey());
-    }
-
-    template<int i>
-    HDINLINE
-    typename mpl::deref<
-    typename mpl::advance<
-    typename mpl::begin<Map>::type, mpl::int_<i> >::type>::type::second&
-    at()
-    {
-        return (*this)[
-            typename mpl::deref<
-            typename mpl::advance<
-            typename mpl::begin<Map>::type, mpl::int_<i> >::type>::type::first()];
+        return (*(static_cast<
+            PODType<bmpl::pair<T_Key,typename mpl::at<Map, T_Key>::type> >
+            *>(this)))[key];
     }
 };
-
-#undef CONSTRUCTOR
-
-#define PAIR_LIST(Z, N, _) mpl::pair<Key ## N, Value ## N>
-
-#define MAKE_MAPTUPLE(Z, N, _) \
-    template<BOOST_PP_ENUM_PARAMS(N, typename Key), BOOST_PP_ENUM_PARAMS(N, typename Value)> \
-    HDINLINE \
-    MapTuple<mpl::map<BOOST_PP_ENUM(N, PAIR_LIST, _)> > \
-    make_MapTuple(BOOST_PP_ENUM_BINARY_PARAMS(N, const Value, &value)) \
-    { \
-        return MapTuple<mpl::map<BOOST_PP_ENUM(N, PAIR_LIST, _)> > \
-            (BOOST_PP_ENUM_PARAMS(N, value)); \
-    }
-
-BOOST_PP_REPEAT_FROM_TO(1, BOOST_PP_INC(MAPTUPLE_MAX_DIM), MAKE_MAPTUPLE, _)
-
-#undef MAKE_MAPTUPLE
-#undef PAIR_LIST
 
 } // math
 } // PMacc

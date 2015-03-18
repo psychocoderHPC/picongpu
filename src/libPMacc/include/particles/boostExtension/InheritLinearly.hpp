@@ -39,6 +39,7 @@ namespace detail
 template<typename T_Base>
 struct InheritLinearly : public T_Base
 {
+   // PMACC_CASSERT_MSG_TYPE(xxx,T_Base,2==1);
 };
 
 } //namespace detail
@@ -48,6 +49,15 @@ struct InheritLinearly :
 public detail::InheritLinearly<
 typename
 bmpl::inherit_linearly<T_Sequence, bmpl::inherit< bmpl::_1, bmpl::_2 > >::type
+>
+{
+};
+
+template<typename T_Sequence,template<typename> class T_Accessor >
+struct InheritLinearly2 :
+public detail::InheritLinearly<
+typename
+bmpl::inherit_linearly<T_Sequence, bmpl::inherit< bmpl::_1, T_Accessor<bmpl::_2> > >::type
 >
 {
 };

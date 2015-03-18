@@ -117,12 +117,6 @@ public:
 
 private:
 
-    /*this is only for internel calculations*/
-    enum
-    {
-        SizeOfOneBorderElement = (sizeof (ParticleTypeBorder) + sizeof (PopPushType))
-    };
-
 public:
 
     /**
@@ -179,6 +173,7 @@ public:
      */
     void addExchange(Mask receive, size_t usedMemory, uint32_t communicationTag)
     {
+        static const size_t SizeOfOneBorderElement = (sizeof (ParticleTypeBorder) + sizeof (PopPushType));
 
         size_t numBorderFrames = usedMemory / SizeOfOneBorderElement;
 

@@ -28,6 +28,7 @@
  * @author Heiko Burau, Rene Widera, Wolfgang Hoenig, Felix Schmitt, Axel Huebl, Michael Bussmann, Guido Juckeland
  */
 
+#pragma warning disable 3415
 
 // include the heap with the arguments given in the config
 #include "mallocMC/mallocMC_utils.hpp"
