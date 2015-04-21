@@ -71,34 +71,84 @@ mallocMC::AlignmentPolicies::Shrink<>
 //use ScatterAllocator to replace malloc/free
 MALLOCMC_SET_ALLOCATOR_TYPE( ScatterAllocator );
 
+
+#include "debug/CrashDump.hpp"
 #include <simulation_defines.hpp>
-#include <mpi.h>
+
 #include "communication/manager_common.h"
+#include "debug/LogStatus.hpp"
+#include "Environment.hpp"
+
+#include <mpi.h>
+#include <exception>
+#include <sstream>
 
 using namespace PMacc;
 using namespace picongpu;
+
+
+namespace picongpu
+{
+
+template<typename T_Type>
+void writeCrashDump( const T_Type& simulation )
+{
+    std::stringstream debugOutput;
+    debugOutput << debug::logStatus( simulation, "sim" ) << "\n";
+    debugOutput<<"-----------------------Transactions---------------"<<"\n";
+    debugOutput << debug::logStatus( PMacc::Environment<>::get( ).TransactionManager( ) ) << "\n";
+    debugOutput<<"-----------------------Manager---------------"<<"\n";
+    debugOutput << debug::logStatus( PMacc::Environment<>::get( ).Manager( ) ) << "\n";
+    std::cerr << "create crash log" << std::endl;
+    PMacc::debug::CrashDump::getInstance().dumpToFile( debugOutput.str( ), "error" );
+}
+
+} //picongpu
 
 /*! start of PIConGPU
  *
  * @param argc count of arguments in argv
  * @param argv arguments of program start
  */
-int main(int argc, char **argv)
+int main( int argc, char **argv )
 {
-    MPI_CHECK(MPI_Init(&argc, &argv));
+    MPI_CHECK( MPI_Init( &argc, &argv ) );
+    PMacc::debug::CrashDump::getInstance().init();
 
     picongpu::simulation_starter::SimStarter sim;
-    if (!sim.parseConfigs(argc, argv))
+    try
     {
-        MPI_CHECK(MPI_Finalize());
+
+        if ( !sim.parseConfigs( argc, argv ) )
+        {
+            MPI_CHECK( MPI_Finalize( ) );
+            return 1;
+        }
+
+        sim.load( );
+        sim.start( );
+        sim.unload( );
+
+        MPI_CHECK( MPI_Finalize( ) );
+    }
+    catch ( std::logic_error& e )
+    {
+        std::cerr << e.what( ) << std::endl;
+        picongpu::writeCrashDump( sim );
         return 1;
     }
-
-    sim.load();
-    sim.start();
-    sim.unload();
-
-    MPI_CHECK(MPI_Finalize());
+    catch ( std::runtime_error& e )
+    {
+        std::cerr << e.what( ) << std::endl;
+        picongpu::writeCrashDump( sim );
+        return 1;
+    }
+    catch ( std::exception& e )
+    {
+        std::cerr << e.what( ) << std::endl;
+        picongpu::writeCrashDump( sim );
+        return 1;
+    }
 
     return 0;
 }

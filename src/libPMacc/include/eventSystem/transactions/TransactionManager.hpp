@@ -45,7 +45,7 @@ public:
     /**
      * Destructor.
      */
-    virtual ~TransactionManager() throw(std::runtime_error);
+    virtual ~TransactionManager() throw (std::runtime_error);
 
     /**
      * Adds a new transaction to the stack.
@@ -94,6 +94,7 @@ public:
     EventStream* getEventStream(ITask::TaskType op);
 
 private:
+    template <typename T_Type> friend class debug::LogStatus;
 
     friend class Environment<DIM1>;
     friend class Environment<DIM2>;
@@ -105,9 +106,44 @@ private:
 
     static TransactionManager& getInstance();
 
-    std::stack<Transaction> transactions;
+    std::deque<Transaction> transactions;
 };
 
+namespace debug
+{
+
+template<typename T_Type>
+struct LogStatus<std::deque<T_Type> >
+{
+
+    std::string operator()(const std::deque<T_Type>& object)
+    {
+        std::stringstream stream;
+
+        typedef typename std::deque<T_Type>::const_iterator ConstDequeIterator;
+        for (ConstDequeIterator it = object.begin(); it < object.end(); ++it)
+        {
+            stream << logStatus(*it)<<"\n";
+        }
+        return stream.str();
+    }
+
+};
+
+template<>
+struct LogStatus<PMacc::TransactionManager>
+{
+
+    std::string operator()(const PMacc::TransactionManager& object)
+    {
+        std::stringstream stream;
+        stream << logStatus(object.transactions, "transactions") << "\n";
+
+        return stream.str();
+    }
+
+};
+} //namespace debug
 
 }
 

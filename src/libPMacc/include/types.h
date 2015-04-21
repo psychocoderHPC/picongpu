@@ -24,6 +24,8 @@
 #pragma once
 
 #include "debug/PMaccVerbose.hpp"
+#include "debug/LogStatus.hpp"
+
 
 #define BOOST_MPL_LIMIT_VECTOR_SIZE 20
 #define BOOST_MPL_LIMIT_MAP_SIZE 20

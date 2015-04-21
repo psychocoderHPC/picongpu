@@ -72,11 +72,32 @@ public:
     EventStream* getEventStream(ITask::TaskType operation);
 
 private:
+
+    template <typename T_Type> friend class debug::LogStatus;
+
     EventTask baseEvent;
     EventStream *eventStream;
     bool isAtomic;
 
 };
 
-}
 
+namespace debug
+{
+template<>
+struct LogStatus<PMacc::Transaction>
+{
+    std::string operator()(const PMacc::Transaction& object)
+    {
+        std::stringstream stream;
+        stream << logStatus(object.baseEvent, "baseEvent");
+        stream << logStatus(*object.eventStream, "eventStream");
+        stream << logStatus(object.isAtomic, "isAtomic");
+
+        return stream.str();
+    }
+
+};
+} //namespace debug
+
+} //namespace PMacc

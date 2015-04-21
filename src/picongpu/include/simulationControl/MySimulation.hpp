@@ -372,6 +372,8 @@ public:
      */
     virtual void runOneStep(uint32_t currentStep)
     {
+        if(currentStep==5)
+            throw std::runtime_error("abkacken!");
         namespace nvfct = PMacc::nvidia::functors;
 
         /* Ionization */

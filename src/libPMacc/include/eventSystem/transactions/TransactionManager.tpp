@@ -33,7 +33,7 @@ inline TransactionManager::~TransactionManager() throw(std::runtime_error)
         throw std::runtime_error("Missing transaction on the stack!");
     else if(transactions.size() > 1)
         throw std::runtime_error("Unfinished transactions on the stack");
-    transactions.pop( );
+    transactions.pop_back( );
 }
 
 inline TransactionManager::TransactionManager( )
@@ -48,12 +48,12 @@ inline TransactionManager::TransactionManager( const TransactionManager& )
 
 inline void TransactionManager::startTransaction( EventTask serialEvent )
 {
-    transactions.push( Transaction( serialEvent,false ) );
+    transactions.push_back( Transaction( serialEvent,false ) );
 }
 
 inline void TransactionManager::startAtomicTransaction( EventTask serialEvent )
 {
-    transactions.push( Transaction( serialEvent, true ) );
+    transactions.push_back( Transaction( serialEvent, true ) );
 }
 
 inline EventTask TransactionManager::endTransaction( )
@@ -61,8 +61,8 @@ inline EventTask TransactionManager::endTransaction( )
     if ( transactions.size( ) == 0 )
         throw std::runtime_error( "Calling endTransaction on empty transaction stack is not allowed" );
 
-    EventTask event = transactions.top( ).getTransactionEvent( );
-    transactions.pop( );
+    EventTask event = transactions.back( ).getTransactionEvent( );
+    transactions.pop_back( );
     return event;
 }
 
@@ -71,7 +71,7 @@ inline void TransactionManager::startOperation( ITask::TaskType op )
     if ( transactions.size( ) == 0 )
         throw std::runtime_error( "Calling startOperation on empty transaction stack is not allowed" );
 
-    transactions.top( ).operation( op );
+    transactions.back( ).operation( op );
 }
 
 inline EventStream* TransactionManager::getEventStream( ITask::TaskType op )
@@ -79,7 +79,7 @@ inline EventStream* TransactionManager::getEventStream( ITask::TaskType op )
     if ( transactions.size( ) == 0 )
         throw std::runtime_error( "Calling startOperation on empty transaction stack is not allowed" );
 
-    return transactions.top( ).getEventStream( op );
+    return transactions.back( ).getEventStream( op );
 }
 
 inline EventTask TransactionManager::setTransactionEvent( const EventTask& event )
@@ -87,7 +87,7 @@ inline EventTask TransactionManager::setTransactionEvent( const EventTask& event
     if ( transactions.size( ) == 0 )
         throw std::runtime_error( "Calling setTransactionEvent on empty transaction stack is not allowed" );
 
-    return transactions.top( ).setTransactionEvent( event );
+    return transactions.back( ).setTransactionEvent( event );
 }
 
 inline EventTask TransactionManager::getTransactionEvent( )
@@ -95,7 +95,7 @@ inline EventTask TransactionManager::getTransactionEvent( )
     if ( transactions.size( ) == 0 )
         throw std::runtime_error( "Calling getTransactionEvent on empty transaction stack is not allowed" );
 
-    return transactions.top( ).getTransactionEvent( );
+    return transactions.back( ).getTransactionEvent( );
 }
 
 inline TransactionManager& TransactionManager::getInstance( )

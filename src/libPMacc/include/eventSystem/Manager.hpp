@@ -1,5 +1,5 @@
 /**
- * Copyright 2013-2015 Felix Schmitt, Rene Widera, Wolfgang Hoenig, 
+ * Copyright 2013-2015 Felix Schmitt, Rene Widera, Wolfgang Hoenig,
  *                     Benjamin Worpitz
  *
  * This file is part of libPMacc.
@@ -31,76 +31,135 @@
 
 namespace PMacc
 {
-    // forward declaration
-    class EventTask;
+// forward declaration
+class EventTask;
+
+/**
+ * Manages the event system by executing and waiting for tasks.
+ */
+class Manager : public IEvent
+{
+public:
+    typedef std::map<id_t, ITask*> TaskMap;
+    typedef std::set<id_t> TaskSet;
+
+    bool execute(id_t taskToWait = 0);
+
+    void event(id_t eventId, EventType type, IEventData* data);
+
+
+    /*! Return a ITask pointer if ITask is not finished
+     * @return ITask pointer if Task is not finished else NULL
+     */
+    inline ITask* getITaskIfNotFinished(id_t taskId) const;
 
     /**
-     * Manages the event system by executing and waiting for tasks.
+     * blocks until the task with taskId is finished
+     * @param taskId id of the task to wait for
      */
-    class Manager : public IEvent
-    {
-    public:
-        typedef std::map<id_t, ITask*> TaskMap;
-        typedef std::set<id_t> TaskSet;
+    void waitForFinished(id_t taskId);
 
-        bool execute(id_t taskToWait = 0);
+    /**
+     * blocks until all tasks in the manager are finished
+     */
+    void waitForAllTasks();
 
-        void event(id_t eventId, EventType type, IEventData* data);
+    /**
+     * adds an ITask to the manager and returns an EventTask for it
+     * @param task task to add to the manager
+     */
+    void addTask(ITask *task);
 
+    void addPassiveTask(ITask *task);
 
-        /*! Return a ITask pointer if ITask is not finished
-         * @return ITask pointer if Task is not finished else NULL
-         */
-        inline ITask* getITaskIfNotFinished(id_t taskId) const;
-
-        /**
-         * blocks until the task with taskId is finished
-         * @param taskId id of the task to wait for
-         */
-        void waitForFinished(id_t taskId);
-
-        /**
-         * blocks until all tasks in the manager are finished
-         */
-        void waitForAllTasks();
-
-        /**
-         * adds an ITask to the manager and returns an EventTask for it
-         * @param task task to add to the manager
-         */
-        void addTask(ITask *task);
-
-        void addPassiveTask(ITask *task);
-
-        EventPool& getEventPool();
+    EventPool& getEventPool();
 
         std::size_t getCount();
 
-    private:
+private:
 
-        friend class Environment<DIM1>;
-        friend class Environment<DIM2>;
-        friend class Environment<DIM3>;
+    friend class Environment<DIM1>;
+    friend class Environment<DIM2>;
+    friend class Environment<DIM3>;
 
-        inline ITask* getPassiveITaskIfNotFinished(id_t taskId) const;
+    inline ITask* getPassiveITaskIfNotFinished(id_t taskId) const;
 
-        inline ITask* getActiveITaskIfNotFinished(id_t taskId) const;
+    inline ITask* getActiveITaskIfNotFinished(id_t taskId) const;
 
-        Manager();
+    Manager();
 
-        Manager(const Manager& cc);
+    Manager(const Manager& cc);
 
-        virtual ~Manager();
+    virtual ~Manager();
 
-        static Manager& getInstance()
+    static Manager& getInstance()
+    {
+        static Manager instance;
+        return instance;
+    }
+
+    template <typename T_Type> friend class debug::LogStatus;
+
+    TaskMap tasks;
+    TaskMap passiveTasks;
+    EventPool *eventPool;
+};
+
+namespace debug
+{
+
+template<typename T_Key, typename T_Value>
+struct LogStatus<std::map<T_Key, T_Value> >
+{
+
+    std::string operator()(const std::map<T_Key, T_Value>& object)
+    {
+        std::stringstream stream;
+
+        typedef typename std::map<T_Key, T_Value>::const_iterator ConstMapIterator;
+        for (ConstMapIterator it = object.begin(); it != object.end(); ++it)
         {
-            static Manager instance;
-            return instance;
+            stream << "first\n[\n" << logStatus(it->first) << "]\n" <<
+                "second\n[\n" << logStatus(it->second) << "]\n";
         }
+        return stream.str();
+    }
 
-        TaskMap tasks;
-        TaskMap passiveTasks;
-        EventPool *eventPool;
-    };
+};
+
+template<typename T_Type>
+struct LogStatus<std::set<T_Type> >
+{
+
+    std::string operator()(const std::set<T_Type>& object)
+    {
+
+        std::stringstream stream;
+
+        typedef typename std::set<T_Type>::const_iterator ConstSetIterator;
+        for (ConstSetIterator it = object.begin(); it != object.end(); ++it)
+        {
+            stream << logStatus(*it);
+        }
+        return stream.str();
+    }
+
+};
+
+template<>
+struct LogStatus<PMacc::Manager>
+{
+
+    std::string operator()(const PMacc::Manager& object)
+    {
+        std::stringstream stream;
+        stream << logStatus(object.tasks, "tasks");
+        stream << logStatus(object.passiveTasks, "passiveTasks");
+        stream << logStatus(*object.eventPool, "eventPool");
+        return stream.str();
+    }
+
+};
+} //namespace debug
 
 } //namespace PMacc

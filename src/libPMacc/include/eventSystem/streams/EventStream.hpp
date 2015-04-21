@@ -76,7 +76,25 @@ public:
     }
 
 private:
+    template <typename T_Type> friend class debug::LogStatus;
     cudaStream_t stream;
 };
+
+namespace debug
+{
+
+template<>
+struct LogStatus<PMacc::EventStream>
+{
+
+    std::string operator()(const PMacc::EventStream& object)
+    {
+        std::stringstream stream;
+        stream << logStatus(object.stream, "stream") << "\n";
+        return stream.str();
+    }
+
+};
+} //namespace debug
 
 }

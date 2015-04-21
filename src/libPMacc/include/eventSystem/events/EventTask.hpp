@@ -29,79 +29,99 @@
 namespace PMacc
 {
 
+/**
+ * EventTask is used for task-synchronization in the event system.
+ *
+ * Each task returns an EventTask which can be used to wait for this task
+ * or let other tasks wait for this one.
+ */
+class EventTask
+{
+public:
+
     /**
-     * EventTask is used for task-synchronization in the event system.
+     * Constructor.
      *
-     * Each task returns an EventTask which can be used to wait for this task
-     * or let other tasks wait for this one.
+     * @param taskId id for this task
      */
-    class EventTask
+    EventTask(id_t taskId);
+
+    /**
+     * Constructor.
+     */
+    EventTask();
+
+    virtual ~EventTask(){};
+
+    /**
+     * Returns the task id.
+     *
+     * @return id of this task
+     */
+    id_t getTaskId() const;
+
+    /**
+     * Returns if this task is finished.
+     *
+     * @return if the task is finished
+     */
+    bool isFinished();
+
+    /**
+     * Blocks until this task is finished.
+     */
+    void waitForFinished() const;
+
+    /**
+     * Adds two tasks (this task and other).
+     *
+     * Calls EventTask::operator+= internally.
+     *
+     * @param other EventTask to add to this task
+     */
+    EventTask operator+(const EventTask & other);
+
+    /**
+     * Adds two tasks (this task and other) and creates
+     * a TaskLogicalAnd (if necessary) which is added to the Manager's queue.
+     *
+     * @param other EventTask to add to this task
+     */
+    EventTask& operator+=(const EventTask & other);
+
+    /**
+     * Copies attributes from other to this task.
+     *
+     * This task effectively becomes other.
+     */
+    EventTask & operator=(const EventTask & other);
+
+    std::string toString();
+
+private:
+
+    template <typename T_Type> friend class debug::LogStatus;
+
+    id_t taskId;
+};
+
+namespace debug
+{
+
+
+template<>
+struct LogStatus<PMacc::EventTask>
+{
+
+    std::string operator()(const PMacc::EventTask& object)
     {
-    public:
+        std::stringstream stream;
+        stream << logStatus(object.taskId, "taskId") << "\n";
+        return stream.str();
+    }
 
-        /**
-         * Constructor.
-         *
-         * @param taskId id for this task
-         */
-        EventTask(id_t taskId);
-
-        /**
-         * Constructor.
-         */
-        EventTask();
-
-        virtual ~EventTask(){};
-
-        /**
-         * Returns the task id.
-         *
-         * @return id of this task
-         */
-        id_t getTaskId() const;
-
-        /**
-         * Returns if this task is finished.
-         *
-         * @return if the task is finished
-         */
-        bool isFinished();
-
-        /**
-         * Blocks until this task is finished.
-         */
-        void waitForFinished() const;
-
-        /**
-         * Adds two tasks (this task and other).
-         *
-         * Calls EventTask::operator+= internally.
-         *
-         * @param other EventTask to add to this task
-         */
-        EventTask operator+(const EventTask & other);
-
-        /**
-         * Adds two tasks (this task and other) and creates
-         * a TaskLogicalAnd (if necessary) which is added to the Manager's queue.
-         *
-         * @param other EventTask to add to this task
-         */
-        EventTask& operator+=(const EventTask & other);
-
-        /**
-         * Copies attributes from other to this task.
-         *
-         * This task effectively becomes other.
-         */
-        EventTask & operator=(const EventTask & other);
-
-        std::string toString();
-
-    private:
-
-        id_t taskId;
-    };
+};
+} //namespace debug
 
 } //namespace PMacc
 
