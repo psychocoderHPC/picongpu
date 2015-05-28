@@ -79,14 +79,32 @@ private:
         PMACC_AUTO(gridSizeTwisted,twistVectorAxes<OrientationTwist>(gridSize));
 
         /* twist components of the supercell */
-        typedef PMacc::math::CT::Int<
-                    PMacc::math::CT::At<SuperCellSize,typename OrientationTwist::x>::type::value,
-                    PMacc::math::CT::At<SuperCellSize,typename OrientationTwist::y>::type::value,
-                    PMacc::math::CT::At<SuperCellSize,typename OrientationTwist::z>::type::value
-                > BlockDim;
+        typedef typename PMacc::math::CT::make_Vector<simDim,bmpl::integral_c<int,0> >::type ZeroVector;
+
+        typedef typename PMacc::math::CT::AssignIfInRange<
+            ZeroVector,
+            bmpl::integral_c<int,0>,
+            typename PMacc::math::CT::At<SuperCellSize,typename OrientationTwist::x>::type
+        >::type VectorWith_X;
+
+        typedef typename PMacc::math::CT::AssignIfInRange<
+            VectorWith_X,
+            bmpl::integral_c<int,1>,
+            typename PMacc::math::CT::At<SuperCellSize,typename OrientationTwist::y>::type
+        >::type VectorWith_XY;
+
+        typedef typename PMacc::math::CT::AssignIfInRange<
+            VectorWith_XY,
+            bmpl::integral_c<int,2>,
+            typename PMacc::math::CT::At<SuperCellSize,typename OrientationTwist::z>::type
+        >::type BlockDim;
+
+
+        PMacc::math::Size_t<simDim> zoneSize(gridSizeTwisted);
+        zoneSize.x()=BlockDim::x::value;
 
         algorithm::kernel::ForeachBlock<BlockDim> foreach;
-        foreach(zone::SphericZone<3>(PMacc::math::Size_t<3>(BlockDim::x::value, gridSizeTwisted.y(), gridSizeTwisted.z())),
+        foreach(zone::SphericZone<simDim>(zoneSize),
                 cursor::make_NestedCursor(twistVectorFieldAxes<OrientationTwist>(cursorE)),
                 cursor::make_NestedCursor(twistVectorFieldAxes<OrientationTwist>(cursorB)),
                 DirSplittingKernel<BlockDim>((int)gridSizeTwisted.x()));
@@ -115,7 +133,7 @@ public:
         using namespace cursor::tools;
         using namespace PMacc::math::tools;
 
-        PMacc::math::Size_t<3> gridSize = fieldE_coreBorder.size();
+        PMacc::math::Size_t<simDim> gridSize = fieldE_coreBorder.size();
 
 
         typedef PMacc::math::CT::Int<0,1,2> Orientation_X;

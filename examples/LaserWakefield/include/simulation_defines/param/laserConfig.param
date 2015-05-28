@@ -17,7 +17,7 @@
  * along with PIConGPU.
  * If not, see <http://www.gnu.org/licenses/>.
  */
- 
+
 
 
 #pragma once
@@ -156,7 +156,7 @@ namespace picongpu
             //const double _A0  = _PEAK_INTENSITY_SI * UNITCONV_Intens_to_A0;
 
             /** unit: none */
-            const double _A0 = 1.5;
+            const double _A0 = 8.0;
 
             /** unit: Volt /meter */
             const double AMPLITUDE_SI = _A0 * UNITCONV_A0_to_Amplitude_SI;
@@ -167,7 +167,7 @@ namespace picongpu
             /** The profile of the test Lasers 0 and 2 can be stretched by a
              *      constant area between the up and downramp
              *  unit: seconds */
-            const double LASER_NOFOCUS_CONSTANT_SI = 13.34e-15; //7.0*WAVE_LENGTH_SI/::picongpu::SI::SPEED_OF_LIGHT_SI;//13.34e-15;//25.0e-15;
+            const double LASER_NOFOCUS_CONSTANT_SI = 0; //7.0*WAVE_LENGTH_SI/::picongpu::SI::SPEED_OF_LIGHT_SI;//13.34e-15;//25.0e-15;
 
             /** Pulse length: sigma of std. gauss for intensity (E^2)
              *  PULSE_LENGTH_SI = FWHM_of_Intensity   / [ 2*sqrt{ 2* ln(2) } ]
@@ -175,13 +175,13 @@ namespace picongpu
              *  Info:             FWHM_of_Intensity = FWHM_Illumination
              *                      = what a experimentalist calls "pulse duration"
              *  unit: seconds (1 sigma) */
-            const double PULSE_LENGTH_SI = 10.615e-15 / 4.0; //5.0e-15; //25.0e-15 / 1.17741;
+            const double PULSE_LENGTH_SI = 5.0e-15; //5.0e-15; //25.0e-15 / 1.17741;
 
         }
 
         /** The laser pulse will be initialized half of PULSE_INIT times of the PULSE_LENGTH before and after the plateau
          *  unit: none */
-        const double RAMP_INIT = 20.6146; //25.6415;//SI::aux_calulation::PULSE_TIME_SI/SI::PULSE_LENGTH_SI;
+        const double RAMP_INIT = 10; //25.6415;//SI::aux_calulation::PULSE_TIME_SI/SI::PULSE_LENGTH_SI;
 
         /* we use a sin(omega*time + laser_phase) function to set up the laser - define phase: */
         const float_X LASER_PHASE = 0.0; /* unit: rad, periodic in 2*pi */
@@ -213,13 +213,13 @@ namespace picongpu
             //const double _A0  = _PEAK_INTENSITY_SI * UNITCONV_Intens_to_A0;
 
             /** unit: none */
-            //const double _A0  = 3.9;
+            const double _A0  = 8.0;
 
             /** unit: Volt /meter */
-            //const double AMPLITUDE_SI = _A0 * UNITCONV_A0_to_Amplitude_SI;
+            const double AMPLITUDE_SI = _A0 * UNITCONV_A0_to_Amplitude_SI;
 
             /** unit: Volt /meter */
-            const double AMPLITUDE_SI = 1.738e13;
+            //const double AMPLITUDE_SI = 1.738e13;
 
             /** The profile of the test Lasers 0 and 2 can be stretched by a
              *      constant area between the up and downramp
@@ -232,7 +232,7 @@ namespace picongpu
              *  Info:             FWHM_of_Intensity = FWHM_Illumination
              *                      = what a experimentalist calls "pulse duration"
              *  unit: seconds (1 sigma) */
-            const double PULSE_LENGTH_SI = 10.615e-15 / 4.0; //5.0e-15; //25.0e-15 / 1.17741;
+            const double PULSE_LENGTH_SI = 5.0e-15; //5.0e-15; //25.0e-15 / 1.17741;
 
             /** beam waist: distance from the axis where the pulse intensity (E^2)
              *              decreases to its 1/e^2-th part,
@@ -240,7 +240,7 @@ namespace picongpu
              *              W0_Z_SI is this distance in z-direction
              *              if both values are equal, the laser has a circular shape in x-z
              *  unit: meter */
-            const double W0_X_SI = 4.246e-6;
+            const double W0_X_SI = 5.0e-6;
             const double W0_Z_SI = W0_X_SI;
 
         }

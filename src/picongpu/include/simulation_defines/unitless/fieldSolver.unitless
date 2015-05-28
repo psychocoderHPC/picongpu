@@ -53,13 +53,13 @@ namespace fieldSolverYee
     typedef yeeCell::YeeCell NumericalCellType;
 }
 
-#if(SIMDIM==DIM3)
 namespace fieldSolverDirSplitting
 {
     typedef picongpu::dirSplitting::DirSplitting FieldSolver;
     typedef allCenteredCell::AllCenteredCell NumericalCellType;
 }
 
+#if(SIMDIM==DIM3)
 namespace fieldSolverLehe
 {
     typedef typename picongpu::leheSolver::LeheSolver FieldSolver;
