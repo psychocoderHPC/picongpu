@@ -1,0 +1,91 @@
+/**
+ * Copyright 2014 Rene Widera
+ *
+ * This file is part of PIConGPU.
+ *
+ * PIConGPU is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * PIConGPU is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with PIConGPU.
+ * If not, see <http://www.gnu.org/licenses/>.
+ */
+
+
+#pragma once
+
+#include "traits/frame/GetCharge.hpp"
+#include "traits/frame/GetMass.hpp"
+#include "traits/attribute/GetCharge.hpp"
+#include "traits/attribute/GetChargeState.hpp"
+#include "traits/attribute/GetMass.hpp"
+#include "fields/currentDeposition/Solver.hpp"
+#include "particles/Particles.tpp"
+#include "particles/ionization/byField/ionizers.hpp"
+
+namespace picongpu
+{
+namespace traits
+{
+namespace frame
+{
+
+template<>
+HDINLINE float_X getMass<typename PIC_Ions::FrameType>()
+{
+    return M_ION;
+    /** \todo take account for mass loss of ions when electrons leave them during ionization */
+};
+
+template<>
+HDINLINE float_X getCharge<typename PIC_Electrons::FrameType>()
+{
+    return Q_EL;
+};
+
+template<>
+HDINLINE float_X getMass<typename PIC_Electrons::FrameType>()
+{
+    return M_EL;
+};
+
+template<>
+HDINLINE float_X getCharge<typename PIC_Ions::FrameType>()
+{
+    return Q_EL*float_X(-1.0);
+};
+
+template<>
+HDINLINE float_X getCharge<typename PIC_IonsC::FrameType>()
+{
+    return Q_EL*float_X(-6.0);
+};
+
+template<>
+HDINLINE float_X getMass<typename PIC_IonsC::FrameType>()
+{
+    return M_IONC;
+};
+
+template<>
+HDINLINE float_X getCharge<typename PIC_ElectronsC::FrameType>()
+{
+    return Q_EL;
+};
+
+template<>
+HDINLINE float_X getMass<typename PIC_ElectronsC::FrameType>()
+{
+    return M_EL;
+};
+
+} //namespace frame
+} //namespace traits
+} //namespace picongpu

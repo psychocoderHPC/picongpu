@@ -21,12 +21,16 @@
 
 #pragma once
 
+namespace picongpu
+{
+namespace particles
+{
+namespace manipulators
+{
 
-#include "particles/manipulators/IManipulator.def"
-#include "particles/manipulators/TemperatureImpl.def"
-#include "particles/manipulators/DriftImpl.def"
-#include "particles/manipulators/IfRelativeGlobalPositionImpl.def"
-#include "particles/manipulators/CreateParticlesFromParticleImpl.def"
-#include "particles/manipulators/FreeImpl.def"
-#include "particles/manipulators/SetAttributeImpl.def"
-#include "particles/manipulators/RandomPosImpl.def"
+template< typename T_SpeciesType = bmpl::_1>
+struct RandomPosImpl;
+
+} //namespace manipulators
+} //namespace particles
+} //namespace picongpu
