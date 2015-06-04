@@ -1,10 +1,11 @@
 /**
- * Copyright 2013 Felix Schmitt, Rene Widera, Wolfgang Hoenig
+ * Copyright 2013-2015 Felix Schmitt, Rene Widera, Wolfgang Hoenig,
+ *                     Benjamin Worpitz
  *
  * This file is part of libPMacc.
  *
  * libPMacc is free software: you can redistribute it and/or modify
- * it under the terms of of either the GNU General Public License or
+ * it under the terms of either the GNU General Public License or
  * the GNU Lesser General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
  * (at your option) any later version.
@@ -20,20 +21,17 @@
  * If not, see <http://www.gnu.org/licenses/>.
  */
 
+#pragma once
 
-#ifndef _TASKSEND_HPP
-#define	_TASKSEND_HPP
-
-#include <cuda_runtime_api.h>
-
-#include "memory/buffers/Exchange.hpp"
-#include "eventSystem/EventSystem.hpp"
-
+#include "eventSystem/tasks/Factory.hpp"
 #include "eventSystem/tasks/ITask.hpp"
 #include "eventSystem/tasks/TaskReceive.hpp"
 #include "eventSystem/tasks/TaskCopyDeviceToHost.hpp"
+#include "eventSystem/EventSystem.hpp"
 #include "mappings/simulation/EnvironmentController.hpp"
-#include "eventSystem/tasks/Factory.hpp"
+#include "memory/buffers/Exchange.hpp"
+
+#include <cuda_runtime_api.h>
 
 namespace PMacc
 {
@@ -132,9 +130,7 @@ namespace PMacc
             DeviceToHostFinished,
             SendDone,
             Finish
-
         };
-
 
         Exchange<TYPE, DIM> *exchange;
         EventTask& copyEvent;
@@ -142,6 +138,4 @@ namespace PMacc
     };
 
 } //namespace PMacc
-
-#endif	/* _TASKSEND_HPP */
 

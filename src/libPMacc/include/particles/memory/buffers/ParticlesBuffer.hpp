@@ -1,10 +1,10 @@
 /**
- * Copyright 2013 Axel Huebl, Felix Schmitt, Rene Widera
+ * Copyright 2013-2015 Axel Huebl, Felix Schmitt, Rene Widera, Benjamin Worpitz
  *
  * This file is part of libPMacc.
  *
  * libPMacc is free software: you can redistribute it and/or modify
- * it under the terms of of either the GNU General Public License or
+ * it under the terms of either the GNU General Public License or
  * the GNU Lesser General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
  * (at your option) any later version.
@@ -20,8 +20,7 @@
  * If not, see <http://www.gnu.org/licenses/>.
  */
 
-#ifndef PARTICLESBUFFER_HPP
-#define	PARTICLESBUFFER_HPP
+#pragma once
 
 #include "particles/frame_types.hpp"
 #include "memory/buffers/GridBuffer.hpp"
@@ -317,5 +316,3 @@ private:
 
 };
 }
-
-#endif	/* PARTICLESBUFFER_HPP */

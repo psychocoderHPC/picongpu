@@ -21,11 +21,12 @@
 #pragma once
 
 #include "types.h"
-#include "particles/ionization/ionizationEnergies.param"
+#include "simulation_defines.hpp"
 #include "particles/traits/GetAtomicNumbers.hpp"
 #include "traits/attribute/GetChargeState.hpp"
+#include "algorithms/math/floatMath/floatingPoint.tpp"
 
-/** IONIZATION ALGORITHM 
+/** IONIZATION ALGORITHM
  * - implements the calculation of ionization probability and changes charge states
  *   by decreasing the number of bound electrons
  * - is called with the IONIZATION MODEL, specifically by setting the flag in @see speciesDefinition.param */
@@ -46,21 +47,23 @@ namespace ionization
          * \tparam EType type of electric field
          * \tparam BType type of magnetic field
          * \tparam ParticleType type of particle to be ionized
-         * 
+         *
          * \param bField magnetic field value at t=0
          * \param eField electric field value at t=0
          * \param parentIon particle instance to be ionized with position at t=0 and momentum at t=-1/2
          */
         template<typename EType, typename BType, typename ParticleType >
-        HDINLINE void 
+        HDINLINE void
         operator()( const BType bField, const EType eField, ParticleType& parentIon )
         {
 
             const float_X protonNumber = GetAtomicNumbers<ParticleType>::type::numberOfProtons;
             float_X chargeState = attribute::getChargeState(parentIon);
             
+            uint32_t cs = math::float2int_rd(chargeState);
+            
             /* ionization condition */
-            if (math::abs(eField)*UNIT_EFIELD >= SI::IONIZATION_EFIELD && chargeState < protonNumber)
+            if (math::abs(eField)*UNIT_EFIELD >= SI::IONIZATION_EFIELD[cs] && chargeState < protonNumber)
             {
                 /* set new particle charge state */
                 parentIon[boundElectrons_] -= float_X(1.0);

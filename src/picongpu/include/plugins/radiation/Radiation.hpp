@@ -127,13 +127,14 @@ private:
     std::string pathRestart;
 
     mpi::MPIReduce reduce;
+    bool compressionOn;
 
 public:
 
-    Radiation(std::string name, std::string prefix) :
-    analyzerName(name),
-    analyzerPrefix(prefix),
-    filename_prefix(name),
+    Radiation() :
+    analyzerName("Radiation: calculate the radiation of a species"),
+    analyzerPrefix(ParticlesType::FrameType::getName() + std::string("_radiation")),
+    filename_prefix(analyzerPrefix),
     particles(NULL),
     radiation(NULL),
     cellDescription(NULL),
@@ -146,7 +147,8 @@ public:
     isMaster(false),
     currentStep(0),
     radPerGPU(false),
-    lastStep(0)
+    lastStep(0),
+    compressionOn(false)
     {
         Environment<>::get().PluginConnector().registerPlugin(this);
     }
@@ -193,15 +195,16 @@ public:
         desc.add_options()
             ((analyzerPrefix + ".period").c_str(), po::value<uint32_t > (&notifyFrequency), "enable analyser [for each n-th step]")
             ((analyzerPrefix + ".dump").c_str(), po::value<uint32_t > (&dumpPeriod)->default_value(0), "dump integrated radiation from last dumped step [for each n-th step] (0 = only print data at end of simulation)")
-            ((analyzerPrefix + ".lastRadiation").c_str(), po::value<bool > (&lastRad)->default_value(false), "enable(1)/disable(0) calculation integrated radiation from last dumped step")
+            ((analyzerPrefix + ".lastRadiation").c_str(), po::bool_switch(&lastRad), "enable calculation of integrated radiation from last dumped step")
             ((analyzerPrefix + ".folderLastRad").c_str(), po::value<std::string > (&folderLastRad)->default_value("lastRad"), "folder in which the integrated radiation from last dumped step is written")
-            ((analyzerPrefix + ".totalRadiation").c_str(), po::value<bool > (&totalRad)->default_value(false), "enable(1)/disable(0) calculation integrated radiation from start of simulation")
+            ((analyzerPrefix + ".totalRadiation").c_str(), po::bool_switch(&totalRad), "enable calculation of integrated radiation from start of simulation")
             ((analyzerPrefix + ".folderTotalRad").c_str(), po::value<std::string > (&folderTotalRad)->default_value("totalRad"), "folder in which the integrated radiation from start of simulation is written")
             ((analyzerPrefix + ".start").c_str(), po::value<uint32_t > (&radStart)->default_value(2), "time index when radiation should start with calculation")
             ((analyzerPrefix + ".end").c_str(), po::value<uint32_t > (&radEnd)->default_value(0), "time index when radiation should end with calculation")
             ((analyzerPrefix + ".omegaList").c_str(), po::value<std::string > (&pathOmegaList)->default_value("_noPath_"), "path to file containing all frequencies to calculate")
-            ((analyzerPrefix + ".radPerGPU").c_str(), po::value<bool > (&radPerGPU)->default_value(false), "enable(1)/disable(0) radiation output from each GPU individually")
-          ((analyzerPrefix + ".folderRadPerGPU").c_str(), po::value<std::string > (&folderRadPerGPU)->default_value("radPerGPU"), "folder in which the radiation of each GPU is written");
+            ((analyzerPrefix + ".radPerGPU").c_str(), po::bool_switch(&radPerGPU), "enable radiation output from each GPU individually")
+            ((analyzerPrefix + ".folderRadPerGPU").c_str(), po::value<std::string > (&folderRadPerGPU)->default_value("radPerGPU"), "folder in which the radiation of each GPU is written")
+            ((analyzerPrefix + ".compression").c_str(), po::bool_switch(&compressionOn), "enable compression of hdf5 output");
     }
 
 
@@ -532,6 +535,7 @@ private:
       splash::DataCollector::FileCreationAttr fAttr;
 
       splash::DataCollector::initFileCreationAttr(fAttr);
+      fAttr.enableCompression = compressionOn;
 
       std::ostringstream filename;
       filename << name << currentStep;
@@ -551,6 +555,10 @@ private:
 
       splash::Dimensions stride(Amplitude::numComponents,1,1);
 
+      /* get the radiation amplitude unit */
+      Amplitude UnityAmplitude(1., 0., 0., 0., 0., 0.);
+      const picongpu::float_64 factor = UnityAmplitude.calc_radiation() * UNIT_ENERGY * UNIT_TIME ;
+
       for(uint ampIndex=0; ampIndex < Amplitude::numComponents; ++ampIndex)
       {
           splash::Dimensions offset(ampIndex,0,0);
@@ -559,20 +567,30 @@ private:
                                           offset,
                                           stride);
 
+          /* save data for each x/y/z * Re/Im amplitude */
           HDF5dataFile.write(currentStep,
                              radSplashType,
                              3,
                              dataSelection,
                              dataLabels(ampIndex).c_str(),
                              values);
+
+          /* save SI unit as attribute together with data set */
+          HDF5dataFile.writeAttribute(currentStep,
+                                      radSplashType,
+                                      dataLabels(ampIndex).c_str(),
+                                      "unitSI",
+                                      &factor);
       }
 
-      HDF5dataFile.close();
+      /* save SI unit as attribute in the Amplitude group (for convenience) */
+      HDF5dataFile.writeAttribute(currentStep,
+                                  radSplashType,
+                                  "Amplitude",
+                                  "unitSI",
+                                  &factor);
 
-      /* TODO: will become atribute in HDF5 file later */
-      Amplitude UnityAmplitude(1., 0., 0., 0., 0., 0.);
-      const numtype2 factor = UnityAmplitude.calc_radiation() * UNIT_ENERGY * UNIT_TIME ;
-      std::cout << "Factor to radiation intensities: " << factor << std::endl;
+      HDF5dataFile.close();
     }
 
 
@@ -613,7 +631,7 @@ private:
                                            parameters::N_observer);
 
           const int N_tmpBuffer = radiation_frequencies::N_omega * parameters::N_observer;
-          numtype2* tmpBuffer = new numtype2[N_tmpBuffer];
+          picongpu::float_64* tmpBuffer = new picongpu::float_64[N_tmpBuffer];
 
           for(uint ampIndex=0; ampIndex < Amplitude::numComponents; ++ampIndex)
           {
@@ -625,7 +643,7 @@ private:
               for(int copyIndex = 0; copyIndex < N_tmpBuffer; ++copyIndex)
               {
                   /* convert data directly because Amplutude is just 6 double */
-                  ((numtype2*)values)[ampIndex + Amplitude::numComponents*copyIndex] = tmpBuffer[copyIndex];
+                  ((picongpu::float_64*)values)[ampIndex + Amplitude::numComponents*copyIndex] = tmpBuffer[copyIndex];
               }
 
           }

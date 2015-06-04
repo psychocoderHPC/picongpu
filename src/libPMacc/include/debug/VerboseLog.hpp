@@ -1,10 +1,10 @@
 /**
- * Copyright 2013 Rene Widera
+ * Copyright 2013-2015 Rene Widera, Benjamin Worpitz
  *
  * This file is part of libPMacc.
  *
  * libPMacc is free software: you can redistribute it and/or modify
- * it under the terms of of either the GNU General Public License or
+ * it under the terms of either the GNU General Public License or
  * the GNU Lesser General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
  * (at your option) any later version.
@@ -22,15 +22,14 @@
 
 #pragma once
 
-#include <sstream>
-#include <boost/format.hpp>
-#include <iostream>
-
-#include "types.h"
-#include <string>
-
 #include "debug/VerboseLogMakros.hpp"
+#include "types.h"
 
+#include <boost/format.hpp>
+
+#include <string>
+#include <iostream>
+#include <sstream>
 
 namespace PMacc
 {

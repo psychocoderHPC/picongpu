@@ -27,3 +27,5 @@
 #include "particles/manipulators/IfRelativeGlobalPositionImpl.hpp"
 #include "particles/manipulators/CreateParticlesFromParticleImpl.hpp"
 #include "particles/manipulators/FreeImpl.hpp"
+#include "particles/manipulators/RandomPosImpl.hpp"
+#include "particles/manipulators/SetAttributeImpl.hpp"

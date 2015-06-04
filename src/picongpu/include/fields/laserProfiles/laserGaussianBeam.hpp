@@ -1,5 +1,5 @@
 /**
- * Copyright 2013 Axel Huebl, Heiko Burau, Anton Helm, Rene Widera, Richard Pausch
+ * Copyright 2013, 2015 Axel Huebl, Heiko Burau, Anton Helm, Rene Widera, Richard Pausch
  *
  * This file is part of PIConGPU.
  *
@@ -43,7 +43,7 @@ namespace picongpu
             const double runTime = DELTA_T*currentStep;
             const double f = SPEED_OF_LIGHT / WAVE_LENGTH;
 
-            float3_X elong = float3_X(float_X(0.0), float_X(0.0), float_X(0.0));
+            float3_X elong(float3_X::create(0.0));
 
             // a symmetric pulse will be initialized at position z=0 for
             // a time of PULSE_INIT * PULSE_LENGTH = INIT_TIME.
@@ -74,7 +74,7 @@ namespace picongpu
                 elong.z() = float_X( envelope / sqrt(2.0) );
             }
 
-            phase = 2.0f * float_X(PI ) * float_X(f ) * ( runTime - float_X(mue ) - FOCUS_POS / SPEED_OF_LIGHT );
+            phase = 2.0f * float_X(PI ) * float_X(f ) * ( runTime - float_X(mue ) - FOCUS_POS / SPEED_OF_LIGHT) + LASER_PHASE;
 
             return elong;
         }

@@ -40,19 +40,56 @@ namespace dirSplitting
 {
 using namespace PMacc;
 
-class DirSplitting
+/** Check Directional Splitting grid and time conditions
+ *
+ * This is a workaround that the condition check is only
+ * triggered if the current used solver is `DirSplitting`
+ */
+template<typename T_UsedSolver, typename T_Dummy=void>
+struct ConditionCheck
+{
+};
+
+template<typename T_Dummy>
+struct ConditionCheck<DirSplitting, T_Dummy>
+{
+    /* Directional Splitting conditions:
+     *
+     * using SI units to avoid round off errors
+     */
+    PMACC_CASSERT_MSG(DirectionSplitting_Set_dX_equal_dt_times_c____check_your_gridConfig_param_file,
+                      (SI::SPEED_OF_LIGHT_SI * SI::DELTA_T_SI) == SI::CELL_WIDTH_SI);
+    PMACC_CASSERT_MSG(DirectionSplitting_use_cubic_cells____check_your_gridConfig_param_file,
+                      SI::CELL_HEIGHT_SI == SI::CELL_WIDTH_SI);
+#if (SIMDIM == DIM3)
+    PMACC_CASSERT_MSG(DirectionSplitting_use_cubic_cells____check_your_gridConfig_param_file,
+                      SI::CELL_DEPTH_SI == SI::CELL_WIDTH_SI);
+#endif
+};
+
+class DirSplitting : private ConditionCheck<fieldSolver::FieldSolver>
 {
 private:
-    template<typename CursorE, typename CursorB, typename GridSize>
+    template<typename OrientationTwist,typename CursorE, typename CursorB, typename GridSize>
     void propagate(CursorE cursorE, CursorB cursorB, GridSize gridSize) const
     {
-        typedef SuperCellSize BlockDim;
+        using namespace cursor::tools;
+        using namespace PMacc::math::tools;
+
+        PMACC_AUTO(gridSizeTwisted,twistVectorAxes<OrientationTwist>(gridSize));
+
+        /* twist components of the supercell */
+        typedef PMacc::math::CT::Int<
+                    PMacc::math::CT::At<SuperCellSize,typename OrientationTwist::x>::type::value,
+                    PMacc::math::CT::At<SuperCellSize,typename OrientationTwist::y>::type::value,
+                    PMacc::math::CT::At<SuperCellSize,typename OrientationTwist::z>::type::value
+                > BlockDim;
 
         algorithm::kernel::ForeachBlock<BlockDim> foreach;
-        foreach(zone::SphericZone<3>(PMacc::math::Size_t<3>(BlockDim::x::value, gridSize.y(), gridSize.z())),
-                cursor::make_NestedCursor(cursorE),
-                cursor::make_NestedCursor(cursorB),
-                DirSplittingKernel<BlockDim>((int)gridSize.x()));
+        foreach(zone::SphericZone<3>(PMacc::math::Size_t<3>(BlockDim::x::value, gridSizeTwisted.y(), gridSizeTwisted.z())),
+                cursor::make_NestedCursor(twistVectorFieldAxes<OrientationTwist>(cursorE)),
+                cursor::make_NestedCursor(twistVectorFieldAxes<OrientationTwist>(cursorB)),
+                DirSplittingKernel<BlockDim>((int)gridSizeTwisted.x()));
     }
 public:
     DirSplitting(MappingDesc) {}
@@ -80,25 +117,30 @@ public:
 
         PMacc::math::Size_t<3> gridSize = fieldE_coreBorder.size();
 
-        propagate(fieldE_coreBorder.origin(),
+
+        typedef PMacc::math::CT::Int<0,1,2> Orientation_X;
+        propagate<Orientation_X>(
+                  fieldE_coreBorder.origin(),
                   fieldB_coreBorder.origin(),
-                  fieldE_coreBorder.size());
+                  gridSize);
 
         __setTransactionEvent(fieldE.asyncCommunication(__getTransactionEvent()));
         __setTransactionEvent(fieldB.asyncCommunication(__getTransactionEvent()));
 
         typedef PMacc::math::CT::Int<1,2,0> Orientation_Y;
-        propagate(twistVectorFieldAxes<Orientation_Y>(fieldE_coreBorder.origin()),
-                  twistVectorFieldAxes<Orientation_Y>(fieldB_coreBorder.origin()),
-                  twistVectorAxes<Orientation_Y>(gridSize));
+        propagate<Orientation_Y>(
+                  fieldE_coreBorder.origin(),
+                  fieldB_coreBorder.origin(),
+                  gridSize);
 
         __setTransactionEvent(fieldE.asyncCommunication(__getTransactionEvent()));
         __setTransactionEvent(fieldB.asyncCommunication(__getTransactionEvent()));
 
         typedef PMacc::math::CT::Int<2,0,1> Orientation_Z;
-        propagate(twistVectorFieldAxes<Orientation_Z>(fieldE_coreBorder.origin()),
-                  twistVectorFieldAxes<Orientation_Z>(fieldB_coreBorder.origin()),
-                  twistVectorAxes<Orientation_Z>(gridSize));
+        propagate<Orientation_Z>(
+                  fieldE_coreBorder.origin(),
+                  fieldB_coreBorder.origin(),
+                  gridSize);
 
         if (laserProfile::INIT_TIME > float_X(0.0))
             dc.getData<FieldE > (FieldE::getName(), true).laserManipulation(currentStep);

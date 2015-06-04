@@ -1,10 +1,10 @@
 /**
- * Copyright 2013 Heiko Burau, Rene Widera
+ * Copyright 2013, 2015 Heiko Burau, Rene Widera, Benjamin Worpitz
  *
  * This file is part of libPMacc.
  *
  * libPMacc is free software: you can redistribute it and/or modify
- * it under the terms of of either the GNU General Public License or
+ * it under the terms of either the GNU General Public License or
  * the GNU Lesser General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
  * (at your option) any later version.
@@ -20,14 +20,12 @@
  * If not, see <http://www.gnu.org/licenses/>.
  */
 
-
-#ifndef MAX_HPP
-#define	MAX_HPP
-
-#include "types.h"
+#pragma once
 
 #include "mpi/GetMPI_Op.hpp"
 #include "algorithms/math.hpp"
+
+#include "types.h"
 
 namespace PMacc
 {
@@ -61,6 +59,3 @@ namespace PMacc
         }
     }
 }
-
-#endif	/* MAX_HPP */
-

@@ -114,7 +114,7 @@ for sim in directories:
     mydir = sim+simDir
     # get relevant files with energy
     files = [f for f in os.listdir(mydir)
-             if os.path.isfile(os.path.join(mydir, f)) and re.search('^Energy.*.dat', f)]
+             if os.path.isfile(os.path.join(mydir, f)) and re.search('^.*_energy.dat', f)]
     # check if file list is empty
     if len(files) == 0:
         sys.exit("There were no energy files in \"{}\".".format(mydir))
@@ -159,9 +159,9 @@ if numDir == 2:
                 time_limit = i+1
             else:
                 break
-            if time_limit == 0:
-                # if no time step is equal stop program
-                sys.exit("Time steps between sim1 and sim2 differ from start.")
+        if time_limit == 0:
+            # if no time step is equal stop program
+            sys.exit("Time steps between sim1 and sim2 differ from start.")
 elif numDir == 1:
     time_limit = len(Times[0])
 else:
@@ -169,26 +169,44 @@ else:
 
 
 ## get values ##
-startEnergy = Energies[0][0]
-
+startEnergy = Energies[:][0]
 
 ## plot numerical heating ##
 
 # choose normalization
 if args.boolRelative:
-    norm = 100. / startEnergy # relative to startEnergy in percent
+    norm = 100. / startEnergy[0] # relative to startEnergy in percent
 else:
     norm = 1.0 # absolute values
 
 if not args.boolDiff:
-    # plot energy evolution side by side
+    # plot energy evolution
     plt.plot(Times[0][:time_limit], 
-             (Energies[0][:time_limit]-startEnergy)*norm, 
+             (Energies[0][:time_limit]-startEnergy[0])*norm, 
              color="green", lw=3, label=args.label1)
     if numDir == 2:
+        # True is deviation of branch to init energy is less than of dev
+        branch_better = (np.abs(Energies[0][:time_limit]-startEnergy[0])
+                         > np.abs(Energies[1][:time_limit]-startEnergy[1]))
+
+        # branch is closer to initial energy than dev
+        plt.fill_between(Times[1][:time_limit], 
+                         (Energies[0][:time_limit]-startEnergy[0])*norm, 
+                         (Energies[1][:time_limit]-startEnergy[0])*norm, 
+                         where=branch_better,
+                         color="orange", alpha=0.8)
+
+        # dev is closer to initial energy than branch
+        plt.fill_between(Times[1][:time_limit], 
+                         (Energies[0][:time_limit]-startEnergy[0])*norm, 
+                         (Energies[1][:time_limit]-startEnergy[0])*norm, 
+                         where=np.logical_not(branch_better),
+                         color="red", alpha=0.7)
+
+        # plot second energy evolution
         plt.plot(Times[1][:time_limit], 
-                 (Energies[1][:time_limit]-startEnergy)*norm, 
-                 "--", color="blue",  lw=5, label=args.label2)
+                 (Energies[1][:time_limit]-startEnergy[0])*norm, 
+                 color="blue",  lw=2, label=args.label2)
     if args.boolRelative:
         plt.ylabel(r"$\frac{E}{E_0}-1\,[\%]$", fontsize=24)
     else:

@@ -1,10 +1,10 @@
 /**
- * Copyright 2013 Rene Widera
+ * Copyright 2013-2015 Rene Widera, Benjamin Worpitz
  *
  * This file is part of libPMacc.
  *
  * libPMacc is free software: you can redistribute it and/or modify
- * it under the terms of of either the GNU General Public License or
+ * it under the terms of either the GNU General Public License or
  * the GNU Lesser General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
  * (at your option) any later version.
@@ -20,24 +20,19 @@
  * If not, see <http://www.gnu.org/licenses/>.
  */
 
+#pragma once
 
-#ifndef _GRIDBUFFER_HPP
-#define	_GRIDBUFFER_HPP
-
-#include <algorithm>
-
-#include "eventSystem/EventSystem.hpp"
 #include "dimensions/GridLayout.hpp"
-#include "memory/dataTypes/Mask.hpp"
-
+#include "eventSystem/EventSystem.hpp"
 #include "mappings/simulation/EnvironmentController.hpp"
+#include "memory/dataTypes/Mask.hpp"
 #include "memory/buffers/ExchangeIntern.hpp"
 #include "memory/buffers/HostBufferIntern.hpp"
 #include "memory/buffers/DeviceBufferIntern.hpp"
 
 #include <sstream>
 #include <stdexcept>
-
+#include <algorithm>
 #include <set>
 
 namespace PMacc
@@ -557,6 +552,3 @@ protected:
 };
 
 }
-
-#endif	/* _GRIDBUFFER_HPP */
-

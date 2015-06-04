@@ -1,10 +1,11 @@
 /**
- * Copyright 2013 Felix Schmitt, Heiko Burau, Rene Widera
+ * Copyright 2013-2015 Felix Schmitt, Heiko Burau, Rene Widera,
+ *                     Benjamin Worpitz
  *
  * This file is part of libPMacc.
  *
  * libPMacc is free software: you can redistribute it and/or modify
- * it under the terms of of either the GNU General Public License or
+ * it under the terms of either the GNU General Public License or
  * the GNU Lesser General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
  * (at your option) any later version.
@@ -21,9 +22,8 @@
  */
 
 
-#ifndef PUSHDATABOX_HPP
-#define	PUSHDATABOX_HPP
 
+#pragma once
 #include <cuda.h>
 
 #include "particles/memory/boxes/TileDataBox.hpp"
@@ -95,9 +95,7 @@ namespace PMacc
         }
 
     protected:
-        PMACC_ALIGN(currentSize,TYPE*);
         PMACC_ALIGN(maxSize,TYPE);
+        PMACC_ALIGN(currentSize,TYPE*);
     };
 }
-
-#endif	/* PUSHDATABOX_HPP */

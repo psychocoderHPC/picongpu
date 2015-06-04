@@ -1,5 +1,5 @@
 /**
- * Copyright 2014 Rene Widera
+ * Copyright 2014-2015 Rene Widera
  *
  * This file is part of PIConGPU.
  *
@@ -34,17 +34,7 @@
 /*enable (1) or disable (0) electrons*/
 #define ENABLE_ELECTRONS 1
 /*enable (1) or disable (0) ions*/
-#ifndef PARAM_IONS
-#define PARAM_IONS 0
-#endif
-
-#define ENABLE_IONS PARAM_IONS
-
-/*enable (1) or disable (0) ionization*/
-#ifndef PARAM_IONIZATION
-#define PARAM_IONIZATION 0
-#endif
-
+#define ENABLE_IONS 1
 
 namespace picongpu
 {
@@ -54,6 +44,7 @@ namespace picongpu
  *  - particles::shapes::CIC : 1st order
  *  - particles::shapes::TSC : 2nd order (requires CUDA_ARCH>=sm_20)
  *  - particles::shapes::PCS : 3rd order (requires CUDA_ARCH>=sm_20)
+ *  - particles::shapes::P4S : 4th order (requires CUDA_ARCH>=sm_20)
  *
  *  example:             typedef particles::shapes::CIC CICShape;
  */
@@ -66,16 +57,16 @@ typedef particles::shapes::PARAM_PARTICLESHAPE UsedParticleShape;
 typedef FieldToParticleInterpolation<UsedParticleShape, AssignedTrilinearInterpolation> UsedField2Particle;
 
 /*! select current solver method -----------------------------------------------
- * - currentSolver::Esirkepov<SHAPE>  : particle shapes - CIC, TSC, PCS (1st to 3rd order)
+ * - currentSolver::Esirkepov<SHAPE>  : particle shapes - CIC, TSC, PCS, P4S (1st to 4th order)
  * - currentSolver::VillaBune<>       : particle shapes - CIC (1st order) only
- * - currentSolver::ZigZag<SHAPE>     : particle shapes - CIC, TSC, PCS (1st to 3rd order)
+ * - currentSolver::ZigZag<SHAPE>     : particle shapes - CIC, TSC, PCS, P4S (1st to 4th order)
  *
  * For development purposes: ---------------------------------------------------
  * - currentSolver::EsirkepovNative<SHAPE> : generic version of currentSolverEsirkepov
  *   without optimization (~4x slower and needs more shared memory)
  */
 #ifndef PARAM_CURRENTSOLVER
-#define PARAM_CURRENTSOLVER Esirkepov
+#define PARAM_CURRENTSOLVER ZigZag
 #endif
 typedef currentSolver::PARAM_CURRENTSOLVER<UsedParticleShape> UsedParticleCurrentSolver;
 

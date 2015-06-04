@@ -1,10 +1,10 @@
 /**
- * Copyright 2013-2014 Felix Schmitt, Rene Widera
+ * Copyright 2013-2015 Felix Schmitt, Rene Widera, Benjamin Worpitz
  *
  * This file is part of libPMacc.
  *
  * libPMacc is free software: you can redistribute it and/or modify
- * it under the terms of of either the GNU General Public License or
+ * it under the terms of either the GNU General Public License or
  * the GNU Lesser General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
  * (at your option) any later version.
@@ -20,14 +20,15 @@
  * If not, see <http://www.gnu.org/licenses/>.
  */
 
+#include "eventSystem/streams/StreamController.hpp"
+#include "eventSystem/EventSystem.hpp"
+#include "eventSystem/Manager.hpp"
+
+#include <cstdlib>
+#include <cstdio>
 #include <set>
 #include <iostream>
 
-#include "eventSystem/EventSystem.hpp"
-#include "eventSystem/streams/StreamController.hpp"
-#include "eventSystem/Manager.hpp"
-#include <stdlib.h>
-#include <stdio.h>
 //#define DEBUG_EVENTS
 
 namespace PMacc
@@ -203,7 +204,7 @@ inline EventPool& Manager::getEventPool( )
     return *eventPool;
 }
 
-inline int Manager::getCount( )
+inline std::size_t Manager::getCount( )
 {
     for ( TaskMap::iterator iter = tasks.begin( ); iter != tasks.end( ); ++iter )
     {

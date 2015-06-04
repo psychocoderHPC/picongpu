@@ -44,6 +44,7 @@
 #include "fields/FieldJ.hpp"
 #include "fields/FieldTmp.hpp"
 #include "fields/MaxwellSolver/Solvers.hpp"
+#include "fields/currentInterpolation/CurrentInterpolation.hpp"
 #include "fields/background/cellwiseOperation.hpp"
 #include "initialization/IInitPlugin.hpp"
 #include "initialization/ParserGridDistribution.hpp"
@@ -86,6 +87,10 @@ public:
     fieldE(NULL),
     fieldJ(NULL),
     fieldTmp(NULL),
+    myFieldSolver(NULL),
+    myCurrentInterpolation(NULL),
+    pushBGField(NULL),
+    currentBGField(NULL),
     cellDescription(NULL),
     initialiserController(NULL),
     slidingWindow(false)
@@ -238,6 +243,8 @@ public:
 
         __delete(myFieldSolver);
 
+        __delete(myCurrentInterpolation);
+
         ForEach<VectorAllSpecies, particles::CallDelete<bmpl::_1>, MakeIdentifier<bmpl::_1> > deleteParticleMemory;
         deleteParticleMemory(forward(particleStorage));
 
@@ -291,11 +298,14 @@ public:
 
         fieldB->init(*fieldE, *laser);
         fieldE->init(*fieldB, *laser);
-        fieldJ->init(*fieldE);
+        fieldJ->init(*fieldE, *fieldB);
         fieldTmp->init();
 
         // create field solver
         this->myFieldSolver = new fieldSolver::FieldSolver(*cellDescription);
+
+        // create current interpolation
+        this->myCurrentInterpolation = new fieldSolver::CurrentInterpolation;
 
 
         ForEach<VectorAllSpecies, particles::CallInit<bmpl::_1>, MakeIdentifier<bmpl::_1> > particleInit;
@@ -330,11 +340,10 @@ public:
             else
             {
                 initialiserController->init();
+                ForEach<InitPipeline, particles::CallFunctor<bmpl::_1> > initSpecies;
+                initSpecies(forward(particleStorage), step);
             }
         }
-
-        ForEach<InitPipeline, particles::CallFunctor<bmpl::_1> > initSpecies;
-        initSpecies(forward(particleStorage), step);
 
         Environment<>::get().EnvMemoryInfo().getMemoryInfo(&freeGpuMem);
         log<picLog::MEMORY > ("free mem after all particles are initialized %1% MiB") % (freeGpuMem / 1024 / 1024);
@@ -346,10 +355,10 @@ public:
         if( step != 0 )
         {
             namespace nvfct = PMacc::nvidia::functors;
-            (*pushBGField)( fieldE, nvfct::Sub(), fieldBackgroundE(fieldE->getUnit()),
-                            step, fieldBackgroundE::InfluenceParticlePusher);
-            (*pushBGField)( fieldB, nvfct::Sub(), fieldBackgroundB(fieldB->getUnit()),
-                            step, fieldBackgroundB::InfluenceParticlePusher);
+            (*pushBGField)( fieldE, nvfct::Sub(), FieldBackgroundE(fieldE->getUnit()),
+                            step, FieldBackgroundE::InfluenceParticlePusher);
+            (*pushBGField)( fieldB, nvfct::Sub(), FieldBackgroundB(fieldB->getUnit()),
+                            step, FieldBackgroundB::InfluenceParticlePusher);
         }
 
         // communicate all fields
@@ -388,31 +397,51 @@ public:
 
         __setTransactionEvent(updateEvent);
         /** remove background field for particle pusher */
-        (*pushBGField)(fieldE, nvfct::Sub(), fieldBackgroundE(fieldE->getUnit()),
-                       currentStep, fieldBackgroundE::InfluenceParticlePusher);
-        (*pushBGField)(fieldB, nvfct::Sub(), fieldBackgroundB(fieldB->getUnit()),
-                       currentStep, fieldBackgroundB::InfluenceParticlePusher);
+        (*pushBGField)(fieldE, nvfct::Sub(), FieldBackgroundE(fieldE->getUnit()),
+                       currentStep, FieldBackgroundE::InfluenceParticlePusher);
+        (*pushBGField)(fieldB, nvfct::Sub(), FieldBackgroundB(fieldB->getUnit()),
+                       currentStep, FieldBackgroundB::InfluenceParticlePusher);
 
         this->myFieldSolver->update_beforeCurrent(currentStep);
 
         fieldJ->clear();
 
         __setTransactionEvent(commEvent);
-        (*currentBGField)(fieldJ, nvfct::Add(), fieldBackgroundJ(fieldJ->getUnit()),
-                          currentStep, fieldBackgroundJ::activated);
+        (*currentBGField)(fieldJ, nvfct::Add(), FieldBackgroundJ(fieldJ->getUnit()),
+                          currentStep, FieldBackgroundJ::activated);
 #if (ENABLE_CURRENT == 1)
         ForEach<VectorAllSpecies, ComputeCurrent<bmpl::_1,bmpl::int_<CORE + BORDER> >, MakeIdentifier<bmpl::_1> > computeCurrent;
         computeCurrent(forward(fieldJ),forward(particleStorage), currentStep);
 #endif
 
 #if  (ENABLE_CURRENT == 1)
-        if(bmpl::size<VectorAllSpecies>::type::value>0)
+        if(bmpl::size<VectorAllSpecies>::type::value > 0)
         {
             EventTask eRecvCurrent = fieldJ->asyncCommunication(__getTransactionEvent());
-            fieldJ->addCurrentToE<CORE > ();
 
-            __setTransactionEvent(eRecvCurrent);
-            fieldJ->addCurrentToE<BORDER > ();
+            const DataSpace<simDim> currentRecvLower( GetMargin<fieldSolver::CurrentInterpolation>::LowerMargin( ).toRT( ) );
+            const DataSpace<simDim> currentRecvUpper( GetMargin<fieldSolver::CurrentInterpolation>::UpperMargin( ).toRT( ) );
+
+            /* without interpolation, we do not need to access the FieldJ GUARD
+             * and can therefor overlap communication of GUARD->(ADD)BORDER & computation of CORE */
+            if( currentRecvLower == DataSpace<simDim>::create(0) &&
+                currentRecvUpper == DataSpace<simDim>::create(0) )
+            {
+                fieldJ->addCurrentToEMF<CORE >(*myCurrentInterpolation);
+                __setTransactionEvent(eRecvCurrent);
+                fieldJ->addCurrentToEMF<BORDER >(*myCurrentInterpolation);
+            } else
+            {
+                /* in case we perform a current interpolation/filter, we need
+                 * to access the BORDER area from the CORE (and the GUARD area
+                 * from the BORDER)
+                 * `fieldJ->asyncCommunication` first adds the neighbors' values
+                 * to BORDER (send) and then updates the GUARD (receive)
+                 * \todo split the last `receive` part in a separate method to
+                 *       allow already a computation of CORE */
+                __setTransactionEvent(eRecvCurrent);
+                fieldJ->addCurrentToEMF<CORE + BORDER>(*myCurrentInterpolation);
+            }
         }
 #endif
 
@@ -434,10 +463,10 @@ public:
          */
         namespace nvfct = PMacc::nvidia::functors;
 
-        (*pushBGField)( fieldE, nvfct::Add(), fieldBackgroundE(fieldE->getUnit()),
-                        currentStep, fieldBackgroundE::InfluenceParticlePusher );
-        (*pushBGField)( fieldB, nvfct::Add(), fieldBackgroundB(fieldB->getUnit()),
-                        currentStep, fieldBackgroundB::InfluenceParticlePusher );
+        (*pushBGField)( fieldE, nvfct::Add(), FieldBackgroundE(fieldE->getUnit()),
+                        currentStep, FieldBackgroundE::InfluenceParticlePusher );
+        (*pushBGField)( fieldB, nvfct::Add(), FieldBackgroundB(fieldB->getUnit()),
+                        currentStep, FieldBackgroundB::InfluenceParticlePusher );
     }
 
     void resetAll(uint32_t currentStep)
@@ -549,6 +578,8 @@ protected:
 
     // field solver
     fieldSolver::FieldSolver* myFieldSolver;
+    fieldSolver::CurrentInterpolation* myCurrentInterpolation;
+
     cellwiseOperation::CellwiseOperation< CORE + BORDER + GUARD >* pushBGField;
     cellwiseOperation::CellwiseOperation< CORE + BORDER + GUARD >* currentBGField;
 

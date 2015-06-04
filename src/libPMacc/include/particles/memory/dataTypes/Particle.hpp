@@ -4,7 +4,7 @@
  * This file is part of libPMacc.
  *
  * libPMacc is free software: you can redistribute it and/or modify
- * it under the terms of of either the GNU General Public License or
+ * it under the terms of either the GNU General Public License or
  * the GNU Lesser General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
  * (at your option) any later version.
@@ -53,7 +53,8 @@ namespace pmacc = PMacc;
 
 /** A single particle of a @see Frame
  *
- * A instance of this Particle is only a reference to a dataset of @see Frame
+ * A instance of this Particle is a representaion ("pointer") to the memory
+ * where the frame is stored.
  *
  * @tparam T_FrameType type of the parent frame
  * @tparam T_ValueTypeSeq sequence with all attribute identifiers
@@ -76,16 +77,17 @@ struct Particle : public InheritLinearly<typename T_FrameType::MethodsList>
      * in this case sizeof(uint32_t)>sizeof(reference)
      */
     /** index of particle inside the Frame*/
-    const uint32_t idx;
-    /** reference to parent frame where this particle is from*/
-    FrameType& frame;
+    PMACC_ALIGN(idx, const uint32_t);
+
+    /** pointer to parent frame where this particle is from*/
+    PMACC_ALIGN(frame, FrameType* const);
 
     /** create particle
      *
      * @param frame reference to parent frame
      * @param idx index of particle inside the frame
      */
-    HDINLINE Particle(FrameType& frame, uint32_t idx) : frame(frame), idx(idx)
+    HDINLINE Particle(FrameType& frame, uint32_t idx) : frame(&frame), idx(idx)
     {
     }
 
@@ -109,7 +111,7 @@ struct Particle : public InheritLinearly<typename T_FrameType::MethodsList>
     >::type
     operator[](const T_Key key)
     {
-        return frame.getIdentifier(key)[idx];
+        return frame->getIdentifier(key)[idx];
     }
 
     /** const version of method operator(const T_Key) */
@@ -123,7 +125,7 @@ struct Particle : public InheritLinearly<typename T_FrameType::MethodsList>
     operator[](const T_Key key) const
     {
 
-        return frame.getIdentifier(key)[idx];
+        return frame->getIdentifier(key)[idx];
     }
 private:
     /* we disallow to assign this class*/

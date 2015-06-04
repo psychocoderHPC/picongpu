@@ -1,10 +1,10 @@
 /**
- * Copyright 2013 Heiko Burau, Rene Widera
+ * Copyright 2013-2015 Heiko Burau, Rene Widera, Benjamin Worpitz
  *
  * This file is part of libPMacc.
  *
  * libPMacc is free software: you can redistribute it and/or modify
- * it under the terms of of either the GNU General Public License or
+ * it under the terms of either the GNU General Public License or
  * the GNU Lesser General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
  * (at your option) any later version.
@@ -22,13 +22,10 @@
 
 #pragma once
 
-#include "types.h"
-#include "math/Vector.hpp"
-
-
 #include <cuSTL/cursor/compile-time/BufferCursor.hpp>
 #include <math/vector/Float.hpp>
-
+#include <math/Vector.hpp>
+#include "types.h"
 
 namespace PMacc
 {
@@ -56,8 +53,8 @@ public:
     typedef T_TYPE ValueType;
     typedef ValueType& RefValueType;
     typedef T_Vector Size;
-    typedef SharedBox<ValueType, math::CT::Int<Size::x::value>, T_id > ReducedType;
-    typedef SharedBox<ValueType, T_Vector, T_id,DIM1 > This;
+    typedef SharedBox<ValueType, math::CT::Int<Size::x::value>, T_id> ReducedType;
+    typedef SharedBox<ValueType, T_Vector, T_id, DIM1> This;
 
     HDINLINE RefValueType operator[](const int idx)
     {

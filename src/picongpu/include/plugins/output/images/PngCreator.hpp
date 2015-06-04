@@ -39,6 +39,7 @@
 
 #include "memory/boxes/PitchedBox.hpp"
 #include "memory/boxes/DataBox.hpp"
+#include "plugins/output/header/MessageHeader.hpp"
 
 //c includes
 #include "sys/stat.h"
@@ -53,6 +54,11 @@ namespace picongpu
 
         PngCreator(std::string name, std::string folder) : name(folder + "/" + name), folder(folder), createFolder(true)
         {
+        }
+
+        static std::string getName()
+        {
+            return std::string("png");
         }
 
         ~PngCreator()

@@ -4,7 +4,7 @@
  * This file is part of libPMacc.
  *
  * libPMacc is free software: you can redistribute it and/or modify
- * it under the terms of of either the GNU General Public License or
+ * it under the terms of either the GNU General Public License or
  * the GNU Lesser General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
  * (at your option) any later version.
@@ -36,14 +36,7 @@ namespace
 
 DINLINE void atomicAddWrapper(float* address, float value)
 {
-#if __CUDA_ARCH__ >= 200 // for Fermi, atomicAdd supports floats
     atomicAdd(address, value);
-#else
-    // float-atomic-add from
-    // [url="http://forums.nvidia.com/index.php?showtopic=158039&view=findpost&p=991561"]http://forums.nvidia.com/index.php?showtop...st&p=991561[/url]
-    float old = value;
-    while ((old = atomicExch(address, atomicExch(address, 0.0f) + old)) != 0.0f);
-#endif
 }
 
 DINLINE void atomicAddWrapper(double* inAddress, double value)

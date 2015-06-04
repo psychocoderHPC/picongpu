@@ -1,10 +1,10 @@
 /**
- * Copyright 2013 Heiko Burau, Rene Widera
+ * Copyright 2013-2015 Heiko Burau, Rene Widera, Benjamin Worpitz
  *
  * This file is part of libPMacc.
  *
  * libPMacc is free software: you can redistribute it and/or modify
- * it under the terms of of either the GNU General Public License or
+ * it under the terms of either the GNU General Public License or
  * the GNU Lesser General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
  * (at your option) any later version.
@@ -21,8 +21,9 @@
  */
 
 #include "cuSTL/container/allocator/tag.h"
+#include "eventSystem/EventSystem.hpp"
+
 #include <iostream>
-#include <eventSystem/EventSystem.hpp>
 
 namespace PMacc
 {
@@ -31,7 +32,9 @@ namespace container
 
 namespace detail
 {
-    template<int dim> struct PitchHelper;
+    template<int dim>
+    struct PitchHelper;
+
     template<>
     struct PitchHelper<1>
     {
@@ -44,7 +47,7 @@ namespace detail
         template<typename TCursor>
         HDINLINE math::Size_t<1> operator()(const TCursor& cursor)
         {
-            return math::Size_t<1>((char*)cursor(0, 1).getMarker() - (char*)cursor.getMarker());
+            return math::Size_t<1>(size_t((char*)cursor(0, 1).getMarker() - (char*)cursor.getMarker()));
         }
     };
     template<>
@@ -53,8 +56,8 @@ namespace detail
         template<typename TCursor>
         HDINLINE math::Size_t<2> operator()(const TCursor& cursor)
         {
-            return math::Size_t<2>((char*)cursor(0, 1, 0).getMarker() - (char*)cursor.getMarker(),
-                                     (char*)cursor(0, 0, 1).getMarker() - (char*)cursor.getMarker());
+            return math::Size_t<2>((size_t)((char*)cursor(0, 1, 0).getMarker() - (char*)cursor.getMarker()),
+                                   (size_t)((char*)cursor(0, 0, 1).getMarker() - (char*)cursor.getMarker()));
         }
     };
 
@@ -82,7 +85,7 @@ namespace detail
 
 template<typename Type, int T_dim, typename Allocator, typename Copier, typename Assigner>
 CartBuffer<Type, T_dim, Allocator, Copier, Assigner>::CartBuffer
-(const math::Size_t<T_dim>& _size)
+(const math::Size_t<T_dim>& _size) : refCount(NULL)
 {
     this->_size = _size;
     init();
@@ -90,28 +93,28 @@ CartBuffer<Type, T_dim, Allocator, Copier, Assigner>::CartBuffer
 
 template<typename Type, int T_dim, typename Allocator, typename Copier, typename Assigner>
 CartBuffer<Type, T_dim, Allocator, Copier, Assigner>::CartBuffer
-(size_t x)
+(size_t x) : refCount(NULL)
 {
     this->_size = math::Size_t<1>(x); init();
 }
 
 template<typename Type, int T_dim, typename Allocator, typename Copier, typename Assigner>
 CartBuffer<Type, T_dim, Allocator, Copier, Assigner>::CartBuffer
-(size_t x, size_t y)
+(size_t x, size_t y) : refCount(NULL)
 {
     this->_size = math::Size_t<2>(x, y); init();
 }
 
 template<typename Type, int T_dim, typename Allocator, typename Copier, typename Assigner>
 CartBuffer<Type, T_dim, Allocator, Copier, Assigner>::CartBuffer
-(size_t x, size_t y, size_t z)
+(size_t x, size_t y, size_t z) : refCount(NULL)
 {
     this->_size = math::Size_t<3>(x, y, z); init();
 }
 
 template<typename Type, int T_dim, typename Allocator, typename Copier, typename Assigner>
 CartBuffer<Type, T_dim, Allocator, Copier, Assigner>::CartBuffer
-(const CartBuffer<Type, T_dim, Allocator, Copier, Assigner>& other)
+(const CartBuffer<Type, T_dim, Allocator, Copier, Assigner>& other) : refCount(NULL)
 {
     this->dataPointer = other.dataPointer;
     this->refCount = other.refCount;
@@ -124,7 +127,7 @@ CartBuffer<Type, T_dim, Allocator, Copier, Assigner>::CartBuffer
 
 template<typename Type, int T_dim, typename Allocator, typename Copier, typename Assigner>
 CartBuffer<Type, T_dim, Allocator, Copier, Assigner>::CartBuffer
-(BOOST_RV_REF(CartBuffer<Type COMMA T_dim COMMA Allocator COMMA Copier COMMA Assigner>) other)
+(BOOST_RV_REF(CartBuffer<Type COMMA T_dim COMMA Allocator COMMA Copier COMMA Assigner>) other) : refCount(NULL)
 {
     this->dataPointer = 0;
     this->refCount = 0;
@@ -199,7 +202,7 @@ CartBuffer<Type, T_dim, Allocator, Copier, Assigner>::view
 {
     a = (a + (math::Int<T_dim>)this->size()) % (math::Int<T_dim>)this->size();
     b = (b + (math::Int<T_dim>)this->size())
-            % ((math::Int<T_dim>)this->size() + math::Int<T_dim>(1));
+            % ((math::Int<T_dim>)this->size() + math::Int<T_dim>::create(1));
 
     View<CartBuffer<Type, T_dim, Allocator, Copier, Assigner> > result;
 
@@ -228,7 +231,7 @@ cursor::SafeCursor<cursor::BufferCursor<Type, T_dim> >
 CartBuffer<Type, T_dim, Allocator, Copier, Assigner>::originSafe() const
 {
     return cursor::make_SafeCursor(this->origin(),
-                                   math::Int<T_dim>(0),
+                                   math::Int<T_dim>::create(0),
                                    math::Int<T_dim>(size()));
 }
 
@@ -257,7 +260,7 @@ zone::SphericZone<T_dim>
 CartBuffer<Type, T_dim, Allocator, Copier, Assigner>::zone() const
 {
     zone::SphericZone<T_dim> myZone;
-    myZone.offset = math::Int<T_dim>(0);
+    myZone.offset = math::Int<T_dim>::create(0);
     myZone.size = this->_size;
     return myZone;
 }

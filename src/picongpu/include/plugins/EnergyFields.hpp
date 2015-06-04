@@ -103,13 +103,13 @@ private:
 
 public:
 
-    EnergyFields(std::string name, std::string prefix) :
+    EnergyFields() :
     fieldE(NULL),
     fieldB(NULL),
     cellDescription(NULL),
-    analyzerName(name),
-    analyzerPrefix(prefix),
-    filename(name + ".dat"),
+    analyzerName("EnergyFields: calculate the energy of the fields"),
+    analyzerPrefix(std::string("fields_energy")),
+    filename(analyzerPrefix + ".dat"),
     notifyFrequency(0),
     writeToFile(false),
     localReduce(NULL)
@@ -216,8 +216,8 @@ private:
          * idx == 1 -> fieldE
          */
         EneVectorType globalFieldEnergy[2];
-        globalFieldEnergy[0]=EneVectorType(0.0);
-        globalFieldEnergy[1]=EneVectorType(0.0);
+        globalFieldEnergy[0]=EneVectorType::create(0.0);
+        globalFieldEnergy[1]=EneVectorType::create(0.0);
 
         EneVectorType localReducedFieldEnergy[2];
         localReducedFieldEnergy[0] = reduceField(fieldB);

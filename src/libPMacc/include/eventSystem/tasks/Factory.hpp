@@ -1,10 +1,11 @@
 /**
- * Copyright 2013 Felix Schmitt, Rene Widera, Wolfgang Hoenig
+ * Copyright 2013-2015 Felix Schmitt, Rene Widera, Wolfgang Hoenig,
+ *                     Benjamin Worpitz
  *
  * This file is part of libPMacc.
  *
  * libPMacc is free software: you can redistribute it and/or modify
- * it under the terms of of either the GNU General Public License or
+ * it under the terms of either the GNU General Public License or
  * the GNU Lesser General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
  * (at your option) any later version.
@@ -20,13 +21,13 @@
  * If not, see <http://www.gnu.org/licenses/>.
  */
 
+#pragma once
 
-#ifndef _FACTORY_HPP
-#define	_FACTORY_HPP
-
-#include <iostream>
 #include "eventSystem/tasks/ITask.hpp"
 #include "eventSystem/streams/EventStream.hpp"
+#include "types.h"
+
+#include <string>
 
 namespace PMacc
 {
@@ -43,7 +44,7 @@ namespace PMacc
 
     /**
      * Singleton Factory-pattern class for creation of several types of EventTasks.
-     * Tasks are not actually 'returned' but immediately initialised and
+     * Tasks are not actually 'returned' but immediately initialized and
      * added to the Manager's queue. An exception is TaskKernel.
      */
     class Factory
@@ -183,7 +184,4 @@ namespace PMacc
     };
 
 } //namespace PMacc
-
-
-#endif	/* _FACTORY_HPP */
 

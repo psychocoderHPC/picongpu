@@ -1,5 +1,5 @@
 #
-# Copyright 2013-2014 Axel Huebl, Benjamin Schneider, Felix Schmitt, Heiko Burau, Rene Widera
+# Copyright 2013-2015 Axel Huebl, Benjamin Schneider, Felix Schmitt, Heiko Burau, Rene Widera
 #
 # This file is part of PIConGPU.
 #
@@ -83,20 +83,6 @@ if(CUDA_KEEP_FILES)
     make_directory("${PROJECT_BINARY_DIR}/nvcc_tmp")
     set(CUDA_NVCC_FLAGS "${CUDA_NVCC_FLAGS}" --keep --keep-dir "${PROJECT_BINARY_DIR}/nvcc_tmp")
 endif(CUDA_KEEP_FILES)
-
-
-################################################################################
-# Find mallocMC
-################################################################################
-
-find_package(mallocMC 2.1.0)
-
-if(mallocMC_FOUND)
-  include_directories(SYSTEM ${mallocMC_INCLUDE_DIRS})
-else(mallocMC_FOUND)
-  message(STATUS "Using mallocMC from thirdParty/ directory")
-  include_directories(SYSTEM ${CMAKE_CURRENT_SOURCE_DIR}/../../thirdParty/mallocMC/src/include)
-endif(mallocMC_FOUND)
 
 
 ################################################################################
@@ -268,6 +254,32 @@ if( (Boost_VERSION EQUAL 105500) AND
       "${CUDA_NVCC_FLAGS} \"-DBOOST_NOINLINE=__attribute__((noinline))\" ")
 endif()
 
+################################################################################
+# OPENMP
+##############################################################################
+
+FIND_PACKAGE(OpenMP)
+IF(NOT OPENMP_FOUND)
+    MESSAGE(STATUS "Disable OpenMP: Can't find library")
+
+ELSE()
+    SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${OpenMP_CXX_FLAGS}")
+ENDIF()
+
+
+################################################################################
+# Find mallocMC
+################################################################################
+
+find_package(mallocMC 2.1.0)
+
+if(mallocMC_FOUND)
+  include_directories(SYSTEM ${mallocMC_INCLUDE_DIRS})
+else(mallocMC_FOUND)
+  message(STATUS "Using mallocMC from thirdParty/ directory")
+  include_directories(SYSTEM ${CMAKE_CURRENT_SOURCE_DIR}/../../thirdParty/mallocMC/src/include)
+endif(mallocMC_FOUND)
+
 
 ################################################################################
 # PMacc options
@@ -392,11 +404,7 @@ endif()
 
 # libPMacc
 
-find_path(PMACC_ROOT_DIR
-  NAMES include/types.h
-  PATHS "${CMAKE_CURRENT_SOURCE_DIR}/../libPMacc"
-  DOC "libPMacc root location"
-  )
+set(PMACC_ROOT_DIR "${CMAKE_CURRENT_SOURCE_DIR}/../libPMacc")
 include_directories(${PMACC_ROOT_DIR}/include)
 
 

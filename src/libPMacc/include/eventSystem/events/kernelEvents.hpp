@@ -1,10 +1,10 @@
 /**
- * Copyright 2013 Felix Schmitt, Rene Widera
+ * Copyright 2013-2015 Felix Schmitt, Rene Widera, Benjamin Worpitz
  *
  * This file is part of libPMacc.
  *
  * libPMacc is free software: you can redistribute it and/or modify
- * it under the terms of of either the GNU General Public License or
+ * it under the terms of either the GNU General Public License or
  * the GNU Lesser General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
  * (at your option) any later version.
@@ -20,14 +20,14 @@
  * If not, see <http://www.gnu.org/licenses/>.
  */
 
-#ifndef KERNELEVENTS_H
-#define KERNELEVENTS_H
+#pragma once
 
-#include "types.h"
-#include "ppFunctions.hpp"
-#include <boost/preprocessor/control/if.hpp>
 #include "dimensions/DataSpace.hpp"
 #include "eventSystem/EventSystem.hpp"
+#include "ppFunctions.hpp"
+#include "types.h"
+
+#include <boost/preprocessor/control/if.hpp>
 
 namespace PMacc
 {
@@ -43,14 +43,14 @@ namespace PMacc
 #endif
 
 /** Call activate kernel from taskKernel.
- *  If PMACC_SYNC_KERNEL is 1 cudaThreadSynchronize() is called before
+ *  If PMACC_SYNC_KERNEL is 1 cudaDeviceSynchronize() is called before
  *  and after activation.
  */
 #define PMACC_ACTIVATE_KERNEL                                                           \
         CUDA_CHECK_KERNEL_MSG(cudaGetLastError( ),"Last error after kernel launch");    \
-        CUDA_CHECK_KERNEL_MSG(cudaThreadSynchronize(),"Crash after kernel launch");     \
+        CUDA_CHECK_KERNEL_MSG(cudaDeviceSynchronize(),"Crash after kernel launch");     \
         taskKernel->activateChecks();                                                   \
-        CUDA_CHECK_KERNEL_MSG(cudaThreadSynchronize(),"Crash after kernel activation");
+        CUDA_CHECK_KERNEL_MSG(cudaDeviceSynchronize(),"Crash after kernel activation");
 
 /**
  * Appends kernel arguments to generated code and activates kernel task.
@@ -79,12 +79,8 @@ namespace PMacc
  * @param kernelname name of the CUDA kernel (can also used with templates etc. myKernel<1>)
  */
 #define __cudaKernel(kernelname) {                                                      \
-    CUDA_CHECK_KERNEL_MSG(cudaThreadSynchronize(),"Crash before kernel call");          \
+    CUDA_CHECK_KERNEL_MSG(cudaDeviceSynchronize(),"Crash before kernel call");          \
     TaskKernel *taskKernel =  Environment<>::get().Factory().createTaskKernel(#kernelname);     \
     kernelname PMACC_CUDAKERNELCONFIG
 
 }
-
-
-#endif //KERNELEVENTS_H
-

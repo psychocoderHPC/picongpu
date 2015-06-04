@@ -1,10 +1,10 @@
 /**
- * Copyright 2014 Rene Widera
+ * Copyright 2014, 2015 Rene Widera, Benjamin Worpitz
  *
  * This file is part of libPMacc.
  *
  * libPMacc is free software: you can redistribute it and/or modify
- * it under the terms of of either the GNU General Public License or
+ * it under the terms of either the GNU General Public License or
  * the GNU Lesser General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
  * (at your option) any later version.
@@ -22,9 +22,9 @@
 
 #pragma once
 
-#include "types.h"
-#include "math/vector/Vector.tpp"
+#include "math/vector/Vector.hpp"
 #include "ppFunctions.hpp"
+#include "types.h"
 
 /* select namespace depending on __CUDA_ARCH__ compiler flag*/
 #ifdef __CUDA_ARCH__ //we are on gpu
@@ -33,11 +33,14 @@
 #define PMACC_USING_STATIC_CONST_VECTOR_NAMESPACE(id) using namespace PMACC_JOIN(pmacc_static_const_vector_host,id)
 #endif
 
-/** @see PMACC_CONST_VECTOR documentation, only unique "id" is added
+/** define a const vector
+ *
+ * create type definition `Name_t`
+ * @see PMACC_CONST_VECTOR documentation, only unique "id" is added
  *
  * @param id unique precompiler id to create unique namespaces
  */
-#define PMACC_STATIC_CONST_VECTOR_DIM(id,Name,Type,Dim,count,...)               \
+#define PMACC_STATIC_CONST_VECTOR_DIM_DEF(id,Name,Type,Dim,count,...)          \
 namespace PMACC_JOIN(pmacc_static_const_storage,id)                            \
 {                                                                              \
     namespace PMACC_JOIN(pmacc_static_const_vector_device,id)                  \
@@ -55,6 +58,7 @@ namespace PMACC_JOIN(pmacc_static_const_storage,id)                            \
     template<typename T_Type, int T_Dim>                                       \
     struct ConstArrayStorage                                                   \
     {                                                                          \
+        static const bool isConst = true;                                      \
         typedef T_Type type;                                                   \
         static const int dim=T_Dim;                                            \
         HDINLINE type& operator[](const int idx)                               \
@@ -64,7 +68,7 @@ namespace PMACC_JOIN(pmacc_static_const_storage,id)                            \
         }                                                                      \
         HDINLINE const type& operator[](const int idx) const                   \
         {                                                                      \
-        /*access const C array with the name of array*/                    \
+            /*access const C array with the name of array*/                    \
             return PMACC_JOIN(Name,_data)[idx];                                \
         }                                                                      \
     };                                                                         \
@@ -75,6 +79,14 @@ namespace PMACC_JOIN(pmacc_static_const_storage,id)                            \
         PMacc::math::StandartAccessor,                                         \
         PMacc::math::StandartNavigator,                                        \
         ConstArrayStorage > PMACC_JOIN(Name,_t);                               \
+} /* namespace pmacc_static_const_storage + id */                              \
+using namespace PMACC_JOIN(pmacc_static_const_storage,id)
+
+/** create a instance of type `Name_t` with the name `Name`
+ */
+#define PMACC_STATIC_CONST_VECTOR_DIM_INSTANCE(id,Name,Type,Dim,count,...)     \
+namespace PMACC_JOIN(pmacc_static_const_storage,id)                            \
+{                                                                              \
     namespace PMACC_JOIN(pmacc_static_const_vector_device,id)                  \
     {                                                                          \
         /* create const instance on device */                                  \
@@ -85,9 +97,25 @@ namespace PMACC_JOIN(pmacc_static_const_storage,id)                            \
         /* create const instance on host*/                                     \
         const PMACC_JOIN(Name,_t) Name;                                        \
     } /* namespace pmacc_static_const_vector_host + id  */                     \
-} /* namespace pmacc_static_const_storage + id */                              \
-using namespace PMACC_JOIN(pmacc_static_const_storage,id)
+} /* namespace pmacc_static_const_storage + id */
 
+/** @see PMACC_CONST_VECTOR documentation, only unique "id" is added
+ *
+ * @param id unique precompiler id to create unique namespaces
+ */
+#define PMACC_STATIC_CONST_VECTOR_DIM(id,Name,Type,Dim,count,...)              \
+    PMACC_STATIC_CONST_VECTOR_DIM_DEF(id,Name,Type,Dim,count,__VA_ARGS__);     \
+    PMACC_STATIC_CONST_VECTOR_DIM_INSTANCE(id,Name,Type,Dim,count,__VA_ARGS__)
+
+
+/** define a const vector
+ *
+ * for description @see PMACC_CONST_VECTOR
+ *
+ * create type definition `name_t`
+ */
+#define PMACC_CONST_VECTOR_DEF(type,dim,name,...)                              \
+    PMACC_STATIC_CONST_VECTOR_DIM_DEF(__COUNTER__,name,type,dim,PMACC_COUNT_ARGS(__VA_ARGS__),__VA_ARGS__)
 
 /** Create global constant math::Vector with compile time values which can be
  *  used on device and host
@@ -107,4 +135,3 @@ using namespace PMACC_JOIN(pmacc_static_const_storage,id)
  */
 #define PMACC_CONST_VECTOR(type,dim,name,...)                                   \
     PMACC_STATIC_CONST_VECTOR_DIM(__COUNTER__,name,type,dim,PMACC_COUNT_ARGS(__VA_ARGS__),__VA_ARGS__)
-

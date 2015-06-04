@@ -1,10 +1,10 @@
 /**
- * Copyright 2014 Rene Widera
+ * Copyright 2014-2015 Rene Widera, Benjamin Worpitz
  *
  * This file is part of libPMacc.
  *
  * libPMacc is free software: you can redistribute it and/or modify
- * it under the terms of of either the GNU General Public License or
+ * it under the terms of either the GNU General Public License or
  * the GNU Lesser General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
  * (at your option) any later version.
@@ -22,21 +22,18 @@
 
 #pragma once
 
-#include "types.h"
 #include "compileTime/conversion/SeqToMap.hpp"
 #include "compileTime/conversion/TypeToAliasPair.hpp"
 #include "compileTime/conversion/TypeToPair.hpp"
 #include "compileTime/conversion/MakeSeqFromNestedSeq.hpp"
 #include "compileTime/conversion/MakeSeq.hpp"
+#include "math/Vector.hpp"
+#include "types.h"
+
 #include <boost/mpl/at.hpp>
 #include <boost/mpl/copy.hpp>
-
-#include <boost/mpl/assert.hpp>
 #include <boost/mpl/pop_back.hpp>
-#include <boost/static_assert.hpp>
 #include <boost/type_traits/is_same.hpp>
-
-#include "math/Vector.hpp"
 
 namespace PMacc
 {

@@ -1,0 +1,58 @@
+/**
+ * Copyright 2014 Marco Garten
+ *
+ * This file is part of PIConGPU.
+ *
+ * PIConGPU is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * PIConGPU is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with PIConGPU.
+ * If not, see <http://www.gnu.org/licenses/>.
+ */
+
+/** \file
+ * This file contains the ionization energies and conversion to corresponding
+ * electric field strengths for different species. */
+
+#pragma once
+
+/** \todo Make compatible for multiple atom species
+ * - Probably do some calculation from energy to required field strength (or do that model dependent)
+ * - Introduce some clever way of storage, like matrices for different charge states of the same species
+ * - future: even different states of excitation should be possible */
+
+namespace picongpu
+{
+namespace SI
+{
+
+    /* ionization energy for ground state hydrogen: 13.6 eV --> converted to Joule */
+    /* Joule = kg * m^2 / s^2 */
+    PMACC_CONST_VECTOR(float_X,1,IONIZATION_ENERGY,
+        2.179e-18
+    );
+    /* ionization field strength (E-field) for hydrogen: in Volt / meter
+     *
+     * usage:
+     * PMACC_CONST_VECTOR(float_X,<NUMBER_OF_PROTONS>,IONIZATION_EFIELD,
+     *     <value_1>,
+     *     ...
+     *     <value_Z>
+     * );
+     *
+     * Do not forget to change the weight of the ion and the atomic numbers in
+     * their respective `.param` file */
+    PMACC_CONST_VECTOR(float_X,1,IONIZATION_EFIELD,
+        5.14e11
+    );
+
+} // namespace SI
+} // namespace picongpu

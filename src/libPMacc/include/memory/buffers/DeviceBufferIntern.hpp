@@ -1,10 +1,10 @@
 /**
- * Copyright 2013 Axel Huebl, Heiko Burau, Rene Widera
+ * Copyright 2013-2015 Axel Huebl, Heiko Burau, Rene Widera, Benjamin Worpitz
  *
  * This file is part of libPMacc.
  *
  * libPMacc is free software: you can redistribute it and/or modify
- * it under the terms of of either the GNU General Public License or
+ * it under the terms of either the GNU General Public License or
  * the GNU Lesser General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
  * (at your option) any later version.
@@ -20,17 +20,14 @@
  * If not, see <http://www.gnu.org/licenses/>.
  */
 
-
-#ifndef _DEVICEBUFFERINTERN_HPP
-#define	_DEVICEBUFFERINTERN_HPP
-
-#include <cassert>
+#pragma once
 
 #include "dimensions/DataSpace.hpp"
+#include "eventSystem/tasks/Factory.hpp"
 #include "memory/buffers/DeviceBuffer.hpp"
 #include "memory/boxes/DataBox.hpp"
 
-#include "eventSystem/tasks/Factory.hpp"
+#include <cassert>
 
 namespace PMacc
 {
@@ -327,5 +324,3 @@ private:
 };
 
 } //namespace PMacc
-
-#endif	/* _DEVICEBUFFERINTERN_HPP */

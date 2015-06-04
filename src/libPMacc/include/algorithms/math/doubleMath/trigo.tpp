@@ -5,7 +5,7 @@
  * This file is part of libPMacc.
  *
  * libPMacc is free software: you can redistribute it and/or modify
- * it under the terms of of either the GNU General Public License or
+ * it under the terms of either the GNU General Public License or
  * the GNU Lesser General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
  * (at your option) any later version.
@@ -72,7 +72,12 @@ struct SinCos<double, double, double>
 
     HDINLINE void operator( )(double arg, double& sinValue, double& cosValue )
     {
-        ::sincos( arg, &sinValue, &cosValue );
+#if defined(_MSC_VER) && !defined(__CUDA_ARCH__)
+        sinValue = ::sin(arg);
+        cosValue = ::cos(arg);
+#else
+        ::sincos(arg, &sinValue, &cosValue);
+#endif
     }
 };
 

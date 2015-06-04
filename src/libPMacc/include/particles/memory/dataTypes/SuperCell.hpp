@@ -4,7 +4,7 @@
  * This file is part of libPMacc.
  *
  * libPMacc is free software: you can redistribute it and/or modify
- * it under the terms of of either the GNU General Public License or
+ * it under the terms of either the GNU General Public License or
  * the GNU Lesser General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
  * (at your option) any later version.
@@ -82,11 +82,13 @@ public:
         sizeLastFrame = size;
     }
 
-    PMACC_ALIGN(firstFramePtr, TYPE*);
-    PMACC_ALIGN(lastFramePtr, TYPE*);
+
 private:
     PMACC_ALIGN(mustShiftVal, bool);
     PMACC_ALIGN(sizeLastFrame, lcellId_t);
+public:
+    PMACC_ALIGN(firstFramePtr, TYPE*);
+    PMACC_ALIGN(lastFramePtr, TYPE*);
 };
 
 } //end namespace

@@ -4,7 +4,7 @@
  * This file is part of libPMacc.
  *
  * libPMacc is free software: you can redistribute it and/or modify
- * it under the terms of of either the GNU General Public License or
+ * it under the terms of either the GNU General Public License or
  * the GNU Lesser General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
  * (at your option) any later version.
@@ -53,7 +53,7 @@ struct SphericZone
     math::Int<dim> offset;
 
     HDINLINE SphericZone() {}
-    HDINLINE SphericZone(const math::Size_t<dim>& size) : size(size), offset(math::Int<dim>(0)) {}
+    HDINLINE SphericZone(const math::Size_t<dim>& size) : size(size), offset(math::Int<dim>::create(0)) {}
     HDINLINE SphericZone(const math::Size_t<dim>& size,
                          const math::Int<dim>& offset) : size(size), offset(offset) {}
 

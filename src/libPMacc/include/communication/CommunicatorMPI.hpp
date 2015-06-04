@@ -1,10 +1,11 @@
 /**
- * Copyright 2013 Axel Huebl, Felix Schmitt, Heiko Burau, Rene Widera, Wolfgang Hoenig
+ * Copyright 2013-2015 Axel Huebl, Felix Schmitt, Heiko Burau, Rene Widera,
+ *                     Wolfgang Hoenig, Benjamin Worpitz
  *
  * This file is part of libPMacc.
  *
  * libPMacc is free software: you can redistribute it and/or modify
- * it under the terms of of either the GNU General Public License or
+ * it under the terms of either the GNU General Public License or
  * the GNU Lesser General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
  * (at your option) any later version.
@@ -20,20 +21,19 @@
  * If not, see <http://www.gnu.org/licenses/>.
  */
 
-#ifndef _COMMUNICATORMPI_HPP
-#define	_COMMUNICATORMPI_HPP
-
-#include <mpi.h>
-#include <vector>
-#include <utility>
-#include <map>
-
-#include "types.h"
-#include "memory/dataTypes/Mask.hpp"
-#include "dimensions/DataSpace.hpp"
+#pragma once
 
 #include "communication/ICommunicator.hpp"
 #include "communication/manager_common.h"
+#include "dimensions/DataSpace.hpp"
+#include "memory/dataTypes/Mask.hpp"
+#include "types.h"
+
+#include <mpi.h>
+
+#include <vector>
+#include <utility>
+#include <map>
 
 namespace PMacc
 {
@@ -57,9 +57,7 @@ public:
      * calls MPI_Finalize
      */
     virtual ~CommunicatorMPI()
-    {
-        exit();
-    }
+    {}
 
     virtual int getRank()
     {
@@ -70,7 +68,6 @@ public:
     {
         return mpiSize;
     }
-
 
     MPI_Comm getMPIComm() const
     {
@@ -89,7 +86,7 @@ public:
      *
      * \warning throws invalid argument if cx*cy*cz != totalnodes
      */
-    void init(DataSpace<DIM3> numberProcesses, DataSpace<DIM3> periodic) throw (std::invalid_argument)
+    void init(DataSpace<DIM3> numberProcesses, DataSpace<DIM3> periodic)
     {
         this->periodic = periodic;
 
@@ -121,12 +118,10 @@ public:
         MPI_CHECK(MPI_Cart_create(computing_comm, DIM, dims, periods, 0, &topology));
 
         // 3. update Host rank
-        hostRank = UpdateHostRank();
+        updateHostRank();
 
         //4. update Coordinates
         updateCoordinates();
-
-
     }
 
     /*! returns a rank number (0-n) for each host
@@ -164,7 +159,7 @@ public:
 
         MPI_CHECK(MPI_Isend(
                             (void*) send_data,
-                            send_data_count,
+                            static_cast<int>(send_data_count),
                             MPI_CHAR,
                             ExchangeTypeToRank(ex),
                             gridExchangeTag + tag,
@@ -183,7 +178,7 @@ public:
 
         MPI_CHECK(MPI_Irecv(
                             recv_data,
-                            recv_data_max,
+                            static_cast<int>(recv_data_max),
                             MPI_CHAR,
                             ExchangeTypeToRank(ex),
                             gridExchangeTag + tag,
@@ -225,19 +220,9 @@ public:
 
 
 protected:
-
-    /*! calls MPI_Finalize
-     *
-     */
-    void exit()
-    {
-        // MPI_CHECK(MPI_Barrier(MPI_COMM_WORLD));
-     //   MPI_Finalize();
-    }
-
     /* Set the first found non charactor or number to 0 (NULL)
      * name like p1223(Pid=1233) is than p1223
-     * in some MPI implementation /mpich) the hostname is uniqu
+     * in some MPI implementation /mpich) the hostname is unique
      */
     void cleanHostname(char* name)
     {
@@ -263,11 +248,10 @@ protected:
      * from the master.
      *
      */
-    int UpdateHostRank()
+    void updateHostRank()
     {
         char hostname[MPI_MAX_PROCESSOR_NAME];
         int length;
-        int hostRank;
 
         MPI_CHECK(MPI_Get_processor_name(hostname, &length));
         cleanHostname(hostname);
@@ -303,8 +287,6 @@ protected:
 
             // if(hostRank!=0) hostRank--; //!\todo fix mpi hostrank start with 1
         }
-
-        return hostRank;
 
     }
 
@@ -393,8 +375,6 @@ protected:
         return ranks[type];
     }
 
-
-
 private:
     //! coordinates in GPU-Grid [0:cx-1,0:cy-1,0:cz-1]
     DataSpace<DIM> coordinates;
@@ -417,8 +397,4 @@ private:
     int mpiSize;
 };
 
-
 } //namespace PMacc
-
-#endif	/* _COMMUNICATORMPI_HPP */
-

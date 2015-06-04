@@ -1,10 +1,10 @@
 /**
- * Copyright 2013 Heiko Burau, Rene Widera
+ * Copyright 2013-2015 Heiko Burau, Rene Widera, Benjamin Worpitz
  *
  * This file is part of libPMacc.
  *
  * libPMacc is free software: you can redistribute it and/or modify
- * it under the terms of of either the GNU General Public License or
+ * it under the terms of either the GNU General Public License or
  * the GNU Lesser General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
  * (at your option) any later version.
@@ -20,22 +20,23 @@
  * If not, see <http://www.gnu.org/licenses/>.
  */
 
-#ifndef CONTAINER_CARTBUFFER_HPP
-#define CONTAINER_CARTBUFFER_HPP
+#pragma once
 
-#include <stdint.h>
-#include "types.h"
-#include "math/vector/Size_t.hpp"
-#include "math/vector/UInt32.hpp"
+#include "allocator/EmptyAllocator.hpp"
 #include "cuSTL/cursor/BufferCursor.hpp"
 #include "cuSTL/cursor/navigator/CartNavigator.hpp"
 #include "cuSTL/cursor/accessor/PointerAccessor.hpp"
 #include "cuSTL/cursor/SafeCursor.hpp"
 #include "cuSTL/zone/SphericZone.hpp"
-#include "allocator/EmptyAllocator.hpp"
+#include "cuSTL/container/view/View.hpp"
+#include "math/vector/Size_t.hpp"
+#include "math/vector/UInt32.hpp"
+#include "types.h"
+
 #include <boost/mpl/void.hpp>
 #include <boost/move/move.hpp>
-#include "cuSTL/container/view/View.hpp"
+
+#include <stdint.h>
 
 namespace PMacc
 {
@@ -71,7 +72,7 @@ public:
     math::Size_t<T_dim-1> pitch;
     HDINLINE void init();
     HDINLINE void exit();
-    HDINLINE CartBuffer() {}
+    HDINLINE CartBuffer() : refCount(NULL) {}
 private:
     /* makes this class able to emulate a r-value reference */
     BOOST_COPYABLE_AND_MOVABLE(This)
@@ -129,5 +130,3 @@ public:
 } // PMacc
 
 #include "CartBuffer.tpp"
-
-#endif // CONTAINER_CARTBUFFER_HPP

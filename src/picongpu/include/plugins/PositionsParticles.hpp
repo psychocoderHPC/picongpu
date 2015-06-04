@@ -50,7 +50,7 @@ struct SglParticle
     float_X charge;
     float_X gamma;
 
-    SglParticle() : position(0.0), momentum(0.0), mass(0.0),
+    SglParticle() : position(FloatPos::create(0.0)), momentum(float3_X::create(0.0)), mass(0.0),
         weighting(0.0), charge(0.0), gamma(0.0)
     {
     }
@@ -178,9 +178,9 @@ private:
 
 public:
 
-    PositionsParticles(std::string name, std::string prefix) :
-    analyzerName(name),
-    analyzerPrefix(prefix),
+    PositionsParticles() :
+    analyzerName("PositionsParticles: write position of one particle of a species to std::cout"),
+    analyzerPrefix(ParticlesType::FrameType::getName() + std::string("_position")),
     particles(NULL),
     gParticle(NULL),
     cellDescription(NULL),
@@ -206,7 +206,7 @@ public:
 
         /*FORMAT OUTPUT*/
         if (positionParticle.mass != float_X(0.0))
-            std::cout << "[ANALYSIS] [" << rank << "] [COUNTER] [" << analyzerName << "] [" << currentStep << "] "
+            std::cout << "[ANALYSIS] [" << rank << "] [COUNTER] [" << analyzerPrefix << "] [" << currentStep << "] "
             << std::setprecision(16) << double(currentStep) * SI::DELTA_T_SI << " "
             << positionParticle << "\n"; // no flush
     }

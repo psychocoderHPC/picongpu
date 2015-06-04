@@ -1,10 +1,10 @@
 /**
- * Copyright 2013-2014 Heiko Burau, Rene Widera
+ * Copyright 2013-2015 Heiko Burau, Rene Widera, Benjamin Worpitz
  *
  * This file is part of libPMacc.
  *
  * libPMacc is free software: you can redistribute it and/or modify
- * it under the terms of of either the GNU General Public License or
+ * it under the terms of either the GNU General Public License or
  * the GNU Lesser General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
  * (at your option) any later version.
@@ -22,16 +22,16 @@
 
 #pragma once
 
-#include "result_of_Functor.hpp"
-#include <builtin_types.h>
-#include <cuda_runtime.h>
-#include <boost/static_assert.hpp>
-#include <boost/mpl/size.hpp>
-#include <types.h>
-#include <iostream>
-#include <lambda/Expression.hpp>
 #include <math/vector/accessor/StandartAccessor.hpp>
 #include <math/vector/navigator/StandartNavigator.hpp>
+#include <lambda/Expression.hpp>
+#include "result_of_Functor.hpp"
+#include "static_assert.hpp"
+#include "types.h"
+
+#include <boost/mpl/size.hpp>
+
+#include <iostream>
 
 namespace PMacc
 {
@@ -43,6 +43,7 @@ namespace detail
 template<typename T_Type, int T_Dim>
 struct Vector_components
 {
+    static const bool isConst = false;
     static const int dim = T_Dim;
     typedef T_Type type;
 
@@ -62,11 +63,47 @@ struct Vector_components
     }
 };
 
+
+/** functor to copy a object element wise
+ *
+ * @tparam isDestConst define if destination is const (not copyable) object
+ */
+template<bool isDestConst>
+struct CopyElementWise
+{
+    /** copy object element wise
+     *
+     * @tparam T_Dest destination object type
+     * @tparam T_Src source object type
+     */
+    template<typename T_Dest,typename T_Src>
+    HDINLINE void operator()(T_Dest& dest,const T_Src& src) const
+    {
+        PMACC_CASSERT_MSG(CopyElementWise_destination_and_source_had_different_dimension,
+                          T_Dest::dim == T_Src::dim);
+        for (int d = 0; d < T_Dest::dim; d++)
+            dest[d] = src[d];
+    }
+};
+
+/** specialization for constant destination
+ *
+ * the constant storage is already available and set in the destination
+ */
+template<>
+struct CopyElementWise<true>
+{
+    template<typename T_Dest,typename T_Src>
+    HDINLINE void operator()(T_Dest& dest,const T_Src& src) const
+    {
+    }
+};
+
 } //namespace detail
 
 namespace tag
 {
-struct Vector;
+    struct Vector;
 }
 
 template<typename T_Type, int T_dim,
@@ -101,7 +138,13 @@ struct Vector : private T_Storage<T_Type, T_dim>, protected T_Accessor, protecte
     };
 
     HDINLINE Vector()
+    {}
+
+    HDINLINE
+    Vector(const type x)
     {
+        PMACC_CASSERT_MSG(math_Vector__constructor_is_only_allowed_for_DIM1,dim == 1);
+        (*this)[0] = x;
     }
 
     HDINLINE
@@ -121,17 +164,9 @@ struct Vector : private T_Storage<T_Type, T_dim>, protected T_Accessor, protecte
         (*this)[2] = z;
     }
 
-    HDINLINE
-    Vector(const T_Type& value)
-    {
-        for (int i = 0; i < dim; i++)
-            (*this)[i] = value;
-    }
-
     HDINLINE Vector(const This& other)
     {
-        for (int i = 0; i < dim; i++)
-            (*this)[i] = other[i];
+        detail::CopyElementWise<Storage::isConst>()(*this,other);
     }
 
     template<
@@ -152,6 +187,22 @@ struct Vector : private T_Storage<T_Type, T_dim>, protected T_Accessor, protecte
             (*this)[i] = static_cast<type> (other[i]);
     }
 
+    /**
+     * Creates a Vector where all dimensions are set to the same value
+     *
+     * @param value Value which is set for all dimensions
+     * @return new Vector<...>
+     */
+    HDINLINE
+    static This create(const type& value)
+    {
+        This result;
+        for (int i = 0; i < dim; i++)
+            result[i] = value;
+
+        return result;
+    }
+
     HDINLINE const This& toRT() const
     {
         return *this;
@@ -160,6 +211,15 @@ struct Vector : private T_Storage<T_Type, T_dim>, protected T_Accessor, protecte
     HDINLINE This& toRT()
     {
         return *this;
+    }
+
+    HDINLINE This revert()
+    {
+        This invertedVector;
+        for (int i = 0; i < dim; i++)
+            invertedVector[dim-1-i] = (*this)[i];
+
+        return invertedVector;
     }
 
     template<

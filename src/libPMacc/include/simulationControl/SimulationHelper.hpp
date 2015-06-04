@@ -1,10 +1,11 @@
 /**
- * Copyright 2013-2015 Axel Huebl, Felix Schmitt, Rene Widera, Alexander Debus
+ * Copyright 2013-2015 Axel Huebl, Felix Schmitt, Rene Widera, Alexander Debus,
+ *                     Benjamin Worpitz
  *
  * This file is part of libPMacc.
  *
  * libPMacc is free software: you can redistribute it and/or modify
- * it under the terms of of either the GNU General Public License or
+ * it under the terms of either the GNU General Public License or
  * the GNU Lesser General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
  * (at your option) any later version.
@@ -23,7 +24,6 @@
 
 #pragma once
 
-#include <cuda_runtime_api.h>
 #include <iostream>
 #include <iomanip>
 
@@ -36,7 +36,6 @@
 #include "dataManagement/DataConnector.hpp"
 
 
-#include "eventSystem/EventSystem.hpp"
 #include "pluginSystem/IPlugin.hpp"
 
 
@@ -84,7 +83,6 @@ public:
                 tSimulation.printInterval() << " = " <<
                 (uint64_t) (tSimulation.getInterval() / 1000.) << " sec" << std::endl;
         }
-        //CUDA_CHECK(cudaGetLastError());
     }
 
     /**
@@ -128,6 +126,16 @@ public:
         /* trigger checkpoint notification */
         if (checkpointPeriod && (currentStep % checkpointPeriod == 0))
         {
+            /* first synchronize: if something failed, we can spare the time
+             * for the checkpoint writing */
+            CUDA_CHECK(cudaDeviceSynchronize());
+            CUDA_CHECK(cudaGetLastError());
+
+            GridController<DIM> &gc = Environment<DIM>::get().GridController();
+            /* can be spared for better scalings, but allows to spare the
+             * time for checkpointing if some ranks died */
+            MPI_CHECK(MPI_Barrier(gc.getCommunicator().getMPIComm()));
+
             /* create directory containing checkpoints  */
             if (numCheckpoints == 0)
             {
@@ -137,7 +145,14 @@ public:
             Environment<DIM>::get().PluginConnector().checkpointPlugins(currentStep,
                                                                         checkpointDirectory);
 
-            GridController<DIM> &gc = Environment<DIM>::get().GridController();
+            /* important synchronize: only if no errors occured until this
+             * point guarantees that a checkpoint is usable */
+            CUDA_CHECK(cudaDeviceSynchronize());
+            CUDA_CHECK(cudaGetLastError());
+
+            /* \todo in an ideal world with MPI-3, this would be an
+             * MPI_Ibarrier call and this function would return a MPI_Request
+             * that could be checked */
             MPI_CHECK(MPI_Barrier(gc.getCommunicator().getMPIComm()));
 
             if (gc.getGlobalRank() == 0)
@@ -190,20 +205,20 @@ public:
         TimeIntervall tRound;
         double roundAvg = 0.0;
 
-	/* dump initial step if simulation starts without restart */
-	if (currentStep == 0)
-	{
-	    /* Since in the main loop movingWindow is called always before the dump, we also call it here for consistency.
-	    This becomes only important, if movingWindowCheck does more than merely checking for a slide.
-	    TO DO in a new feature: Turn this into a general hook for pre-checks (window slides are just one possible action). */
-	    movingWindowCheck(currentStep);
-	    dumpOneStep(currentStep);
-	}
-	else
-	{
-	    currentStep--; //We dump before calculation, thus we must go one step back when doing a restart.
-	    movingWindowCheck(currentStep); //If we restart at any step check if we must slide.
-	}
+    /* dump initial step if simulation starts without restart */
+    if (currentStep == 0)
+    {
+        /* Since in the main loop movingWindow is called always before the dump, we also call it here for consistency.
+        This becomes only important, if movingWindowCheck does more than merely checking for a slide.
+        TO DO in a new feature: Turn this into a general hook for pre-checks (window slides are just one possible action). */
+        movingWindowCheck(currentStep);
+        dumpOneStep(currentStep);
+    }
+    else
+    {
+        currentStep--; //We dump before calculation, thus we must go one step back when doing a restart.
+        movingWindowCheck(currentStep); //If we restart at any step check if we must slide.
+    }
 
         /* dump 0% output */
         dumpTimes(tSimCalculation, tRound, roundAvg, currentStep);
