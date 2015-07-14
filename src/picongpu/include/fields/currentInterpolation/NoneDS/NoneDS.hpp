@@ -40,96 +40,106 @@ using namespace PMacc;
 
 namespace detail
 {
-    template<uint32_t T_simDim, uint32_t T_plane>
-    struct LinearInterpolateComponentPlaneUpper
+
+template<uint32_t T_simDim, uint32_t T_plane>
+struct LinearInterpolateComponentPlaneUpper
+{
+    static const uint32_t dim = T_simDim;
+
+    /* UpperMargin is actually 0 in direction of T_plane */
+    typedef typename PMacc::math::CT::make_Int<dim, 0>::type LowerMargin;
+    typedef typename PMacc::math::CT::make_Int<dim, 1>::type UpperMargin;
+
+    template<typename DataBox>
+    HDINLINE float_X operator()(DataBox field) const
     {
-        static const uint32_t dim = T_simDim;
+        const DataSpace<dim> self;
+        DataSpace<dim> up;
+        up[(T_plane + 1) % dim] = 1;
 
-        /* UpperMargin is actually 0 in direction of T_plane */
-        typedef typename PMacc::math::CT::make_Int<dim, 0>::type LowerMargin;
-        typedef typename PMacc::math::CT::make_Int<dim, 1>::type UpperMargin;
+        typedef LinearInterpolateWithUpper<dim> Avg;
 
-        template<typename DataBox>
-        HDINLINE float_X operator()(DataBox field) const
-        {
-            const DataSpace<dim> self;
-            DataSpace<dim> up;
-            up[(T_plane + 1) % dim] = 1;
+        const typename Avg::template GetInterpolatedValue < (T_plane + 2) % dim> avg;
 
-            typedef LinearInterpolateWithUpper<dim> Avg;
+        return float_X(0.5) * (avg(field)[T_plane] + avg(field.shift(up))[T_plane]);
+    }
+};
 
-            const typename Avg::template GetInterpolatedValue<(T_plane + 2) % dim> avg;
+/* shift a databox along a specific direction
+ *
+ * returns the identity (assume periodic symmetry) if direction is not
+ * available, such as in a 2D simulation
+ *
+ * \todo accept a full CT::Vector and shift if possible
+ * \todo call with CT::Vector of correct dimensionality that was created
+ *       with AssignIfInRange...
+ *
+ * \tparam T_simDim maximum dimensionality of the mesh
+ * \tparam T_direction (0)X (1)Y or (2)Z for the direction one wants to
+ *                     shift to
+ * \tparam isShiftAble auto-filled value that decides if this direction
+ *                     is actually non-existent == periodic
+ */
+template<uint32_t T_simDim, uint32_t T_direction, bool isShiftAble = (T_direction<T_simDim) >
+struct ShiftMeIfYouCan
+{
+    static const uint32_t dim = T_simDim;
+    static const uint32_t dir = T_direction;
 
-            return float_X(0.5) * ( avg(field)[T_plane] + avg(field.shift(up))[T_plane] );
-        }
-    };
-
-    /* shift a databox along a specific direction
-     *
-     * returns the identity (assume periodic symmetry) if direction is not
-     * available, such as in a 2D simulation
-     *
-     * \todo accept a full CT::Vector and shift if possible
-     * \todo call with CT::Vector of correct dimensionality that was created
-     *       with AssignIfInRange...
-     *
-     * \tparam T_simDim maximum dimensionality of the mesh
-     * \tparam T_direction (0)X (1)Y or (2)Z for the direction one wants to
-     *                     shift to
-     * \tparam isShiftAble auto-filled value that decides if this direction
-     *                     is actually non-existent == periodic
-     */
-    template<uint32_t T_simDim, uint32_t T_direction, bool isShiftAble=(T_direction<T_simDim) >
-    struct ShiftMeIfYouCan
+    template<class T_DataBox >
+    HDINLINE T_DataBox operator()(const T_DataBox& dataBox) const
     {
-        static const uint32_t dim = T_simDim;
-        static const uint32_t dir = T_direction;
+        DataSpace<dim> shift;
+        shift[dir] = 1;
+        return dataBox.shift(shift);
+    }
+};
 
-        template<class T_DataBox >
-        HDINLINE T_DataBox operator()(const T_DataBox& dataBox) const
-        {
-            DataSpace<dim> shift;
-            shift[dir] = 1;
-            return dataBox.shift(shift);
-        }
-    };
+template<uint32_t T_simDim, uint32_t T_direction>
+struct ShiftMeIfYouCan<T_simDim, T_direction, false>
+{
 
-    template<uint32_t T_simDim, uint32_t T_direction>
-    struct ShiftMeIfYouCan<T_simDim, T_direction, false>
+    template<class T_DataBox >
+    HDINLINE T_DataBox operator()(const T_DataBox& dataBox) const
     {
-        template<class T_DataBox >
-        HDINLINE T_DataBox operator()(const T_DataBox& dataBox) const
-        {
-            return dataBox;
-        }
-    };
+        return dataBox;
+    }
+};
 
-    /* that is not a "real" yee curl, but it looks a bit like it */
-    template<class Difference>
-    struct ShiftCurl
+/* that is not a "real" yee curl, but it looks a bit like it */
+template<class Difference>
+struct ShiftCurl
+{
+    typedef typename Difference::OffsetOrigin LowerMargin;
+    typedef typename Difference::OffsetEnd UpperMargin;
+
+    template<class DataBox >
+    HDINLINE typename DataBox::ValueType operator()(const DataBox& mem) const
     {
-        typedef typename Difference::OffsetOrigin LowerMargin;
-        typedef typename Difference::OffsetEnd UpperMargin;
+        typedef LinearInterpolateWithUpper<DIM3> Avg;
+        const typename Avg::template GetInterpolatedValue<0> avgX;
+        const typename Avg::template GetInterpolatedValue<1> avgY;
+        const typename Avg::template GetInterpolatedValue<2> avgZ;
 
-        template<class DataBox >
-        HDINLINE typename DataBox::ValueType operator()(const DataBox& mem) const
-        {
-            const typename Difference::template GetDifference<0> Dx;
-            const typename Difference::template GetDifference<1> Dy;
-            const typename Difference::template GetDifference<2> Dz;
+        const ShiftMeIfYouCan<simDim, 0> sx;
+        const ShiftMeIfYouCan<simDim, 1> sy;
+        const ShiftMeIfYouCan<simDim, 2> sz;
 
-            const ShiftMeIfYouCan<simDim, 0> sx;
-            const ShiftMeIfYouCan<simDim, 1> sy;
-            const ShiftMeIfYouCan<simDim, 2> sz;
-
-            return float3_X(Dy(sx(mem)).z() - Dz(sx(mem)).y(),
-                            Dz(sy(mem)).x() - Dx(sy(mem)).z(),
-                            Dx(sz(mem)).y() - Dy(sz(mem)).x());
-        }
-    };
+        return float3_X(
+                        -(avgX(mem).z() - avgX(sy(mem)).z())-(avgX(sz(mem)).y() - avgX(mem).y()),
+                        -(avgY(sx(mem)).z() - avgY(mem).z())-(avgY(mem).x() - avgY(sz(mem)).x()),
+                        -(avgZ(mem).y() - avgZ(sx(mem)).y())-(avgZ(sy(mem)).x() - avgZ(mem).x())
+                        );
+        /*
+        return float3_X(Dy(sx(mem)).z() - Dz(sx(mem)).y(),
+                        Dz(sy(mem)).x() - Dx(sy(mem)).z(),
+                        Dx(sz(mem)).y() - Dy(sz(mem)).x());
+         * */
+    }
+};
 } /* namespace detail */
 
-template<uint32_t T_simDim>
+template<uint32_t T_simDim, uint32_t plane = 0 >
 struct NoneDS
 {
     static const uint32_t dim = T_simDim;
@@ -138,27 +148,41 @@ struct NoneDS
     typedef typename PMacc::math::CT::make_Int<dim, 1>::type UpperMargin;
 
     template<typename DataBoxE, typename DataBoxB, typename DataBoxJ>
-    HDINLINE void operator()(DataBoxE fieldE,
-                             DataBoxB fieldB,
-                             DataBoxJ fieldJ )
+    HDINLINE void operator()(const DataBoxE& fieldE,
+                             const DataBoxB& fieldB,
+                             const DataBoxJ& fieldJ)
     {
+
         typedef typename DataBoxJ::ValueType TypeJ;
         typedef typename GetComponentsType<TypeJ>::type ComponentJ;
 
         const DataSpace<dim> self;
 
         const ComponentJ deltaT = DELTA_T;
-        const ComponentJ constE = (float_X(1.0)  / EPS0) * deltaT;
-        const ComponentJ constB = (float_X(0.25) / EPS0) * deltaT * deltaT;
+        const ComponentJ constE = (float_X(0.5) / EPS0) * deltaT;
+        const ComponentJ constB = (float_X(0.5) / EPS0) * deltaT * deltaT;
 
-        const detail::LinearInterpolateComponentPlaneUpper<dim, 0> avgX;
-        const ComponentJ jXavg = avgX(fieldJ);
-        const detail::LinearInterpolateComponentPlaneUpper<dim, 1> avgY;
-        const ComponentJ jYavg = avgY(fieldJ);
-        const detail::LinearInterpolateComponentPlaneUpper<dim, 2> avgZ;
-        const ComponentJ jZavg = avgZ(fieldJ);
+        /*   const detail::LinearInterpolateComponentPlaneUpper<dim, 0> avgX;
+           const ComponentJ jXavg = avgX(fieldJ);
+           const detail::LinearInterpolateComponentPlaneUpper<dim, 1> avgY;
+           const ComponentJ jYavg = avgY(fieldJ);
+           const detail::LinearInterpolateComponentPlaneUpper<dim, 2> avgZ;
+           const ComponentJ jZavg = avgZ(fieldJ);
+         */
+        typedef LinearInterpolateWithUpper<DIM3> Avg;
+        const typename Avg::template GetInterpolatedValue<0> avgX;
+        const typename Avg::template GetInterpolatedValue<1> avgY;
+        const typename Avg::template GetInterpolatedValue<2> avgZ;
 
-        const TypeJ jAvgE = TypeJ(jXavg, jYavg, jZavg);
+        const detail::ShiftMeIfYouCan<simDim, 0> sx;
+        const detail::ShiftMeIfYouCan<simDim, 1> sy;
+        const detail::ShiftMeIfYouCan<simDim, 2> sz;
+
+        const TypeJ jAvgE = float3_X(
+                                     (avgZ(fieldJ).x() + avgZ(sy(fieldJ)).x()),
+                                     (avgZ(fieldJ).y() + avgZ(sx(fieldJ)).y()),
+                                     (avgY(fieldJ).z() + avgY(sx(fieldJ)).z())
+                                     );
         fieldE(self) -= jAvgE * constE;
 
         typedef yeeSolver::Curl<DifferenceToUpper<dim> > CurlRight;
@@ -166,7 +190,7 @@ struct NoneDS
         CurlRight curl;
         ShiftCurlRight shiftCurl;
 
-        const TypeJ jAvgB = curl(fieldJ) + shiftCurl(fieldJ);
+        const TypeJ jAvgB = shiftCurl(fieldJ);
         fieldB(self) += jAvgB * constB;
     }
 
