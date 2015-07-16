@@ -31,6 +31,8 @@
 
 #include "fields/MaxwellSolver/Yee/Curl.hpp"
 
+#include "fields/MaxwellSolver/DirSplitting/DirSplitting.hpp"
+
 
 namespace picongpu
 {
@@ -139,8 +141,8 @@ struct ShiftCurl
 };
 } /* namespace detail */
 
-template<uint32_t T_simDim, uint32_t plane = 0 >
-struct NoneDS
+template<uint32_t T_simDim>
+struct NoneDS<T_simDim,0>
 {
     static const uint32_t dim = T_simDim;
 
@@ -162,13 +164,7 @@ struct NoneDS
         const ComponentJ constE = (float_X(0.5) / EPS0) * deltaT;
         const ComponentJ constB = (float_X(0.5) / EPS0) * deltaT * deltaT;
 
-        /*   const detail::LinearInterpolateComponentPlaneUpper<dim, 0> avgX;
-           const ComponentJ jXavg = avgX(fieldJ);
-           const detail::LinearInterpolateComponentPlaneUpper<dim, 1> avgY;
-           const ComponentJ jYavg = avgY(fieldJ);
-           const detail::LinearInterpolateComponentPlaneUpper<dim, 2> avgZ;
-           const ComponentJ jZavg = avgZ(fieldJ);
-         */
+
         typedef LinearInterpolateWithUpper<DIM3> Avg;
         const typename Avg::template GetInterpolatedValue<0> avgX;
         const typename Avg::template GetInterpolatedValue<1> avgY;
@@ -180,18 +176,117 @@ struct NoneDS
 
         const TypeJ jAvgE = float3_X(
                                      (avgZ(fieldJ).x() + avgZ(sy(fieldJ)).x()),
+                                     0,
+                                     0
+                                     );
+        fieldE(self) -= jAvgE * constE;
+
+     /*   const TypeJ jAvgB = float3_X(
+                                     0,
+                                     -(avgY(fieldJ).x() - avgY(sz(fieldJ)).x()),
+                                     -(avgZ(sy(fieldJ)).x() - avgZ(fieldJ).x())
+                                     );
+        fieldB(self) += jAvgB * constB;*/
+    }
+
+};
+
+template<uint32_t T_simDim>
+struct NoneDS<T_simDim, 1>
+{
+    static const uint32_t dim = T_simDim;
+
+    typedef typename PMacc::math::CT::make_Int<dim, 0>::type LowerMargin;
+    typedef typename PMacc::math::CT::make_Int<dim, 1>::type UpperMargin;
+
+    template<typename DataBoxE, typename DataBoxB, typename DataBoxJ>
+    HDINLINE void operator()(const DataBoxE& fieldE,
+                             const DataBoxB& fieldB,
+                             const DataBoxJ& fieldJ)
+    {
+
+        typedef typename DataBoxJ::ValueType TypeJ;
+        typedef typename GetComponentsType<TypeJ>::type ComponentJ;
+
+        const DataSpace<dim> self;
+
+        const ComponentJ deltaT = DELTA_T;
+        const ComponentJ constE = (float_X(0.5) / EPS0) * deltaT;
+        const ComponentJ constB = (float_X(0.5) / EPS0) * deltaT * deltaT;
+
+
+        typedef LinearInterpolateWithUpper<DIM3> Avg;
+        const typename Avg::template GetInterpolatedValue<0> avgX;
+        const typename Avg::template GetInterpolatedValue<1> avgY;
+        const typename Avg::template GetInterpolatedValue<2> avgZ;
+
+        const detail::ShiftMeIfYouCan<simDim, 0> sx;
+        const detail::ShiftMeIfYouCan<simDim, 1> sy;
+        const detail::ShiftMeIfYouCan<simDim, 2> sz;
+
+        const TypeJ jAvgE = float3_X(
+                                     0,
                                      (avgZ(fieldJ).y() + avgZ(sx(fieldJ)).y()),
+                                     0
+                                     );
+        fieldE(self) -= jAvgE * constE;
+/*
+        const TypeJ jAvgB = float3_X(
+                                     -(avgX(sz(fieldJ)).y() - avgX(fieldJ).y()),
+                                     0,
+                                     -(avgZ(fieldJ).y() - avgZ(sx(fieldJ)).y())
+                                     );
+        fieldB(self) += jAvgB * constB;*/
+    }
+
+};
+
+template<uint32_t T_simDim >
+struct NoneDS<T_simDim, 2>
+{
+    static const uint32_t dim = T_simDim;
+
+    typedef typename PMacc::math::CT::make_Int<dim, 0>::type LowerMargin;
+    typedef typename PMacc::math::CT::make_Int<dim, 1>::type UpperMargin;
+
+    template<typename DataBoxE, typename DataBoxB, typename DataBoxJ>
+    HDINLINE void operator()(const DataBoxE& fieldE,
+                             const DataBoxB& fieldB,
+                             const DataBoxJ& fieldJ)
+    {
+
+        typedef typename DataBoxJ::ValueType TypeJ;
+        typedef typename GetComponentsType<TypeJ>::type ComponentJ;
+
+        const DataSpace<dim> self;
+
+        const ComponentJ deltaT = DELTA_T;
+        const ComponentJ constE = (float_X(0.5) / EPS0) * deltaT;
+        const ComponentJ constB = (float_X(0.5) / EPS0) * deltaT * deltaT;
+
+
+        typedef LinearInterpolateWithUpper<DIM3> Avg;
+        const typename Avg::template GetInterpolatedValue<0> avgX;
+        const typename Avg::template GetInterpolatedValue<1> avgY;
+        const typename Avg::template GetInterpolatedValue<2> avgZ;
+
+        const detail::ShiftMeIfYouCan<simDim, 0> sx;
+        const detail::ShiftMeIfYouCan<simDim, 1> sy;
+        const detail::ShiftMeIfYouCan<simDim, 2> sz;
+
+        const TypeJ jAvgE = float3_X(
+                                     0,
+                                     0,
                                      (avgY(fieldJ).z() + avgY(sx(fieldJ)).z())
                                      );
         fieldE(self) -= jAvgE * constE;
 
-        typedef yeeSolver::Curl<DifferenceToUpper<dim> > CurlRight;
-        typedef detail::ShiftCurl<DifferenceToUpper<dim> > ShiftCurlRight;
-        CurlRight curl;
-        ShiftCurlRight shiftCurl;
-
-        const TypeJ jAvgB = shiftCurl(fieldJ);
-        fieldB(self) += jAvgB * constB;
+       /* const TypeJ jAvgB = float3_X(
+                                     -(avgX(fieldJ).z() - avgX(sy(fieldJ)).z()),
+                                     -(avgY(sx(fieldJ)).z() - avgY(fieldJ).z()),
+                                     0
+                                     );
+        fieldB(self) += jAvgB * constB;*/
     }
 
 };

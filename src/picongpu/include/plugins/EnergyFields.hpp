@@ -1,4 +1,4 @@
-/**
+ /**
  * Copyright 2013-2014 Axel Huebl, Felix Schmitt, Heiko Burau, Rene Widera
  *
  * This file is part of PIConGPU.
@@ -222,6 +222,9 @@ private:
         EneVectorType localReducedFieldEnergy[2];
         localReducedFieldEnergy[0] = reduceField(fieldB);
         localReducedFieldEnergy[1] = reduceField(fieldE);
+
+       // std::cout<<currentStep<<" localB"<<localReducedFieldEnergy[0]<<std::endl;
+      //  std::cout<<currentStep<<" localE"<<localReducedFieldEnergy[1]<<std::endl;
 
         mpiReduce(nvidia::functors::Add(),
                   &globalFieldEnergy,

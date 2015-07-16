@@ -80,12 +80,15 @@ namespace picongpu
         DataBoxType getHostDataBox();
 
         GridBuffer<ValueType,simDim>& getGridBuffer();
+        GridBuffer<ValueType,simDim>& getGridBuffer2();
 
         GridLayout<simDim> getGridLayout();
 
         SimulationDataId getUniqueId();
 
         void synchronize();
+
+        void sync();
 
         void syncToDevice();
 
@@ -97,6 +100,7 @@ namespace picongpu
 
 
         GridBuffer<ValueType,simDim> *fieldE;
+        GridBuffer<ValueType,simDim> *fieldE2;
 
         FieldB *fieldB;
 

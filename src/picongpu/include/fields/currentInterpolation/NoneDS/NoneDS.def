@@ -30,7 +30,7 @@ namespace currentInterpolation
  * In the Directional Splitting scheme (see MaxwellSolver and
  * numericalCellTypes
  */
-template<uint32_t T_simDim>
+template<uint32_t T_simDim, uint32_t plane = 0 >
 struct NoneDS;
 
 } /* namespace currentInterpolation */
@@ -42,11 +42,11 @@ namespace traits
  *
  * This class defines a LowerMargin and an UpperMargin.
  */
-template<uint32_t T_dim>
-struct GetMargin<picongpu::currentInterpolation::NoneDS<T_dim > >
+template<uint32_t T_dim,uint32_t plane >
+struct GetMargin<picongpu::currentInterpolation::NoneDS<T_dim,plane > >
 {
 private:
-    typedef picongpu::currentInterpolation::NoneDS<T_dim> MyInterpolation;
+    typedef picongpu::currentInterpolation::NoneDS<T_dim,plane> MyInterpolation;
 
 public:
     typedef typename MyInterpolation::LowerMargin LowerMargin;
@@ -56,3 +56,4 @@ public:
 } /* namespace traits */
 
 } /* namespace picongpu */
+

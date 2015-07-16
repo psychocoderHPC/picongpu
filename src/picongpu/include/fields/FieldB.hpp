@@ -81,11 +81,16 @@ namespace picongpu
 
         DataBoxType getDeviceDataBox();
 
+
         GridBuffer<ValueType, simDim> &getGridBuffer();
+
+        GridBuffer<ValueType, simDim> &getGridBuffer2();
 
         SimulationDataId getUniqueId();
 
         void synchronize();
+
+        void sync();
 
         void syncToDevice();
 
@@ -98,6 +103,7 @@ namespace picongpu
         GridBuffer<ValueType, simDim> *fieldB;
 
         FieldE *fieldE;
+        GridBuffer<ValueType, simDim> *fieldB2;
         LaserPhysics *laser;
     };
 

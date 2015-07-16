@@ -33,14 +33,8 @@ namespace picongpu
  */
 typedef mpl::vector<
     particles::CreateGas<gasProfiles::Homogenous,particles::startPosition::Quiet,PIC_Electrons>,
-    particles::CloneSpecies<PIC_Electrons,PIC_Ions>,
-    particles::Manipulate<particles::manipulators::AssignXDriftPrositiveToLowerQuarterYPosition,PIC_Ions>,
-    particles::Manipulate<particles::manipulators::AssignXDriftNegativeToMiddleHalfYPosition,PIC_Ions>,
-    particles::Manipulate<particles::manipulators::AssignXDriftPrositiveToUpperQuarterYPosition,PIC_Ions>,
-    particles::Manipulate<particles::manipulators::AssignXDriftPrositiveToLowerQuarterYPosition,PIC_Electrons>,
-    particles::Manipulate<particles::manipulators::AssignXDriftNegativeToMiddleHalfYPosition,PIC_Electrons>,
-    particles::Manipulate<particles::manipulators::AssignXDriftPrositiveToUpperQuarterYPosition,PIC_Electrons>,
-    particles::Manipulate<particles::manipulators::AddTemperature,PIC_Electrons>
+    particles::Manipulate<particles::manipulators::AssignXDriftPrositiveToLowerQuarterYPosition,PIC_Electrons>
+
 > InitPipeline;
 
 } //namespace picongpu

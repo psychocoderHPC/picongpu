@@ -43,7 +43,7 @@ namespace host
 {
 
 #ifndef FOREACH_HOST_MAX_PARAMS
-#define FOREACH_HOST_MAX_PARAMS 4
+#define FOREACH_HOST_MAX_PARAMS 7
 #endif
 
 #define SHIFT_CURSOR_ZONE(Z, N, _) C ## N c ## N ## _shifted = c ## N (p_zone.offset);

@@ -284,7 +284,7 @@ public:
         Environment<>::get().EnvMemoryInfo().getMemoryInfo(&freeGpuMem);
         freeGpuMem -= totalFreeGpuMemory;
 
-        if( Environment<>::get().EnvMemoryInfo().isSharedMemoryPool() )
+        if (Environment<>::get().EnvMemoryInfo().isSharedMemoryPool())
         {
             freeGpuMem /= 2;
             log<picLog::MEMORY > ("Shared RAM between GPU and host detected - using only half of the 'device' memory.");
@@ -319,7 +319,7 @@ public:
 
 
         /* add CUDA streams to the StreamController for concurrent execution */
-        Environment<>::get().StreamController().addStreams(6);
+        // Environment<>::get().StreamController().addStreams(6);
 
         uint32_t step = 0;
 
@@ -358,13 +358,13 @@ public:
             beginning of a simulation in movingWindowCheck()
             At restarts the external fields are already added and will be
             double-counted, so we remove it in advance. */
-        if( step != 0 )
+        if (step != 0)
         {
             namespace nvfct = PMacc::nvidia::functors;
-            (*pushBGField)( fieldE, nvfct::Sub(), FieldBackgroundE(fieldE->getUnit()),
-                            step, FieldBackgroundE::InfluenceParticlePusher);
-            (*pushBGField)( fieldB, nvfct::Sub(), FieldBackgroundB(fieldB->getUnit()),
-                            step, FieldBackgroundB::InfluenceParticlePusher);
+            (*pushBGField)(fieldE, nvfct::Sub(), FieldBackgroundE(fieldE->getUnit()),
+                           step, FieldBackgroundE::InfluenceParticlePusher);
+            (*pushBGField)(fieldB, nvfct::Sub(), FieldBackgroundB(fieldB->getUnit()),
+                           step, FieldBackgroundB::InfluenceParticlePusher);
         }
 
         // communicate all fields
@@ -389,6 +389,8 @@ public:
     virtual void runOneStep(uint32_t currentStep)
     {
         namespace nvfct = PMacc::nvidia::functors;
+        //fieldE->reset(0);
+        // fieldB->reset(0);
 
         /* Initialize ionization routine for each species
          *      - valid species will be ionized
@@ -405,10 +407,11 @@ public:
 
         __setTransactionEvent(updateEvent);
         /** remove background field for particle pusher */
-        (*pushBGField)(fieldE, nvfct::Sub(), FieldBackgroundE(fieldE->getUnit()),
-                       currentStep, FieldBackgroundE::InfluenceParticlePusher);
-        (*pushBGField)(fieldB, nvfct::Sub(), FieldBackgroundB(fieldB->getUnit()),
-                       currentStep, FieldBackgroundB::InfluenceParticlePusher);
+        /*   (*pushBGField)(fieldE, nvfct::Sub(), FieldBackgroundE(fieldE->getUnit()),
+                          currentStep, FieldBackgroundE::InfluenceParticlePusher);
+           (*pushBGField)(fieldB, nvfct::Sub(), FieldBackgroundB(fieldB->getUnit()),
+                          currentStep, FieldBackgroundB::InfluenceParticlePusher);
+         * */
 
         this->myFieldSolver->update_beforeCurrent(currentStep);
 
@@ -418,27 +421,31 @@ public:
         (*currentBGField)(fieldJ, nvfct::Add(), FieldBackgroundJ(fieldJ->getUnit()),
                           currentStep, FieldBackgroundJ::activated);
 #if (ENABLE_CURRENT == 1)
-        ForEach<VectorAllSpecies, ComputeCurrent<bmpl::_1,bmpl::int_<CORE + BORDER> >, MakeIdentifier<bmpl::_1> > computeCurrent;
-        computeCurrent(forward(fieldJ),forward(particleStorage), currentStep);
+        if (currentStep == 0)
+        {
+            ForEach<VectorAllSpecies, ComputeCurrent < bmpl::_1, bmpl::int_ < CORE + BORDER> >, MakeIdentifier<bmpl::_1> > computeCurrent;
+            computeCurrent(forward(fieldJ), forward(particleStorage), currentStep);
+        }
 #endif
 
 #if  (ENABLE_CURRENT == 1)
-        if(bmpl::size<VectorAllSpecies>::type::value > 0)
+        if (bmpl::size<VectorAllSpecies>::type::value > 0)
         {
             EventTask eRecvCurrent = fieldJ->asyncCommunication(__getTransactionEvent());
 
-            const DataSpace<simDim> currentRecvLower( GetMargin<fieldSolver::CurrentInterpolation>::LowerMargin( ).toRT( ) );
-            const DataSpace<simDim> currentRecvUpper( GetMargin<fieldSolver::CurrentInterpolation>::UpperMargin( ).toRT( ) );
+            const DataSpace<simDim> currentRecvLower(GetMargin<fieldSolver::CurrentInterpolation>::LowerMargin().toRT());
+            const DataSpace<simDim> currentRecvUpper(GetMargin<fieldSolver::CurrentInterpolation>::UpperMargin().toRT());
 
             /* without interpolation, we do not need to access the FieldJ GUARD
              * and can therefor overlap communication of GUARD->(ADD)BORDER & computation of CORE */
-            if( currentRecvLower == DataSpace<simDim>::create(0) &&
-                currentRecvUpper == DataSpace<simDim>::create(0) )
+            if (currentRecvLower == DataSpace<simDim>::create(0) &&
+                currentRecvUpper == DataSpace<simDim>::create(0))
             {
                 fieldJ->addCurrentToEMF<CORE >(*myCurrentInterpolation);
                 __setTransactionEvent(eRecvCurrent);
                 fieldJ->addCurrentToEMF<BORDER >(*myCurrentInterpolation);
-            } else
+            }
+            else
             {
                 /* in case we perform a current interpolation/filter, we need
                  * to access the BORDER area from the CORE (and the GUARD area
@@ -448,7 +455,7 @@ public:
                  * \todo split the last `receive` part in a separate method to
                  *       allow already a computation of CORE */
                 __setTransactionEvent(eRecvCurrent);
-                fieldJ->addCurrentToEMF<CORE + BORDER>(*myCurrentInterpolation);
+                //fieldJ->addCurrentToEMF<CORE + BORDER>(*myCurrentInterpolation);
             }
         }
 #endif
@@ -471,10 +478,10 @@ public:
          */
         namespace nvfct = PMacc::nvidia::functors;
 
-        (*pushBGField)( fieldE, nvfct::Add(), FieldBackgroundE(fieldE->getUnit()),
-                        currentStep, FieldBackgroundE::InfluenceParticlePusher );
-        (*pushBGField)( fieldB, nvfct::Add(), FieldBackgroundB(fieldB->getUnit()),
-                        currentStep, FieldBackgroundB::InfluenceParticlePusher );
+        (*pushBGField)(fieldE, nvfct::Add(), FieldBackgroundE(fieldE->getUnit()),
+                       currentStep, FieldBackgroundE::InfluenceParticlePusher);
+        (*pushBGField)(fieldB, nvfct::Add(), FieldBackgroundB(fieldB->getUnit()),
+                       currentStep, FieldBackgroundB::InfluenceParticlePusher);
     }
 
     void resetAll(uint32_t currentStep)
@@ -519,7 +526,7 @@ private:
     void checkGridConfiguration(DataSpace<DIM> globalGridSize, GridLayout<DIM>)
     {
 
-        for(uint32_t i=0;i<simDim;++i)
+        for (uint32_t i = 0; i < simDim; ++i)
         {
             // global size must be a devisor of supercell size
             // note: this is redundant, while using the local condition below
@@ -529,7 +536,7 @@ private:
             // local size must be at least 3 supercells (1x core + 2x border)
             // note: size of border = guard_size (in supercells)
             // \todo we have to add the guard_x/y/z for modified supercells here
-            assert( (uint32_t) gridSizeLocal[i] / MappingDesc::SuperCellSize::toRT()[i] >= 3 * GUARD_SIZE);
+            assert((uint32_t) gridSizeLocal[i] / MappingDesc::SuperCellSize::toRT()[i] >= 3 * GUARD_SIZE);
         }
     }
 

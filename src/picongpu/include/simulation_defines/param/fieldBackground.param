@@ -44,16 +44,21 @@ namespace picongpu
         operator()( const DataSpace<simDim>& cellIdx,
                     const uint32_t currentStep ) const
         {
-            /* example: periodicity of 20 microns ( = 2.0e-5 m) */
-            const float_64 period_SI(20.0e-6);
-            /* calculate cells -> SI -> m to microns*/
-            const float_64 y_SI = cellIdx.y() * SI::CELL_HEIGHT_SI * 1.0e6;
-            /* note: you can also transform the time step to seconds by
-             *       multiplying with DELTA_T_SI */
+            float3_64 tmp(float3_64::create(0.));
+            if(currentStep==0)
+            {
+                const float_64 cell_width=SI::CELL_WIDTH_SI;
+                const float3_64 diff=(float3_64::create(32.)-(precisionCast<float_64>(cellIdx))) *
+                                     float3_64::create(cell_width);
 
-            /* specify your E-Field in V/m and convert to PIConGPU units */
-            const float_X sinArg = precisionCast<float_X>( y_SI / period_SI * 2.0 * PI );
-            return float3_X(0.0, math::sin( sinArg ) / unitField[1], 0.0);
+                tmp.x()=math::exp(
+                    -(diff.x()*diff.x())/(float_64(2.0)*SI::CELL_WIDTH_SI*SI::CELL_WIDTH_SI)
+                    -(diff.y()*diff.y())/(float_64(2.0)*SI::CELL_HEIGHT_SI*SI::CELL_HEIGHT_SI)
+                    -(diff.z()*diff.z())/(float_64(2.0)*SI::CELL_DEPTH_SI*SI::CELL_DEPTH_SI)
+                    );
+               // tmp.y()=tmp.x()=tmp.z();
+            }
+            return precisionCast<float_X>(tmp);
         }
     };
 
@@ -108,16 +113,20 @@ namespace picongpu
         operator()( const DataSpace<simDim>& cellIdx,
                     const uint32_t currentStep ) const
         {
-            /* example: periodicity of 20 microns ( = 2.0e-5 m) */
-            const float_64 period_SI(20.0e-6);
-            /* calculate cells -> SI -> m to microns*/
-            const float_64 y_SI = cellIdx.y() * SI::CELL_HEIGHT_SI * 1.0e6;
-            /* note: you can also transform the time step to seconds by
-             *       multiplying with DELTA_T_SI */
+            float3_64 tmp(float3_64::create(0.));
+            if(currentStep==0)
+            {
+                const float_64 cell_width=SI::CELL_WIDTH_SI;
+                const float3_64 diff=(float3_64::create(32.)-(precisionCast<float_64>(cellIdx))) *
+                                     float3_64::create(cell_width);
 
-            /* specify your J-Field in A/m^2 and convert to PIConGPU units */
-            const float_X sinArg = precisionCast<float_X>( y_SI / period_SI * 2.0 * PI );
-            return float3_X(0.0, math::cos( sinArg ) / unitField[1], 0.0);
+                tmp.x()=math::exp(
+                    /*-(diff.x()*diff.x())/(float_64(2.0)*SI::CELL_WIDTH_SI*SI::CELL_WIDTH_SI)*/
+                    -(diff.y()*diff.y())/(float_64(2.0)*SI::CELL_HEIGHT_SI*SI::CELL_HEIGHT_SI)
+                    -(diff.z()*diff.z())/(float_64(2.0)*SI::CELL_DEPTH_SI*SI::CELL_DEPTH_SI)
+                    );
+            }
+            return precisionCast<float_X>(tmp);
         }
     };
 

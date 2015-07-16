@@ -89,7 +89,7 @@ public:
     void computeCurrent(ParticlesClass &parClass, uint32_t currentStep);
 
     template<uint32_t AREA, class T_CurrentInterpolation>
-    void addCurrentToEMF( T_CurrentInterpolation& myCurrentInterpolation );
+    void addCurrentToEMF(const T_CurrentInterpolation& myCurrentInterpolation );
 
     SimulationDataId getUniqueId();
 

@@ -35,7 +35,7 @@
 #include "plugins/PositionsParticles.hpp"
 #include "plugins/BinEnergyParticles.hpp"
 #if(ENABLE_HDF5 == 1)
-#include "plugins/PhaseSpace/PhaseSpaceMulti.hpp"
+//#include "plugins/PhaseSpace/PhaseSpaceMulti.hpp"
 #endif
 
 #if (ENABLE_INSITU_VOLVIS == 1)
@@ -172,7 +172,7 @@ private:
 #endif
 #if(ENABLE_HDF5 == 1)
       , PerSuperCell<bmpl::_1>
-      , PhaseSpaceMulti<particles::shapes::Counter::ChargeAssignment, bmpl::_1>
+   /*   , PhaseSpaceMulti<particles::shapes::Counter::ChargeAssignment, bmpl::_1>*/
 #endif
     > UnspecializedSpeciesPlugins;
 

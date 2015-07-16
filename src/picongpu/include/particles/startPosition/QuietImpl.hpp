@@ -74,8 +74,9 @@ struct QuietImpl
         //   z = [0, numParsPerCell_Z-1]
         DataSpace<simDim> inCellCoordinate = DataSpaceOperations<simDim>::map(numParDirection, curParticle);
 
-
-        return floatD_X(precisionCast<float_X>(inCellCoordinate) * spacing + spacing * float_X(0.5));
+        return floatD_X(0.0,0.0,0.0);
+        //return floatD_X(0.5,0.5,0.5);
+        //return floatD_X(precisionCast<float_X>(inCellCoordinate) * spacing + spacing * float_X(0.5));
     }
 
     /** If the particles to initialize (numParsPerCell) end up with a
@@ -88,35 +89,13 @@ struct QuietImpl
      */
     DINLINE MacroParticleCfg mapRealToMacroParticle(const float_X realElPerCell)
     {
-        float_X macroWeighting = float_X(0.0);
+        float_X macroWeighting = float_X(1.0);
         uint32_t numParsPerCell=numParInCell.productOfComponents();
 
-        if (numParsPerCell > 0)
-            macroWeighting = realElPerCell / float_X(numParsPerCell);
-
-        while (macroWeighting < MIN_WEIGHTING &&
-               numParsPerCell > 0)
-        {
-            /* decrement component with greatest value*/
-            uint32_t max_component = 0;
-            for (uint32_t i = 1; i < simDim; ++i)
-            {
-                if (numParInCell[i] > numParInCell[max_component])
-                    max_component = i;
-            }
-            numParInCell[max_component] -= 1;
-
-            numParsPerCell = numParInCell.productOfComponents();
-
-            if (numParsPerCell > 0)
-                macroWeighting = realElPerCell / float_X(numParsPerCell);
-            else
-                macroWeighting = float_X(0.0);
-        }
 
         MacroParticleCfg macroParCfg;
         macroParCfg.weighting = macroWeighting;
-        macroParCfg.numParticlesPerCell = numParsPerCell;
+        macroParCfg.numParticlesPerCell = realElPerCell==float_X(0.) ? 0 : numParsPerCell;
 
         return macroParCfg;
     }

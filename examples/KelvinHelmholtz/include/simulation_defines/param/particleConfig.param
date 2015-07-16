@@ -40,7 +40,7 @@ namespace particles
         {
             /** Count of particles per cell per direction at initial state
              *  unit: none */
-           typedef typename mCT::shrinkTo<mCT::Int<5, 5, 1>, simDim>::type numParticlesPerDimension;
+           typedef typename mCT::shrinkTo<mCT::Int<1, 1, 1>, simDim>::type numParticlesPerDimension;
         };
 
         /* definition of random particle start*/
@@ -60,7 +60,7 @@ namespace particles
 namespace manipulators
 {
 
-    CONST_VECTOR(float_X,3,DriftParamPositive_direction,1.0,0.0,0.0);
+    CONST_VECTOR(float_X,3,DriftParamPositive_direction,0.0,1.0,0.0);
     struct DriftParamPositive
     {
         /** Initial particle drift velocity for electrons and ions
@@ -102,7 +102,7 @@ namespace manipulators
         /* lowerBound is included in the range*/
         static const float_X lowerBound = 0.0;
         /* upperBound is excluded in the range*/
-        static const float_X upperBound = 0.25;
+        static const float_X upperBound = 1.0;
         /* dimension for the filter
          * x = 0; y= 1; z = 2
          */

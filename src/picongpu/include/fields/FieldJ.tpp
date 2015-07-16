@@ -297,7 +297,7 @@ void FieldJ::computeCurrent( ParticlesClass &parClass, uint32_t )
 }
 
 template<uint32_t AREA, class T_CurrentInterpolation>
-void FieldJ::addCurrentToEMF( T_CurrentInterpolation& myCurrentInterpolation )
+void FieldJ::addCurrentToEMF(const T_CurrentInterpolation& myCurrentInterpolation )
 {
     __picKernelArea( ( kernelAddCurrentToEMF ),
                      cellDescription,

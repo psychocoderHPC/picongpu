@@ -33,6 +33,7 @@
 #include <cuSTL/algorithm/kernel/ForeachBlock.hpp>
 #include <lambda/Expression.hpp>
 #include <cuSTL/cursor/NestedCursor.hpp>
+#include "fields/currentInterpolation/CurrentInterpolation.hpp"
 
 namespace picongpu
 {
@@ -45,7 +46,7 @@ using namespace PMacc;
  * This is a workaround that the condition check is only
  * triggered if the current used solver is `DirSplitting`
  */
-template<typename T_UsedSolver, typename T_Dummy=void>
+template<typename T_UsedSolver, typename T_Dummy = void>
 struct ConditionCheck
 {
 };
@@ -70,47 +71,76 @@ struct ConditionCheck<DirSplitting, T_Dummy>
 class DirSplitting : private ConditionCheck<fieldSolver::FieldSolver>
 {
 private:
-    template<typename OrientationTwist,typename CursorE, typename CursorB, typename GridSize>
-    void propagate(CursorE cursorE, CursorB cursorB, GridSize gridSize) const
+
+    template<uint32_t pass, typename OrientationTwist, typename CursorE, typename CursorB, typename CursorE2, typename CursorB2, typename CursorJ, typename GridSize>
+    void propagate(CursorE cursorE, CursorB cursorB, CursorE2 cursorE2, CursorB2 cursorB2, CursorJ cursorJ, GridSize gridSize) const
     {
         using namespace cursor::tools;
         using namespace PMacc::math::tools;
 
-        PMACC_AUTO(gridSizeTwisted,twistVectorAxes<OrientationTwist>(gridSize));
+        PMACC_AUTO(gridSizeTwisted, twistVectorAxes<OrientationTwist>(gridSize));
 
         /* twist components of the supercell */
-        typedef PMacc::math::CT::Int<
-                    PMacc::math::CT::At<SuperCellSize,typename OrientationTwist::x>::type::value,
-                    PMacc::math::CT::At<SuperCellSize,typename OrientationTwist::y>::type::value,
-                    PMacc::math::CT::At<SuperCellSize,typename OrientationTwist::z>::type::value
-                > BlockDim;
+        typedef PMacc::math::CT::Int <
+            PMacc::math::CT::At<SuperCellSize, typename OrientationTwist::x>::type::value,
+            PMacc::math::CT::At<SuperCellSize, typename OrientationTwist::y>::type::value,
+            PMacc::math::CT::At<SuperCellSize, typename OrientationTwist::z>::type::value
+            > BlockDim;
 
         algorithm::kernel::ForeachBlock<BlockDim> foreach;
         foreach(zone::SphericZone<3>(PMacc::math::Size_t<3>(BlockDim::x::value, gridSizeTwisted.y(), gridSizeTwisted.z())),
                 cursor::make_NestedCursor(twistVectorFieldAxes<OrientationTwist>(cursorE)),
                 cursor::make_NestedCursor(twistVectorFieldAxes<OrientationTwist>(cursorB)),
-                DirSplittingKernel<BlockDim>((int)gridSizeTwisted.x()));
+                cursor::make_NestedCursor(twistVectorFieldAxes<OrientationTwist>(cursorE2)),
+                cursor::make_NestedCursor(twistVectorFieldAxes<OrientationTwist>(cursorB2)),
+                cursor::make_NestedCursor(twistVectorFieldAxes<OrientationTwist>(cursorJ)),
+                DirSplittingKernel<pass, BlockDim>((int) gridSizeTwisted.x()));
     }
 public:
-    DirSplitting(MappingDesc) {}
+
+    DirSplitting(MappingDesc)
+    {
+    }
 
     void update_beforeCurrent(uint32_t currentStep) const
     {
-        typedef SuperCellSize GuardDim;
 
+
+    }
+
+    void update_afterCurrent(uint32_t currentStep) const
+    {
         DataConnector &dc = Environment<>::get().DataConnector();
 
         FieldE& fieldE = dc.getData<FieldE > (FieldE::getName(), true);
         FieldB& fieldB = dc.getData<FieldB > (FieldB::getName(), true);
+        FieldJ& fieldJ = dc.getData<FieldJ > (FieldJ::getName(), true);
+
+        typedef SuperCellSize GuardDim;
+
 
         BOOST_AUTO(fieldE_coreBorder,
-            fieldE.getGridBuffer().getDeviceBuffer().
+                   fieldE.getGridBuffer().getDeviceBuffer().
                    cartBuffer().view(GuardDim().toRT(),
                                      -GuardDim().toRT()));
         BOOST_AUTO(fieldB_coreBorder,
-            fieldB.getGridBuffer().getDeviceBuffer().
-            cartBuffer().view(GuardDim().toRT(),
-                              -GuardDim().toRT()));
+                   fieldB.getGridBuffer().getDeviceBuffer().
+                   cartBuffer().view(GuardDim().toRT(),
+                                     -GuardDim().toRT()));
+
+        BOOST_AUTO(fieldJ_coreBorder,
+                   fieldJ.getGridBuffer().getDeviceBuffer().
+                   cartBuffer().view(GuardDim().toRT(),
+                                     -GuardDim().toRT()));
+
+        BOOST_AUTO(fieldE_coreBorder2,
+                   fieldE.getGridBuffer2().getDeviceBuffer().
+                   cartBuffer().view(GuardDim().toRT(),
+                                     -GuardDim().toRT()));
+        BOOST_AUTO(fieldB_coreBorder2,
+                   fieldB.getGridBuffer2().getDeviceBuffer().
+                   cartBuffer().view(GuardDim().toRT(),
+                                     -GuardDim().toRT()));
 
         using namespace cursor::tools;
         using namespace PMacc::math::tools;
@@ -118,43 +148,275 @@ public:
         PMacc::math::Size_t<3> gridSize = fieldE_coreBorder.size();
 
 
-        typedef PMacc::math::CT::Int<0,1,2> Orientation_X;
-        propagate<Orientation_X>(
-                  fieldE_coreBorder.origin(),
-                  fieldB_coreBorder.origin(),
-                  gridSize);
+
+
+
+        __startOperation(ITask::TASK_HOST);
+        __startOperation(ITask::TASK_CUDA);
+        fieldE.sync();
+        fieldB.sync();
+        //fieldE.reset(currentStep);
+        //fieldB.reset(currentStep);
+        __setTransactionEvent(fieldE.asyncCommunication(__getTransactionEvent()));
+        __setTransactionEvent(fieldB.asyncCommunication(__getTransactionEvent()));
+
+
+
+        typedef PMacc::math::CT::Int<0, 1, 2> Orientation_X;
+        typedef PMacc::math::CT::Int<1, 2, 0> Orientation_Y;
+        typedef PMacc::math::CT::Int<2, 0, 1> Orientation_Z;
+
+
+        propagate<0, Orientation_X>(
+                                    fieldE_coreBorder.origin(),
+                                    fieldB_coreBorder.origin(),
+                                    fieldE_coreBorder.origin(),
+                                    fieldB_coreBorder.origin(),
+                                    fieldJ_coreBorder.origin(),
+                                    gridSize);
+
+        propagate<0, Orientation_Y>(
+                                    fieldE_coreBorder.origin(),
+                                    fieldB_coreBorder.origin(),
+                                    fieldE_coreBorder.origin(),
+                                    fieldB_coreBorder.origin(),
+                                    fieldJ_coreBorder.origin(),
+                                    gridSize);
+
+        propagate<0, Orientation_Z>(
+                                    fieldE_coreBorder.origin(),
+                                    fieldB_coreBorder.origin(),
+                                    fieldE_coreBorder.origin(),
+                                    fieldB_coreBorder.origin(),
+                                    fieldJ_coreBorder.origin(),
+                                    gridSize);
+
+        /*       propagate<1, Orientation_X>(
+                                           fieldE_coreBorder2.origin(),
+                                           fieldB_coreBorder2.origin(),
+                                           fieldE_coreBorder2.origin(),
+                                           fieldB_coreBorder2.origin(),
+                                           fieldJ_coreBorder.origin(),
+                                           gridSize);
+
+               propagate<1, Orientation_Y>(
+                                           fieldE_coreBorder2.origin(),
+                                           fieldB_coreBorder2.origin(),
+                                           fieldE_coreBorder2.origin(),
+                                           fieldB_coreBorder2.origin(),
+                                           fieldJ_coreBorder.origin(),
+                                           gridSize);
+
+               propagate<1, Orientation_Z>(
+                                           fieldE_coreBorder2.origin(),
+                                           fieldB_coreBorder2.origin(),
+                                           fieldE_coreBorder2.origin(),
+                                           fieldB_coreBorder2.origin(),
+                                           fieldJ_coreBorder.origin(),
+                                           gridSize);
+
+         */
+        __startOperation(ITask::TASK_HOST);
+        __startOperation(ITask::TASK_CUDA);
 
         __setTransactionEvent(fieldE.asyncCommunication(__getTransactionEvent()));
         __setTransactionEvent(fieldB.asyncCommunication(__getTransactionEvent()));
 
-        typedef PMacc::math::CT::Int<1,2,0> Orientation_Y;
-        propagate<Orientation_Y>(
-                  fieldE_coreBorder.origin(),
-                  fieldB_coreBorder.origin(),
-                  gridSize);
+        propagate<1, Orientation_X>(
+                                    fieldE_coreBorder.origin(),
+                                    fieldB_coreBorder.origin(),
+                                    fieldE_coreBorder.origin(),
+                                    fieldB_coreBorder.origin(),
+                                    fieldJ_coreBorder.origin(),
+                                    gridSize);
 
-        __setTransactionEvent(fieldE.asyncCommunication(__getTransactionEvent()));
-        __setTransactionEvent(fieldB.asyncCommunication(__getTransactionEvent()));
+        propagate<1, Orientation_Y>(
+                                    fieldE_coreBorder.origin(),
+                                    fieldB_coreBorder.origin(),
+                                    fieldE_coreBorder.origin(),
+                                    fieldB_coreBorder.origin(),
+                                    fieldJ_coreBorder.origin(),
+                                    gridSize);
 
-        typedef PMacc::math::CT::Int<2,0,1> Orientation_Z;
-        propagate<Orientation_Z>(
-                  fieldE_coreBorder.origin(),
-                  fieldB_coreBorder.origin(),
-                  gridSize);
+        propagate<1, Orientation_Z>(
+                                    fieldE_coreBorder.origin(),
+                                    fieldB_coreBorder.origin(),
+                                    fieldE_coreBorder.origin(),
+                                    fieldB_coreBorder.origin(),
+                                    fieldJ_coreBorder.origin(),
+                                    gridSize);
+
+
+        propagate<2, Orientation_X>(
+                                    fieldE_coreBorder.origin(),
+                                    fieldB_coreBorder.origin(),
+                                    fieldE_coreBorder.origin(),
+                                    fieldB_coreBorder.origin(),
+                                    fieldJ_coreBorder.origin(),
+                                    gridSize);
+
+        propagate<2, Orientation_Y>(
+                                    fieldE_coreBorder.origin(),
+                                    fieldB_coreBorder.origin(),
+                                    fieldE_coreBorder.origin(),
+                                    fieldB_coreBorder.origin(),
+                                    fieldJ_coreBorder.origin(),
+                                    gridSize);
+
+        propagate<2, Orientation_Z>(
+                                    fieldE_coreBorder.origin(),
+                                    fieldB_coreBorder.origin(),
+                                    fieldE_coreBorder.origin(),
+                                    fieldB_coreBorder.origin(),
+                                    fieldJ_coreBorder.origin(),
+                                    gridSize);
+
+        propagate<3, Orientation_X>(
+                                    fieldE_coreBorder.origin(),
+                                    fieldB_coreBorder.origin(),
+                                    fieldE_coreBorder.origin(),
+                                    fieldB_coreBorder.origin(),
+                                    fieldJ_coreBorder.origin(),
+                                    gridSize);
+
+        propagate<3, Orientation_Y>(
+                                    fieldE_coreBorder.origin(),
+                                    fieldB_coreBorder.origin(),
+                                    fieldE_coreBorder.origin(),
+                                    fieldB_coreBorder.origin(),
+                                    fieldJ_coreBorder.origin(),
+                                    gridSize);
+
+        propagate<3, Orientation_Z>(
+                                    fieldE_coreBorder.origin(),
+                                    fieldB_coreBorder.origin(),
+                                    fieldE_coreBorder.origin(),
+                                    fieldB_coreBorder.origin(),
+                                    fieldJ_coreBorder.origin(),
+                                    gridSize);
+        /*
+
+                propagate<2, Orientation_X>(
+                                            fieldE_coreBorder2.origin(),
+                                            fieldB_coreBorder2.origin(),
+                                            fieldE_coreBorder.origin(),
+                                            fieldB_coreBorder.origin(),
+                                            fieldJ_coreBorder.origin(),
+                                            gridSize);
+
+                propagate<2, Orientation_Y>(
+                                            fieldE_coreBorder2.origin(),
+                                            fieldB_coreBorder2.origin(),
+                                            fieldE_coreBorder.origin(),
+                                            fieldB_coreBorder.origin(),
+                                            fieldJ_coreBorder.origin(),
+                                            gridSize);
+
+                propagate<2, Orientation_Z>(
+                                            fieldE_coreBorder2.origin(),
+                                            fieldB_coreBorder2.origin(),
+                                            fieldE_coreBorder.origin(),
+                                            fieldB_coreBorder.origin(),
+                                            fieldJ_coreBorder.origin(),
+                                            gridSize);
+
+         */
+        /*
+                propagate<1, Orientation_Y>(
+                                            fieldE_coreBorder2.origin(),
+                                            fieldB_coreBorder2.origin(),
+                                            fieldE_coreBorder.origin(),
+                                            fieldB_coreBorder.origin(),
+                                            fieldJ_coreBorder.origin(),
+                                            gridSize);
+
+         */
+        /*
+                __startOperation(ITask::TASK_HOST);
+                __startOperation(ITask::TASK_CUDA);
+                fieldE.sync();
+                fieldB.sync();
+                __setTransactionEvent(fieldE.asyncCommunication(__getTransactionEvent()));
+                __setTransactionEvent(fieldB.asyncCommunication(__getTransactionEvent()));
+
+         */
+
+        /*
+         *   propagate<0, Orientation_Y>(
+                                      fieldE_coreBorder2.origin(),
+                                      fieldB_coreBorder2.origin(),
+                                      fieldE_coreBorder.origin(),
+                                      fieldB_coreBorder.origin(),
+                                      fieldJ_coreBorder.origin(),
+                                      gridSize);
+         * */
+
+
+        /*
+                __startOperation(ITask::TASK_HOST);
+                __startOperation(ITask::TASK_CUDA);
+                fieldE.sync();
+                fieldB.sync();
+                __setTransactionEvent(fieldE.asyncCommunication(__getTransactionEvent()));
+                __setTransactionEvent(fieldB.asyncCommunication(__getTransactionEvent()));
+         */
+
+        /*
+          propagate<0, Orientation_Z>(
+                                      fieldE_coreBorder2.origin(),
+                                      fieldB_coreBorder2.origin(),
+                                      fieldE_coreBorder.origin(),
+                                      fieldB_coreBorder.origin(),
+                                      fieldJ_coreBorder.origin(),
+                                      gridSize);
+         */
+        /*
+
+                __startOperation(ITask::TASK_HOST);
+                __startOperation(ITask::TASK_CUDA);
+                fieldE.sync();
+                fieldB.sync();
+                __setTransactionEvent(fieldE.asyncCommunication(__getTransactionEvent()));
+                __setTransactionEvent(fieldB.asyncCommunication(__getTransactionEvent()));
+
+
+         */
+
+
+        /*
+                propagate<1, Orientation_Z>(
+                                            fieldE_coreBorder2.origin(),
+                                            fieldB_coreBorder2.origin(),
+                                            fieldE_coreBorder.origin(),
+                                            fieldB_coreBorder.origin(),
+                                            fieldJ_coreBorder.origin(),
+                                            gridSize);
+         * */
+
+        //if (currentStep == 0)
+        {
+            // fieldJ.addCurrentToEMF < CORE + BORDER > (currentInterpolation::NoneDS<simDim, 1>());
+            //   fieldJ.addCurrentToEMF < CORE + BORDER > (currentInterpolation::NoneDS<simDim, 0>());
+            //  fieldJ.addCurrentToEMF < CORE + BORDER > (currentInterpolation::NoneDS<simDim, 2>());
+        }
+
+
+        /* algorithm::kernel::ForeachBlock<SuperCellSize> foreachHalf;
+         foreachHalf(zone::SphericZone<3>(PMacc::math::Size_t<3>(gridSize)),
+                     cursor::make_NestedCursor(fieldE_coreBorder.origin()),
+                     cursor::make_NestedCursor(fieldB_coreBorder.origin()),
+                     HalfKernel<SuperCellSize>());
+         */
 
         if (laserProfile::INIT_TIME > float_X(0.0))
             dc.getData<FieldE > (FieldE::getName(), true).laserManipulation(currentStep);
 
+        __startOperation(ITask::TASK_HOST);
+        __startOperation(ITask::TASK_CUDA);
+        fieldE.sync();
+        fieldB.sync();
         __setTransactionEvent(fieldE.asyncCommunication(__getTransactionEvent()));
         __setTransactionEvent(fieldB.asyncCommunication(__getTransactionEvent()));
-    }
-
-    void update_afterCurrent(uint32_t) const
-    {
-        DataConnector &dc = Environment<>::get().DataConnector();
-
-        FieldE& fieldE = dc.getData<FieldE > (FieldE::getName(), true);
-        FieldB& fieldB = dc.getData<FieldB > (FieldB::getName(), true);
 
         EventTask eRfieldE = fieldE.asyncCommunication(__getTransactionEvent());
         EventTask eRfieldB = fieldB.asyncCommunication(__getTransactionEvent());

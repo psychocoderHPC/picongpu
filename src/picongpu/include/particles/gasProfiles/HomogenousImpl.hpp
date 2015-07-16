@@ -48,8 +48,10 @@ struct HomogenousImpl
      */
     HDINLINE float_X operator()(const DataSpace<simDim>& totalCellOffset)
     {
-
-        return float_X(1.0);
+        if(totalCellOffset.x()==32 && totalCellOffset.y()==32 && totalCellOffset.z()==32)
+            return float_X(1.0);
+        else
+            return float_X(0.);
     }
 
 };

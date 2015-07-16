@@ -63,6 +63,7 @@ fieldE( NULL )
 {
     /*#####create FieldB###############*/
     fieldB = new GridBuffer<ValueType, simDim > ( cellDescription.getGridLayout( ) );
+    fieldB2 = new GridBuffer<ValueType, simDim > ( cellDescription.getGridLayout( ) );
 
     typedef typename bmpl::accumulate<
         VectorAllSpecies,
@@ -101,23 +102,34 @@ fieldE( NULL )
         for ( uint32_t d = 0; d < simDim; ++d )
             guardingCells[d] = ( relativMask[d] == -1 ? originGuard[d] : endGuard[d] );
         fieldB->addExchange( GUARD, i, guardingCells, FIELD_B );
+        fieldB2->addExchange( GUARD, i, guardingCells, FIELD_B2 );
     }
 
 }
 
 FieldB::~FieldB( )
 {
-    __delete(fieldB);
+    __delete( fieldB );
 }
 
-SimulationDataId FieldB::getUniqueId()
+SimulationDataId FieldB::getUniqueId( )
 {
-    return getName();
+    return getName( );
 }
 
 void FieldB::synchronize( )
 {
     fieldB->deviceToHost( );
+}
+
+void FieldB::sync( )
+{
+    __setTransactionEvent(
+                           Environment<>::get( ).Factory( ).createTaskCopyDeviceToDevice(
+                                                                                        fieldB->getDeviceBuffer( ),
+                                                                                        fieldB2->getDeviceBuffer( ),
+                                                                                        NULL )
+                           );
 }
 
 void FieldB::syncToDevice( )
@@ -130,7 +142,8 @@ EventTask FieldB::asyncCommunication( EventTask serialEvent )
 {
 
     EventTask eB = fieldB->asyncCommunication( serialEvent );
-    return eB;
+    EventTask eB2 = fieldB2->asyncCommunication( serialEvent );
+    return eB + eB2;
 }
 
 void FieldB::init( FieldE &fieldE, LaserPhysics &laserPhysics )
@@ -139,7 +152,7 @@ void FieldB::init( FieldE &fieldE, LaserPhysics &laserPhysics )
     this->fieldE = &fieldE;
     this->laser = &laserPhysics;
 
-    Environment<>::get().DataConnector().registerData( *this );
+    Environment<>::get( ).DataConnector( ).registerData( *this );
 }
 
 GridLayout<simDim> FieldB::getGridLayout( )
@@ -162,8 +175,12 @@ FieldB::DataBoxType FieldB::getDeviceDataBox( )
 
 GridBuffer<FieldB::ValueType, simDim> &FieldB::getGridBuffer( )
 {
-
     return *fieldB;
+}
+
+GridBuffer<FieldB::ValueType, simDim> &FieldB::getGridBuffer2( )
+{
+    return *fieldB2;
 }
 
 void FieldB::reset( uint32_t )

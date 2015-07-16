@@ -49,7 +49,9 @@ namespace picongpu
          * WARNING: if you change the field solver in `componentsConfig` you
          * have to change the CELL_SIZE in this code path
          */
-        const double CELL_WIDTH_SI = 9.34635e-8;
+        //const double CELL_WIDTH_SI = 9.34635e-8;
+        //const double DELTA_T_SI = CELL_WIDTH_SI/SPEED_OF_LIGHT_SI;
+        const double CELL_WIDTH_SI = DELTA_T_SI*SPEED_OF_LIGHT_SI;
 #endif
 #undef fieldSolverDirSplitting
 

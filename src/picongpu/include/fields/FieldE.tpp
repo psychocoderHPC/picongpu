@@ -58,6 +58,7 @@ SimulationFieldHelper<MappingDesc>( cellDescription ),
 fieldB( NULL )
 {
     fieldE = new GridBuffer<ValueType, simDim > ( cellDescription.getGridLayout( ) );
+    fieldE2 = new GridBuffer<ValueType, simDim > ( cellDescription.getGridLayout( ) );
 
     typedef typename bmpl::accumulate<
         VectorAllSpecies,
@@ -70,7 +71,7 @@ fieldB( NULL )
         typename PMacc::math::CT::make_Int<simDim, 0>::type,
         PMacc::math::CT::max<bmpl::_1, GetUpperMargin< GetInterpolation<bmpl::_2> > >
         >::type UpperMarginInterpolation;
-    
+
     /* Calculate the maximum Neighbors we need from MAX(ParticleShape, FieldSolver) */
     typedef typename PMacc::math::CT::max<
         LowerMarginInterpolation,
@@ -96,17 +97,18 @@ fieldB( NULL )
         for ( uint32_t d = 0; d < simDim; ++d )
             guardingCells[d] = ( relativMask[d] == -1 ? originGuard[d] : endGuard[d] );
         fieldE->addExchange( GUARD, i, guardingCells, FIELD_E );
+        fieldE2->addExchange( GUARD, i, guardingCells, FIELD_E2 );
     }
 }
 
 FieldE::~FieldE( )
 {
-    __delete(fieldE);
+    __delete( fieldE );
 }
 
-SimulationDataId FieldE::getUniqueId()
+SimulationDataId FieldE::getUniqueId( )
 {
-    return getName();
+    return getName( );
 }
 
 void FieldE::synchronize( )
@@ -121,7 +123,7 @@ void FieldE::syncToDevice( )
 
 EventTask FieldE::asyncCommunication( EventTask serialEvent )
 {
-    return fieldE->asyncCommunication( serialEvent );
+    return fieldE->asyncCommunication( serialEvent ) + fieldE2->asyncCommunication( serialEvent );
 }
 
 void FieldE::init( FieldB &fieldB, LaserPhysics &laserPhysics )
@@ -129,7 +131,7 @@ void FieldE::init( FieldB &fieldB, LaserPhysics &laserPhysics )
     this->fieldB = &fieldB;
     this->laser = &laserPhysics;
 
-    Environment<>::get().DataConnector().registerData( *this);
+    Environment<>::get( ).DataConnector( ).registerData( *this );
 }
 
 FieldE::DataBoxType FieldE::getDeviceDataBox( )
@@ -147,6 +149,21 @@ GridBuffer<FieldE::ValueType, simDim> &FieldE::getGridBuffer( )
     return *fieldE;
 }
 
+GridBuffer<FieldE::ValueType, simDim> &FieldE::getGridBuffer2( )
+{
+    return *fieldE2;
+}
+
+void FieldE::sync( )
+{
+    __setTransactionEvent(
+                           Environment<>::get( ).Factory( ).createTaskCopyDeviceToDevice(
+                                                                                        fieldE->getDeviceBuffer( ),
+                                                                                        fieldE2->getDeviceBuffer( ),
+                                                                                        NULL )
+                           );
+}
+
 GridLayout< simDim> FieldE::getGridLayout( )
 {
     return cellDescription.getGridLayout( );
@@ -154,7 +171,7 @@ GridLayout< simDim> FieldE::getGridLayout( )
 
 void FieldE::laserManipulation( uint32_t currentStep )
 {
-    const uint32_t numSlides = MovingWindow::getInstance().getSlideCounter(currentStep);
+    const uint32_t numSlides = MovingWindow::getInstance( ).getSlideCounter( currentStep );
 
     /* Disable laser if
      * - init time of laser is over or
@@ -162,15 +179,15 @@ void FieldE::laserManipulation( uint32_t currentStep )
      * - we already performed a slide
      */
     if ( ( currentStep * DELTA_T ) >= laserProfile::INIT_TIME ||
-         Environment<simDim>::get().GridController().getCommunicationMask( ).isSet( TOP ) || numSlides != 0 ) return;
+         Environment<simDim>::get( ).GridController( ).getCommunicationMask( ).isSet( TOP ) || numSlides != 0 ) return;
 
-    DataSpace<simDim-1> gridBlocks;
-    DataSpace<simDim-1> blockSize;
-    gridBlocks.x()=fieldE->getGridLayout( ).getDataSpaceWithoutGuarding( ).x( ) / SuperCellSize::x::value;
-    blockSize.x()=SuperCellSize::x::value;
+    DataSpace < simDim - 1 > gridBlocks;
+    DataSpace < simDim - 1 > blockSize;
+    gridBlocks.x( ) = fieldE->getGridLayout( ).getDataSpaceWithoutGuarding( ).x( ) / SuperCellSize::x::value;
+    blockSize.x( ) = SuperCellSize::x::value;
 #if(SIMDIM ==DIM3)
-    gridBlocks.y()=fieldE->getGridLayout( ).getDataSpaceWithoutGuarding( ).z( ) / SuperCellSize::z::value;
-    blockSize.y()=SuperCellSize::z::value;
+    gridBlocks.y( ) = fieldE->getGridLayout( ).getDataSpaceWithoutGuarding( ).z( ) / SuperCellSize::z::value;
+    blockSize.y( ) = SuperCellSize::z::value;
 #endif
     __cudaKernel( kernelLaserE )
         ( gridBlocks,
@@ -183,7 +200,6 @@ void FieldE::reset( uint32_t )
     fieldE->getHostBuffer( ).reset( true );
     fieldE->getDeviceBuffer( ).reset( false );
 }
-
 
 HDINLINE
 typename FieldE::UnitValueType
