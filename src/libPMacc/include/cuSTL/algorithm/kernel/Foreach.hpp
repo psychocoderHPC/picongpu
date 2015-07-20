@@ -48,7 +48,7 @@ namespace kernel
 {
 
 #ifndef FOREACH_KERNEL_MAX_PARAMS
-#define FOREACH_KERNEL_MAX_PARAMS 4
+#define FOREACH_KERNEL_MAX_PARAMS 6
 #endif
 #define SHIFT_CURSOR_ZONE(Z, N, _) C ## N c ## N ## _shifted = c ## N (p_zone.offset);
 #define SHIFTED_CURSOR(Z, N, _) c ## N ## _shifted

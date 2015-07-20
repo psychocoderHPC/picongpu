@@ -404,13 +404,15 @@ public:
         particleUpdate(forward(particleStorage), currentStep, initEvent, forward(updateEvent), forward(commEvent));
 
         __setTransactionEvent(updateEvent);
-        /** remove background field for particle pusher */
+
+
+        this->myFieldSolver->update_beforeCurrent(currentStep);
+
+         /** remove background field for particle pusher */
         (*pushBGField)(fieldE, nvfct::Sub(), FieldBackgroundE(fieldE->getUnit()),
                        currentStep, FieldBackgroundE::InfluenceParticlePusher);
         (*pushBGField)(fieldB, nvfct::Sub(), FieldBackgroundB(fieldB->getUnit()),
                        currentStep, FieldBackgroundB::InfluenceParticlePusher);
-
-        this->myFieldSolver->update_beforeCurrent(currentStep);
 
         fieldJ->clear();
 
