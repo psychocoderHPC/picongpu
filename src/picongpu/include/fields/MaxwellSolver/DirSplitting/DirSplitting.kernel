@@ -31,44 +31,210 @@
 namespace picongpu
 {
 
-template<typename BlockDim>
-struct DirSplittingKernel
+namespace dirSplitting
 {
-    typedef void result_type;
 
-    PMACC_ALIGN(totalLength,int);
-    DirSplittingKernel(int totalLength) : totalLength(totalLength) {}
+template<uint32_t T_phase>
+struct Propagate;
 
-    template<typename CursorE, typename CursorB >
-    DINLINE void propagate(CursorE cursorE, CursorB cursorB) const
+template<>
+struct Propagate<0>
+{
+
+    template<typename CursorE, typename CursorB, typename CursorJ>
+    DINLINE void operator()(CursorE cursorE, CursorB cursorB, CursorJ cursorJ) const
     {
-        float_X a_plus = (*cursorB(-1, 0, 0)).z() + (*cursorE(-1, 0, 0)).y();
-        float_X a_minus = (*cursorB(1, 0, 0)).z() - (*cursorE(1, 0, 0)).y();
-        float_X a_prime_plus = (*cursorB(-1, 0, 0)).y() - (*cursorE(-1, 0, 0)).z();
-        float_X a_prime_minus = (*cursorB(1, 0, 0)).y() + (*cursorE(1, 0, 0)).z();
+        // const float_X constE = (float_X(0.25) / EPS0) * DELTA_T;
+        float_X a_plus = ((*cursorB(-1, 0, 0)).z() + (*cursorE(-1, 0, 0)).y()) * float_X(0.5);
+        float_X a_minus = (-(*cursorB(1, 0, 0)).z() + (*cursorE(1, 0, 0)).y()) * float_X(0.5);
+
+        //  a_plus -= ((*cursorJ(0, 0, 0)).y()+(*cursorJ(0, 0, 1)).y()) * constE;
+        //   a_minus -= ((*cursorJ(1, 0, 0)).y()+(*cursorJ(1, 0, 1)).y()) * constE;
 
         __syncthreads();
 
-        (*cursorB).z() = float_X(0.5) * (a_plus + a_minus);
-        (*cursorE).y() = float_X(0.5) * (a_plus - a_minus);
-        (*cursorB).y() = float_X(0.5) * (a_prime_plus + a_prime_minus);
-        (*cursorE).z() = float_X(0.5) * (a_prime_minus - a_prime_plus);
+        (*cursorB).z() = (a_plus - a_minus);
+        (*cursorE).y() = (a_plus + a_minus);
 
         __syncthreads();
     }
+};
 
-    template<typename CursorE, typename CursorB >
-    DINLINE void operator()(CursorE globalE, CursorB globalB) const
+template<>
+struct Propagate<1>
+{
+
+    template<typename CursorE, typename CursorB, typename CursorJ >
+    DINLINE void operator()(CursorE cursorE, CursorB cursorB, CursorJ cursorJ) const
+    {
+        //const float_X constE = (float_X(0.25) / EPS0) * DELTA_T;
+        float_X a_prime_plus = (-(*cursorB(-1, 0, 0)).y() + (*cursorE(-1, 0, 0)).z()) * float_X(0.5);
+        float_X a_prime_minus = ((*cursorB(1, 0, 0)).y() + (*cursorE(1, 0, 0)).z()) * float_X(0.5);
+
+        //  a_prime_plus -= ((*cursorJ(0, 0, 0)).z()+(*cursorJ(0, 1, 0)).z()) * constE;
+        //  a_prime_minus -= ((*cursorJ(1, 0, 0)).z()+(*cursorJ(1, 1, 0)).z()) * constE;
+
+        __syncthreads();
+
+        (*cursorB).y() = (a_prime_minus - a_prime_plus);
+        (*cursorE).z() = (a_prime_minus + a_prime_plus);
+
+        __syncthreads();
+    }
+};
+
+template<>
+struct Propagate<2>
+{
+
+    template<typename CursorE, typename CursorB, typename CursorJ>
+    DINLINE void operator()(CursorE cursorE, CursorB cursorB, CursorJ cursorJ) const
+    {
+        /* const float_X constE = (float_X(0.25) / EPS0) * DELTA_T;
+
+
+         float_X a_plus = -((*cursorJ(0, 0, 0)).y()+(*cursorJ(0, 0, 1)).y()) * constE;
+         float_X a_minus = -((*cursorJ(1, 0, 0)).y()+(*cursorJ(1, 0, 1)).y()) * constE;
+
+         __syncthreads();
+
+         (*cursorB).z() += (a_plus - a_minus);
+         (*cursorE).y() += (a_plus + a_minus);
+
+         __syncthreads();
+         * */
+        const float_X constE = (float_X(0.5) / EPS0) * DELTA_T;
+
+        //diff x (BZ/EY)
+        float_X a_plus_lowZ = -((*cursorJ(0, 0, 0)).y()) * constE;
+        float_X a_minus_lowZ = -((*cursorJ(1, 0, 0)).y()) * constE;
+
+        float_X a_plus_highZ = -((*cursorJ(0, 0, 1)).y()) * constE;
+        float_X a_minus_highZ = -((*cursorJ(1, 0, 1)).y()) * constE;
+
+        float_X bz_lowZ = (a_plus_lowZ - a_minus_lowZ);
+        float_X ey_lowZ = (a_plus_lowZ + a_minus_lowZ);
+
+        float_X bz_highZ = (a_plus_highZ - a_minus_highZ);
+        float_X ey_highZ = (a_plus_highZ + a_minus_highZ);
+
+        //diff y (BX/EZ)
+
+        float_X a_plus_lowX = -((*cursorJ(0, 0, 0)).z()) * constE;
+        float_X a_minus_lowX = -((*cursorJ(0, 1, 0)).z()) * constE;
+
+        float_X a_plus_highX = -((*cursorJ(1, 0, 0)).z()) * constE;
+        float_X a_minus_highX = -((*cursorJ(1, 1, 0)).z()) * constE;
+
+        float_X bx_lowX = (a_plus_lowX - a_minus_lowX);
+        float_X ez_lowX = (a_plus_lowX + a_minus_lowX);
+
+        float_X bx_highX = (a_plus_highX - a_minus_highX);
+        float_X ez_highX = (a_plus_highX + a_minus_highX);
+
+        //diff z (BY/EX)
+
+        float_X a_plus_lowY = -((*cursorJ(0, 0, 0)).x()) * constE;
+        float_X a_minus_lowY = -((*cursorJ(0, 0, 1)).x()) * constE;
+
+        float_X a_plus_highY = -((*cursorJ(0, 1, 0)).x()) * constE;
+        float_X a_minus_highY = -((*cursorJ(0, 1, 1)).x()) * constE;
+
+        float_X by_lowY = (a_plus_lowY - a_minus_lowY);
+        float_X ex_lowY = (a_plus_lowY + a_minus_lowY);
+
+        float_X by_highY = (a_plus_highY - a_minus_highY);
+        float_X ex_highY = (a_plus_highY + a_minus_highY);
+
+
+
+        //step  2
+
+        //diff x
+
+        float_X a_prime_plus_X = (-by_lowY + ez_lowX) * float_X(0.5);
+        float_X a_prime_minus_X = (by_highY + ez_highX) * float_X(0.5);
+
+        (*cursorB).y() += (a_prime_minus_X - a_prime_plus_X);
+        (*cursorE).z() += (a_prime_minus_X + a_prime_plus_X);
+
+        //diff y
+        float_X a_prime_plus_Y = (-bz_lowZ + ex_lowY) * float_X(0.5);
+        float_X a_prime_minus_Y = (bz_highZ + ex_highY) * float_X(0.5);
+
+        (*cursorB).z() += (a_prime_minus_Y - a_prime_plus_Y);
+        (*cursorE).x() += (a_prime_minus_Y + a_prime_plus_Y);
+
+        //diff z
+        float_X a_prime_plus_Z = (-bx_lowX + ey_lowZ) * float_X(0.5);
+        float_X a_prime_minus_Z = (bx_highX + ey_highZ) * float_X(0.5);
+
+        (*cursorB).x() += (a_prime_minus_Z - a_prime_plus_Z);
+        (*cursorE).y() += (a_prime_minus_Z + a_prime_plus_Z);
+
+
+
+
+        __syncthreads();
+    }
+};
+
+template<>
+struct Propagate<3>
+{
+
+    template<typename CursorE, typename CursorB, typename CursorJ >
+    DINLINE void operator()(CursorE cursorE, CursorB cursorB, CursorJ cursorJ) const
+    {
+        const float_X constE = (float_X(0.25) / EPS0) * DELTA_T;
+
+
+        float_X a_prime_plus = -((*cursorJ(0, 0, 0)).z()+(*cursorJ(0, 1, 0)).z()) * constE;
+        float_X a_prime_minus = -((*cursorJ(1, 0, 0)).z()+(*cursorJ(1, 1, 0)).z()) * constE;
+
+        __syncthreads();
+
+        (*cursorB).y() += (a_prime_minus - a_prime_plus);
+        (*cursorE).z() += (a_prime_minus + a_prime_plus);
+
+        __syncthreads();
+    }
+};
+
+
+
+}//namespace dirSplitting
+
+template<typename BlockDim, uint32_t T_phase>
+struct DirSplittingKernel
+{
+    typedef void result_type;
+    static const uint32_t phase = T_phase;
+
+    PMACC_ALIGN(totalLength, int);
+
+    DirSplittingKernel(int totalLength) : totalLength(totalLength)
+    {
+    }
+
+    template<typename CursorE, typename CursorB, typename CursorJ >
+    DINLINE void operator()(CursorE globalE, CursorB globalB, CursorJ globalJ) const
     {
         //\todo: optimize cache size
         typedef typename PMacc::math::CT::add<
             typename BlockDim::vector_type,
             typename PMacc::math::CT::Int < 2, 0, 0 > ::vector_type>::type CacheSize;
 
+        typedef typename PMacc::math::CT::add<
+            typename BlockDim::vector_type,
+            typename PMacc::math::CT::Int < 1, 1, 1 > ::vector_type>::type CacheSizeJ;
+
         typedef container::CT::SharedBuffer<float3_X, CacheSize, 0 > CacheE;
         typedef container::CT::SharedBuffer<float3_X, CacheSize, 1 > CacheB;
+        typedef container::CT::SharedBuffer<float3_X, CacheSizeJ, 2 > CacheJ;
         CacheE cacheE;
         CacheB cacheB;
+        CacheJ cacheJ;
 
         using namespace lambda;
         DECLARE_PLACEHOLDERS();
@@ -82,23 +248,25 @@ struct DirSplittingKernel
         {
             foreach(CacheE::Zone(), cacheE.origin(), globalE(-1 + x_offset, 0, 0), _1 = _2);
             foreach(CacheB::Zone(), cacheB.origin(), globalB(-1 + x_offset, 0, 0), _1 = _2);
+            foreach(CacheJ::Zone(), cacheJ.origin(), globalJ(x_offset, 0, 0), _1 = _2);
             __syncthreads();
 
             BOOST_AUTO(cursorE, cacheE.origin()(1, 0, 0)(threadPos_x, threadIdx.y, threadIdx.z));
             BOOST_AUTO(cursorB, cacheB.origin()(1, 0, 0)(threadPos_x, threadIdx.y, threadIdx.z));
+            BOOST_AUTO(cursorJ, cacheJ.origin()(threadPos_x, threadIdx.y, threadIdx.z));
 
-            if(threadPos_x == BlockDim::x::value - 1)
+            if (threadPos_x == BlockDim::x::value - 1)
             {
                 fieldE_old = *cursorE;
                 fieldB_old = *cursorB;
             }
-            if(threadPos_x == 0 && x_offset > 0)
+            if (threadPos_x == 0 && x_offset > 0)
             {
-                *cursorE(-1,0,0) = fieldE_old;
-                *cursorB(-1,0,0) = fieldB_old;
+                *cursorE(-1, 0, 0) = fieldE_old;
+                *cursorB(-1, 0, 0) = fieldB_old;
             }
 
-            propagate(cursorE, cursorB);
+            dirSplitting::Propagate<phase>()(cursorE, cursorB, cursorJ);
 
             typedef zone::CT::SphericZone<BlockDim> BlockZone;
             foreach(BlockZone(), cacheE.origin()(1, 0, 0), globalE(x_offset, 0, 0), _2 = _1);
