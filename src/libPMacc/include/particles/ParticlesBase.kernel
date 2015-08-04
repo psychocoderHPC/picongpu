@@ -1,5 +1,6 @@
 /**
- * Copyright 2013-2014 Felix Schmitt, Heiko Burau, Rene Widera
+ * Copyright 2013-2015 Felix Schmitt, Heiko Burau, Rene Widera,
+ *                     Benjamin Worpitz
  *
  * This file is part of libPMacc.
  *
@@ -20,19 +21,20 @@
  * If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include "types.h"
+#include "dimensions/DataSpaceOperations.hpp"
+#include "mappings/kernel/ExchangeMapping.hpp"
 #include "particles/memory/boxes/ParticlesBox.hpp"
 #include "particles/memory/boxes/PushDataBox.hpp"
 #include "particles/memory/boxes/PopDataBox.hpp"
 #include "particles/memory/boxes/TileDataBox.hpp"
-#include "dimensions/DataSpaceOperations.hpp"
-#include "mappings/kernel/ExchangeMapping.hpp"
 #include "particles/memory/boxes/ExchangePushDataBox.hpp"
 #include "particles/memory/boxes/ExchangePopDataBox.hpp"
 
 #include "particles/operations/Assign.hpp"
 #include "particles/operations/Deselect.hpp"
 #include "traits/NumberOfExchanges.hpp"
+
+#include "types.h"
 
 namespace PMacc
 {

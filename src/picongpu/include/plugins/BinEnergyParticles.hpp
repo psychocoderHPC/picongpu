@@ -104,7 +104,7 @@ __global__ void kernelBinEnergyParticles(ParticlesBox<FRAME, simDim> pb,
 
     __syncthreads();
     if (!isValid)
-      return; /* end kernel if we have no frames */
+        return; /* end kernel if we have no frames */
 
     while (isValid)
     {

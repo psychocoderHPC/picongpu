@@ -26,6 +26,8 @@
 #include "eventSystem/tasks/StreamTask.hpp"
 #include "eventSystem/streams/EventStream.hpp"
 
+#include <cassert>
+
 namespace PMacc
 {
 

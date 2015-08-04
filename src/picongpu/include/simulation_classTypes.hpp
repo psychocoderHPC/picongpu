@@ -1,5 +1,6 @@
 /**
- * Copyright 2013 Axel Huebl, Felix Schmitt, Heiko Burau, Rene Widera
+ * Copyright 2013-2015 Axel Huebl, Felix Schmitt, Heiko Burau, Rene Widera,
+ *                     Benjamin Worpitz
  *
  * This file is part of PIConGPU.
  *
@@ -20,14 +21,13 @@
 
 #pragma once
 
-#include "types.h"
+#include "debug/PIConGPUVerbose.hpp"
 #include "simulation_defines.hpp"
 
 #include "mappings/kernel/AreaMapping.hpp"
 #include "math/Vector.hpp"
 #include "eventSystem/EventSystem.hpp"
-
-#include "debug/PIConGPUVerbose.hpp"
+#include "types.h"
 
 
 namespace picongpu
@@ -42,7 +42,7 @@ namespace picongpu
 /**
  * Appends kernel arguments to generated code and activates kernel task.
  *
- * @param ... parameters to pass to kernel
+ * @param ... Parameters to pass to kernel
  */
 #define PIC_PMACC_CUDAPARAMS(...) (__VA_ARGS__,mapper);                        \
         PMACC_ACTIVATE_KERNEL                                                  \

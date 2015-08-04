@@ -32,7 +32,8 @@
 namespace PMacc
 {
 
-/*if this flag is defined all kernel calls would be checked and synchronize
+/*
+ * If this flag is defined all kernel calls would be checked and synchronize
  * this flag must set by the compiler or inside of the Makefile
  */
 #if (PMACC_SYNC_KERNEL  == 1)

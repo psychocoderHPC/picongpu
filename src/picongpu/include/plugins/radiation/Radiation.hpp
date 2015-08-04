@@ -1,6 +1,6 @@
 /**
- * Copyright 2013-2015 Axel Huebl, Heiko Burau, Rene Widera, Richard Pausch, Klaus Steiniger,
- * Felix Schmitt
+ * Copyright 2013-2015 Axel Huebl, Heiko Burau, Rene Widera, Richard Pausch,
+ *                     Klaus Steiniger, Felix Schmitt, Benjamin Worpitz
  *
  * This file is part of PIConGPU.
  *
@@ -34,7 +34,6 @@
 #include "types.h"
 #include "simulation_defines.hpp"
 #include "simulation_types.hpp"
-#include "basicOperations.hpp"
 #include "dimensions/DataSpaceOperations.hpp"
 
 #include "simulation_classTypes.hpp"

@@ -1,5 +1,5 @@
 /**
- * Copyright 2013 Heiko Burau, Rene Widera
+ * Copyright 2013-2015 Heiko Burau, Rene Widera, Benjamin Worpitz
  *
  * This file is part of libPMacc.
  *
@@ -20,8 +20,7 @@
  * If not, see <http://www.gnu.org/licenses/>.
  */
 
-#ifndef ALLOCATOR_DEVICEMEMEVENPITCHALLOCATOR_HPP
-#define ALLOCATOR_DEVICEMEMEVENPITCHALLOCATOR_HPP
+#pragma once
 
 #include "math/vector/Size_t.hpp"
 #include "cuSTL/cursor/BufferCursor.hpp"
@@ -62,5 +61,3 @@ struct DeviceMemEvenPitch<Type, 1>
 } // PMacc
 
 #include "DeviceMemEvenPitchAllocator.tpp"
-
-#endif // ALLOCATOR_DEVICEMEMEVENPITCHALLOCATOR_HPP

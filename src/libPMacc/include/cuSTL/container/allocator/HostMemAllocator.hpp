@@ -1,5 +1,5 @@
 /**
- * Copyright 2013 Heiko Burau, Rene Widera
+ * Copyright 2013-2015 Heiko Burau, Rene Widera, Benjamin Worpitz
  *
  * This file is part of libPMacc.
  *
@@ -20,8 +20,7 @@
  * If not, see <http://www.gnu.org/licenses/>.
  */
 
-#ifndef ALLOCATOR_HOSTMEMALLOCATOR_HPP
-#define ALLOCATOR_HOSTMEMALLOCATOR_HPP
+#pragma once
 
 #include <stdint.h>
 #include "math/vector/Size_t.hpp"
@@ -67,5 +66,3 @@ struct HostMemAllocator<Type, 1>
 } // PMacc
 
 #include "HostMemAllocator.tpp"
-
-#endif // ALLOCATOR_HOSTMEMALLOCATOR_HPP

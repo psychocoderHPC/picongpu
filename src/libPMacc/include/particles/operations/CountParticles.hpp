@@ -33,7 +33,7 @@ namespace PMacc
 {
 
 /* count particles in an area
- * is not optimized, it checks any partcile position if its realy a particle
+ * is not optimized, it checks any particle position if its really a particle
  */
 template<class PBox, class Filter, class Mapping>
 __global__ void kernelCountParticles(PBox pb,
@@ -101,7 +101,7 @@ struct CountParticles
      *
      * @param buffer source particle buffer
      * @param cellDescription instance of MappingDesction
-     * @param filter filter instance which must inharid from PositionFilter
+     * @param filter filter instance which must inherit from PositionFilter
      * @return number of particles in defined area
      */
     template<uint32_t AREA, class PBuffer, class Filter, class CellDesc>
@@ -128,7 +128,7 @@ struct CountParticles
      *
      * @param buffer source particle buffer
      * @param cellDescription instance of MappingDesction
-     * @param filter filter instance which must inharid from PositionFilter
+     * @param filter filter instance which must inherit from PositionFilter
      * @return number of particles in defined area
      */
     template< class PBuffer, class Filter, class CellDesc>
@@ -153,7 +153,7 @@ struct CountParticles
         typedef bmpl::vector< typename GetPositionFilter<Space::Dim>::type > usedFilters;
         typedef typename FilterFactory<usedFilters>::FilterType MyParticleFilter;
         MyParticleFilter filter;
-        filter.setStatus(true); /*activeate filter pipline*/
+        filter.setStatus(true); /*activate filter pipeline*/
         filter.setWindowPosition(origin, size);
         return PMacc::CountParticles::countOnDevice<AREA>(buffer, cellDescription, filter);
     }

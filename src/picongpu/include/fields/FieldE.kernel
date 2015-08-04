@@ -1,5 +1,6 @@
 /**
- * Copyright 2013 Axel Huebl, Heiko Burau, Rene Widera
+ * Copyright 2013-2015 Axel Huebl, Heiko Burau, Rene Widera,
+ *                     Benjamin Worpitz
  *
  * This file is part of PIConGPU.
  *
@@ -18,8 +19,7 @@
  * If not, see <http://www.gnu.org/licenses/>.
  */
 
-#ifndef FIELDE_KERNEL
-#define    FIELDE_KERNEL
+#pragma once
 
 #include "math/Vector.hpp"
 
@@ -88,6 +88,3 @@ __global__ void kernelLaserE(EBox fieldE, LaserManipulator lMan)
 }
 
 }
-
-
-#endif  //end FIELDE_KERNEL

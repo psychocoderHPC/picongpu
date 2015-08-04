@@ -1,5 +1,5 @@
 /**
- * Copyright 2013 Heiko Burau, Rene Widera
+ * Copyright 2013-2015 Heiko Burau, Rene Widera, Benjamin Worpitz
  *
  * This file is part of libPMacc.
  *
@@ -20,8 +20,7 @@
  * If not, see <http://www.gnu.org/licenses/>.
  */
 
-#ifndef ALLOCATOR_TAG_H
-#define ALLOCATOR_TAG_H
+#pragma once
 
 namespace PMacc
 {
@@ -35,5 +34,3 @@ struct unspecified;
 } // tag
 } // allocator
 } // PMacc
-
-#endif // ALLOCATOR_TAG_H

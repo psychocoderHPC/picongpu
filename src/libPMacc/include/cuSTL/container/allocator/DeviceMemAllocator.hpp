@@ -1,5 +1,5 @@
 /**
- * Copyright 2013 Heiko Burau, Rene Widera
+ * Copyright 2013-2015 Heiko Burau, Rene Widera, Benjamin Worpitz
  *
  * This file is part of libPMacc.
  *
@@ -20,8 +20,7 @@
  * If not, see <http://www.gnu.org/licenses/>.
  */
 
-#ifndef ALLOCATOR_DEVICEMEMALLOCATOR_HPP
-#define ALLOCATOR_DEVICEMEMALLOCATOR_HPP
+#pragma once
 
 #include "math/vector/Size_t.hpp"
 #include "cuSTL/cursor/BufferCursor.hpp"
@@ -66,5 +65,3 @@ struct DeviceMemAllocator<Type, 1>
 } // PMacc
 
 #include "DeviceMemAllocator.tpp"
-
-#endif // ALLOCATOR_DEVICEMEMALLOCATOR_HPP

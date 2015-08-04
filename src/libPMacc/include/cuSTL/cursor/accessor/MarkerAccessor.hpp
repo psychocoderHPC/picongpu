@@ -1,5 +1,5 @@
 /**
- * Copyright 2013 Heiko Burau, Rene Widera
+ * Copyright 2013-2015 Heiko Burau, Rene Widera, Benjamin Worpitz
  *
  * This file is part of libPMacc.
  *
@@ -20,8 +20,7 @@
  * If not, see <http://www.gnu.org/licenses/>.
  */
 
-#ifndef CURSOR_MARKERACCESSOR_HPP
-#define CURSOR_MARKERACCESSOR_HPP
+#pragma once
 
 namespace PMacc
 {
@@ -48,5 +47,3 @@ struct MarkerAccessor
 
 } // cursor
 } // PMacc
-
-#endif //CURSOR_MARKERACCESSOR_HPP

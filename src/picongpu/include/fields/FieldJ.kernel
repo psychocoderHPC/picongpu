@@ -23,7 +23,6 @@
 
 #include "types.h"
 #include "particles/frame_types.hpp"
-#include "basicOperations.hpp"
 
 #include "simulation_defines.hpp"
 
@@ -96,7 +95,7 @@ __global__ void kernelComputeCurrent(JBox fieldJ,
 
     while (isValid)
     {
-        /* this test is only importend for the last frame
+        /* this test is only important for the last frame
          * if frame is not the last one particlesInSuperCell==particles count in supercell
          */
         if (virtualLinearId < particlesInSuperCell)

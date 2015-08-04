@@ -1,5 +1,5 @@
 /**
- * Copyright 2013 Axel Huebl, Heiko Burau, Rene Widera
+ * Copyright 2013-2015 Axel Huebl, Heiko Burau, Rene Widera, Benjamin Worpitz
  *
  * This file is part of PIConGPU.
  *
@@ -18,14 +18,11 @@
  * If not, see <http://www.gnu.org/licenses/>.
  */
 
+#pragma once
 
-
-#ifndef FIELDMANIPULATOR_KERNEL
-#define    FIELDMANIPULATOR_KERNEL
-
-#include "types.h"
-#include "simulation_defines.hpp"
 #include "simulation_classTypes.hpp"
+#include "simulation_defines.hpp"
+#include "types.h"
 
 namespace picongpu
 {
@@ -99,7 +96,7 @@ __global__ void kernelAbsorbBorder(BoxedMemory field, uint32_t thickness, float_
 
     const DataSpace<simDim> direction = Mask::getRelativeDirections<simDim > (mapper.getExchangeType());
 
-    //this is a workaround that we get a kernelwithout lmem
+    //this is a workaround that we get a kernel without lmem
     if (direction.x() != 0)
         absorb < 0 > (field, thickness, absorber_strength, mapper, direction);
     else if (direction.y() != 0)
@@ -110,5 +107,3 @@ __global__ void kernelAbsorbBorder(BoxedMemory field, uint32_t thickness, float_
 #endif
 }
 } //namespace
-#endif    /* FIELDMANIPULATOR_KERNEL */
-
