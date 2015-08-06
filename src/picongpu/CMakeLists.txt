@@ -281,6 +281,7 @@ include_directories(SYSTEM ${mallocMC_INCLUDE_DIRS})
 add_definitions(${mallocMC_DEFINITIONS})
 set(LIBS ${LIBS} ${mallocMC_LIBRARIES})
 
+include_directories(SYSTEM "${CMAKE_CURRENT_SOURCE_DIR}/../../thirdParty/cub")
 
 ################################################################################
 # PMacc options
