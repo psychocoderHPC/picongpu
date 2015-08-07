@@ -34,6 +34,7 @@
 
 #include <string>
 
+#define TIMING 0
 
 namespace picongpu
 {
@@ -62,7 +63,7 @@ __global__ void kernelSortParticles(T_ParticleBox pb,
     __shared__ typename BlockRadixSort::TempStorage temp_storage;
     __shared__ int idx_storage[cellsPerSuperCell];
 
-    __syncthreads(); /*wait that all shared memory is initialised*/
+    __syncthreads(); /*wait that all shared memory is initialized*/
 
 
     const int linearThreadIdx = threadIdx.x;
@@ -88,18 +89,22 @@ __global__ void kernelSortParticles(T_ParticleBox pb,
 
         int localCellIdx[1];
         localCellIdx[0] = particleAtThreadIdx[localCellIdx_];
-
-        if (!isParticles)
-            localCellIdx[0] = cellsPerSuperCell; //mark as invalid
         int oldPlaceInFrame[1];
         oldPlaceInFrame[0] = linearThreadIdx;
+        if (!isParticles)
+        {
+            localCellIdx[0] = cellsPerSuperCell; //mark as invalid
+            oldPlaceInFrame[0] = -1;
+        }
 
 
-        BlockRadixSort(temp_storage).SortBlockedToStriped(localCellIdx, oldPlaceInFrame);
-        idx_storage[(linearThreadIdx*32)%cellsPerSuperCell]=oldPlaceInFrame[0];
+        BlockRadixSort(temp_storage).Sort(localCellIdx, oldPlaceInFrame);
+        const int tmp = (linearThreadIdx * 32);
+        idx_storage[tmp % cellsPerSuperCell + tmp / cellsPerSuperCell] = oldPlaceInFrame[0];
+        //idx_storage[linearThreadIdx] = oldPlaceInFrame[0];
         __syncthreads();
 
-        if (localCellIdx[0] < cellsPerSuperCell)
+        if (idx_storage[linearThreadIdx] != -1)
         {
             //PMACC_AUTO(srcParticle, (*srcFrame)[oldPlaceInFrame[0]]);
             PMACC_AUTO(srcParticle, (*srcFrame)[idx_storage[linearThreadIdx]]);
@@ -164,21 +169,22 @@ public:
         DataConnector &dc = Environment<>::get().DataConnector();
         particles = &(dc.getData<ParticlesType > (ParticlesType::FrameType::getName(), true));
 
-       /*
+#if (TIMING == 1)
         __getTransactionEvent().waitForFinished();
         TimeIntervall timer;
-        */
+#endif
         __picKernelArea(kernelSortParticles, *cellDescription, CORE + BORDER)
             (PMacc::math::CT::volume<SuperCellSize>::type::value)
             (particles->getDeviceParticlesBox());
-        particles->fillAllGaps();
-        /*
+        particles->template fillLastFrameGaps < CORE + BORDER > ();
+#if (TIMING == 1)
         __getTransactionEvent().waitForFinished();
         timer.toggleEnd();
         std::cout << "step " << currentStep << "sort time: " <<
             timer.printInterval() << " = " <<
             (int) (timer.getInterval() / 1000.) << " sec" << std::endl;
-         */
+#endif
+
     }
 
     void pluginRegisterHelp(po::options_description& desc)

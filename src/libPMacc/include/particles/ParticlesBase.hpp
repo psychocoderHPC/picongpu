@@ -119,6 +119,15 @@ protected:
 
 public:
 
+    template<uint32_t AREA>
+    void fillLastFrameGaps()
+    {
+        AreaMapping<AREA, MappingDesc> mapper(this->cellDescription);
+        __cudaKernel(kernelFillGapsLastFrame)
+            (mapper.getGridDim(), TileSize)
+            (particlesBuffer->getDeviceParticleBox(), mapper);
+    }
+
     /* fill gaps in a the complete simulation area (include GUARD)
      */
     void fillAllGaps()

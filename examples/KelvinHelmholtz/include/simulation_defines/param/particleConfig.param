@@ -46,6 +46,15 @@ namespace particles
         /* definition of random particle start*/
         typedef QuietImpl<QuietParam> Quiet;
 
+        struct RandomParameter
+        {
+            /** Count of particles per cell at initial state
+             *  unit: none */
+            static const uint32_t numParticlesPerCell = 25;
+        };
+        /* definition of random particle start*/
+        typedef RandomImpl<RandomParameter> Random;
+
     } //namespace startPosition
 
     /** a particle with a weighting below MIN_WEIGHTING will not
