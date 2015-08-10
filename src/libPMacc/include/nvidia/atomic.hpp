@@ -27,6 +27,8 @@
 #include "nvidia/warp.hpp"
 #include <math_functions.h>
 #include <device_functions.h>
+#include <cub/cub.cuh>
+#include <cub/util_ptx.cuh>
 
 
 namespace PMacc
@@ -66,7 +68,7 @@ int atomicAllInc(int *ptr)
     /* each thread computes its own value */
     return restult + __popc(mask & ((1 << lanId) - 1));
 #else
-    return atomicAdd(ptr,1);
+    return atomicAdd(ptr, 1);
 #endif
 }
 
@@ -95,8 +97,87 @@ atomicAllExch(T_Type* ptr, const T_Type value)
     // leader does the update
     if (getLaneId() == leader)
 #endif
-        atomicExch(ptr, value);
+        ::atomicExch(ptr, value);
 }
+
+#if (__CUDA_ARCH__ >= 300)
+
+/**
+ * This in warp peer search based on
+ * "Voting and Shuffling to Optimize Atomic Operations" (nvidia parallel forall)
+ * http://devblogs.nvidia.com/parallelforall/voting-and-shuffling-optimize-atomic-operations/
+ * Editor:  Elmar Westphal (version from Aug 6th 2015)
+ */
+template<typename G>
+DINLINE uint32_t get_peers(G my_key)
+{
+    uint32_t peers = 0;
+    bool is_peer;
+    uint32_t unclaimed = __ballot(1); // in the beginning, no threads are claimed
+    do
+    {
+        G other_key = cub::ShuffleIndex(my_key, __ffs(unclaimed) - 1); // get key from least unclaimed lane
+        is_peer = (my_key == other_key); // do we have a match?
+        peers = __ballot(is_peer); // find all matches
+        unclaimed ^= peers; // matches are no longer unclaimed
+    }
+    while (!is_peer); // repeat as long as we haven’t found our match
+    return peers;
+}
+#endif
+
+namespace detail
+{
+
+template<typename T_Type>
+DINLINE void atomicAdd(T_Type* inAddress, T_Type value)
+{
+    ::atomicAdd(inAddress, value);
+}
+
+DINLINE void atomicAdd(double* inAddress, double value)
+{
+    uint64_cu* address = (uint64_cu*) inAddress;
+    double old = value;
+    while (
+           (old = __longlong_as_double(::atomicExch(address,
+                                                  (uint64_cu) __double_as_longlong(__longlong_as_double(atomicExch(address, (uint64_cu) 0L)) +
+                                                                                   old)))) != 0.0);
+}
+
+} //namespace detail
+
+#if (__CUDA_ARCH__ >= 300)
+
+/**
+ * This in warp peer add based on
+ * "Voting and Shuffling to Optimize Atomic Operations" (nvidia parallel forall)
+ * http://devblogs.nvidia.com/parallelforall/voting-and-shuffling-optimize-atomic-operations/
+ * Editor:  Elmar Westphal (version from Aug 6th 2015)
+ */
+template <typename F>
+DINLINE void add_peers(F *dest, F x, uint32_t peers)
+{
+    int lane = getLaneId();
+    int first = __ffs(peers) - 1; // find the leader
+    uint32_t rel_pos = __popc(peers << (32 - lane)); // find our own place
+    peers &= (0xfffffffe << lane); // drop everything to our right
+    while (__any(peers))
+    { // stay alive as long as anyone is working
+        int next = __ffs(peers); // find out what to add
+        F t = cub::ShuffleIndex(x, next - 1); // get what to add (undefined if nothing)
+        if (next) // important: only add if there really is anything
+            x += t;
+        uint32_t done = rel_pos & 1; // local data was used in iteration when its LSB is set
+        peers &= __ballot(!done); // clear out all peers that were just used
+        rel_pos >>= 1; // count iterations by shifting position
+    }
+    if (lane == first) // only leader threads for each key perform atomics
+        detail::atomicAdd(dest, x);
+    // F res = cub::ShuffleIndex(x, first); // distribute result (if needed)
+    //return res; // may also return x or return value of atomic, as needed
+}
+#endif
 
 } //namespace nvidia
 } //namespace PMacc

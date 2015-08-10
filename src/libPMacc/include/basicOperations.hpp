@@ -28,27 +28,28 @@
 #include <string>
 #include <ostream>
 #include <math_functions.h>
+#include "nvidia/atomic.hpp"
 
 namespace PMacc
 {
-namespace
-{
 
-DINLINE void atomicAddWrapper(float* address, float value)
+template<typename T_Type>
+DINLINE void atomicAddWrapper(T_Type* address, T_Type value)
 {
-    atomicAdd(address, value);
+    nvidia::detail::atomicAdd(address, value);
 }
 
-DINLINE void atomicAddWrapper(double* inAddress, double value)
+template<typename T_Type>
+DINLINE void atomicAnyAdd(T_Type* address, T_Type value)
 {
-    uint64_cu* address = (uint64_cu*) inAddress;
-    double old = value;
-    while (
-           (old = __longlong_as_double(atomicExch(address,
-                                                  (uint64_cu) __double_as_longlong(__longlong_as_double(atomicExch(address, (uint64_cu) 0L)) +
-                                                                                   old)))) != 0.0);
-}
 
+#if (__CUDA_ARCH__ >= 300)
+    uint64_t key = reinterpret_cast<uint64_t>(address);
+    uint32_t peers = nvidia::get_peers(key);
+    nvidia::add_peers(address, value, peers);
+#else
+    nvidia::detail::atomicAdd(address, value);
+#endif
 }
 
 } //namespace PMacc

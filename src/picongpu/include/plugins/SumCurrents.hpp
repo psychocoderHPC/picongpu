@@ -69,9 +69,9 @@ __global__ void kernelSumCurrents(J_DataBox fieldJ, float3_X* gCurrent, Mapping 
 
     const float3_X myJ = fieldJ(cell);
 
-    atomicAddWrapper(&(sh_sumJ.x()), myJ.x());
-    atomicAddWrapper(&(sh_sumJ.y()), myJ.y());
-    atomicAddWrapper(&(sh_sumJ.z()), myJ.z());
+    atomicAnyAdd(&(sh_sumJ.x()), myJ.x());
+    atomicAnyAdd(&(sh_sumJ.y()), myJ.y());
+    atomicAnyAdd(&(sh_sumJ.z()), myJ.z());
 
     __syncthreads();
 

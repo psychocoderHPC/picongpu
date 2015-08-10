@@ -30,7 +30,7 @@
 
 #include "simulationControl/TimeInterval.hpp"
 
-#include "cub/cub.cuh"
+#include <cub/cub.cuh>
 
 #include <string>
 

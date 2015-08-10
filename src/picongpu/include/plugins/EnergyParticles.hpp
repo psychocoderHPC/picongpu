@@ -141,8 +141,8 @@ __global__ void kernelEnergyParticles(ParticlesBox<FRAME, simDim> pb,
     }
 
     /* add energies on block level using shared memory */
-    atomicAddWrapper(&shEnergyKin, _local_energyKin); /* add kinetic energy */
-    atomicAddWrapper(&shEnergy, _local_energy);       /* add total energy */
+    atomicAnyAdd(&shEnergyKin, _local_energyKin); /* add kinetic energy */
+    atomicAnyAdd(&shEnergy, _local_energy);       /* add total energy */
 
     __syncthreads(); /* wait till all threads have added their energies */
 
