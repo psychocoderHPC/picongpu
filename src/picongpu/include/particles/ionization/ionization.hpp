@@ -71,6 +71,8 @@ __global__ void kernelIonizeParticles(ParBoxIons ionBox,
      */
     typedef typename ParBoxElectrons::FrameType ELECTRONFRAME;
     typedef typename ParBoxIons::FrameType IONFRAME;
+    typedef typename ParBoxIons::FramePtr IonFramePtr;
+    typedef typename ParBoxElectrons::FramePtr ElectronFramePtr;
 
     /* specify field to particle interpolation scheme */
     typedef typename PMacc::traits::Resolve<
@@ -112,9 +114,8 @@ __global__ void kernelIonizeParticles(ParBoxIons ionBox,
 
     __syncthreads();
 
-    __shared__ IONFRAME *ionFrame;
-    __shared__ ELECTRONFRAME *electronFrame;
-    __shared__ bool isValid;
+    __shared__ typename GetNoInitType<IonFramePtr>::type ionFrame;
+    __shared__ typename GetNoInitType<ElectronFramePtr>::type electronFrame;
     __shared__ lcellId_t maxParticlesInFrame;
 
     __syncthreads(); /*wait that all shared memory is initialized*/
@@ -124,12 +125,12 @@ __global__ void kernelIonizeParticles(ParBoxIons ionBox,
      */
     if (linearThreadIdx == 0)
     {
-        ionFrame = &(ionBox.getLastFrame(block, isValid));
+        ionFrame = ionBox.getLastFrame(block);
         maxParticlesInFrame = PMacc::math::CT::volume<SuperCellSize>::type::value;
     }
 
     __syncthreads();
-    if (!isValid)
+    if (!ionFrame.isValid())
         return; //end kernel if we have no frames
 
     /* caching of E- and B- fields and initialization of random generator if needed */
@@ -169,10 +170,10 @@ __global__ void kernelIonizeParticles(ParBoxIons ionBox,
      * Because all frames are completely filled except the last and apart from that last frame
      * one wants to make sure that all threads are working and every frame is worked on.
      */
-    while (isValid)
+    while (ionFrame.isValid())
     {
         /* casting uint8_t multiMask to boolean */
-        const bool isParticle = (*ionFrame)[linearThreadIdx][multiMask_];
+        const bool isParticle = ionFrame[linearThreadIdx][multiMask_];
         __syncthreads();
 
         /* < IONIZATION and change of charge states >
@@ -226,10 +227,10 @@ __global__ void kernelIonizeParticles(ParBoxIons ionBox,
              */
             if (linearThreadIdx == 0)
             {
-                if (electronFrame == NULL)
+                if (!electronFrame.isValid())
                 {
-                    electronFrame = &(electronBox.getEmptyFrame());
-                    electronBox.setAsLastFrame(*electronFrame, block);
+                    electronFrame = electronBox.getEmptyFrame();
+                    electronBox.setAsLastFrame(electronFrame, block);
                 }
             }
             __syncthreads();
@@ -241,9 +242,9 @@ __global__ void kernelIonizeParticles(ParBoxIons ionBox,
             if ((0 <= electronId) && (electronId < maxParticlesInFrame))
             {
                 /* each thread makes the attributes of its ion accessible */
-                PMACC_AUTO(parentIon,((*ionFrame)[linearThreadIdx]));
+                PMACC_AUTO(parentIon,(ionFrame[linearThreadIdx]));
                 /* each thread initializes an electron if one should be created */
-                PMACC_AUTO(targetElectronFull,((*electronFrame)[electronId]));
+                PMACC_AUTO(targetElectronFull,(electronFrame[electronId]));
 
                 /* create an electron in the new electron frame:
                  * - see particles/ionization/ionizationMethods.hpp
@@ -264,8 +265,8 @@ __global__ void kernelIonizeParticles(ParBoxIons ionBox,
             {
                 if (newFrameFillLvl >= maxParticlesInFrame)
                 {
-                    electronFrame = &(electronBox.getEmptyFrame());
-                    electronBox.setAsLastFrame(*electronFrame, block);
+                    electronFrame = electronBox.getEmptyFrame();
+                    electronBox.setAsLastFrame(electronFrame, block);
                     newFrameFillLvl -= maxParticlesInFrame;
                 }
             }
@@ -283,7 +284,7 @@ __global__ void kernelIonizeParticles(ParBoxIons ionBox,
                 /* each thread makes the attributes of its ion accessible */
                 PMACC_AUTO(parentIon,((*ionFrame)[linearThreadIdx]));
                 /* each thread initializes an electron if one should be produced */
-                PMACC_AUTO(targetElectronFull,((*electronFrame)[electronId]));
+                PMACC_AUTO(targetElectronFull,(electronFrame[electronId]));
 
                 /* create an electron in the new electron frame:
                  * - see particles/ionization/ionizationMethods.hpp
@@ -299,7 +300,7 @@ __global__ void kernelIonizeParticles(ParBoxIons ionBox,
 
         if (linearThreadIdx == 0)
         {
-            ionFrame = &(ionBox.getPreviousFrame(*ionFrame, isValid));
+            ionFrame = ionBox.getPreviousFrame(ionFrame);
             maxParticlesInFrame = PMacc::math::CT::volume<SuperCellSize>::type::value;
         }
         __syncthreads();

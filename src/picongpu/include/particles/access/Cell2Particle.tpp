@@ -43,22 +43,22 @@ BOOST_PP_ENUM_TRAILING(N, NORMAL_ARGS, _)) \
     uint16_t linearThreadIdx = threadIdx.z * SuperCellSize::x::value * SuperCellSize::y::value + \
                                threadIdx.y * SuperCellSize::x::value + threadIdx.x; \
     \
+    typedef typename TParticlesBox::FramePtr FramePtr; \
     typedef typename TParticlesBox::FrameType Frame; \
-    __shared__ Frame* frame; \
-    __shared__ bool isValid; \
+    __shared__ typename PMacc::GetNoInitType<FramePtr>::type frame; \
     __shared__ uint16_t particlesInSuperCell; \
     __syncthreads(); /*wait that all shared memory is initialised*/ \
     \
     if(linearThreadIdx == 0) \
     { \
-        frame = &(pb.getLastFrame(superCellIdx, isValid)); \
+        frame = pb.getLastFrame(superCellIdx); \
         particlesInSuperCell = pb.getSuperCell(superCellIdx).getSizeLastFrame(); \
     } \
     __syncthreads(); \
     \
-    if (!isValid) return; /* leave kernel if we have no frames*/ \
+    if (!frame.isValid()) return; /* leave kernel if we have no frames*/ \
     \
-    while (isValid) \
+    while (frame.isValid()) \
     { \
         if (linearThreadIdx < particlesInSuperCell) \
         { \
@@ -70,7 +70,7 @@ BOOST_PP_ENUM_TRAILING(N, NORMAL_ARGS, _)) \
         __syncthreads(); \
         if (linearThreadIdx == 0) \
         { \
-            frame = &(pb.getPreviousFrame(*frame, isValid)); \
+            frame = pb.getPreviousFrame(frame); \
             particlesInSuperCell = PMacc::math::CT::volume<SuperCellSize>::type::value; \
         } \
         __syncthreads(); \
