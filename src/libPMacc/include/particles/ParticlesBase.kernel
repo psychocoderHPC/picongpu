@@ -70,11 +70,11 @@ __global__ void kernelShiftParticles( ParBox pb, Mapping mapper )
 
     typedef typename ParBox::FramePtr FramePtr;
 
-    __shared__ typename GetNoInitType<FramePtr>::type destFrames[Exchanges];
+    __shared__ typename PMacc::traits::GetEmptyDefaultConstructibleType<FramePtr>::type destFrames[Exchanges];
     __shared__ int destFramesCounter[Exchanges]; //count particles per frame
     __shared__ bool anyDestFrameFull; //flag if any destination Frame is full
 
-    __shared__ typename GetNoInitType<FramePtr>::type frame;
+    __shared__ typename PMacc::traits::GetEmptyDefaultConstructibleType<FramePtr>::type frame;
     __shared__ bool mustShift;
 
     __syncthreads( ); /*wait that all shared memory is initialised*/
@@ -193,7 +193,7 @@ __global__ void kernelShiftParticles( ParBox pb, Mapping mapper )
             if ( direction >= 0 && destParticleIdx >= TileSize )
             {
                 destParticleIdx -= TileSize;
-                PMACC_AUTO( parDestFull, (destFrames[direction][destParticleIdx] );
+                PMACC_AUTO( parDestFull, destFrames[direction][destParticleIdx] );
                 /*enable particle*/
                 parDestFull[multiMask_] = 1;
                 /* we not update multiMask because copy from mem to mem is too slow
@@ -208,7 +208,7 @@ __global__ void kernelShiftParticles( ParBox pb, Mapping mapper )
             //only flush because no destination is full
             if ( direction >= 0 )
             {
-                PMACC_AUTO( parDestFull, (destFrames[direction][destParticleIdx] );
+                PMACC_AUTO( parDestFull, destFrames[direction][destParticleIdx] );
                 /*enable particle*/
                 parDestFull[multiMask_] = 1;
                 /* we not update multiMask because copy from mem to mem is to slow
@@ -265,7 +265,7 @@ __global__ void kernelFillGapsLastFrame( ParBox pb, Mapping mapper )
 
     DataSpace<Dim> superCellIdx = mapper.getSuperCellIndex( DataSpace<Dim > (blockIdx) );
 
-    __shared__ typename GetNoInitType<FramePtr>::type lastFrame;
+    __shared__ typename PMacc::traits::GetEmptyDefaultConstructibleType<FramePtr>::type lastFrame;
 
     __shared__ int gapIndices_sh[TileSize];
     __shared__ int counterGaps;
@@ -306,7 +306,7 @@ __global__ void kernelFillGapsLastFrame( ParBox pb, Mapping mapper )
             //any particle search a gap
             const int srcGapIdx = nvidia::atomicAllInc( &srcGap );
             const int gapIdx = gapIndices_sh[srcGapIdx];
-            PMACC_AUTO( parDestFull, (lastFrame[gapIdx]) );
+            PMACC_AUTO( parDestFull, lastFrame[gapIdx] );
             /*enable particle*/
             parDestFull[multiMask_] = 1;
             /* we not update multiMask because copy from mem to mem is to slow
@@ -338,8 +338,8 @@ __global__ void kernelFillGaps( ParBox pb, Mapping mapper )
     DataSpace<Dim> superCellIdx( mapper.getSuperCellIndex( DataSpace<Dim > (blockIdx) ) );
 
     //data copied from right (last) to left (first)
-    __shared__ typename GetNoInitType<FramePtr>::type firstFrame;
-    __shared__ typename GetNoInitType<FramePtr>::type lastFrame;
+    __shared__ typename PMacc::traits::GetEmptyDefaultConstructibleType<FramePtr>::type firstFrame;
+    __shared__ typename PMacc::traits::GetEmptyDefaultConstructibleType<FramePtr>::type lastFrame;
 
     __shared__ int particleIndices_sh[TileSize];
     __shared__ int counterGaps;
@@ -448,7 +448,7 @@ __global__ void kernelDeleteParticles( T_ParticleBox pb,
     DataSpace<Dim> superCellIdx = mapper.getSuperCellIndex( DataSpace<Dim > (blockIdx) );
     const int linearThreadIdx = threadIdx.x;
 
-    __shared__ typename GetNoInitType<FramePtr>::type frame;
+    __shared__ typename PMacc::traits::GetEmptyDefaultConstructibleType<FramePtr>::type frame;
 
 
     __syncthreads( ); /*wait that all shared memory is initialised*/
@@ -498,7 +498,7 @@ __global__ void kernelBashParticles( ParBox pb,
     DataSpace<Dim> superCellIdx = mapper.getSuperCellIndex( DataSpace<Dim > (blockIdx) );
 
     __shared__ int numBashedParticles;
-    __shared__ typename GetNoInitType<FramePtr>::type frame;
+    __shared__ typename PMacc::traits::GetEmptyDefaultConstructibleType<FramePtr>::type frame;
     __shared__ bool hasMemory;
     __shared__ TileDataBox<BORDER> tmpBorder;
 
@@ -584,7 +584,7 @@ __global__ void kernelInsertParticles( ParBox pb,
     };
 
     typedef typename ParBox::FramePtr FramePtr;
-    __shared__ typename GetNoInitType<FramePtr>::type frame;
+    __shared__ typename PMacc::traits::GetEmptyDefaultConstructibleType<FramePtr>::type frame;
     __shared__ int elementCount;
     __shared__ TileDataBox<BORDER> tmpBorder;
 

@@ -23,19 +23,19 @@
 
 #include "types.h"
 #include "particles/memory/dataTypes/Pointer.hpp"
+#include "traits/GetEmptyDefaultConstructibleType.hpp"
+#include "expressions/DoNothing.hpp"
+#include "expressions/SetToNull.hpp"
 
 
 namespace PMacc
 {
 
-template<typename T_Type>
-struct GetNoInitType;
-
 /** wrapper for native C pointer
  *
  * @tparam T_Type type of the pointed object
  */
-template <typename T_Type, typename T_InitMethod = detail::InitWithNULL>
+template <typename T_Type, typename T_InitMethod = expressions::SetToNull>
 class FramePointer : public Pointer<T_Type, T_InitMethod>
 {
 private:
@@ -88,10 +88,14 @@ public:
 
 };
 
-template<typename T_Type, typename T_InitMethod>
-struct GetNoInitType<FramePointer<T_Type, T_InitMethod> >
+namespace traits
 {
-    typedef FramePointer<T_Type, detail::NoInit> type;
+
+template<typename T_Type, typename T_InitMethod>
+struct GetEmptyDefaultConstructibleType<FramePointer<T_Type, T_InitMethod> >
+{
+    typedef FramePointer<T_Type, expressions::DoNothing> type;
 };
+} //namespace traits
 
 } //namespace PMacc

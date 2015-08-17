@@ -71,7 +71,7 @@ __global__ void kernelFillGridWithParticles(T_GasProfile gasFunctor,
     typedef typename ParBox::FramePtr FramePtr;
     const DataSpace<simDim> superCells(mapper.getGridSuperCells());
 
-    __shared__ typename GetNoInitType<FramePtr>::type frame;
+    __shared__ typename PMacc::traits::GetEmptyDefaultConstructibleType<FramePtr>::type frame;
 
     __syncthreads(); /*wait that all shared memory is initialised*/
 

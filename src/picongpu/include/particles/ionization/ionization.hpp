@@ -114,8 +114,8 @@ __global__ void kernelIonizeParticles(ParBoxIons ionBox,
 
     __syncthreads();
 
-    __shared__ typename GetNoInitType<IonFramePtr>::type ionFrame;
-    __shared__ typename GetNoInitType<ElectronFramePtr>::type electronFrame;
+    __shared__ typename PMacc::traits::GetEmptyDefaultConstructibleType<IonFramePtr>::type ionFrame;
+    __shared__ typename PMacc::traits::GetEmptyDefaultConstructibleType<ElectronFramePtr>::type electronFrame;
     __shared__ lcellId_t maxParticlesInFrame;
 
     __syncthreads(); /*wait that all shared memory is initialized*/

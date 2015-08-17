@@ -47,7 +47,7 @@ __global__ void kernelCountParticles(PBox pb,
     typedef typename PBox::FramePtr FramePtr;
     const uint32_t Dim = Mapping::Dim;
 
-    __shared__ typename GetNoInitType<FramePtr>::type frame;
+    __shared__ typename PMacc::traits::GetEmptyDefaultConstructibleType<FramePtr>::type frame;
     __shared__ int counter;
     __shared__ lcellId_t particlesInSuperCell;
 

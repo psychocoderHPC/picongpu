@@ -274,7 +274,7 @@ kernelPaintParticles3D(ParBox pb,
 {
     typedef typename ParBox::FramePtr FramePtr;
     typedef typename MappingDesc::SuperCellSize Block;
-    __shared__ typename GetNoInitType<FramePtr>::type frame;
+    __shared__ typename PMacc::traits::GetEmptyDefaultConstructibleType<FramePtr>::type frame;
     __shared__ bool isValid;
     __syncthreads(); /*wait that all shared memory is initialised*/
     bool isImageThread = false;

@@ -111,7 +111,7 @@ void kernelRadiationParticles(ParBox pb,
     typedef typename ParBox::FrameType FRAME;
     typedef typename ParBox::FramePtr FramePtr;
 
-    __shared__ typename GetNoInitType<FramePtr>::type frame; // pointer to  frame storing particles
+    __shared__ typename PMacc::traits::GetEmptyDefaultConstructibleType<FramePtr>::type frame; // pointer to  frame storing particles
     __shared__ lcellId_t particlesInFrame; // number  of particles in current frame
 
     using namespace parameters; // parameters of radiation

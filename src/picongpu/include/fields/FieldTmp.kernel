@@ -55,7 +55,7 @@ namespace picongpu
         const DataSpace<simDim > threadIndex( threadIdx );
         const int linearThreadIdx = DataSpaceOperations<simDim>::template map<SuperCellSize > ( threadIndex );
 
-        __shared__ typename GetNoInitType<FramePtr>::type frame;
+        __shared__ typename PMacc::traits::GetEmptyDefaultConstructibleType<FramePtr>::type frame;
 
         __shared__ lcellId_t particlesInSuperCell;
 

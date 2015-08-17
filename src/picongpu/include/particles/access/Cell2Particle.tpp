@@ -45,7 +45,7 @@ BOOST_PP_ENUM_TRAILING(N, NORMAL_ARGS, _)) \
     \
     typedef typename TParticlesBox::FramePtr FramePtr; \
     typedef typename TParticlesBox::FrameType Frame; \
-    __shared__ typename PMacc::GetNoInitType<FramePtr>::type frame; \
+    __shared__ typename PMacc::traits::GetEmptyDefaultConstructibleType<FramePtr>::type frame; \
     __shared__ uint16_t particlesInSuperCell; \
     __syncthreads(); /*wait that all shared memory is initialised*/ \
     \

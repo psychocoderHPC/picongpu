@@ -67,7 +67,7 @@ __global__ void kernelBinEnergyParticles(ParBox pb,
     typedef typename MappingDesc::SuperCellSize Block;
     typedef typename ParBox::FramePtr FramePtr;
 
-    __shared__ typename GetNoInitType<FramePtr>::type frame;
+    __shared__ typename PMacc::traits::GetEmptyDefaultConstructibleType<FramePtr>::type frame;
 
     __shared__ lcellId_t particlesInSuperCell;
 

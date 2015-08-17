@@ -60,7 +60,7 @@ __global__ void CountMakroParticle(ParBox parBox, CounterBox counterBox, Mapping
     const int linearThreadIdx = DataSpaceOperations<simDim>::template map<SuperCellSize > (threadIndex);
 
     __shared__ uint64_cu counterValue;
-    __shared__ typename GetNoInitType<FramePtr>::type frame;
+    __shared__ typename PMacc::traits::GetEmptyDefaultConstructibleType<FramePtr>::type frame;
 
     if (linearThreadIdx == 0)
     {

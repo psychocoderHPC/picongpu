@@ -103,7 +103,7 @@ __global__ void kernelPositionsParticles(ParBox pb,
 {
 
     typedef typename ParBox::FramePtr FramePtr;
-    __shared__ typename GetNoInitType<FramePtr>::type frame;
+    __shared__ typename PMacc::traits::GetEmptyDefaultConstructibleType<FramePtr>::type frame;
 
     __syncthreads(); /*wait that all shared memory is initialised*/
 

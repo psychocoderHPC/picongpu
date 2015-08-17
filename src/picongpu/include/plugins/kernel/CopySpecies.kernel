@@ -165,7 +165,7 @@ __global__ void copySpecies(int* counter, T_DestFrame destFrame, T_SrcBox srcBox
     typedef T_Mapping Mapping;
     typedef typename Mapping::SuperCellSize Block;
 
-    __shared__ typename GetNoInitType<SrcFramePtr>::type srcFramePtr;
+    __shared__ typename PMacc::traits::GetEmptyDefaultConstructibleType<SrcFramePtr>::type srcFramePtr;
     __shared__ int localCounter;
     __shared__ int globalOffset;
 

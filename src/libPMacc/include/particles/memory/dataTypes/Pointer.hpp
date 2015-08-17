@@ -22,6 +22,9 @@
 #pragma once
 
 #include "types.h"
+#include "traits/GetEmptyDefaultConstructibleType.hpp"
+#include "expressions/DoNothing.hpp"
+#include "expressions/SetToNull.hpp"
 
 
 namespace PMacc
@@ -57,7 +60,7 @@ struct NoInit
  *
  * @tparam T_Type type of the pointed object
  */
-template <typename T_Type, typename T_InitMethod = detail::InitWithNULL>
+template <typename T_Type, typename T_InitMethod = expressions::SetToNull>
 class Pointer
 {
 public:
@@ -72,7 +75,7 @@ public:
      */
     HDINLINE Pointer( )
     {
-        T_InitMethod::init( ptr );
+        T_InitMethod()( ptr );
     }
 
     HDINLINE Pointer( PtrType const ptrIn ) : ptr( ptrIn )
@@ -141,5 +144,15 @@ public:
 
     PMACC_ALIGN( ptr, PtrType );
 };
+
+namespace traits
+{
+
+template<typename T_Type, typename T_InitMethod>
+struct GetEmptyDefaultConstructibleType<Pointer<T_Type, T_InitMethod> >
+{
+    typedef Pointer<T_Type, expressions::DoNothing> type;
+};
+} //namespace traits
 
 } //namespace PMacc

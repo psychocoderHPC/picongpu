@@ -64,9 +64,9 @@ __global__ void kernelCloneParticles(T_MyParBox myBox, T_OtherFrameBox otherBox,
     typedef typename T_MyParBox::FramePtr MyFramePtr;
     typedef typename T_OtherFrameBox::FramePtr OtherFramePtr;
 
-    __shared__ typename GetNoInitType<OtherFramePtr>::type frame;
+    __shared__ typename PMacc::traits::GetEmptyDefaultConstructibleType<OtherFramePtr>::type frame;
 
-    __shared__ typename GetNoInitType<MyFramePtr>::type myFrame;
+    __shared__ typename PMacc::traits::GetEmptyDefaultConstructibleType<MyFramePtr>::type myFrame;
 
 
     typedef typename Mapping::SuperCellSize SuperCellSize;
@@ -121,7 +121,7 @@ __global__ void kernelManipulateAllParticles(T_ParBox pb,
                                              Mapping mapper)
 {
     typedef typename T_ParBox::FramePtr FramePtr;
-    __shared__ typename GetNoInitType<FramePtr>::type frame;
+    __shared__ typename PMacc::traits::GetEmptyDefaultConstructibleType<FramePtr>::type frame;
 
     typedef typename Mapping::SuperCellSize SuperCellSize;
 

@@ -59,7 +59,7 @@ __global__ void kernelEnergyParticles(ParBox pb,
 {
 
     typedef typename ParBox::FramePtr FramePtr;
-    __shared__ typename GetNoInitType<FramePtr>::type frame; /* pointer to particle data frame */
+    __shared__ typename PMacc::traits::GetEmptyDefaultConstructibleType<FramePtr>::type frame; /* pointer to particle data frame */
     __shared__ float_X shEnergyKin; /* shared kinetic energy */
     __shared__ float_X shEnergy; /* shared total energy */
     __syncthreads(); /* wait that all shared memory is initialised */
