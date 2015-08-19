@@ -1,5 +1,5 @@
 /**
- * Copyright 2013 Felix Schmitt, Rene Widera
+ * Copyright 2013-2015 Felix Schmitt, Rene Widera, Benjamin Worpitz
  *
  * This file is part of libPMacc.
  *
@@ -24,6 +24,8 @@
 
 #include "eventSystem/tasks/ITask.hpp"
 #include "eventSystem/events/CudaEvent.hpp"
+
+#include <memory>
 
 namespace PMacc
 {
@@ -77,7 +79,7 @@ namespace PMacc
          *
          * @return pointer to the EventStream
          */
-        EventStream* getEventStream();
+        EventStream* getEventStream() const;
 
         /**
          * Sets the EventStream for this StreamTask.
@@ -85,14 +87,6 @@ namespace PMacc
          * @param newStream new event stream
          */
         void setEventStream(EventStream* newStream);
-
-        /**
-         * Returns the cuda stream of the underlying EventStream.
-         *
-         * @return the associated cuda stream
-         */
-        cudaStream_t getCudaStream();
-
 
     protected:
 
@@ -103,9 +97,8 @@ namespace PMacc
 
 
     private:
-        EventStream *stream;
-        CudaEvent cudaEvent;
-        bool hasCudaEvent;
+        mutable EventStream* stream;
+        std::unique_ptr<CudaEvent> cudaEvent;
         bool alwaysFinished;
     };
 

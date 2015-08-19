@@ -24,7 +24,6 @@
 
 #include "types.h"
 #include "particles/boostExtension/InheritLinearly.hpp"
-#include <boost/utility/result_of.hpp>
 #include <boost/type_traits.hpp>
 #include <boost/mpl/if.hpp>
 #include "traits/HasIdentifier.hpp"
@@ -103,26 +102,18 @@ struct Particle : public InheritLinearly<typename T_FrameType::MethodsList>
      * @return result of operator[] of the Frame
      */
     template<typename T_Key >
-    HDINLINE
-    typename boost::result_of<
-    typename boost::remove_reference<
-    typename boost::result_of < FrameType(T_Key)>::type
-    >::type(uint32_t)
-    >::type
+    HDINLINE auto
     operator[](const T_Key key)
+    -> decltype(frame->getIdentifier(key)[idx])
     {
         return frame->getIdentifier(key)[idx];
     }
 
     /** const version of method operator(const T_Key) */
     template<typename T_Key >
-    HDINLINE
-    typename boost::result_of<
-    typename boost::remove_reference<
-    typename boost::result_of <const FrameType(T_Key)>::type
-    >::type(uint32_t)
-    >::type
+    HDINLINE auto
     operator[](const T_Key key) const
+    -> decltype(frame->getIdentifier(key)[idx])
     {
 
         return frame->getIdentifier(key)[idx];

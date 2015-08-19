@@ -27,6 +27,8 @@
 #include "memory/buffers/Buffer.hpp"
 #include "memory/buffers/DeviceBuffer.hpp"
 
+#include <alpaka/alpaka.hpp>
+
 #include <cassert>
 
 namespace PMacc
@@ -41,29 +43,40 @@ template <class TYPE, unsigned DIM>
 class MappedBufferIntern : public DeviceBuffer<TYPE, DIM>
 {
 public:
+    using DataBufHost = alpaka::mem::buf::Buf<
+        AlpakaDev,
+        TYPE,
+        alpaka::dim::DimInt<DIM>,
+        std::size_t>;
+    using DataBufDev = alpaka::mem::buf::BufPlainPtrWrapper<
+        AlpakaDev,
+        std::uint32_t,
+        alpaka::dim::DimInt<DIM>,
+        std::size_t>;
 
-    typedef typename DeviceBuffer<TYPE, DIM>::DataBoxType DataBoxType;
+    using DataBoxType = typename DeviceBuffer<TYPE, DIM>::DataBoxType;
 
-    MappedBufferIntern(DataSpace<DIM> dataSpace) throw (std::bad_alloc) :
-    DeviceBuffer<TYPE, DIM>(dataSpace),
-    pointer(NULL), ownPointer(true)
+    MappedBufferIntern(DataSpace<DIM> dataSpace) :
+        DeviceBuffer<TYPE, DIM>(dataSpace),
+        m_dataBufHost(createData()),
+        m_dataBufDev(
+                alpaka::mem::getPtrDev(m_dataBufHost, Environment<>::get().DeviceManager().getDevice()),
+                Environment<>::get().DeviceManager().getDevice(),
+                dataSpace),
+        m_dataViewDev(alpaka::mem::view::createView<DataViewDev>(m_dataBufDev))
     {
-        CUDA_CHECK(cudaMallocHost(&pointer, dataSpace.productOfComponents() * sizeof (TYPE), cudaHostAllocMapped));
         reset(false);
     }
 
     /**
      * destructor
      */
-    virtual ~MappedBufferIntern() throw (std::runtime_error)
+    virtual ~MappedBufferIntern()
     {
         __startOperation(ITask::TASK_CUDA);
         __startOperation(ITask::TASK_HOST);
 
-        if (pointer && ownPointer)
-        {
-            CUDA_CHECK(cudaFreeHost(pointer));
-        }
+        alpaka::mem::buf::unmap(buf, Environment<>::get().DeviceManager().getDevice());
     }
 
     /*! Get unchanged device pointer of memory
@@ -72,7 +85,7 @@ public:
     TYPE* getBasePointer()
     {
         __startOperation(ITask::TASK_HOST);
-        return (TYPE*) this->getCudaPitched().ptr;
+        return alpaka::mem::getPtrDev(m_dataBufHost, Environment<>::get().DeviceManager().getDevice());
     }
 
     /*! Get device pointer of memory
@@ -82,10 +95,101 @@ public:
      *
      * @return device pointer to memory
      */
-    TYPE* getPointer()
+    TYPE const * getPointer() const
+    {
+        return getBasePointer();
+    }
+    TYPE * getPointer()
+    {
+        return getBasePointer();
+    }
+
+    void setCurrentSize(const size_t size)
+    {
+        Buffer<TYPE, DIM>::setCurrentSize(size);
+    }
+
+    void reset(bool preserveData = true)
     {
         __startOperation(ITask::TASK_HOST);
-        return (TYPE*) this->getCudaPitched().ptr;
+        this->setCurrentSize(this->getDataSpace().productOfComponents());
+        if (!preserveData)
+        {
+            AlpakaStream stream(Environment<>::get().DeviceManager().getDevice());
+            alpaka::mem::view::set(
+                stream,
+                m_dataBufHost,
+                0,
+                this->getDataSpace());
+            alpaka::wait::wait(stream);
+        }
+    }
+
+    void setValue(const TYPE& value)
+    {
+        __startOperation(ITask::TASK_HOST);
+        size_t current_size = this->getCurrentSize();
+        for(size_t i = 0; i < current_size; i++)
+        {
+            alpaka::mem::view::getPtrNative(m_dataBufHost)[i] = value;
+        }
+    }
+
+    DataBoxType getDataBox()
+    {
+        __startOperation(ITask::TASK_CUDA);
+        return DataBoxType(
+            PitchedBox<TYPE, DIM>(
+                getBasePointer(),
+                getOffset(),
+                getDataSpace(),
+                getPitch()));
+    }
+
+    DataBoxType getHostDataBox()
+    {
+        __startOperation(ITask::TASK_HOST);
+        return DataBoxType(
+            PitchedBox<TYPE, DIM>(
+                alpaka::mem::view::getPtrNative(m_dataBufHost),
+                getOffset(),
+                getDataSpace(),
+                getPitch()));
+    }
+
+    DataSpace<DIM> getOffset() const
+    {
+        return DataSpace<DIM>();
+    }
+
+    bool hasSizeOnAcc() const
+    {
+        return false;
+    }
+
+    SizeBufDev const & getMemBufSizeAcc() const
+    {
+        throw std::logic_error("getMemBufSizeAcc not implemented by this class");
+    }
+
+    SizeBufDev & getMemBufSizeAcc()
+    {
+        throw std::logic_error("getMemBufSizeAcc not implemented by this class");
+    }
+
+    DataViewDev const & getMemBufView() const
+    {
+        return m_dataViewDev;
+    }
+
+    DataViewDev & getMemBufView()
+    {
+        return m_dataViewDev;
+    }
+
+    size_t getPitch() const
+    {
+        return alpaka::mem::view::getPitchBytes<0u, size_t>(m_dataBufHost);
     }
 
     void copyFrom(HostBuffer<TYPE, DIM>& other)
@@ -104,93 +208,29 @@ public:
         __setTransactionEvent(__endTransaction());
     }
 
-    void reset(bool preserveData = true)
-    {
-        __startOperation(ITask::TASK_HOST);
-        this->setCurrentSize(this->getDataSpace().productOfComponents());
-        if (!preserveData)
-            memset(pointer, 0, this->getDataSpace().productOfComponents() * sizeof (TYPE));
-    }
-
-    void setValue(const TYPE& value)
-    {
-        __startOperation(ITask::TASK_HOST);
-        size_t current_size = this->getCurrentSize();
-        for (size_t i = 0; i < current_size; i++)
-        {
-            pointer[i] = value;
-        }
-    }
-
-    bool hasCurrentSizeOnDevice() const
-    {
-        return false;
-    }
-    
-    virtual size_t* getCurrentSizeHostSidePointer()
-    {
-        return this->current_size;
-    }
-
-    size_t* getCurrentSizeOnDevicePointer() throw (std::runtime_error)
-    {
-        return NULL;
-    }
-
-    DataSpace<DIM> getOffset() const
-    {
-        return DataSpace<DIM>();
-    }
-
-    void setCurrentSize(const size_t size)
-    {
-        Buffer<TYPE, DIM>::setCurrentSize(size);
-    }
-
-    const cudaPitchedPtr getCudaPitched() const
+private:
+    /*! create native array with pitched lines
+        */
+    DataBufHost createData()
     {
         __startOperation(ITask::TASK_CUDA);
-        TYPE* dPointer;
-        cudaHostGetDevicePointer(&dPointer, pointer, 0);
-        
-        /* on 1D memory we have no size for y, therefore we set y to 1 to
-         * get a valid cudaPitchedPtr
-         */
-        int size_y=1;
-        if(DIM>DIM1)
-            size_y= this->data_space[1];
-            
-        return make_cudaPitchedPtr(dPointer,
-                                   this->data_space.x() * sizeof (TYPE),
-                                   this->data_space.x(),
-                                   size_y
-                                   );
-    }
-    
-    size_t getPitch() const
-    {
-        return this->data_space.x() * sizeof (TYPE);
-    }
 
-    DataBoxType getHostDataBox()
-    {
-        __startOperation(ITask::TASK_HOST);
-        return DataBoxType(PitchedBox<TYPE, DIM > (pointer, DataSpace<DIM > (),
-                                                   this->data_space, this->data_space[0] * sizeof (TYPE)));
-    }
+        log<ggLog::MEMORY>("Create mapped device %1%D data: %2% MiB") % DIM % (getDataSpace().productOfComponents() * sizeof(TYPE) / 1024 / 1024 );
 
-    DataBoxType getDataBox()
-    {
-        __startOperation(ITask::TASK_CUDA);
-        TYPE* dPointer;
-        cudaHostGetDevicePointer(&dPointer, pointer, 0);
-        return DataBoxType(PitchedBox<TYPE, DIM > (dPointer, DataSpace<DIM > (),
-                                                   this->data_space, this->data_space[0] * sizeof (TYPE)));
+        DataBufHost buf(alpaka::mem::buf::alloc<TYPE, std::size_t>(
+            alpaka::dev::cpu::getDev(),
+            getDataSpace()));
+
+        alpaka::mem::buf::map(
+            buf,
+            Environment<>::get().DeviceManager().getDevice());
+
+        return buf;
     }
 
 private:
-    TYPE* pointer;
-    bool ownPointer;
+    DataBufHost m_dataBufHost;
+    DataBufDev m_dataBufDev;
+    DataViewDev m_dataViewDev;
 };
-
 }

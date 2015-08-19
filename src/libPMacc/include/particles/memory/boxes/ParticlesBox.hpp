@@ -79,7 +79,7 @@ public:
      *
      * @return an empty frame
      */
-    DINLINE FRAME &getEmptyFrame()
+    DINLINE FRAME &getEmptyFrame() const
     {
         FrameType* tmp = NULL;
         const int maxTries = 13; //magic number is not performance critical
@@ -91,8 +91,10 @@ public:
                 /* disable all particles since we can not assume that newly allocated memory contains zeros */
                 for (int i = 0; i < (int) math::CT::volume<typename FrameType::SuperCellSize>::type::value; ++i)
                     (*tmp)[i][multiMask_] = 0;
+#ifdef __CUDA_ARCH__
                 /* takes care that changed values are visible to all threads inside this block*/
                 __threadfence_block();
+#endif
                 break;
             }
             else
@@ -112,13 +114,13 @@ public:
      *
      * @param frame FRAME to remove
      */
-    DINLINE void removeFrame(FRAME &frame)
+    DINLINE void removeFrame(FRAME &frame) const
     {
         mallocMC::free((void*) &frame);
     }
 
     HDINLINE
-    FrameType* mapPtr(FrameType* devPtr)
+    FrameType* mapPtr(FrameType* devPtr) const
     {
 #ifndef __CUDA_ARCH__
         int64_t useOffset=hostMemoryOffset*static_cast<int64_t>(devPtr!=0);
@@ -134,7 +136,7 @@ public:
      * @param frame the active FRAME
      * @return the next frame in the list
      */
-    HDINLINE FRAME& getNextFrame(FRAME &frame, bool &isValid)
+    HDINLINE FRAME& getNextFrame(FRAME &frame, bool &isValid) const
     {
         FramePtr tmp(mapPtr(frame.nextFrame.ptr));
         isValid = tmp.isValid();
@@ -147,7 +149,7 @@ public:
      * @param frame the active FRAME
      * @return the previous frame in the list
      */
-    HDINLINE FRAME& getPreviousFrame(FRAME &frame, bool &isValid)
+    HDINLINE FRAME& getPreviousFrame(FRAME &frame, bool &isValid) const
     {
         FramePtr tmp(mapPtr(frame.previousFrame.ptr));
         isValid = tmp.isValid();
@@ -160,7 +162,7 @@ public:
      * @param idx position of supercell
      * @return the last FRAME of the linked list from supercell
      */
-    HDINLINE FRAME& getLastFrame(const DataSpace<DIM> &idx, bool &isValid)
+    HDINLINE FRAME& getLastFrame(const DataSpace<DIM> &idx, bool &isValid) const
     {
         FramePtr tmp = FramePtr(mapPtr(getSuperCell(idx).LastFramePtr()));
         isValid = tmp.isValid();
@@ -173,7 +175,7 @@ public:
      * @param idx position of supercell
      * @return the first FRAME of the linked list from supercell
      */
-    HDINLINE FRAME& getFirstFrame(const DataSpace<DIM> &idx, bool &isValid)
+    HDINLINE FRAME& getFirstFrame(const DataSpace<DIM> &idx, bool &isValid) const
     {
         FramePtr tmp = FramePtr(mapPtr(getSuperCell(idx).FirstFramePtr()));
         isValid = tmp.isValid();
@@ -187,7 +189,9 @@ public:
      * @param frame frame to set as first frame
      * @param idx position of supercell
      */
-    DINLINE void setAsFirstFrame(FRAME &frameIn, const DataSpace<DIM> &idx)
+    template<
+        typename T_Acc>
+    DINLINE void setAsFirstFrame(T_Acc const & acc, FRAME &frameIn, const DataSpace<DIM> &idx) const
     {
         FramePtr frame(&frameIn);
         FrameType** firstFrameNativPtr = &(getSuperCell(idx).firstFramePtr);
@@ -199,9 +203,14 @@ public:
          * - this is needed because later on in this method we change `previous`
          *   of an other frame, this must be done in order!
          */
+#ifdef __CUDA_ARCH__
         __threadfence();
+#endif
 
-        FramePtr oldFirstFramePtr((FrameType*) atomicExch((unsigned long long int*) firstFrameNativPtr, (unsigned long long int) frame.ptr));
+        FramePtr oldFirstFramePtr((FrameType*) alpaka::atomic::atomicOp<alpaka::atomic::op::Exch>(
+            acc,
+            (unsigned long long int*) firstFrameNativPtr,
+            (unsigned long long int) frame.ptr));
 
         frame->nextFrame = oldFirstFramePtr;
         if (oldFirstFramePtr.isValid())
@@ -221,7 +230,9 @@ public:
      * @param frame frame to set as last frame
      * @param idx position of supercell
      */
-    DINLINE void setAsLastFrame(FRAME &frameIn, const DataSpace<DIM> &idx)
+    template<
+        typename T_Acc>
+    DINLINE void setAsLastFrame(T_Acc const & acc, FRAME &frameIn, const DataSpace<DIM> &idx) const
     {
         FramePtr frame(&frameIn);
         FrameType** lastFrameNativPtr = &(getSuperCell(idx).lastFramePtr);
@@ -232,9 +243,14 @@ public:
          * - this is needed because later on in this method we change `next`
          *   of an other frame, this must be done in order!
          */
+#ifdef __CUDA_ARCH__
         __threadfence();
+#endif
 
-        FramePtr oldLastFramePtr((FrameType*) atomicExch((unsigned long long int*) lastFrameNativPtr, (unsigned long long int) frame.ptr));
+        FramePtr oldLastFramePtr((FrameType*) alpaka::atomic::atomicOp<alpaka::atomic::op::Exch>(
+            acc,
+            (unsigned long long int*) lastFrameNativPtr,
+            (unsigned long long int) frame.ptr));
 
         frame->previousFrame = oldLastFramePtr;
         if (oldLastFramePtr.isValid())
@@ -254,7 +270,7 @@ public:
      * @param idx position of supercell
      * @return true if more frames in list, else false
      */
-    DINLINE bool removeLastFrame(const DataSpace<DIM> &idx)
+    DINLINE bool removeLastFrame(const DataSpace<DIM> &idx) const
     {
         //!\todo this is not thread save
         FrameType** lastFrameNativPtr = &(getSuperCell(idx).lastFramePtr);
@@ -280,7 +296,7 @@ public:
         return false;
     }
 
-    HDINLINE SuperCellType& getSuperCell(DataSpace<DIM> idx)
+    HDINLINE SuperCellType& getSuperCell(DataSpace<DIM> idx) const
     {
         return BaseType::operator()(idx);
     }

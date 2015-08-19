@@ -1,5 +1,5 @@
 /**
- * Copyright 2014 Axel Huebl
+ * Copyright 2014-2015 Axel Huebl, Benjamin Worpitz
  *
  * This file is part of PIConGPU.
  *
@@ -22,7 +22,6 @@
 
 #include "types.h"
 #include "simulation_defines.hpp"
-#include "basicOperations.hpp"
 
 #include "dimensions/DataSpace.hpp"
 #include "mappings/simulation/SubGrid.hpp"
@@ -45,25 +44,35 @@ namespace cellwiseOperation
      * \tparam FieldBox field type
      * \tparam Mapping auto attached argument from __picKernelArea call
      */
-    template<
-        class T_OpFunctor,
-        class T_ValFunctor,
-        class FieldBox,
-        class Mapping>
-    __global__ void
-    kernelCellwiseOperation( FieldBox field, T_OpFunctor opFunctor, T_ValFunctor valFunctor, const DataSpace<simDim> totalCellOffset,
-        const uint32_t currentStep, Mapping mapper )
+    struct KernelCellwiseOperation
     {
-        const DataSpace<simDim> block( mapper.getSuperCellIndex( DataSpace<simDim>( blockIdx ) ) );
-        const DataSpace<simDim> blockCell = block * MappingDesc::SuperCellSize::toRT();
+    template<
+        typename T_Acc,
+        typename T_OpFunctor,
+        typename T_ValFunctor,
+        typename FieldBox,
+        typename Mapping>
+    ALPAKA_FN_ACC void operator()(
+        T_Acc const & acc,
+        FieldBox const & field,
+        T_OpFunctor const & opFunctor,
+        T_ValFunctor const & valFunctor,
+        DataSpace<simDim> const & totalCellOffset,
+        uint32_t const & currentStep,
+        Mapping const & mapper) const
+    {
+        DataSpace<simDim> const blockIndex(alpaka::idx::getIdx<alpaka::Grid, alpaka::Blocks>(acc));
+        DataSpace<simDim> const threadIndex(alpaka::idx::getIdx<alpaka::Block, alpaka::Threads>(acc));
 
-        const DataSpace<simDim> threadIndex( threadIdx );
+        const DataSpace<simDim> block( mapper.getSuperCellIndex( DataSpace<simDim>(blockIndex) ) );
+        const DataSpace<simDim> blockCell = block * MappingDesc::SuperCellSize::toRT();
 
         opFunctor( field( blockCell + threadIndex ),
                    valFunctor( blockCell + threadIndex + totalCellOffset,
                                currentStep )
                  );
     }
+    };
 
     /** Call a functor on each cell of a field
      *
@@ -110,10 +119,19 @@ namespace cellwiseOperation
             else if( T_Area == CORE )
                 totalCellOffset += cellDescription.getSuperCellSize() * cellDescription.getBorderSuperCells();
 
+            KernelCellwiseOperation kernelCellwiseOperation;
             /* start kernel */
-            __picKernelArea((kernelCellwiseOperation<T_OpFunctor>), cellDescription, T_Area)
-                    (SuperCellSize::toRT().toDim3())
-                    (field->getDeviceDataBox(), opFunctor, valFunctor, totalCellOffset, currentStep);
+            __picKernelArea(
+                kernelCellwiseOperation,
+                alpaka::dim::DimInt<simDim>,
+                cellDescription,
+                T_Area,
+                SuperCellSize::toRT())(
+                    field->getDeviceDataBox(),
+                    opFunctor,
+                    valFunctor,
+                    totalCellOffset,
+                    currentStep);
         }
     };
 

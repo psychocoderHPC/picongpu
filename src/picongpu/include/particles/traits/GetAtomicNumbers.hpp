@@ -21,7 +21,6 @@
 #pragma once
 
 #include "simulation_defines.hpp"
-#include "static_assert.hpp"
 #include "traits/GetFlagType.hpp"
 #include "traits/Resolve.hpp"
 #include "particles/memory/frames/Frame.hpp"
@@ -37,8 +36,10 @@ struct GetAtomicNumbers
     
     typedef typename HasFlag<FrameType, atomicNumbers<> >::type hasAtomicNumbers;
     /* throw static assert if species has no protons or neutrons */
-    PMACC_CASSERT_MSG(This_species_has_no_atomic_numbers,hasAtomicNumbers::value==true);
-            
+    static_assert(
+        hasAtomicNumbers::value,
+        "This species has no atomic numbers");
+
     typedef typename GetFlagType<FrameType,atomicNumbers<> >::type FoundAtomicNumbersAlias;
     typedef typename PMacc::traits::Resolve<FoundAtomicNumbersAlias >::type type;
 };

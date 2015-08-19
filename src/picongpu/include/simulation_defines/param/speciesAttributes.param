@@ -115,7 +115,7 @@ alias(densityRatio);
 template<uint32_t T_commTag>
 struct CommunicationId
 {
-    static const uint32_t CommunicationTag=T_commTag;
+    static constexpr uint32_t CommunicationTag=T_commTag;
 };
 
 } //namespace picongpu

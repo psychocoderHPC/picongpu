@@ -48,7 +48,7 @@ namespace picongpu
         DINLINE void
         operator()( Type& dest, const Type src )
         {
-            atomicAddWrapper( &dest, src );
+            alpaka::atomic::atomicOp<alpaka::atomic::op::Add>(acc, &dest, src );
         }
     };
 
@@ -108,7 +108,7 @@ namespace picongpu
             p_bin < num_pbins ? /* do not change p_bin */ : p_bin=num_pbins-1;
 
             /** \todo take particle shape into account */
-            atomicAddWrapper( &(*curDBufferOriginInBlock( p_bin, r_bin )),
+            alpaka::atomic::atomicOp<alpaka::atomic::op::Add>(acc, &(*curDBufferOriginInBlock( p_bin, r_bin )),
                               particleChargeDensity );
         }
     };
@@ -180,7 +180,7 @@ namespace picongpu
                                       dBufferInBlock.origin(),
                                       _1 = float_PS(0.0) );
             }
-            __syncthreads();
+            acc.syncBlockThreads();
 
             FunctorParticle<r_dir, num_pbins, SuperCellSize> functorParticle;
             particleAccess::Cell2Particle<SuperCellSize> forEachParticleInCell;
@@ -192,7 +192,7 @@ namespace picongpu
                                    axis_p_range
                                  );
 
-            __syncthreads();
+            acc.syncBlockThreads();
             /* add to global dBuffer */
             forEachThreadInBlock( /* area to work on */
                                   dBufferInBlock.zone(),

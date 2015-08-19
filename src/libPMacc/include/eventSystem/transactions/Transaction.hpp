@@ -23,6 +23,7 @@
 #pragma once
 
 #include "eventSystem/EventSystem.hpp"
+#include <memory>
 
 namespace PMacc
 {
@@ -41,7 +42,7 @@ public:
      *
      * @param event initial EventTask for base event
      */
-    Transaction(EventTask event, bool isAtomic = false);
+    Transaction(EventTask const & event, bool isAtomic = false);
 
     /**
      * Adds event to the base event of this transaction.
@@ -72,8 +73,8 @@ public:
     EventStream* getEventStream(ITask::TaskType operation);
 
 private:
-    EventTask baseEvent;
-    EventStream *eventStream;
+    std::unique_ptr<EventTask> baseEvent;
+    EventStream* eventStream;
     bool isAtomic;
 
 };

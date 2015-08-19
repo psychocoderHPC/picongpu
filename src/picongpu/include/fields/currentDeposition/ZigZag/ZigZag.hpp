@@ -23,7 +23,6 @@
 #include "simulation_defines.hpp"
 #include "types.h"
 #include "dimensions/DataSpace.hpp"
-#include "basicOperations.hpp"
 #include <cuSTL/cursor/tools/twistVectorFieldAxes.hpp>
 #include "algorithms/FieldToParticleInterpolation.hpp"
 #include "algorithms/ShiftCoordinateSystem.hpp"
@@ -99,9 +98,15 @@ template<typename T_GridPointVec, typename T_Shape, typename T_CurrentComponent>
 struct AssignChargeToCell
 {
 
-    template<typename T_Cursor>
+    template<
+        typename T_Acc,
+        typename T_Cursor>
     HDINLINE void
-    operator()(T_Cursor& cursor, const floatD_X& pos, const float_X flux)
+    operator()(
+        T_Acc const & acc,
+        T_Cursor& cursor,
+        const floatD_X& pos,
+        const float_X flux)
     {
         typedef T_GridPointVec GridPointVec;
         typedef T_Shape Shape;
@@ -125,7 +130,7 @@ struct AssignChargeToCell
         /* shift memory cursor to cell (grid point)*/
         PMACC_AUTO(cursorToValue, cursor(GridPointVec::toRT()));
         /* add current to component of the cell*/
-        atomicAddWrapper(&((*cursorToValue)[currentComponent]), j);
+        alpaka::atomic::atomicOp<alpaka::atomic::op::Add>(acc, &((*cursorToValue)[currentComponent]), j);
     }
 };
 
@@ -227,11 +232,13 @@ struct ZigZag
      * @param charge charge of the macro particle
      * @param deltaTime dime difference of one simulation time step
      */
-    template<typename DataBoxJ, typename PosType, typename VelType, typename ChargeType >
-    DINLINE void operator()(DataBoxJ dataBoxJ,
-                            const PosType pos1,
-                            const VelType velocity,
-                            const ChargeType charge, const float_X deltaTime)
+    template<typename T_Acc, typename DataBoxJ, typename PosType, typename VelType, typename ChargeType >
+    DINLINE void operator()(
+        T_Acc const &,
+        DataBoxJ dataBoxJ,
+        const PosType pos1,
+        const VelType velocity,
+        const ChargeType charge, const float_X deltaTime)
     {
 
         floatD_X deltaPos;
@@ -328,7 +335,7 @@ private:
         /* paper version:
          *   i_1 == i_2 ? (x_1 + x_2) / float_X(2.0) : ::max(i_1, i_2);
          */
-        return i_1 == i_2 ? x_2 : ::max(i_1, i_2);
+        return i_1 == i_2 ? x_2 : PMacc::algorithms::math::max(i_1, i_2);
     }
 
     /** get normalized average in cell particle position

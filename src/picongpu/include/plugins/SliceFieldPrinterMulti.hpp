@@ -54,7 +54,7 @@ private:
 
 public:
     SliceFieldPrinterMulti();
-    virtual ~SliceFieldPrinterMulti() {}
+    virtual ~SliceFieldPrinterMulti() = default;
 
     void notify(uint32_t) {}
     void setMappingDescription(MappingDesc* desc);

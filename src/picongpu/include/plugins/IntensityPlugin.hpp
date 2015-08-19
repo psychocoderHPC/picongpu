@@ -40,7 +40,6 @@
 
 #include "fields/FieldE.hpp"
 #include "memory/boxes/CachedBox.hpp"
-#include "basicOperations.hpp"
 #include "dimensions/SuperCellDescription.hpp"
 #include "math/Vector.hpp"
 
@@ -51,68 +50,84 @@ using namespace PMacc;
 /* count particles in an area
  * is not optimized, it checks any particle position if it is really a particle
  */
-template<class FieldBox, class BoxMax, class BoxIntegral>
-__global__ void kernelIntensity(FieldBox field, DataSpace<simDim> cellsCount, BoxMax boxMax, BoxIntegral integralBox)
+struct KernelIntensity
 {
+template<
+    typename T_Acc,
+    typename FieldBox,
+    typename BoxMax,
+    typename BoxIntegral>
+ALPAKA_FN_ACC void operator()(
+    T_Acc const & acc,
+    FieldBox const & field,
+    DataSpace<simDim> const & cellsCount,
+    BoxMax const & boxMax,
+    BoxIntegral const & integralBox) const
+{
+    static_assert(
+        alpaka::dim::Dim<T_Acc>::value == 2,
+        "The KernelIntensity functor has to be called with a 2 dimensional accelerator!");
 
     typedef MappingDesc::SuperCellSize SuperCellSize;
-    __shared__ float_X s_integrated[SuperCellSize::y::value];
-    __shared__ float_X s_max[SuperCellSize::y::value];
 
-    __syncthreads(); /*wait that all shared memory is initialised*/
+    DataSpace<DIM2> const blockIndex(alpaka::idx::getIdx<alpaka::Grid, alpaka::Blocks>(acc));
+    DataSpace<DIM2> const threadIndex(alpaka::idx::getIdx<alpaka::Block, alpaka::Threads>(acc));
+
+    auto const s_integrated(alpaka::block::shared::allocArr<float_X, SuperCellSize::y::value>(acc));
+    auto const s_max(alpaka::block::shared::allocArr<float_X, SuperCellSize::y::value>(acc));
+
+    acc.syncBlockThreads(); /*wait that all shared memory is initialised*/
 
     /*descripe size of a worker block for cached memory*/
     typedef SuperCellDescription<
         PMacc::math::CT::Int<SuperCellSize::x::value,SuperCellSize::y::value>
         > SuperCell2D;
 
-    PMACC_AUTO(s_field, CachedBox::create < 0, float> (SuperCell2D()));
+    auto s_field(CachedBox::create < 0, float> (acc, SuperCell2D()));
 
-    int y = blockIdx.y * SuperCellSize::y::value + threadIdx.y;
+    int y = blockIndex.y() * SuperCellSize::y::value + threadIndex.y();
     int yGlobal = y + SuperCellSize::y::value;
-    const DataSpace<DIM2> threadId(threadIdx);
 
-    if (threadId.x() == 0)
+    if (threadIndex.x() == 0)
     {
         /*clear destination arrays*/
-        s_integrated[threadId.y()] = float_X(0.0);
-        s_max[threadId.y()] = float_X(0.0);
+        s_integrated[threadIndex.y()] = float_X(0.0);
+        s_max[threadIndex.y()] = float_X(0.0);
     }
-    __syncthreads();
+    acc.syncBlockThreads();
 
     /*move cell wise over z direction(without garding cells)*/
     for (int z = GUARD_SIZE * SuperCellSize::z::value; z < cellsCount.z() - GUARD_SIZE * SuperCellSize::z::value; ++z)
     {
         /*move supercell wise over x direction without guarding*/
-        for (int x = GUARD_SIZE * SuperCellSize::x::value + threadId.x(); x < cellsCount.x() - GUARD_SIZE * SuperCellSize::x::value; x += SuperCellSize::x::value)
+        for (int x = GUARD_SIZE * SuperCellSize::x::value + threadIndex.x(); x < cellsCount.x() - GUARD_SIZE * SuperCellSize::x::value; x += SuperCellSize::x::value)
         {
             const float3_X field_at_point(field(DataSpace<DIM3 > (x, yGlobal, z)));
-            s_field(threadId) = math::abs2(field_at_point);
-            __syncthreads();
-            if (threadId.x() == 0)
+            s_field(threadIndex) = math::abs2(field_at_point);
+            acc.syncBlockThreads();
+            if (threadIndex.x() == 0)
             {
                 /*master threads moves cell wise over 2D supercell*/
                 for (int x_local = 0; x_local < SuperCellSize::x::value; ++x_local)
                 {
-                    DataSpace<DIM2> localId(x_local, threadId.y());
-                    s_integrated[threadId.y()] += s_field(localId);
-                    s_max[threadId.y()] = fmaxf(s_max[threadId.y()], s_field(localId));
+                    DataSpace<DIM2> localId(x_local, threadIndex.y());
+                    s_integrated[threadIndex.y()] += s_field(localId);
+                    s_max[threadIndex.y()] = fmaxf(s_max[threadIndex.y()], s_field(localId));
 
                 }
             }
         }
     }
-    __syncthreads();
+    acc.syncBlockThreads();
 
-    if (threadId.x() == 0)
+    if (threadIndex.x() == 0)
     {
         /*copy result to global array*/
-        integralBox[y] = s_integrated[threadId.y()];
-        boxMax[y] = s_max[threadId.y()];
+        integralBox[y] = s_integrated[threadIndex.y()];
+        boxMax[y] = s_max[threadIndex.y()];
     }
-
-
 }
+};
 
 class IntensityPlugin : public ILightweightPlugin
 {
@@ -139,21 +154,18 @@ public:
      * integrated is the integral of amplidude of X and Z on Y position (is V/m in cell volume)
      */
     IntensityPlugin() :
-    analyzerName("IntensityPlugin: calculate the maximum and integrated E-Field energy\nover laser propagation direction"),
-    analyzerPrefix(FieldE::getName() + std::string("_intensity")),
     localMaxIntensity(NULL),
     localIntegratedIntensity(NULL),
     cellDescription(NULL),
     notifyFrequency(0),
+    analyzerName("IntensityPlugin: calculate the maximum and integrated E-Field energy\nover laser propagation direction"),
+    analyzerPrefix(FieldE::getName() + std::string("_intensity")),
     writeToFile(false)
     {
         Environment<>::get().PluginConnector().registerPlugin(this);
     }
 
-    virtual ~IntensityPlugin()
-    {
-
-    }
+    virtual ~IntensityPlugin() = default;
 
     void notify(uint32_t currentStep)
     {
@@ -334,19 +346,21 @@ private:
         FieldE* fieldE = &(dc.getData<FieldE > (FieldE::getName(), true));
 
         /*start only worker for any supercell in laser propagation direction*/
-        dim3 grid(1, cellDescription->getGridSuperCells().y() - cellDescription->getGuardingSuperCells());
+        DataSpace<2> grid(1, cellDescription->getGridSuperCells().y() - cellDescription->getGuardingSuperCells());
         /*use only 2D slice XY for supercell handling*/
-        typedef typename MappingDesc::SuperCellSize SuperCellSize;
-        dim3 block(PMacc::math::CT::Vector<SuperCellSize::x,SuperCellSize::y>::toRT().toDim3());
+        typedef MappingDesc::SuperCellSize SuperCellSize;
+        DataSpace<2> block(PMacc::math::CT::Vector<SuperCellSize::x,SuperCellSize::y>::toRT());
 
-        __cudaKernel(kernelIntensity)
-            (grid, block)
-            (
-             fieldE->getDeviceDataBox(),
-             fieldE->getGridLayout().getDataSpace(),
-             localMaxIntensity->getDeviceBuffer().getDataBox(),
-             localIntegratedIntensity->getDeviceBuffer().getDataBox()
-             );
+        KernelIntensity kernelIntensity;
+        __cudaKernel(
+            kernelIntensity,
+            alpaka::dim::DimInt<2>,
+            grid,
+            block)(
+                fieldE->getDeviceDataBox(),
+                fieldE->getGridLayout().getDataSpace(),
+                localMaxIntensity->getDeviceBuffer().getDataBox(),
+                localIntegratedIntensity->getDeviceBuffer().getDataBox());
 
         localMaxIntensity->deviceToHost();
         localIntegratedIntensity->deviceToHost();

@@ -82,7 +82,7 @@ public:
     {
         //\\todo: this make problems because we send bytes and not combined types
         int recv_data_count;
-        MPI_CHECK(MPI_Get_count(&(this->status), MPI_CHAR, &recv_data_count));
+        MPI_CHECK_NOEXCEPT(MPI_Get_count(&(this->status), MPI_CHAR, &recv_data_count));
 
 
         IEventData *edata = new EventDataReceive(NULL, recv_data_count);

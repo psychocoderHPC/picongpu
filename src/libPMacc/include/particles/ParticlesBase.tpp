@@ -1,5 +1,5 @@
 /**
- * Copyright 2013-2014 Heiko Burau, Rene Widera
+ * Copyright 2013-2015 Heiko Burau, Rene Widera, Benjamin Worpitz
  *
  * This file is part of libPMacc.
  *
@@ -36,26 +36,34 @@ namespace PMacc
     template<typename T_ParticleDescription, class MappingDesc>
     void ParticlesBase<T_ParticleDescription, MappingDesc>::deleteGuardParticles(uint32_t exchangeType)
     {
+        KernelDeleteParticles kernelDeleteParticles;
 
         ExchangeMapping<GUARD, MappingDesc> mapper(this->cellDescription, exchangeType);
-        dim3 grid(mapper.getGridDim());
 
-        __cudaKernel(kernelDeleteParticles)
-                (grid, TileSize)
-                (particlesBuffer->getDeviceParticleBox(), mapper);
+        __cudaKernel(
+            kernelDeleteParticles,
+            alpaka::dim::DimInt<MappingDesc::Dim>,
+            mapper.getGridDim(),
+            TileSize)(
+                particlesBuffer->getDeviceParticleBox(),
+                mapper);
     }
 
     template<typename T_ParticleDescription, class MappingDesc>
     template<uint32_t T_area>
     void ParticlesBase<T_ParticleDescription, MappingDesc>::deleteParticlesInArea()
     {
+        KernelDeleteParticles kernelDeleteParticles;
 
         AreaMapping<T_area, MappingDesc> mapper(this->cellDescription);
-        dim3 grid(mapper.getGridDim());
 
-        __cudaKernel(kernelDeleteParticles)
-                (grid, TileSize)
-                (particlesBuffer->getDeviceParticleBox(), mapper);
+        __cudaKernel(
+            kernelDeleteParticles,
+            alpaka::dim::DimInt<MappingDesc::Dim>,
+            mapper.getGridDim(),
+            TileSize)(
+                particlesBuffer->getDeviceParticleBox(),
+                mapper);
     }
 
     template<typename T_ParticleDescription, class MappingDesc>
@@ -70,15 +78,20 @@ namespace PMacc
     {
         if (particlesBuffer->hasSendExchange(exchangeType))
         {
+            KernelBashParticles kernelBashParticles;
+
             ExchangeMapping<GUARD, MappingDesc> mapper(this->cellDescription, exchangeType);
 
             particlesBuffer->getSendExchangeStack(exchangeType).setCurrentSize(0);
-            dim3 grid(mapper.getGridDim());
 
-            __cudaKernel(kernelBashParticles)
-                    (grid, TileSize)
-                    (particlesBuffer->getDeviceParticleBox(),
-                    particlesBuffer->getSendExchangeStack(exchangeType).getDeviceExchangePushDataBox(), mapper);
+            __cudaKernel(
+                kernelBashParticles,
+                alpaka::dim::DimInt<MappingDesc::Dim>,
+                mapper.getGridDim(),
+                TileSize)(
+                    particlesBuffer->getDeviceParticleBox(),
+                    particlesBuffer->getSendExchangeStack(exchangeType).getDeviceExchangePushDataBox(),
+                    mapper);
         }
     }
 
@@ -88,14 +101,19 @@ namespace PMacc
         if (particlesBuffer->hasReceiveExchange(exchangeType))
         {
 
-            dim3 grid(particlesBuffer->getReceiveExchangeStack(exchangeType).getHostCurrentSize());
-            if (grid.x != 0)
+            size_t const grid(particlesBuffer->getReceiveExchangeStack(exchangeType).getHostCurrentSize());
+            if (grid != 0)
             {
-              //  std::cout<<"insert = "<<grid.x()<<std::endl;
+                KernelInsertParticles kernelInsertParticles;
+
+                // std::cout<<"insert = "<<grid.x()<<std::endl;
                 ExchangeMapping<GUARD, MappingDesc> mapper(this->cellDescription, exchangeType);
-                __cudaKernel(kernelInsertParticles)
-                        (grid, TileSize)
-                        (particlesBuffer->getDeviceParticleBox(),
+                __cudaKernel(
+                    kernelInsertParticles,
+                    alpaka::dim::DimInt<1>,
+                    grid,
+                    TileSize)(
+                        particlesBuffer->getDeviceParticleBox(),
                         particlesBuffer->getReceiveExchangeStack(exchangeType).getDeviceExchangePopDataBox(),
                         mapper);
                 }

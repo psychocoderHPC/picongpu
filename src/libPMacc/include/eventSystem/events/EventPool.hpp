@@ -25,6 +25,7 @@
 
 #include "eventSystem/events/CudaEvent.hpp"
 #include "debug/VerboseLog.hpp"
+#include "Environment.hpp"
 #include "types.h"
 
 #include <vector>
@@ -81,7 +82,7 @@ namespace PMacc
         {
             for (size_t i = 0; i < count; i++)
             {
-                events.push_back(CudaEvent::create());
+                events.push_back(CudaEvent::create(Environment<>::get().DeviceManager().getDevice()));
             }
         }
 

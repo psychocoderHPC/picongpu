@@ -22,15 +22,14 @@
 
 #pragma once
 
-#include <cuSTL/container/view/View.hpp>
-#include <cuSTL/container/DeviceBuffer.hpp>
+//#include <cuSTL/container/view/View.hpp>
+//#include <cuSTL/container/DeviceBuffer.hpp>
 #include <math/vector/Int.hpp>
 #include <math/vector/Size_t.hpp>
 #include <memory/buffers/Buffer.hpp>
 #include <types.h>
 
-#include <cuda_runtime.h>
-#include <cuda_runtime_api.h>
+#include <alpaka/alpaka.hpp>
 
 #include <stdexcept>
 
@@ -51,50 +50,54 @@ namespace PMacc
     class DeviceBuffer : public Buffer<TYPE, DIM>
     {
     protected:
+        using SizeBufDev = alpaka::mem::buf::Buf<
+            AlpakaDev,
+            std::size_t,
+            alpaka::dim::DimInt<1u>,
+            std::size_t>;
 
-        DeviceBuffer(DataSpace<DIM> dataSpace) :
-        Buffer<TYPE, DIM>(dataSpace)
-        {
+        using DataViewDev = alpaka::mem::view::View<
+            AlpakaDev,
+            TYPE,
+            alpaka::dim::DimInt<DIM>,
+            std::size_t>;
 
-        }
+    protected:
+        DeviceBuffer(
+            DataSpace<DIM> dataSpace,
+            bool bData1d) :
+            Buffer<TYPE, DIM>(dataSpace, bData1d)
+        {}
 
     public:
-
-        using Buffer<TYPE, DIM>::setCurrentSize; //!\todo :this function was hidden, I don't know why.
-
         /**
          * Destructor.
          */
-        virtual ~DeviceBuffer()
-        {
-        };
+        virtual ~DeviceBuffer() = default;
 
-
-#define COMMA ,
-
-        __forceinline__
-        container::CartBuffer<TYPE, DIM, allocator::DeviceMemAllocator<TYPE, DIM>,
+        // \TODO: Remove this method! This is very unclear and should be a CartBuffer constructor!
+        //__forceinline__
+        /*container::CartBuffer<TYPE, DIM, allocator::DeviceMemAllocator<TYPE, DIM>,
                                 copier::D2DCopier<DIM>,
                                 assigner::DeviceMemAssigner<DIM> >
-        cartBuffer() const
+        cartBuffer()
         {
             container::DeviceBuffer<TYPE, DIM> result;
-            cudaPitchedPtr cudaData = this->getCudaPitched();
-            result.dataPointer = (TYPE*)cudaData.ptr;
+            auto & memBufView = getMemBufView();
+            result.dataPointer = alpaka::mem::view::getPtrNative(memBufView);
             result._size = (math::Size_t<DIM>)this->getDataSpace();
-            if(DIM == 2) result.pitch[0] = cudaData.pitch;
+            if(DIM == 2) result.pitch[0] = alpaka::mem::view::getPitchBytes<1u>(memBufView);
             if(DIM == 3)
             {
-                result.pitch[0] = cudaData.pitch;
-                result.pitch[1] = cudaData.pitch * result._size.y();
+                result.pitch[0] = alpaka::mem::view::getPitchBytes<2u>(memBufView);
+                result.pitch[1] = alpaka::mem::view::getPitchBytes<1u>(memBufView) * result._size.y();
             }
 #ifndef __CUDA_ARCH__
             result.refCount = new int;
 #endif
             *result.refCount = 2;
             return result;
-        }
-#undef COMMA
+        }*/
 
 
         /**
@@ -112,35 +115,20 @@ namespace PMacc
         virtual bool hasCurrentSizeOnDevice() const = 0;
 
         /**
-         * Returns pointer to current size on device.
+         * Returns memory buffer of current size on accelerator.
          *
-         * @return pointer which point to device memory of current size
+         * @return memory buffer of current size on accelerator
          */
-        virtual size_t* getCurrentSizeOnDevicePointer() = 0;
-
-        /** Returns host pointer of current size storage
-         *
-         * @return pointer to stored value on host side
-         */
-        virtual size_t* getCurrentSizeHostSidePointer()=0;
+        virtual SizeBufDev const & getMemBufSizeAcc() const = 0;
+        virtual SizeBufDev & getMemBufSizeAcc() = 0;
 
         /**
-         * Sets current size of any dimension.
+         * Returns the internal alpaka buffer.
          *
-         * If stream is 0, this function is blocking (we use a kernel to set size).
-         * Keep in mind: on Fermi-architecture, kernels in different streams may run at the same time
-         * (only used if size is on device).
-         *
-         * @param size count of elements per dimension
+         * @return internal alpaka buffer
          */
-        virtual void setCurrentSize(const size_t size) = 0;
-
-        /**
-         * Returns the internal pitched cuda pointer.
-         *
-         * @return internal pitched cuda pointer
-         */
-        virtual const cudaPitchedPtr getCudaPitched() const = 0;
+        virtual DataViewDev const & getMemBufView() const = 0;
+        virtual DataViewDev & getMemBufView() = 0;
 
         /** get line pitch of memory in byte
          *

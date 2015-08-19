@@ -94,24 +94,32 @@ namespace po = boost::program_options;
  * @param freqFkt
  * @param simBoxSize
  */
-template<class ParBox, class DBox, class Mapping>
-__global__
-/*__launch_bounds__(256, 4)*/
-void kernelRadiationParticles(ParBox pb,
-                              DBox radiation,
-                              DataSpace<simDim> globalOffset,
-                              uint32_t currentStep,
-                              Mapping mapper,
-                              radiation_frequencies::FreqFunctor freqFkt,
-                              DataSpace<simDim> simBoxSize)
+struct KernelRadiationParticles
 {
-
+template<
+    typename T_Acc,
+    typename ParBox,
+    typename DBox,
+    typename Mapping>
+ALPAKA_FN_ACC void operator()(
+    T_Acc const & acc,
+    ParBox const & pb,
+    DBox const & radiation,
+    DataSpace<simDim> const & globalOffset,
+    uint32_t const & currentStep,
+    Mapping const & mapper,
+    radiation_frequencies::FreqFunctor const & freqFkt,
+    DataSpace<simDim> const & simBoxSize) const
+{
     typedef typename MappingDesc::SuperCellSize Block;
     typedef typename ParBox::FrameType FRAME;
 
-    __shared__ FRAME *frame; // pointer to  frame storing particles
-    __shared__ bool isValid; // bool saying if frame is valid
-    __shared__ lcellId_t particlesInFrame; // number  of particles in current frame
+    DataSpace<simDim> const blockIndex(alpaka::idx::getIdx<alpaka::Grid, alpaka::Blocks>(acc));
+    DataSpace<simDim> const threadIndex(alpaka::idx::getIdx<alpaka::Block, alpaka::Threads>(acc));
+
+    auto frame(alpaka::block::shared::allocVar<FRAME *>(acc)); // pointer to  frame storing particles
+    auto isValid(alpaka::block::shared::allocVar<bool>(acc)); // bool saying if frame is valid
+    auto particlesInFrame(alpaka::block::shared::allocVar<lcellId_t>(acc)); // number  of particles in current frame
 
     using namespace parameters; // parameters of radiation
 
@@ -127,34 +135,34 @@ void kernelRadiationParticles(ParBox pb,
 
     const int blockSize=PMacc::math::CT::volume<Block>::type::value;
     // vectorial part of the integrand in the Jackson formula
-    __shared__ vector_64 real_amplitude_s[blockSize];
+    auto real_amplitude_s(alpaka::block::shared::allocArr<vector_64, blockSize>(acc));
 
     // retarded time
-    __shared__ picongpu::float_64 t_ret_s[blockSize];
+    auto t_ret_s(alpaka::block::shared::allocArr<picongpu::float_64, blockSize>(acc));
 
     // storage for macro particle weighting needed if
     // the coherent and incoherent radiation of a single
     // macro-particle needs to be considered
 #if (__COHERENTINCOHERENTWEIGHTING__==1)
-    __shared__ float_X radWeighting_s[blockSize];
+    auto radWeighting_s(alpaka::block::shared::allocArr<float_X, blockSize>(acc));
 #endif
 
     // particle counter used if not all particles are considered for
     // radiation calculation
-    __shared__ int counter_s;
+    auto counter_s(alpaka::block::shared::allocVar<int>(acc));
 
     // memory for Nyquist frequency at current time step
 #if (__NYQUISTCHECK__==1)
-    __shared__ NyquistLowPass lowpass_s[blockSize];
+    auto lowpass_s(alpaka::block::shared::allocArr<NyquistLowPass, blockSize>(acc));
 #endif
 
 
-    const int theta_idx = blockIdx.x; //blockIdx.x is used to determine theata
-    const uint32_t linearThreadIdx = threadIdx.x; // used for determine omega and particle id
-    // old:  DataSpaceOperations<DIM3>::map<Block > (DataSpace<DIM3 > (threadIdx));
+    const int theta_idx = blockIndex.x(); //blockIndex.x() is used to determine theta
+    const uint32_t linearThreadIdx = threadIndex.x(); // used for determine omega and particle id
+    // old:  DataSpaceOperations<DIM3>::map<Block > (DataSpace<DIM3 > (threadIndex));
 
 
-    __syncthreads(); /*wait that all shared memory is initialised*/
+    acc.syncBlockThreads(); /*wait that all shared memory is initialized*/
 
 
     // simulation time (needed for retarded time)
@@ -180,11 +188,11 @@ void kernelRadiationParticles(ParBox pb,
     for (int super_cell_index = 0; super_cell_index <= numSuperCells; ++super_cell_index)
       {
         /* warpId != 1 synchronization is needed,
-           since a race condition can occure if "continue loop" is called,
+           since a race condition can occur if "continue loop" is called,
            all threads must wait for the selection of a new frame
            until all threads have evaluated "isValid"
         */
-        __syncthreads();
+        acc.syncBlockThreads();
 
         // select SuperCell and add one sided guard again
         DataSpace<simDim> superCell = DataSpaceOperations<simDim>::map(superCellsCount, super_cell_index);
@@ -212,7 +220,7 @@ void kernelRadiationParticles(ParBox pb,
             counter_s = 0;
           }
 
-        __syncthreads();
+        acc.syncBlockThreads();
 
         /* goto next supercell
          *
@@ -242,7 +250,7 @@ void kernelRadiationParticles(ParBox pb,
 #if(RAD_MARK_PARTICLE>1) || (RAD_ACTIVATE_GAMMA_FILTER!=0)
                 if (par[radiationFlag_])
 #endif
-                  saveParticleAt = atomicAdd(&counter_s, 1);
+                  saveParticleAt = alpaka::atomic::atomicOp<alpaka::atomic::op::Add>(acc, &counter_s, 1);
                 /* for information:
                  *   atomicAdd returns an int with the previous
                  *   value of "counter_s" != -1
@@ -374,7 +382,7 @@ void kernelRadiationParticles(ParBox pb,
               } // END: only threads with particles are running
 
 
-            __syncthreads(); // wait till every thread has loaded its particle data
+            acc.syncBlockThreads(); // wait till every thread has loaded its particle data
 
 
 
@@ -458,7 +466,7 @@ void kernelRadiationParticles(ParBox pb,
 
 
             // wait till all radiation contributions for this super cell are done
-            __syncthreads();
+            acc.syncBlockThreads();
 
 
 
@@ -476,7 +484,7 @@ void kernelRadiationParticles(ParBox pb,
               }
 
             // wait till first thread has loaded new frame
-            __syncthreads();
+            acc.syncBlockThreads();
 
             // run thrue while-loop(is Valid) again
 
@@ -486,7 +494,7 @@ void kernelRadiationParticles(ParBox pb,
 
 
 } // end radiation kernel
-
+};
 
 }
 

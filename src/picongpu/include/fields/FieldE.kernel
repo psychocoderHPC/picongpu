@@ -36,18 +36,33 @@ namespace picongpu
 {
 using namespace PMacc;
 
-template<class EBox>
-__global__ void kernelLaserE(EBox fieldE, LaserManipulator lMan)
+struct KernelLaserE
 {
+template<
+    typename T_Acc,
+    typename EBox>
+ALPAKA_FN_ACC void operator()(
+    T_Acc const & acc,
+    EBox const & fieldE,
+    LaserManipulator const & lMan) const
+{
+    static_assert(
+        alpaka::dim::Dim<T_Acc>::value == simDim,
+        "The KernelDivideAnyCell functor has to be called with a simDim dimensional accelerator!");
+
+    DataSpace<simDim> const blockSize(alpaka::workdiv::getWorkDiv<alpaka::Block, alpaka::Threads>(acc));
+    DataSpace<simDim> const blockIndex(alpaka::idx::getIdx<alpaka::Grid, alpaka::Blocks>(acc));
+    DataSpace<simDim> const threadIndex(alpaka::idx::getIdx<alpaka::Block, alpaka::Threads>(acc));
+
     DataSpace<simDim> cellOffset;
-    
-    cellOffset.x() = (blockIdx.x * blockDim.x) + threadIdx.x;
+
+    cellOffset.x() = (blockIndex.x() * blockSize.x()) + threadIndex.x();
     DataSpace<simDim> EFieldOffset;
     EFieldOffset.x() = cellOffset.x() + (MappingDesc::SuperCellSize::x::value * GUARD_SIZE);
     EFieldOffset.y() = MappingDesc::SuperCellSize::y::value*GUARD_SIZE;
 
 #if (SIMDIM==DIM3)
-    cellOffset.z() = (blockIdx.y * blockDim.y) + threadIdx.y;
+    cellOffset.z() = (blockIndex.y() * blockSize.y()) + threadIndex.y();
     EFieldOffset.z() = cellOffset.z() + (MappingDesc::SuperCellSize::z::value * GUARD_SIZE);
 #endif
 
@@ -86,5 +101,6 @@ __global__ void kernelLaserE(EBox fieldE, LaserManipulator lMan)
         fieldE(EFieldOffset) = lMan.getManipulation(cellOffset);
     }
 }
+};
 
 }

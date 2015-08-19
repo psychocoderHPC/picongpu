@@ -47,10 +47,11 @@ public:
 
     }
 
-    HDINLINE TileDataBox<VALUE> pop(DataSpace<DIM> &superCell)
+    template<
+        typename T_Acc>
+    HDINLINE TileDataBox<VALUE> pop(T_Acc const & acc, DataSpace<DIM> &superCell)
     {
-
-        TileDataBox<PopType> tmp = virtualMemory.popN(1);
+        TileDataBox<PopType> tmp = virtualMemory.popN(acc, 1);
         if (tmp.getSize() == 0)
         {
             return TileDataBox<VALUE > (NULL);

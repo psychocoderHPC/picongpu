@@ -173,10 +173,17 @@ namespace picongpu
         __startAtomicTransaction( __getTransactionEvent( ) );
         do
         {
-            __cudaKernel( ( kernelComputeSupercells<BlockArea, AREA> ) )
-                ( mapper.getGridDim( ), mapper.getSuperCellSize( ) )
-                ( tmpBox,
-                  pBox, solver, mapper );
+            KernelComputeSupercells<BlockArea, AREA> kernelComputeSupercells;
+            __cudaKernel(
+                kernelComputeSupercells,
+                alpaka::dim::DimInt<simDim>,
+                mapper.getGridDim( ),
+                mapper.getSuperCellSize( ))(
+                    tmpBox,
+                    pBox,
+                    solver,
+                    mapper);
+
         } while( mapper.next( ) );
         __setTransactionEvent( __endTransaction( ) );
     }
@@ -213,31 +220,42 @@ namespace picongpu
     {
         ExchangeMapping<GUARD, MappingDesc> mapper( this->cellDescription, exchangeType );
 
-        dim3 grid = mapper.getGridDim( );
+        DataSpace<simDim> grid = mapper.getGridDim( );
 
         const DataSpace<simDim> direction = Mask::getRelativeDirections<simDim > ( mapper.getExchangeType( ) );
-        __cudaKernel( kernelBashValue )
-            ( grid, mapper.getSuperCellSize( ) )
-            ( fieldTmp->getDeviceBuffer( ).getDataBox( ),
-              fieldTmp->getSendExchange( exchangeType ).getDeviceBuffer( ).getDataBox( ),
-              fieldTmp->getSendExchange( exchangeType ).getDeviceBuffer( ).getDataSpace( ),
-              direction,
-              mapper );
+
+        KernelBashValue kernelBashValue;
+        __cudaKernel(
+            kernelBashValue,
+            alpaka::dim::DimInt<simDim>,
+            grid,
+            mapper.getSuperCellSize( ))(
+                fieldTmp->getDeviceBuffer( ).getDataBox( ),
+                fieldTmp->getSendExchange( exchangeType ).getDeviceBuffer( ).getDataBox( ),
+                fieldTmp->getSendExchange( exchangeType ).getDeviceBuffer( ).getDataSpace( ),
+                direction,
+                mapper);
     }
 
     void FieldTmp::insertField( uint32_t exchangeType )
     {
         ExchangeMapping<GUARD, MappingDesc> mapper( this->cellDescription, exchangeType );
 
-        dim3 grid = mapper.getGridDim( );
+        DataSpace<simDim> grid = mapper.getGridDim( );
 
         const DataSpace<simDim> direction = Mask::getRelativeDirections<simDim > ( mapper.getExchangeType( ) );
-        __cudaKernel( kernelInsertValue )
-            ( grid, mapper.getSuperCellSize( ) )
-            ( fieldTmp->getDeviceBuffer( ).getDataBox( ),
-              fieldTmp->getReceiveExchange( exchangeType ).getDeviceBuffer( ).getDataBox( ),
-              fieldTmp->getReceiveExchange( exchangeType ).getDeviceBuffer( ).getDataSpace( ),
-              direction, mapper );
+
+        KernelInsertValue kernelInsertValue;
+        __cudaKernel(
+            kernelInsertValue,
+            alpaka::dim::DimInt<simDim>,
+            grid,
+            mapper.getSuperCellSize( ))(
+                fieldTmp->getDeviceBuffer( ).getDataBox( ),
+                fieldTmp->getReceiveExchange( exchangeType ).getDeviceBuffer( ).getDataBox( ),
+                fieldTmp->getReceiveExchange( exchangeType ).getDeviceBuffer( ).getDataSpace( ),
+                direction,
+                mapper);
     }
 
     void FieldTmp::init( )

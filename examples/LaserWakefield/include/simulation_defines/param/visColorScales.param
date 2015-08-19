@@ -22,7 +22,7 @@
 
 #pragma once
 
-#include "basicOperations.hpp"
+#include "types.h"
 
 namespace picongpu
 {

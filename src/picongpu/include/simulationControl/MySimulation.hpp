@@ -84,7 +84,6 @@ public:
      * Constructor
      */
     MySimulation() :
-    laser(NULL),
     fieldB(NULL),
     fieldE(NULL),
     fieldJ(NULL),
@@ -94,8 +93,9 @@ public:
     myCurrentInterpolation(NULL),
     pushBGField(NULL),
     currentBGField(NULL),
-    cellDescription(NULL),
+    laser(NULL),
     initialiserController(NULL),
+    cellDescription(NULL),
     slidingWindow(false)
     {
         ForEach<VectorAllSpecies, particles::AssignNull<bmpl::_1>, MakeIdentifier<bmpl::_1> > setPtrToNull;

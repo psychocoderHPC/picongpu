@@ -47,19 +47,21 @@ struct DirSplittingKernel
         float_X a_prime_plus = (*cursorB(-1, 0, 0)).y() - (*cursorE(-1, 0, 0)).z();
         float_X a_prime_minus = (*cursorB(1, 0, 0)).y() + (*cursorE(1, 0, 0)).z();
 
-        __syncthreads();
+        acc.syncBlockThreads();
 
         (*cursorB).z() = float_X(0.5) * (a_plus + a_minus);
         (*cursorE).y() = float_X(0.5) * (a_plus - a_minus);
         (*cursorB).y() = float_X(0.5) * (a_prime_plus + a_prime_minus);
         (*cursorE).z() = float_X(0.5) * (a_prime_minus - a_prime_plus);
 
-        __syncthreads();
+        acc.syncBlockThreads();
     }
 
     template<typename CursorE, typename CursorB >
     DINLINE void operator()(CursorE globalE, CursorB globalB) const
     {
+        DataSpace<simDim> const threadIndex(alpaka::idx::getIdx<alpaka::Block, alpaka::Threads>(acc));
+
         //\todo: optimize cache size
         typedef typename PMacc::math::CT::add<
             typename BlockDim::vector_type,
@@ -75,17 +77,17 @@ struct DirSplittingKernel
 
         float3_X fieldE_old;
         float3_X fieldB_old;
-        int threadPos_x = threadIdx.x;
+        int threadPos_x = threadIndex.x();
 
         algorithm::cudaBlock::Foreach<BlockDim> foreach;
         for (int x_offset = 0; x_offset < this->totalLength; x_offset += BlockDim::x::value)
         {
             foreach(CacheE::Zone(), cacheE.origin(), globalE(-1 + x_offset, 0, 0), _1 = _2);
             foreach(CacheB::Zone(), cacheB.origin(), globalB(-1 + x_offset, 0, 0), _1 = _2);
-            __syncthreads();
+            acc.syncBlockThreads();
 
-            BOOST_AUTO(cursorE, cacheE.origin()(1, 0, 0)(threadPos_x, threadIdx.y, threadIdx.z));
-            BOOST_AUTO(cursorB, cacheB.origin()(1, 0, 0)(threadPos_x, threadIdx.y, threadIdx.z));
+            BOOST_AUTO(cursorE, cacheE.origin()(1, 0, 0)(threadPos_x, threadIndex.y, threadIndex.z()));
+            BOOST_AUTO(cursorB, cacheB.origin()(1, 0, 0)(threadPos_x, threadIndex.y, threadIndex.z()));
 
             if(threadPos_x == BlockDim::x::value - 1)
             {
@@ -104,7 +106,7 @@ struct DirSplittingKernel
             foreach(BlockZone(), cacheE.origin()(1, 0, 0), globalE(x_offset, 0, 0), _2 = _1);
             foreach(BlockZone(), cacheB.origin()(1, 0, 0), globalB(x_offset, 0, 0), _2 = _1);
 
-            __syncthreads();
+            acc.syncBlockThreads();
 
             threadPos_x = BlockDim::x::value - 1 - threadPos_x;
         }

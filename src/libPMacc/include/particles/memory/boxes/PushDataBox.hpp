@@ -24,12 +24,13 @@
 
 
 #pragma once
-#include <cuda.h>
 
 #include "particles/memory/boxes/TileDataBox.hpp"
 
 #include "memory/boxes/DataBox.hpp"
 #include "memory/boxes/PitchedBox.hpp"
+
+#include <alpaka/alpaka.hpp>
 
 namespace PMacc
 {
@@ -66,17 +67,20 @@ namespace PMacc
          * @param count number of elements to increase stack with
          * @return a TileDataBox of size count pointing to the new stack elements
          */
-        HDINLINE TileDataBox<VALUE> pushN(TYPE count)
+        template<typename T_Acc>
+        HDINLINE TileDataBox<VALUE> pushN(
+            T_Acc const & acc,
+            TYPE count)
         {
-#if !defined(__CUDA_ARCH__) // Host code path
-            //TYPE old_addr = (*currentSize) = (*currentSize) + count;
-            //old_addr -= count;
-            TYPE old_addr = (*currentSize);
-            *currentSize += count;
-#else
-            TYPE old_addr = atomicAdd(currentSize, count);
-#endif
-            return TileDataBox<VALUE > (this->fixedPointer, DataSpace<DIM1>(old_addr));
+            TYPE const old_addr(
+                alpaka::atomic::atomicOp<alpaka::atomic::op::Add>(
+                    acc,
+                    currentSize,
+                    count));
+
+            return TileDataBox<VALUE>(
+                this->fixedPointer,
+                DataSpace<DIM1>(old_addr));
         }
 
         /**
@@ -84,18 +88,22 @@ namespace PMacc
          *
          * @param val data of type VALUE to add to the stack
          */
-        HDINLINE void push(VALUE val)
+        template<typename T_Acc>
+        HDINLINE void push(
+            T_Acc const & acc,
+            VALUE val)
         {
-#if !defined(__CUDA_ARCH__) // Host code path
-            TYPE old_addr = (*currentSize)++;
-#else
-            TYPE old_addr = atomicAdd(currentSize, 1);
-#endif
+            TYPE const old_addr(
+                alpaka::atomic::atomicOp<alpaka::atomic::op::Add>(
+                    acc,
+                    currentSize,
+                    1));
+
             (*this)[old_addr] = val;
         }
 
     protected:
-        PMACC_ALIGN(maxSize,TYPE);
+        PMACC_ALIGN(maxSize,TYPE const);
         PMACC_ALIGN(currentSize,TYPE*);
     };
 }

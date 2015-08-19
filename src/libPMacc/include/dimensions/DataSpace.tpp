@@ -83,3 +83,129 @@ struct TypeCast<T_CastToType, PMacc::DataSpace<T_Dim>  >
 } //namespace algorithms
 
 } //namespace PMacc
+
+namespace alpaka
+{
+    namespace dim
+    {
+        namespace traits
+        {
+            //#############################################################################
+            //! The DataSpace dimension get trait specialization.
+            //#############################################################################
+            template<
+                unsigned DIM>
+            struct DimType<
+                PMacc::DataSpace<DIM>>
+            {
+                using type = alpaka::dim::DimInt<DIM>;
+            };
+        }
+    }
+    namespace extent
+    {
+        namespace traits
+        {
+            //#############################################################################
+            //! The DataSpace width get trait specialization.
+            //#############################################################################
+            template<
+                typename T_Idx,
+                unsigned DIM>
+            struct GetExtent<
+                T_Idx,
+                PMacc::DataSpace<DIM>,
+                typename std::enable_if<(DIM > T_Idx::value)>::type>
+            {
+                ALPAKA_FN_HOST_ACC static auto getExtent(
+                    PMacc::DataSpace<DIM> const & extents)
+                -> int
+                {
+                    return extents[(DIM - 1u) - T_Idx::value];
+                }
+            };
+            //#############################################################################
+            //! The DataSpace width set trait specialization.
+            //#############################################################################
+            template<
+                typename T_Idx,
+                unsigned DIM,
+                typename T_Extent>
+            struct SetExtent<
+                T_Idx,
+                PMacc::DataSpace<DIM>,
+                T_Extent,
+                typename std::enable_if<(DIM > T_Idx::value)>::type>
+            {
+                ALPAKA_FN_HOST_ACC static auto setExtent(
+                    PMacc::DataSpace<DIM> & extents,
+                    T_Extent const & extent)
+                -> void
+                {
+                    extents[(DIM - 1u) - T_Idx::value] = extent;
+                }
+            };
+        }
+    }
+    namespace offset
+    {
+        namespace traits
+        {
+            //#############################################################################
+            //! The Vec<DIM> offset get trait specialization.
+            //#############################################################################
+            template<
+                typename T_Idx,
+                unsigned DIM>
+            struct GetOffset<
+                T_Idx,
+                PMacc::DataSpace<DIM>,
+                typename std::enable_if<(DIM > T_Idx::value)>::type>
+            {
+                ALPAKA_FN_HOST_ACC static auto getOffset(
+                    PMacc::DataSpace<DIM> const & offsets)
+                -> int
+                {
+                    return offsets[(DIM - 1u) - T_Idx::value];
+                }
+            };
+            //#############################################################################
+            //! The Vec<DIM> offset set trait specialization.
+            //#############################################################################
+            template<
+                typename T_Idx,
+                unsigned DIM,
+                typename T_Offset>
+            struct SetOffset<
+                T_Idx,
+                PMacc::DataSpace<DIM>,
+                T_Offset,
+                typename std::enable_if<(DIM > T_Idx::value)>::type>
+            {
+                ALPAKA_FN_HOST_ACC static auto setOffset(
+                    PMacc::DataSpace<DIM> & offsets,
+                    T_Offset const & offset)
+                -> void
+                {
+                    offsets[(DIM - 1u) - T_Idx::value] = offset;
+                }
+            };
+        }
+    }
+    namespace size
+    {
+        namespace traits
+        {
+            //#############################################################################
+            //! The Vector size type trait specialization.
+            //#############################################################################
+            template<
+                unsigned DIM>
+            struct SizeType<
+                PMacc::DataSpace<DIM>>
+            {
+                using type = int;
+            };
+        }
+    }
+}

@@ -1,5 +1,6 @@
 /**
- * Copyright 2013-2014 Axel Huebl, Heiko Burau, Rene Widera, Felix Schmitt
+ * Copyright 2013-2015 Axel Huebl, Heiko Burau, Rene Widera, Felix Schmitt,
+ *                     Benjamin Worpitz
  *
  * This file is part of PIConGPU.
  *
@@ -84,8 +85,7 @@ public:
         Environment<>::get().PluginConnector().restartPlugins(restartStep, restartDirectory);
         __getTransactionEvent().waitForFinished();
 
-        CUDA_CHECK(cudaDeviceSynchronize());
-        CUDA_CHECK(cudaGetLastError());
+        alpaka::wait::wait(PMacc::Environment<>::get().DeviceManager().getDevice());
 
         GridController<simDim> &gc = Environment<simDim>::get().GridController();
         /* can be spared for better scalings, but guarantees the user

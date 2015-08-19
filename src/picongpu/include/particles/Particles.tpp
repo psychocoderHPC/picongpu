@@ -1,5 +1,6 @@
 /**
- * Copyright 2013-2015 Axel Huebl, Heiko Burau, Rene Widera, Richard Pausch, Felix Schmitt
+ * Copyright 2013-2015 Axel Huebl, Heiko Burau, Rene Widera, Richard Pausch,
+ *                     Felix Schmitt, Benjamin Worpitz
  *
  * This file is part of PIConGPU.
  *
@@ -176,15 +177,19 @@ void Particles<T_ParticleDescription>::update(uint32_t )
         UpperMargin
         > BlockArea;
 
-    dim3 block( MappingDesc::SuperCellSize::toRT().toDim3() );
+    DataSpace<simDim> block( MappingDesc::SuperCellSize::toRT() );
 
-    __picKernelArea( kernelMoveAndMarkParticles<BlockArea>, this->cellDescription, CORE + BORDER )
-        (block)
-        ( this->getDeviceParticlesBox( ),
-          this->fieldE->getDeviceDataBox( ),
-          this->fieldB->getDeviceDataBox( ),
-          FrameSolver( )
-          );
+    KernelMoveAndMarkParticles<BlockArea> kernelMoveAndMarkParticles;
+    __picKernelArea(
+        kernelMoveAndMarkParticles,
+        alpaka::dim::DimInt<simDim>,
+        this->cellDescription,
+        CORE + BORDER,
+        block)(
+            this->getDeviceParticlesBox( ),
+            this->fieldE->getDeviceDataBox( ),
+            this->fieldB->getDeviceDataBox( ),
+            FrameSolver( ));
 
     ParticlesBaseType::template shiftParticles < CORE + BORDER > ( );
 }
@@ -203,11 +208,19 @@ void Particles<T_ParticleDescription>::initGas( T_GasFunctor& gasFunctor,
     DataSpace<simDim> totalGpuCellOffset = subGrid.getLocalDomain( ).offset;
     totalGpuCellOffset.y( ) += numSlides * localCells.y( );
 
-    dim3 block( MappingDesc::SuperCellSize::toRT( ).toDim3( ) );
-    __picKernelArea( (kernelFillGridWithParticles<Particles<T_ParticleDescription> >),
-                      this->cellDescription, CORE + BORDER)
-        (block)
-        ( gasFunctor, positionFunctor, totalGpuCellOffset, this->particlesBuffer->getDeviceParticleBox( ) );
+    DataSpace<simDim> block( MappingDesc::SuperCellSize::toRT( ) );
+
+    KernelFillGridWithParticles<Particles<T_ParticleDescription>> kernelFillGridWithParticles;
+    __picKernelArea(
+        kernelFillGridWithParticles,
+        alpaka::dim::DimInt<simDim>,
+        this->cellDescription,
+        CORE + BORDER,
+        block)(
+            gasFunctor,
+            positionFunctor,
+            totalGpuCellOffset,
+            this->particlesBuffer->getDeviceParticleBox( ));
 
 
     this->fillAllGaps( );
@@ -218,11 +231,21 @@ template< typename T_SrcParticleDescription,
           typename T_ManipulateFunctor>
 void Particles<T_ParticleDescription>::deviceCloneFrom( Particles< T_SrcParticleDescription> &src, T_ManipulateFunctor& functor )
 {
-    dim3 block( PMacc::math::CT::volume<SuperCellSize>::type::value );
+    DataSpace<simDim> block( PMacc::math::CT::volume<SuperCellSize>::type::value );
 
     log<picLog::SIMULATION_STATE > ( "clone species %1%" ) % FrameType::getName( );
-    __picKernelArea( kernelCloneParticles, this->cellDescription, CORE + BORDER )
-        (block) ( this->getDeviceParticlesBox( ), src.getDeviceParticlesBox( ), functor );
+
+    KernelCloneParticles kernelCloneParticles;
+    __picKernelArea(
+        kernelCloneParticles,
+        alpaka::dim::DimInt<simDim>,
+        this->cellDescription,
+        CORE + BORDER,
+        block)(
+            this->getDeviceParticlesBox( ),
+            src.getDeviceParticlesBox( ),
+            functor);
+
     this->fillAllGaps( );
 }
 
@@ -231,12 +254,17 @@ template< typename T_Functor>
 void Particles<T_ParticleDescription>::manipulateAllParticles( uint32_t currentStep, T_Functor& functor )
 {
 
-    dim3 block( MappingDesc::SuperCellSize::toRT( ).toDim3( ) );
+    DataSpace<simDim> block( MappingDesc::SuperCellSize::toRT( ) );
 
-    __picKernelArea( kernelManipulateAllParticles, this->cellDescription, CORE + BORDER )
-        (block)
-        ( this->particlesBuffer->getDeviceParticleBox( ),
-          functor );
+    KernelManipulateAllParticles kernelManipulateAllParticles;
+    __picKernelArea(
+        kernelManipulateAllParticles,
+        alpaka::dim::DimInt<simDim>,
+        this->cellDescription,
+        CORE + BORDER,
+        block)(
+            this->particlesBuffer->getDeviceParticleBox( ),
+            functor);
 }
 
 } // end namespace

@@ -6,6 +6,7 @@
                  Helmholtz-Zentrum Dresden - Rossendorf
 
   Author(s):  Carlchristian Eckert - c.eckert ( at ) hzdr.de
+              Benjamin Worpitz - HZDR
 
   Permission is hereby granted, free of charge, to any person obtaining a copy
   of this software and associated documentation files (the "Software"), to deal
@@ -28,8 +29,15 @@
 
 #pragma once
 
+#if MAMC_CUDA_ENABLED
+
 #include "creationPolicies/Scatter.hpp"
 #include "creationPolicies/Scatter_impl.hpp"
 
 #include "creationPolicies/OldMalloc.hpp"
 #include "creationPolicies/OldMalloc_impl.hpp"
+
+#endif
+
+#include "creationPolicies/HostNew.hpp"
+#include "creationPolicies/HostNew_impl.hpp"

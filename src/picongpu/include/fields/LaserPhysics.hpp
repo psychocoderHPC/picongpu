@@ -38,12 +38,12 @@ class LaserManipulator
 public:
 
     HINLINE LaserManipulator(float3_X elong, DataSpace<simDim> globalCentered, float_X phase) :
-    elong(elong), globalCentered(globalCentered), phase(phase)
+    elong(elong), phase(phase), globalCentered(globalCentered)
     {
         //  std::cout<<globalCenteredXOffset<<std::endl;
     }
 
-    HDINLINE float3_X getManipulation(DataSpace<simDim> iOffset)
+    HDINLINE float3_X getManipulation(DataSpace<simDim> iOffset) const
     {
         const float_X posX = float_X(globalCentered.x() + iOffset.x()) * CELL_WIDTH;
 
@@ -74,7 +74,7 @@ public:
     {
     }
 
-    LaserManipulator getLaserManipulator(uint32_t currentStep)
+    LaserManipulator getLaserManipulator(uint32_t currentStep) const
     {
         float3_X elong;
         float_X phase = 0.0;

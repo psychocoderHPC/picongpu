@@ -65,7 +65,9 @@ struct LoadChargeState<false>
     template<typename T_Particle>
     HDINLINE void operator()(const T_Particle& particle)
     {
-        PMACC_CASSERT_MSG(This_species_has_only_one_charge_state,1==2);
+        static_assert(
+            alpaka::core::DependentFalseType<T_Particle>::value,
+            "This species has only one charge state");
     }
 };
 } // namespace detail

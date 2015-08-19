@@ -1,5 +1,5 @@
 /**
- * Copyright 2013-2014 Axel Huebl, Heiko Burau, Rene Widera
+ * Copyright 2013-2015 Axel Huebl, Heiko Burau, Rene Widera, Benjamin Worpitz
  *
  * This file is part of PIConGPU.
  *
@@ -22,10 +22,9 @@
 #pragma once
 
 #include "simulation_defines.hpp"
-#include "nvidia/rng/RNG.hpp"
-#include "nvidia/rng/methods/Xor.hpp"
-#include "nvidia/rng/distributions/Normal_float.hpp"
 #include "mpi/SeedPerRank.hpp"
+
+#include <utility>
 
 namespace picongpu
 {
@@ -34,11 +33,10 @@ namespace particles
 namespace manipulators
 {
 
-namespace nvrng = nvidia::rng;
-namespace rngMethods = nvidia::rng::methods;
-namespace rngDistributions = nvidia::rng::distributions;
-
-template<typename T_ParamClass, typename T_ValueFunctor, typename T_SpeciesType>
+template<
+    typename T_ParamClass,
+    typename T_ValueFunctor,
+    typename T_SpeciesType>
 struct TemperatureImpl : private T_ValueFunctor
 {
     typedef T_ParamClass ParamClass;
@@ -60,26 +58,33 @@ struct TemperatureImpl : private T_ValueFunctor
         localCells = subGrid.getLocalDomain().size;
     }
 
-    template<typename T_Particle1, typename T_Particle2>
-    DINLINE void operator()(const DataSpace<simDim>& localCellIdx,
-                            T_Particle1& particle, T_Particle2&,
-                            const bool isParticle, const bool)
+    template<
+        typename T_Particle1,
+        typename T_Particle2>
+    DINLINE void operator()(
+        PMacc::AlpakaAcc<alpaka::dim::DimInt<simDim>> const & acc,
+        const DataSpace<simDim>& localCellIdx,
+        T_Particle1& particle,
+        T_Particle2&,
+        const bool isParticle,
+        const bool)
     {
         typedef typename T_Particle1::FrameType FrameType;
 
         if (!isInitialized)
         {
             const uint32_t cellIdx = DataSpaceOperations<simDim>::map(
-                                                                      localCells,
-                                                                      localCellIdx );
-            rng = nvrng::create(rngMethods::Xor(seed, cellIdx), rngDistributions::Normal_float());
+                localCells,
+                localCellIdx );
+            gen = alpaka::rand::generator::createDefault(acc, seed, cellIdx);
+            dist = alpaka::rand::distribution::createNormalReal<float_X>(acc);
             isInitialized = true;
         }
         if (isParticle)
         {
-            const float3_X tmpRand = float3_X(rng(),
-                                              rng(),
-                                              rng());
+            const float3_X tmpRand = float3_X(dist(gen),
+                                              dist(gen),
+                                              dist(gen));
             const float_X macroWeighting = particle[weighting_];
 
             const float_X energy = (ParamClass::temperature * UNITCONV_keV_to_Joule) / UNIT_ENERGY;
@@ -107,21 +112,31 @@ struct TemperatureImpl : private T_ValueFunctor
             // Which makes sense, since it means that we use a macroMass
             // and a macroEnergy now.
             const float3_X mom = tmpRand * (float_X) math::sqrt(
-                                                                precisionCast<sqrt_X > (
-                                                                                        macroEnergy *
-                                                                                        attribute::getMass(macroWeighting,particle)
-                                                                                        )
-                                                                );
+                precisionCast<sqrt_X>(
+                    macroEnergy *
+                    attribute::getMass(macroWeighting, particle)
+                    )
+                );
             ValueFunctor::operator()(particle[momentum_], mom);
         }
     }
 
 private:
-    typedef PMacc::nvidia::rng::RNG<rngMethods::Xor, rngDistributions::Normal_float> RngType;
-    RngType rng;
-    bool isInitialized;
-    uint32_t seed;
-    DataSpace<simDim> localCells;
+    using Gen =
+        decltype(
+            alpaka::rand::generator::createDefault(
+                std::declval<PMacc::AlpakaAcc<alpaka::dim::DimInt<simDim>> const &>(),
+                std::declval<uint32_t &>(),
+                std::declval<uint32_t &>()));
+    PMACC_ALIGN(gen, Gen);
+    using Dist =
+        decltype(
+            alpaka::rand::distribution::createNormalReal<float_X>(
+                std::declval<PMacc::AlpakaAcc<alpaka::dim::DimInt<simDim>> const &>()));
+    PMACC_ALIGN(dist, Dist);
+    PMACC_ALIGN(isInitialized, bool);
+    PMACC_ALIGN(seed, uint32_t);
+    PMACC_ALIGN(localCells, DataSpace<simDim>);
 };
 
 } //namespace manipulators

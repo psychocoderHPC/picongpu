@@ -51,7 +51,9 @@
 
 #include "mappings/kernel/MappingDescription.hpp"
 
+#if(PIC_ENABLE_LIVE_VIEW == 1)
 #include "plugins/LiveViewPlugin.hpp"
+#endif
 #include "plugins/ILightweightPlugin.hpp"
 #include "plugins/ISimulationPlugin.hpp"
 
@@ -67,7 +69,7 @@
 #if(SIMDIM==DIM3)
 #include "plugins/IntensityPlugin.hpp"
 #endif
-#include "plugins/SliceFieldPrinterMulti.hpp"
+//#include "plugins/SliceFieldPrinterMulti.hpp"
 
 #include "plugins/output/images/Visualisation.hpp"
 
@@ -114,84 +116,134 @@ private:
      * @tparam T_TupleVector vector of type PMacc::math::CT::vector<dataType,plugin>
      *                       with two components
      */
-    template<typename T_TupleVector>
+    template<
+        typename T_TupleVector>
     struct ApplyDataToPlugin :
-    bmpl::apply1<typename PMacc::math::CT::At<T_TupleVector, bmpl::int_<1> >::type,
-    typename PMacc::math::CT::At<T_TupleVector, bmpl::int_<0> >::type >
-    {
-    };
+        bmpl::apply1<
+            typename PMacc::math::CT::At_c<T_TupleVector, 0>::type,
+            typename PMacc::math::CT::At_c<T_TupleVector, 1>::type>
+    {};
 
     /* define stand alone plugins*/
-    typedef bmpl::vector<
-        EnergyFields,
-        SumCurrents
+    using StandalonePlugins =
+        bmpl::vector<
+            EnergyFields,
+            SumCurrents
 #if(SIMDIM==DIM3)
-      , IntensityPlugin
+          , IntensityPlugin
 #endif
 #if (ENABLE_INSITU_VOLVIS == 1)
-      , InSituVolumeRenderer
+          , InSituVolumeRenderer
 #endif
 #if (ENABLE_ADIOS == 1)
-      , adios::ADIOSWriter
+          , adios::ADIOSWriter
 #endif
 #if (ENABLE_HDF5 == 1)
-      , hdf5::HDF5Writer
+          , hdf5::HDF5Writer
 #endif
-    > StandAlonePlugins;
-
+        >;
 
     /* define field plugins */
-    typedef bmpl::vector<
-     SliceFieldPrinterMulti<bmpl::_1>
-    > UnspecializedFieldPlugins;
 
-    typedef bmpl::vector< FieldB, FieldE, FieldJ> AllFields;
+//#if BOOST_COMP_MSVC
+    using FieldPlugins =
+        bmpl::vector</*SliceFieldPrinterMulti<FieldB>, SliceFieldPrinterMulti<FieldE>, SliceFieldPrinterMulti<FieldJ>*/>;
+//#else
+//    using UnspecializedFieldPlugins =
+//        bmpl::vector<
+//            /*SliceFieldPrinterMulti<bmpl::_1>*/
+//        >;
+//
+//    using AllFields =
+//        bmpl::vector<
+//            FieldB,
+//            FieldE,
+//            FieldJ
+//        >;
+//
+//    using CombinedUnspecializedFieldPlugins =
+//        AllCombinations<
+//            bmpl::vector<UnspecializedFieldPlugins, AllFields>
+//        >::type;
+//
+//    using FieldPlugins =
+//        bmpl::transform<
+//            CombinedUnspecializedFieldPlugins,
+//            ApplyDataToPlugin<bmpl::_1>
+//        >::type;
+//#endif
 
-    typedef AllCombinations<
-      bmpl::vector<AllFields, UnspecializedFieldPlugins>
-    >::type CombinedUnspecializedFieldPlugins;
-
-    typedef bmpl::transform<
-    CombinedUnspecializedFieldPlugins,
-      ApplyDataToPlugin<bmpl::_1>
-    >::type FieldPlugins;
-
-
-    /* define species plugins */
-    typedef bmpl::vector <
-        CountParticles<bmpl::_1>,
-        EnergyParticles<bmpl::_1>,
-        BinEnergyParticles<bmpl::_1>,
-        LiveViewPlugin<bmpl::_1>,
-        PositionsParticles<bmpl::_1>
+//#if BOOST_COMP_MSVC
+    using SpeciesPlugins =
+        bmpl::vector <
+            CountParticles<PIC_Electrons>,
+            CountParticles<PIC_Ions>,
+            EnergyParticles<PIC_Electrons>,
+            EnergyParticles<PIC_Ions>,
+            BinEnergyParticles<PIC_Electrons>,
+            BinEnergyParticles<PIC_Ions>,
+            PositionsParticles<PIC_Electrons>,
+            PositionsParticles<PIC_Ions>
+#if(PIC_ENABLE_LIVE_VIEW == 1)
+          , LiveViewPlugin<PIC_Electrons>
+          , LiveViewPlugin<PIC_Ions>
+#endif
 #if(ENABLE_RADIATION == 1)
-      , Radiation<bmpl::_1>
+          , Radiation<PIC_Electrons>
+          , Radiation<PIC_Ions>
 #endif
 #if(PIC_ENABLE_PNG==1)
-     , PngPlugin< Visualisation<bmpl::_1, PngCreator> >
+          , PngPlugin< Visualisation<PIC_Electrons, PngCreator> >
+          , PngPlugin< Visualisation<PIC_Ions, PngCreator> >
 #endif
 #if(ENABLE_HDF5 == 1)
-      , PerSuperCell<bmpl::_1>
-      , PhaseSpaceMulti<particles::shapes::Counter::ChargeAssignment, bmpl::_1>
+          , PerSuperCell<bmpl::_1>
+          , PhaseSpaceMulti<particles::shapes::Counter::ChargeAssignment, PIC_Electrons>
+          , PhaseSpaceMulti<particles::shapes::Counter::ChargeAssignment, PIC_Ions>
 #endif
-    > UnspecializedSpeciesPlugins;
-
-    typedef AllCombinations<
-        bmpl::vector<VectorAllSpecies, UnspecializedSpeciesPlugins>
-    >::type CombinedUnspecializedSpeciesPlugins;
-
-    typedef bmpl::transform<
-        CombinedUnspecializedSpeciesPlugins,
-        ApplyDataToPlugin<bmpl::_1>
-    >::type SpeciesPlugins;
-
+        >;
+//#else
+//    /* define species plugins */
+//    using UnspecializedSpeciesPlugins =
+//        bmpl::vector<
+//            CountParticles<bmpl::_1>,
+//            EnergyParticles<bmpl::_1>,
+//            BinEnergyParticles<bmpl::_1>,
+//            PositionsParticles<bmpl::_1>
+//#if(PIC_ENABLE_LIVE_VIEW == 1)
+//          , LiveViewPlugin<bmpl::_1>
+//#endif
+//#if(ENABLE_RADIATION == 1)
+//          , Radiation<bmpl::_1>
+//#endif
+//#if(PIC_ENABLE_PNG==1)
+//          , PngPlugin< Visualisation<bmpl::_1, PngCreator> >
+//#endif
+//#if(ENABLE_HDF5 == 1)
+//          , PerSuperCell<FieldB>
+//          , PhaseSpaceMulti<particles::shapes::Counter::ChargeAssignment, bmpl::_1>
+//#endif
+//        >;
+//
+//    using CombinedUnspecializedSpeciesPlugins =
+//        AllCombinations<
+//            bmpl::vector<UnspecializedSpeciesPlugins, VectorAllSpecies>
+//        >::type;
+//
+//    using SpeciesPlugins =
+//        bmpl::transform<
+//            CombinedUnspecializedSpeciesPlugins,
+//            ApplyDataToPlugin<bmpl::_1>
+//        >::type;
+//#endif
 
     /* create sequence with all plugins*/
-    typedef MakeSeq<
-        StandAlonePlugins,
-        FieldPlugins,
-        SpeciesPlugins
-    >::type AllPlugins;
+    using AllPlugins =
+        MakeSeq<
+            StandalonePlugins,
+            FieldPlugins,
+            SpeciesPlugins
+        >::type;
 
     /**
      * Initialises the controller by adding all user plugins to its internal list.

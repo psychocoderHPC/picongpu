@@ -69,10 +69,12 @@ struct CreateParticlesFromParticleImpl : private T_Functor
         firstCall = true;
     }
 
-    template<typename T_Particle1, typename T_Particle2>
-    DINLINE void operator()(const DataSpace<simDim>& localCellIdx,
-                            T_Particle1& particle, T_Particle2&,
-                            const bool isParticle, const bool)
+    template<typename T_Acc, typename T_Particle1, typename T_Particle2>
+    DINLINE void operator()(
+        T_Acc const & acc,
+        const DataSpace<simDim>& localCellIdx,
+        T_Particle1& particle, T_Particle2&,
+        const bool isParticle, const bool)
     {
         typedef typename DestSpeciesType::FrameType DestFrameType;
         typedef typename DestSpeciesType::ParticlesBoxType DestParticlesBoxType;
@@ -81,12 +83,14 @@ struct CreateParticlesFromParticleImpl : private T_Functor
         typedef typename FrameType::ParticleType SrcParticleType;
         typedef typename DestFrameType::ParticleType DestParticleType;
 
-        __shared__ DestFrameType* destFrame;
-        __shared__ int particlesInDestSuperCell;
+        DataSpace<simDim> const threadIndex(alpaka::idx::getIdx<alpaka::Block, alpaka::Threads>(acc));
 
-        __syncthreads();
+        auto destFrame(alpaka::block::shared::allocVar<DestFrameType*>(acc));
+        auto particlesInDestSuperCell(alpaka::block::shared::allocVar<int>(acc));
 
-        uint32_t ltid = DataSpaceOperations<simDim>::template map<SuperCellSize>(DataSpace<simDim>(threadIdx));
+        acc.syncBlockThreads();
+
+        uint32_t ltid = DataSpaceOperations<simDim>::template map<SuperCellSize>(DataSpace<simDim>(threadIndex));
         const DataSpace<simDim> superCell((guardCells + localCellIdx) / SuperCellSize::toRT());
         if (ltid == 0)
         {
@@ -103,12 +107,12 @@ struct CreateParticlesFromParticleImpl : private T_Functor
                 if (!isValid || particlesInDestSuperCell == cellsInSuperCell)
                 {
                     destFrame = &(destParBox.getEmptyFrame());
-                    destParBox.setAsLastFrame(*destFrame, superCell);
+                    destParBox.setAsLastFrame(acc, *destFrame, superCell);
                 }
                 firstCall = false;
             }
         }
-        __syncthreads();
+        acc.syncBlockThreads();
 
 
         int numParToCreate = particlePerParticle;
@@ -117,13 +121,13 @@ struct CreateParticlesFromParticleImpl : private T_Functor
 
         while (true)
         {
-            __syncthreads();
+            acc.syncBlockThreads();
             int freeSlot = -1;
             oldParCounter = particlesInDestSuperCell;
-            __syncthreads();
+            acc.syncBlockThreads();
             if (isParticle && numParToCreate > 0)
             {
-                freeSlot = atomicAdd(&particlesInDestSuperCell, 1);
+                freeSlot = alpaka::atomic::atomicOp<alpaka::atomic::op::Add>(acc, &particlesInDestSuperCell, 1);
             }
             --numParToCreate;
             if (freeSlot>-1 && freeSlot < cellsInSuperCell)
@@ -131,10 +135,10 @@ struct CreateParticlesFromParticleImpl : private T_Functor
                 PMACC_AUTO(destParticle, (*destFrame)[freeSlot]);
                 Functor::operator()(destParticle, particle);
             }
-            __syncthreads();
+            acc.syncBlockThreads();
             if(oldParCounter == particlesInDestSuperCell)
                 break;
-            __syncthreads();
+            acc.syncBlockThreads();
 
             if (ltid == 0)
             {
@@ -142,10 +146,10 @@ struct CreateParticlesFromParticleImpl : private T_Functor
                 {
                     particlesInDestSuperCell -= cellsInSuperCell;
                     destFrame = &(destParBox.getEmptyFrame());
-                    destParBox.setAsLastFrame(*destFrame, superCell);
+                    destParBox.setAsLastFrame(acc, *destFrame, superCell);
                 }
             }
-            __syncthreads();
+            acc.syncBlockThreads();
 
             //second flush
             if (freeSlot >= cellsInSuperCell)
@@ -153,7 +157,7 @@ struct CreateParticlesFromParticleImpl : private T_Functor
                 PMACC_AUTO(destParticle, (*destFrame)[freeSlot - cellsInSuperCell]);
                 Functor::operator()(destParticle, particle);
             }
-            __syncthreads();
+            acc.syncBlockThreads();
         }
 
     }

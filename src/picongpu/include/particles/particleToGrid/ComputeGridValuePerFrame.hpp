@@ -86,14 +86,21 @@ ComputeGridValuePerFrame<T_ParticleShape, calcType>::getName() const
         return "FieldTmp";
 }
 
-template<class T_ParticleShape, uint32_t calcType>
-template<class FrameType, class TVecSuperCell, class BoxTmp >
+template<
+    typename T_ParticleShape,
+    uint32_t calcType>
+template<
+    typename T_Acc,
+    typename FrameType,
+    typename TVecSuperCell,
+    typename BoxTmp >
 DINLINE void
-ComputeGridValuePerFrame<T_ParticleShape, calcType>::operator()
-(FrameType& frame,
- const int localIdx,
- const TVecSuperCell superCell,
- BoxTmp& tmpBox)
+ComputeGridValuePerFrame<T_ParticleShape, calcType>::operator()(
+    T_Acc const & acc,
+    FrameType& frame,
+    const int localIdx,
+    const TVecSuperCell superCell,
+    BoxTmp& tmpBox)
 {
 
     PMACC_AUTO(particle, frame[localIdx]);
@@ -161,24 +168,24 @@ ComputeGridValuePerFrame<T_ParticleShape, calcType>::operator()
         const float_X assignComb = assign.productOfComponents();
 
         if (calcType == ComputeGridValueOptions::calcDensity)
-            atomicAddWrapper(&(fieldTmpShiftToParticle(offsetToBaseCell).x()),
+            alpaka::atomic::atomicOp<alpaka::atomic::op::Add>(acc, &(fieldTmpShiftToParticle(offsetToBaseCell).x()),
                              assignComb * particleChargeDensity);
 
         if (calcType == ComputeGridValueOptions::calcEnergy)
-            atomicAddWrapper(&(fieldTmpShiftToParticle(offsetToBaseCell).x()),
+            alpaka::atomic::atomicOp<alpaka::atomic::op::Add>(acc, &(fieldTmpShiftToParticle(offsetToBaseCell).x()),
                              assignComb * energy);
 
         if (calcType == ComputeGridValueOptions::calcEnergyDensity)
-            atomicAddWrapper(&(fieldTmpShiftToParticle(offsetToBaseCell).x()),
+            alpaka::atomic::atomicOp<alpaka::atomic::op::Add>(acc, &(fieldTmpShiftToParticle(offsetToBaseCell).x()),
                              assignComb * particleChargeDensity * energy);
 
         if (calcType == ComputeGridValueOptions::calcCounter)
-            atomicAddWrapper(&(fieldTmpShiftToParticle(offsetToBaseCell).x()),
+            alpaka::atomic::atomicOp<alpaka::atomic::op::Add>(acc, &(fieldTmpShiftToParticle(offsetToBaseCell).x()),
                              assignComb * weighting / particles::TYPICAL_NUM_PARTICLES_PER_MACROPARTICLE);
 
 #if(ENABLE_RADIATION == 1)
         if (calcType == ComputeGridValueOptions::calcLarmorEnergy)
-            atomicAddWrapper(&(fieldTmpShiftToParticle(offsetToBaseCell).x()),
+            alpaka::atomic::atomicOp<alpaka::atomic::op::Add>(acc, &(fieldTmpShiftToParticle(offsetToBaseCell).x()),
                              assignComb * energyLarmor);
 #endif
 

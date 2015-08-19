@@ -53,10 +53,17 @@ DINLINE bool getPreviousFrameAndRemoveLastFrame(typename T_ParticleBox::FrameTyp
 /*! This kernel move particles to the next supercell
  * This kernel can only run with a double checker board
  */
-template<class FRAME, class Mapping>
-__global__ void kernelShiftParticles(ParticlesBox<FRAME, Mapping::Dim> pb, Mapping mapper)
+struct KernelShiftParticles
 {
-
+template<
+    typename T_Acc,
+    typename FRAME,
+    typename Mapping>
+ALPAKA_FN_ACC void operator()(
+    T_Acc const & acc,
+    ParticlesBox<FRAME, Mapping::Dim> const & pb,
+    Mapping const & mapper) const
+{
     using namespace particles::operations;
 
     /* Exchanges in 2D=8 and in 3D=26
@@ -68,21 +75,23 @@ __global__ void kernelShiftParticles(ParticlesBox<FRAME, Mapping::Dim> pb, Mappi
         Exchanges = traits::NumberOfExchanges<Dim>::value
     };
 
+    DataSpace<Dim> const blockIdx(alpaka::workdiv::getWorkDiv<alpaka::Grid, alpaka::Blocks>(acc));
+    DataSpace<Dim> const threadIdx(alpaka::idx::getIdx<alpaka::Block, alpaka::Threads>(acc));
 
     //\todo: testen ob es schneller ist, erst zu flushen wennn Source voll ist
-    __shared__ FRAME * destFrames[Exchanges];
-    __shared__ int destFramesCounter[Exchanges]; //count particles per frame
-    __shared__ bool anyDestFrameFull; //flag if any destination Frame is full
+    auto destFrames(alpaka::block::shared::allocArr<FRAME *, Exchanges>(acc));
+    auto destFramesCounter(alpaka::block::shared::allocArr<int, Exchanges>(acc)); //count particles per frame
+    auto anyDestFrameFull(alpaka::block::shared::allocVar<bool>(acc)); //flag if any destination Frame is full
 
-    __shared__ FRAME *frame;
-    __shared__ bool isFrameValid;
-    __shared__ bool mustShift;
+    auto frame(alpaka::block::shared::allocVar<FRAME *>(acc));
+    auto isFrameValid(alpaka::block::shared::allocVar<bool>(acc));
+    auto mustShift(alpaka::block::shared::allocVar<bool>(acc));
 
-    __syncthreads(); /*wait that all shared memory is initialised*/
+    acc.syncBlockThreads(); /*wait that all shared memory is initialised*/
 
-    DataSpace<Dim> superCellIdx = mapper.getSuperCellIndex(DataSpace<Dim > (blockIdx));
+    DataSpace<Dim> const superCellIdx(mapper.getSuperCellIndex(DataSpace<Dim > (blockIdx)));
 
-    if (threadIdx.x == 0)
+    if (threadIdx.x() == 0)
     {
         mustShift = pb.getSuperCell(superCellIdx).mustShift();
         if (mustShift)
@@ -94,33 +103,33 @@ __global__ void kernelShiftParticles(ParticlesBox<FRAME, Mapping::Dim> pb, Mappi
         }
     }
 
-    __syncthreads();
+    acc.syncBlockThreads();
     if (!mustShift || isFrameValid == false) return;
 
     //!\todo: find a way without so many flags
     bool isNeighborFrame = false;
     //init
-    if (threadIdx.x < Exchanges)
+    if (threadIdx.x() < Exchanges)
     {
-        DataSpace<Dim> relative = superCellIdx + Mask::getRelativeDirections<Dim > (threadIdx.x + 1);
-        destFramesCounter[threadIdx.x] = 0;
-        destFrames[threadIdx.x] = &(pb.getLastFrame(relative, isNeighborFrame));
+        DataSpace<Dim> relative = superCellIdx + Mask::getRelativeDirections<Dim > (threadIdx.x() + 1);
+        destFramesCounter[threadIdx.x()] = 0;
+        destFrames[threadIdx.x()] = &(pb.getLastFrame(relative, isNeighborFrame));
         if (isNeighborFrame)
         {
-            destFramesCounter[threadIdx.x] = pb.getSuperCell(relative).getSizeLastFrame();
-            if (destFramesCounter[threadIdx.x] == TileSize)
+            destFramesCounter[threadIdx.x()] = pb.getSuperCell(relative).getSizeLastFrame();
+            if (destFramesCounter[threadIdx.x()] == TileSize)
             {
                 //don't use last frame is it is full
-                destFrames[threadIdx.x] = NULL;
-                destFramesCounter[threadIdx.x] = 0;
+                destFrames[threadIdx.x()] = NULL;
+                destFramesCounter[threadIdx.x()] = 0;
                 isNeighborFrame = false;
             }
         }
         else
-            destFrames[threadIdx.x] = NULL;
+            destFrames[threadIdx.x()] = NULL;
 
     }
-    __syncthreads();
+    acc.syncBlockThreads();
 
     do
     {
@@ -129,42 +138,40 @@ __global__ void kernelShiftParticles(ParticlesBox<FRAME, Mapping::Dim> pb, Mappi
         //switch to value to [-2, EXCHANGES - 1]
         //-2 is no particle
         //-1 is particle but it is not shifted
-        const int direction = (*frame)[threadIdx.x][multiMask_] - 2;
+        const int direction = (*frame)[threadIdx.x()][multiMask_] - 2;
         if (direction >= 0) //\todo: weglassen
         {
-            destParticleIdx = atomicAdd(&(destFramesCounter[direction]), 1);
-            (*frame)[threadIdx.x][multiMask_] = 0; //delete particle, later we copy this particle without multiMask
+            destParticleIdx = alpaka::atomic::atomicOp<alpaka::atomic::op::Add>(acc, &(destFramesCounter[direction]), 1);
+            (*frame)[threadIdx.x()][multiMask_] = 0; //delete particle, later we copy this particle without multiMask
             if (destParticleIdx >= TileSize) anyDestFrameFull = true;
         }
-        __syncthreads();
-        if (threadIdx.x < Exchanges &&
-            destFramesCounter[threadIdx.x] > 0 &&
-            destFrames[threadIdx.x] == NULL)
+        acc.syncBlockThreads();
+        if (threadIdx.x() < Exchanges &&
+            destFramesCounter[threadIdx.x()] > 0 &&
+            destFrames[threadIdx.x()] == NULL)
         {
-            destFrames[threadIdx.x] = &(pb.getEmptyFrame());
+            destFrames[threadIdx.x()] = &(pb.getEmptyFrame());
         }
-        __syncthreads();
+        acc.syncBlockThreads();
         if (anyDestFrameFull) /*we must do two flushes, after the first we hang on a new empty frame*/
         {
             if (direction >= 0 && destParticleIdx < TileSize)
             {
-                PMACC_AUTO(parDestFull,
-                           (*(destFrames[direction]))[destParticleIdx]
-                           );
+                auto parDestFull((*(destFrames[direction]))[destParticleIdx]);
                 parDestFull[multiMask_] = 1;
-                PMACC_AUTO(parSrc, (*frame)[threadIdx.x]);
-                PMACC_AUTO(parDest, deselect<multiMask>(parDestFull));
+                auto parSrc((*frame)[threadIdx.x()]);
+                auto parDest(deselect<multiMask>(parDestFull));
                 assign(parDest, parSrc);
 
             }
-            __syncthreads();
-            if (threadIdx.x < Exchanges)
+            acc.syncBlockThreads();
+            if (threadIdx.x() < Exchanges)
             {
                 //append all full frames to destination
-                if (destFramesCounter[threadIdx.x] >= TileSize)
+                if (destFramesCounter[threadIdx.x()] >= TileSize)
                 {
-                    destFramesCounter[threadIdx.x] -= TileSize;
-                    DataSpace<Dim> relative = superCellIdx + Mask::getRelativeDirections<Dim > (threadIdx.x + 1);
+                    destFramesCounter[threadIdx.x()] -= TileSize;
+                    DataSpace<Dim> relative = superCellIdx + Mask::getRelativeDirections<Dim > (threadIdx.x() + 1);
                     if (isNeighborFrame)
                     {
                         pb.getSuperCell(relative).setSizeLastFrame(TileSize);
@@ -174,18 +181,20 @@ __global__ void kernelShiftParticles(ParticlesBox<FRAME, Mapping::Dim> pb, Mappi
                     else
                     {
                         //this is the cause that this kernel can't run without double checker board
-                        pb.setAsFirstFrame(*(destFrames[threadIdx.x]),
-                                           relative);
+                        pb.setAsFirstFrame(
+                            acc,
+                            *(destFrames[threadIdx.x()]),
+                            relative);
                     }
 
-                    if (destFramesCounter[threadIdx.x] > 0)
-                        destFrames[threadIdx.x] = &(pb.getEmptyFrame());
+                    if (destFramesCounter[threadIdx.x()] > 0)
+                        destFrames[threadIdx.x()] = &(pb.getEmptyFrame());
                     else
-                        destFrames[threadIdx.x] = NULL;
+                        destFrames[threadIdx.x()] = NULL;
                 }
                 anyDestFrameFull = false;
             }
-            __syncthreads();
+            acc.syncBlockThreads();
             if (direction >= 0 && destParticleIdx >= TileSize)
             {
                 destParticleIdx -= TileSize;
@@ -195,7 +204,7 @@ __global__ void kernelShiftParticles(ParticlesBox<FRAME, Mapping::Dim> pb, Mappi
                 /* we not update multiMask because copy from mem to mem is too slow
                  * we have enabled particle explicitly */
                 PMACC_AUTO(parDest, deselect<multiMask>(parDestFull));
-                PMACC_AUTO(parSrc, (*frame)[threadIdx.x]);
+                auto parSrc((*frame)[threadIdx.x()]);
                 assign(parDest, parSrc);
             }
         }
@@ -210,45 +219,56 @@ __global__ void kernelShiftParticles(ParticlesBox<FRAME, Mapping::Dim> pb, Mappi
                 /* we not update multiMask because copy from mem to mem is to slow
                  * we have enabled particle explicit */
                 PMACC_AUTO(parDest, deselect<multiMask>(parDestFull));
-                PMACC_AUTO(parSrc, (*frame)[threadIdx.x]);
+                PMACC_AUTO(parSrc, (*frame)[threadIdx.x()]);
                 assign(parDest, parSrc);
             }
         }
 
-        __syncthreads();
-        if (threadIdx.x == 0)
+        acc.syncBlockThreads();
+        if (threadIdx.x() == 0)
         {
             frame = &(pb.getNextFrame(*frame, isFrameValid));
         }
-        __syncthreads();
+        acc.syncBlockThreads();
 
 
     }
     while (isFrameValid);
 
 
-    if (threadIdx.x < Exchanges)
+    if (threadIdx.x() < Exchanges)
     {
-        if (destFramesCounter[threadIdx.x] > 0)
+        if (destFramesCounter[threadIdx.x()] > 0)
         {
-            DataSpace<Dim> relative = superCellIdx + Mask::getRelativeDirections<Dim > (threadIdx.x + 1);
+            DataSpace<Dim> relative = superCellIdx + Mask::getRelativeDirections<Dim > (threadIdx.x() + 1);
             if (!isNeighborFrame)
             {
-                pb.setAsLastFrame(*(destFrames[threadIdx.x]),
-                                  relative);
+                pb.setAsLastFrame(
+                    acc,
+                    *(destFrames[threadIdx.x()]),
+                    relative);
             }
-            pb.getSuperCell(relative).setSizeLastFrame(destFramesCounter[threadIdx.x]);
+            pb.getSuperCell(relative).setSizeLastFrame(destFramesCounter[threadIdx.x()]);
         }
-        else if (destFrames[threadIdx.x] != NULL)
+        else if (destFrames[threadIdx.x()] != NULL)
         {
             if (!isNeighborFrame)
-                pb.removeFrame(*(destFrames[threadIdx.x]));
+                pb.removeFrame(*(destFrames[threadIdx.x()]));
         }
     }
 }
+};
 
-template<class FRAME, class Mapping>
-__global__ void kernelFillGapsLastFrame(ParticlesBox<FRAME, Mapping::Dim> pb, Mapping mapper)
+struct KernelFillGapsLastFrame
+{
+template<
+    typename T_Acc,
+    typename FRAME,
+    typename Mapping>
+ALPAKA_FN_ACC void operator()(
+    T_Acc const & acc,
+    ParticlesBox<FRAME, Mapping::Dim> const & pb,
+    Mapping const & mapper) const
 {
     using namespace particles::operations;
 
@@ -258,49 +278,52 @@ __global__ void kernelFillGapsLastFrame(ParticlesBox<FRAME, Mapping::Dim> pb, Ma
         Dim = Mapping::Dim
     };
 
-    DataSpace<Dim> superCellIdx = mapper.getSuperCellIndex(DataSpace<Dim > (blockIdx));
+    DataSpace<Dim> const blockIdx(alpaka::idx::getIdx<alpaka::Grid, alpaka::Blocks>(acc));
+    DataSpace<Dim> const threadIdx(alpaka::idx::getIdx<alpaka::Block, alpaka::Threads>(acc));
 
-    __shared__ FRAME *lastFrame;
-    __shared__ bool isValid;
+    DataSpace<Dim> const superCellIdx(mapper.getSuperCellIndex(DataSpace<Dim > (blockIdx)));
 
-    __shared__ int gapIndices_sh[TileSize];
-    __shared__ int counterGaps;
-    __shared__ int counterParticles;
+    auto lastFrame(alpaka::block::shared::allocVar<FRAME *>(acc));
+    auto isValid(alpaka::block::shared::allocVar<bool>(acc));
 
-    __shared__ int srcGap;
+    auto gapIndices_sh(alpaka::block::shared::allocArr<int, TileSize>(acc));
+    auto counterGaps(alpaka::block::shared::allocVar<int>(acc));
+    auto counterParticles(alpaka::block::shared::allocVar<int>(acc));
 
-    __syncthreads(); /*wait that all shared memory is initialised*/
+    auto srcGap(alpaka::block::shared::allocVar<int>(acc));
 
-    if (threadIdx.x == 0)
+    acc.syncBlockThreads(); /*wait that all shared memory is initialised*/
+
+    if (threadIdx.x() == 0)
     {
         lastFrame = &(pb.getLastFrame(DataSpace<Dim > (superCellIdx), isValid));
         counterGaps = 0;
         counterParticles = 0;
         srcGap = 0;
     }
-    __syncthreads();
+    acc.syncBlockThreads();
 
 
     if (isValid)
     {
         //count particles in last frame
-        const bool isParticle = (*lastFrame)[threadIdx.x][multiMask_];
+        const bool isParticle = (*lastFrame)[threadIdx.x()][multiMask_];
         if (isParticle == true) //\todo: bits zählen
         {
-            atomicAdd(&counterParticles, 1);
+            alpaka::atomic::atomicOp<alpaka::atomic::op::Add>(acc, &counterParticles, 1);
         }
-        __syncthreads();
+        acc.syncBlockThreads();
 
-        if (threadIdx.x < counterParticles && isParticle == false)
+        if (threadIdx.x() < counterParticles && isParticle == false)
         {
-            const int localGapIdx = atomicAdd(&counterGaps, 1);
-            gapIndices_sh[localGapIdx] = threadIdx.x;
+            const int localGapIdx = alpaka::atomic::atomicOp<alpaka::atomic::op::Add>(acc, &counterGaps, 1);
+            gapIndices_sh[localGapIdx] = threadIdx.x();
         }
-        __syncthreads();
-        if (threadIdx.x >= counterParticles && isParticle)
+        acc.syncBlockThreads();
+        if (threadIdx.x() >= counterParticles && isParticle)
         {
             //any particle search a gap
-            const int srcGapIdx = atomicAdd(&srcGap, 1);
+            const int srcGapIdx = alpaka::atomic::atomicOp<alpaka::atomic::op::Add>(acc, &srcGap, 1);
             const int gapIdx = gapIndices_sh[srcGapIdx];
             PMACC_AUTO(parDestFull, ((*lastFrame)[gapIdx]));
             /*enable particle*/
@@ -308,18 +331,26 @@ __global__ void kernelFillGapsLastFrame(ParticlesBox<FRAME, Mapping::Dim> pb, Ma
             /* we not update multiMask because copy from mem to mem is to slow
              * we have enabled particle explicit */
             PMACC_AUTO(parDest, deselect<multiMask>(parDestFull));
-            PMACC_AUTO(parSrc, ((*lastFrame)[threadIdx.x]));
+            PMACC_AUTO(parSrc, ((*lastFrame)[threadIdx.x()]));
             assign(parDest, parSrc);
             parSrc[multiMask_] = 0; //delete old partice
         }
     }
-    if (threadIdx.x == 0)
+    if (threadIdx.x() == 0)
         pb.getSuperCell(superCellIdx).setSizeLastFrame(counterParticles);
-
 }
+};
 
-template<class FRAME, class Mapping>
-__global__ void kernelFillGaps(ParticlesBox<FRAME, Mapping::Dim> pb, Mapping mapper)
+struct KernelFillGaps
+{
+template<
+    typename T_Acc,
+    typename FRAME,
+    typename Mapping>
+ALPAKA_FN_ACC void operator()(
+    T_Acc const & acc,
+    ParticlesBox<FRAME, Mapping::Dim> const & pb,
+    Mapping const & mapper) const
 {
     using namespace particles::operations;
 
@@ -329,33 +360,36 @@ __global__ void kernelFillGaps(ParticlesBox<FRAME, Mapping::Dim> pb, Mapping map
         Dim = Mapping::Dim
     };
 
-    DataSpace<Dim> superCellIdx(mapper.getSuperCellIndex(DataSpace<Dim > (blockIdx)));
+    DataSpace<Dim> const blockIdx(alpaka::idx::getIdx<alpaka::Grid, alpaka::Blocks>(acc));
+    DataSpace<Dim> const threadIdx(alpaka::idx::getIdx<alpaka::Block, alpaka::Threads>(acc));
+
+    DataSpace<Dim> const superCellIdx(mapper.getSuperCellIndex(DataSpace<Dim > (blockIdx)));
 
     //data copied from right (last) to left (first)
-    __shared__ FRAME *firstFrame;
-    __shared__ FRAME *lastFrame;
-    __shared__ bool isValid;
+    auto firstFrame(alpaka::block::shared::allocVar<FRAME *>(acc));
+    auto lastFrame(alpaka::block::shared::allocVar<FRAME *>(acc));
+    auto isValid(alpaka::block::shared::allocVar<bool>(acc));
 
-    __shared__ int particleIndices_sh[TileSize];
-    __shared__ int counterGaps;
-    __shared__ int counterParticles;
+    auto particleIndices_sh(alpaka::block::shared::allocArr<int, TileSize>(acc));
+    auto counterGaps(alpaka::block::shared::allocVar<int>(acc));
+    auto counterParticles(alpaka::block::shared::allocVar<int>(acc));
 
-    __syncthreads(); /*wait that all shared memory is initialised*/
+    acc.syncBlockThreads(); /*wait that all shared memory is initialised*/
 
-    if (threadIdx.x == 0)
+    if (threadIdx.x() == 0)
     {
         bool tmpValid;
         firstFrame = &(pb.getFirstFrame(DataSpace<Dim > (superCellIdx), tmpValid));
         lastFrame = &(pb.getLastFrame(DataSpace<Dim > (superCellIdx), isValid));
         isValid = isValid && tmpValid;
     }
-    __syncthreads();
+    acc.syncBlockThreads();
 
     while (isValid)
     {
         if (firstFrame == lastFrame) break; /*exit loop if both frames are equal*/
 
-        if (threadIdx.x == 0)
+        if (threadIdx.x() == 0)
         {
             //\todo: check if we need control thread or can write to shared with all threads
             counterGaps = 0;
@@ -363,36 +397,36 @@ __global__ void kernelFillGaps(ParticlesBox<FRAME, Mapping::Dim> pb, Mapping map
         }
         int localGapIdx = INV_LOC_IDX; //later we cann call localGapIdx < X because X<INV_LOC_IDX
 
-        __syncthreads();
+        acc.syncBlockThreads();
 
         // find gaps
-        if ((*firstFrame)[threadIdx.x][multiMask_] == 0)
+        if ((*firstFrame)[threadIdx.x()][multiMask_] == 0)
         {
-            localGapIdx = atomicAdd(&counterGaps, 1);
+            localGapIdx = alpaka::atomic::atomicOp<alpaka::atomic::op::Add>(acc, &counterGaps, 1);
         }
-        __syncthreads();
+        acc.syncBlockThreads();
 
         if (counterGaps == 0)
         {
-            if (threadIdx.x == 0)
+            if (threadIdx.x() == 0)
             {
                 firstFrame = &(pb.getNextFrame(*firstFrame, isValid));
             }
-            __syncthreads(); //wait control thread search new frame
+            acc.syncBlockThreads(); //wait control thread search new frame
             continue; //check next frame
         }
 
         // search particles for gaps
-        if ((*lastFrame)[threadIdx.x][multiMask_] == 1)
+        if ((*lastFrame)[threadIdx.x()][multiMask_] == 1)
         {
-            int localParticleIdx = atomicAdd(&counterParticles, 1);
-            particleIndices_sh[localParticleIdx] = threadIdx.x;
+            int localParticleIdx = alpaka::atomic::atomicOp<alpaka::atomic::op::Add>(acc, &counterParticles, 1);
+            particleIndices_sh[localParticleIdx] = threadIdx.x();
         }
-        __syncthreads();
+        acc.syncBlockThreads();
         if (localGapIdx < counterParticles)
         {
             const int parIdx = particleIndices_sh[localGapIdx];
-            PMACC_AUTO(parDestFull, ((*firstFrame)[threadIdx.x]));
+            PMACC_AUTO(parDestFull, ((*firstFrame)[threadIdx.x()]));
             /*enable particle*/
             parDestFull[multiMask_] = 1;
             /* we not update multiMask because copy from mem to mem is to slow
@@ -402,8 +436,8 @@ __global__ void kernelFillGaps(ParticlesBox<FRAME, Mapping::Dim> pb, Mapping map
             assign(parDest, parSrc);
             parSrc[multiMask_] = 0;
         }
-        __syncthreads();
-        if (threadIdx.x == 0)
+        acc.syncBlockThreads();
+        if (threadIdx.x() == 0)
         {
             bool isFrameValid = false;
             if (counterGaps < counterParticles)
@@ -427,13 +461,21 @@ __global__ void kernelFillGaps(ParticlesBox<FRAME, Mapping::Dim> pb, Mapping map
             }
             isValid = isFrameValid;
         }
-        __syncthreads();
+        acc.syncBlockThreads();
     }
 }
+};
 
-template< class T_ParticleBox, class Mapping>
-__global__ void kernelDeleteParticles(T_ParticleBox pb,
-                                      Mapping mapper)
+struct KernelDeleteParticles
+{
+template<
+    typename T_Acc,
+    typename T_ParticleBox,
+    typename Mapping>
+ALPAKA_FN_ACC void operator()(
+    T_Acc const & acc,
+    T_ParticleBox const & pb,
+    Mapping const & mapper) const
 {
     using namespace particles::operations;
 
@@ -445,47 +487,62 @@ __global__ void kernelDeleteParticles(T_ParticleBox pb,
         Dim = Mapping::Dim
     };
 
-    DataSpace<Dim> superCellIdx = mapper.getSuperCellIndex(DataSpace<Dim > (blockIdx));
-    const int linearThreadIdx = threadIdx.x;
+    DataSpace<Dim> const blockIdx(alpaka::idx::getIdx<alpaka::Grid, alpaka::Blocks>(acc));
+    DataSpace<Dim> const threadIdx(alpaka::idx::getIdx<alpaka::Block, alpaka::Threads>(acc));
 
-    __shared__ FrameType *frame;
-    __shared__ bool isValid;
+    DataSpace<Dim> const superCellIdx(mapper.getSuperCellIndex(DataSpace<Dim > (blockIdx)));
 
-    __syncthreads(); /*wait that all shared memory is initialised*/
+    const int linearThreadIdx = threadIdx.x();
+
+    auto frame(alpaka::block::shared::allocVar<FrameType *>(acc));
+    auto isValid(alpaka::block::shared::allocVar<bool>(acc));
+
+    acc.syncBlockThreads(); /*wait that all shared memory is initialized*/
 
     if (linearThreadIdx == 0)
     {
         frame = &(pb.getLastFrame(superCellIdx, isValid));
     }
 
-    __syncthreads();
+    acc.syncBlockThreads();
 
     while (isValid)
     {
-
-        PMACC_AUTO(particle, ((*frame)[linearThreadIdx]));
+        auto particle((*frame)[linearThreadIdx]);
         particle[multiMask_] = 0; //delete particle
 
-        __syncthreads();
+        acc.syncBlockThreads();
 
         if (linearThreadIdx == 0)
         {
             //always remove the last frame
             isValid = getPreviousFrameAndRemoveLastFrame(frame, pb, superCellIdx);
         }
-        __syncthreads();
+        acc.syncBlockThreads();
     }
 
     if (linearThreadIdx == 0)
         pb.getSuperCell(superCellIdx).setSizeLastFrame(0);
-
 }
+};
 
-template< class FRAME, class BORDER, class Mapping>
-__global__ void kernelBashParticles(ParticlesBox<FRAME, Mapping::Dim> pb,
-                                    ExchangePushDataBox<vint_t, BORDER, Mapping::Dim - 1 > border,
-                                    Mapping mapper)
+struct KernelBashParticles
 {
+template<
+    typename T_Acc,
+    typename FRAME,
+    typename BORDER,
+    typename Mapping>
+ALPAKA_FN_ACC void operator()(
+    T_Acc const & acc,
+    ParticlesBox<FRAME, Mapping::Dim> const & pb,
+    ExchangePushDataBox<vint_t, BORDER, Mapping::Dim - 1> border,
+    Mapping const & mapper) const
+{
+    static_assert(
+        alpaka::dim::Dim<T_Acc>::value == Mapping::Dim,
+        "The KernelBashParticles functor has to be called with a Mapping::Dim dimensional accelerator!");
+
     using namespace particles::operations;
 
     enum
@@ -494,61 +551,66 @@ __global__ void kernelBashParticles(ParticlesBox<FRAME, Mapping::Dim> pb,
         Dim = Mapping::Dim
     };
 
-    DataSpace<Dim> superCellIdx = mapper.getSuperCellIndex(DataSpace<Dim > (blockIdx));
+    DataSpace<Dim> const blockIdx(alpaka::idx::getIdx<alpaka::Grid, alpaka::Blocks>(acc));
+    DataSpace<Dim> const threadIdx(alpaka::idx::getIdx<alpaka::Block, alpaka::Threads>(acc));
 
-    __shared__ uint32_t numBashedParticles;
-    __shared__ FRAME *frame;
-    __shared__ bool isValid;
-    __shared__ bool hasMemory;
-    __shared__ TileDataBox<BORDER> tmpBorder;
+    DataSpace<Dim> const superCellIdx(mapper.getSuperCellIndex(DataSpace<Dim > (blockIdx)));
 
-    __syncthreads(); /*wait that all shared memory is initialised*/
+    auto numBashedParticles(alpaka::block::shared::allocVar<uint32_t>(acc));
+    auto frame(alpaka::block::shared::allocVar<FRAME *>(acc));
+    auto isValid(alpaka::block::shared::allocVar<bool>(acc));
+    auto hasMemory(alpaka::block::shared::allocVar<bool>(acc));
+    auto tmpBorder(alpaka::block::shared::allocVar<TileDataBox<BORDER>>(acc));
 
-    if (threadIdx.x == 0)
+    acc.syncBlockThreads(); /*wait that all shared memory is initialised*/
+
+    if (threadIdx.x() == 0)
     {
         hasMemory = true;
         frame = &(pb.getLastFrame(superCellIdx, isValid));
     }
     //\todo: eventuell ist es schneller, parallelen und seriellen Code zu trennen
-    __syncthreads();
+    acc.syncBlockThreads();
     while (isValid && hasMemory)
     {
         lcellId_t bashIdx = INV_LOC_IDX;
-        if (threadIdx.x == 0)
+        if (threadIdx.x() == 0)
             numBashedParticles = 0;
-        __syncthreads();
+        acc.syncBlockThreads();
 
-        if ((*frame)[threadIdx.x][multiMask_] == 1)
+        if ((*frame)[threadIdx.x()][multiMask_] == 1)
         {
-            bashIdx = atomicAdd(&numBashedParticles, 1);
+            bashIdx = alpaka::atomic::atomicOp<alpaka::atomic::op::Add>(acc, &numBashedParticles, 1u);
         }
-        __syncthreads();
+        acc.syncBlockThreads();
 
         if (numBashedParticles > 0)
         {
 
-            if (threadIdx.x == 0)
+            if (threadIdx.x() == 0)
             {
                 // DataSpaceOperations<DIM2>::reduce computes target position for domainTile and exchangeType
-                tmpBorder = border.pushN(numBashedParticles,
-                                         DataSpaceOperations<Dim>::reduce(
-                                                                          superCellIdx,
-                                                                          mapper.getExchangeType()));
+                tmpBorder = border.pushN(
+                    acc,
+                    numBashedParticles,
+                    DataSpaceOperations<Dim>::reduce(
+                        superCellIdx,
+                        mapper.getExchangeType()));
                 if (tmpBorder.getSize() < numBashedParticles)
                     hasMemory = false;
             }
-            __syncthreads();
+            acc.syncBlockThreads();
 
             if (bashIdx != INV_LOC_IDX && bashIdx < tmpBorder.getSize())
             {
                 PMACC_AUTO(parDest, tmpBorder[bashIdx][0]);
-                PMACC_AUTO(parSrc, ((*frame)[threadIdx.x]));
+                PMACC_AUTO(parSrc, ((*frame)[threadIdx.x()]));
                 assign(parDest, parSrc);
                 parSrc[multiMask_] = 0;
             }
-            __syncthreads();
+            acc.syncBlockThreads();
 
-            if (threadIdx.x == 0 && hasMemory)
+            if (threadIdx.x() == 0 && hasMemory)
             {
                 //always remove the last frame
                 isValid=getPreviousFrameAndRemoveLastFrame(frame,pb,superCellIdx);
@@ -557,24 +619,31 @@ __global__ void kernelBashParticles(ParticlesBox<FRAME, Mapping::Dim> pb,
         else
         {
             //if we had no particles to copy than we are the last and only frame
-            if (threadIdx.x == 0)
+            if (threadIdx.x() == 0)
             {
                 isValid=getPreviousFrameAndRemoveLastFrame(frame,pb,superCellIdx);
             }
         }
-        __syncthreads();
+        acc.syncBlockThreads();
     }
-    if (threadIdx.x == 0)
+    if (threadIdx.x() == 0)
         pb.getSuperCell(superCellIdx).setSizeLastFrame(0);
-
 }
+};
 
-template<class FRAME, class BORDER, class Mapping>
-__global__ void kernelInsertParticles(ParticlesBox<FRAME, Mapping::Dim> pb,
-                                      ExchangePopDataBox<vint_t, BORDER, Mapping::Dim - 1 > border,
-                                      Mapping mapper)
+struct KernelInsertParticles
 {
-
+template<
+    typename T_Acc,
+    typename FRAME,
+    typename BORDER,
+    typename Mapping>
+ALPAKA_FN_ACC void operator()(
+    T_Acc const & acc,
+    ParticlesBox<FRAME, Mapping::Dim> const & pb,
+    ExchangePopDataBox<vint_t, BORDER, Mapping::Dim-1> border,
+    Mapping const & mapper) const
+{
     using namespace particles::operations;
 
     enum
@@ -583,38 +652,40 @@ __global__ void kernelInsertParticles(ParticlesBox<FRAME, Mapping::Dim> pb,
         Dim = Mapping::Dim
     };
 
-    __shared__ FRAME* frame;
-    __shared__ int elementCount;
-    __shared__ TileDataBox<BORDER> tmpBorder;
+    DataSpace<1> const threadIdx(alpaka::idx::getIdx<alpaka::Block, alpaka::Threads>(acc));
 
-    __syncthreads(); /*wait that all shared memory is initialised*/
+    auto frame(alpaka::block::shared::allocVar<FRAME *>(acc));
+    auto elementCount(alpaka::block::shared::allocVar<int>(acc));
+    auto tmpBorder(alpaka::block::shared::allocVar<TileDataBox<BORDER>>(acc));
 
-    DataSpace < Mapping::Dim - 1 > superCell;
+    acc.syncBlockThreads(); /*wait that all shared memory is initialised*/
 
-    if (threadIdx.x == 0)
+    DataSpace<Mapping::Dim - 1> superCell;
+
+    if (threadIdx.x() == 0)
     {
-        tmpBorder = border.pop(superCell);
+        tmpBorder = border.pop(acc, superCell);
         elementCount = tmpBorder.getSize();
         if (elementCount > 0)
         {
             frame = &(pb.getEmptyFrame());
         }
     }
-    __syncthreads();
-    if (threadIdx.x < elementCount)
+    acc.syncBlockThreads();
+    if (threadIdx.x() < elementCount)
     {
-        PMACC_AUTO(parDestFull, ((*frame)[threadIdx.x]));
+        auto parDestFull(((*frame)[threadIdx.x()]));
         parDestFull[multiMask_] = 1;
-        PMACC_AUTO(parSrc, ((tmpBorder[threadIdx.x])[0]));
+        auto parSrc(((tmpBorder[threadIdx.x()])[0]));
         /*we know that source has no multiMask*/
-        PMACC_AUTO(parDest, deselect<multiMask>(parDestFull));
+        auto parDest(deselect<multiMask>(parDestFull));
         assign(parDest, parSrc);
     }
-    /*if this syncronize fix the kernel crash in spezial cases,
+    /* This synchronize fixes kernel crashes in special cases,
      * I can't tell why.
      */
-    __syncthreads();
-    if ((threadIdx.x == 0) && (elementCount > 0))
+    acc.syncBlockThreads();
+    if ((threadIdx.x() == 0) && (elementCount > 0))
     {
         // compute the super cell position in target frame to insert into
         ///\todo: offset == simulation border should be passed to this func instead of being created here
@@ -623,13 +694,9 @@ __global__ void kernelInsertParticles(ParticlesBox<FRAME, Mapping::Dim> pb,
                                                                                mapper.getGridSuperCells(),
                                                                                DataSpace<Dim>::create(mapper.getGuardingSuperCells()));
 
-        pb.setAsLastFrame(*frame, dstSuperCell);
+        pb.setAsLastFrame(acc, *frame, dstSuperCell);
     }
-
-
 }
-
-
+};
 
 } //namespace PMacc
-

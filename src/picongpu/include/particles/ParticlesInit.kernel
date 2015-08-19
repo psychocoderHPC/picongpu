@@ -1,5 +1,6 @@
 /**
- * Copyright 2013-2014 Axel Huebl, Heiko Burau, Rene Widera, Felix Schmitt
+ * Copyright 2013-2015 Axel Huebl, Heiko Burau, Rene Widera, Felix Schmitt,
+ *                     Benjamin Worpitz
  *
  * This file is part of PIConGPU.
  *
@@ -52,7 +53,9 @@ template< typename T_Species, typename T_GasProfile>
 DINLINE float_X calcRealDensity(T_GasProfile& gasFunctor,
                                 const DataSpace<simDim>& totalGpuCellIdx)
 {
-    PMACC_CASSERT_MSG(Please_deselect_gasInitMethod_for_your_species_or_set_GAS_DENSITY_to_a_value_greater_than_0, ((GAS_DENSITY) > 0.0f));
+    static_assert(
+        ((GAS_DENSITY) > 0.0f),
+        "Please deselect gasInitMethod for your species or set GAS_DENSITY to a value greater than 0.");
 
     const float_X densityRatioOfSpecies = traits::GetDensityRatio<T_Species>::type::getValue();
 
@@ -60,32 +63,43 @@ DINLINE float_X calcRealDensity(T_GasProfile& gasFunctor,
     return value;
 }
 
-template< typename T_Species, typename T_GasProfile, typename T_PositionFunctor, typename ParBox, class Mapping>
-__global__ void kernelFillGridWithParticles(T_GasProfile gasFunctor,
-                                            T_PositionFunctor positionFunctor,
-                                            DataSpace<simDim> totalGpuCellOffset,
-                                            ParBox pb,
-                                            Mapping mapper)
+template<
+    typename T_Species>
+struct KernelFillGridWithParticles
+{
+template<
+    typename T_Acc,
+    typename T_GasProfile,
+    typename T_PositionFunctor,
+    typename ParBox,
+    typename Mapping>
+ALPAKA_FN_ACC void operator()(
+    T_Acc const & acc,
+    T_GasProfile const & gasFunctor,
+    T_PositionFunctor const & positionFunctor,
+    DataSpace<simDim> const & totalGpuCellOffset,
+    ParBox const & pb,
+    Mapping const & mapper) const
 {
     typedef typename ParBox::FrameType FRAME;
-    const DataSpace<simDim> superCells(mapper.getGridSuperCells());
-
-    const DataSpace<simDim> block = mapper.getSuperCellIndex(DataSpace<simDim > (blockIdx));
-
-    __shared__ FRAME *frame;
-
-    __syncthreads(); /*wait that all shared memory is initialised*/
-
     typedef typename Mapping::SuperCellSize SuperCellSize;
 
-    const DataSpace<simDim > threadIndex(threadIdx);
+    DataSpace<simDim> const blockIndex(alpaka::idx::getIdx<alpaka::Grid, alpaka::Blocks>(acc));
+    DataSpace<simDim> const threadIndex(alpaka::idx::getIdx<alpaka::Block, alpaka::Threads>(acc));
+
+    const DataSpace<simDim> superCells(mapper.getGridSuperCells());
+
+    auto frame(alpaka::block::shared::allocVar<FRAME *>(acc));
+
+    acc.syncBlockThreads(); /*wait that all shared memory is initialised*/
+
     const int linearThreadIdx = DataSpaceOperations<simDim>::template map<SuperCellSize > (threadIndex);
-    const DataSpace<simDim> superCellIdx(mapper.getSuperCellIndex(DataSpace<simDim > (blockIdx)));
+    const DataSpace<simDim> superCellIdx(mapper.getSuperCellIndex(DataSpace<simDim > (blockIndex)));
 
 
     /* do not add particle to guarding super cells */
     for (uint32_t d = 0; d < simDim; ++d)
-        if (block[d] == 0 || block[d] == superCells[d] - 1) return;
+        if (superCellIdx[d] == 0 || superCellIdx[d] == superCells[d] - 1) return;
 
     /*get local cell idx*/
     const DataSpace<simDim> idx(superCellIdx * SuperCellSize::toRT() + threadIndex);
@@ -98,10 +112,10 @@ __global__ void kernelFillGridWithParticles(T_GasProfile gasFunctor,
 
     const float_X realParticlesPerCell = realDensity * CELL_VOLUME;
 
-    __shared__ int finished;
+    auto finished(alpaka::block::shared::allocVar<int>(acc));
     if (linearThreadIdx == 0)
         finished = 1;
-    __syncthreads();
+    acc.syncBlockThreads();
 
     positionFunctor.init(totalGpuCellIdx);
     // decrease number of macro particles, if weighting would be too small
@@ -113,28 +127,28 @@ __global__ void kernelFillGridWithParticles(T_GasProfile gasFunctor,
     const uint32_t totalNumParsPerCell = numParsPerCell;
 
     if (numParsPerCell > 0)
-        atomicExch(&finished, 0); //one or more cell has particles to create
+        alpaka::atomic::atomicOp<alpaka::atomic::op::Exch>(acc, &finished, 0); //one or more cell has particles to create
 
-    __syncthreads();
+    acc.syncBlockThreads();
     if (finished == 1)
         return; // if there is no particle which has to be created
 
     if (linearThreadIdx == 0)
     {
         frame = &(pb.getEmptyFrame());
-        pb.setAsLastFrame(*frame, block);
+        pb.setAsLastFrame(acc, *frame, superCellIdx);
     }
 
-    __syncthreads();
+    acc.syncBlockThreads();
 
     // distribute the particles within the cell
     do
     {
 
-        __syncthreads();
+        acc.syncBlockThreads();
         if (linearThreadIdx == 0)
             finished = 1; //clear flag
-        __syncthreads();
+        acc.syncBlockThreads();
 
         floatD_X pos = positionFunctor(totalNumParsPerCell - numParsPerCell);
 
@@ -169,16 +183,17 @@ __global__ void kernelFillGridWithParticles(T_GasProfile gasFunctor,
 #endif
             numParsPerCell--;
             if (numParsPerCell > 0)
-                atomicExch(&finished, 0); //one or more cell has particles to create
+                alpaka::atomic::atomicOp<alpaka::atomic::op::Exch>(acc, &finished, 0); //one or more cell has particles to create
         }
-        __syncthreads();
+        acc.syncBlockThreads();
         if (linearThreadIdx == 0 && finished == 0)
         {
             frame = &(pb.getEmptyFrame());
-            pb.setAsLastFrame(*frame, block);
+            pb.setAsLastFrame(acc, *frame, superCellIdx);
         }
     }
     while (finished == 0);
 }
+};
 
 }

@@ -29,6 +29,7 @@
 #include "eventSystem/EventSystem.hpp"
 #include "types.h"
 
+#include <boost/predef.h>
 
 namespace picongpu
 {
@@ -40,25 +41,22 @@ namespace picongpu
 } //namespace picongpu
 
 /**
- * Appends kernel arguments to generated code and activates kernel task.
+ * Appends kernel arguments to the executor invocation and activates the kernel task.
+ * If PMACC_SYNC_KERNEL is 1 cudaThreadSynchronize() is called before and after activation.
  *
  * @param ... Parameters to pass to kernel
  */
-#define PIC_PMACC_CUDAPARAMS(...) (__VA_ARGS__,mapper);                        \
-        PMACC_ACTIVATE_KERNEL                                                  \
-    }   /*this is used if call is EventTask.waitforfinished();*/
-
-/**
- * Configures block and grid sizes and shared memory for the kernel.
- *
- * gridsize for kernel call is set by mapper
- *
- * @param block sizes of block on gpu
- * @param ... amount of shared memory for the kernel (optional)
- */
-#define PIC_PMACC_CUDAKERNELCONFIG(block,...) <<<mapper.getGridDim(),(block),  \
-    __VA_ARGS__+0,                                                             \
-    taskKernel->getCudaStream()>>> PIC_PMACC_CUDAPARAMS
+#if BOOST_COMP_MSVC
+    #define PIC_KERNEL_PARAMS(...)\
+            ,__VA_ARGS__, mapper));\
+            PMACC_ACTIVATE_KERNEL();\
+        }
+#else
+    #define PIC_KERNEL_PARAMS(...)\
+            ,##__VA_ARGS__, mapper));\
+            PMACC_ACTIVATE_KERNEL();\
+        }
+#endif
 
 /**
  * Calls a CUDA kernel and creates an EventTask which represents the kernel.
@@ -69,8 +67,10 @@ namespace picongpu
  * @param kernelname name of the CUDA kernel (can also used with templates etc. myKernnel<1>)
  * @param area area type for which the kernel is called
  */
-#define __picKernelArea(kernelname,description,area) {                               \
-    CUDA_CHECK_KERNEL_MSG(cudaDeviceSynchronize(),"picKernelArea crash before kernel call");       \
-    AreaMapping<area,MappingDesc> mapper(description);                               \
-    TaskKernel *taskKernel =  Environment<>::get().Factory().createTaskKernel(#kernelname);  \
-    kernelname PIC_PMACC_CUDAKERNELCONFIG
+#define __picKernelArea(KERNEL, DIM, description, area, block)\
+    {\
+        PMACC_KERNEL_CATCH(::alpaka::wait::wait(::PMacc::Environment<>::get().DeviceManager().getDevice()), "picKernelArea: crash before kernel call");\
+        ::PMacc::AreaMapping<area, MappingDesc> mapper(description);\
+        ::PMacc::TaskKernel * const taskKernel(::PMacc::Environment<>::get().Factory().createTaskKernel(#KERNEL));\
+        auto const exec(::alpaka::exec::create<::PMacc::AlpakaAcc<DIM>>(::alpaka::workdiv::WorkDivMembers<DIM, size_t>(mapper.getGridDim(), block), KERNEL\
+        PIC_KERNEL_PARAMS

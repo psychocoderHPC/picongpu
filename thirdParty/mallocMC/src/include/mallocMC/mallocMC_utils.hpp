@@ -11,6 +11,7 @@
   Author(s):  Markus Steinberger - steinberger ( at ) icg.tugraz.at
               Michael Kenzel - kenzel ( at ) icg.tugraz.at
               Carlchristian Eckert - c.eckert ( at ) hzdr.de
+              Benjamin Worpitz - HZDR
 
   Permission is hereby granted, free of charge, to any person obtaining a copy
   of this software and associated documentation files (the "Software"), to deal
@@ -43,6 +44,7 @@
 
 #include "mallocMC_prefixes.hpp"
 
+#if MAMC_CUDA_ENABLED
 
 namespace CUDA
 {
@@ -202,3 +204,5 @@ namespace mallocMC
   MAMC_HOST MAMC_ACCELERATOR inline T divup(T a, T b) { return (a + b - 1)/b; }
 
 }
+
+#endif

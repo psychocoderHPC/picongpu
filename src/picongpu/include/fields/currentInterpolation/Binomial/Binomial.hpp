@@ -42,7 +42,7 @@ struct Binomial
     template<typename DataBoxE, typename DataBoxB, typename DataBoxJ>
     HDINLINE void operator()(DataBoxE fieldE,
                              DataBoxB,
-                             DataBoxJ fieldJ )
+                             DataBoxJ fieldJ ) const
     {
         const DataSpace<dim> self;
         typedef typename DataBoxJ::ValueType TypeJ;

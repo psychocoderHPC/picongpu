@@ -1,5 +1,5 @@
 /**
- * Copyright 2014 Rene Widera
+ * Copyright 2014 Rene Widera, Benjamin Worpitz
  *
  * This file is part of libPMacc.
  *
@@ -24,7 +24,7 @@
 #pragma once
 
 #include "types.h"
-#include <cuda_runtime.h>
+#include <alpaka/alpaka.hpp>
 
 namespace PMacc
 {
@@ -34,26 +34,32 @@ namespace PMacc
  */
 class CudaEvent
 {
-private:
-
-    cudaEvent_t event;
-    cudaStream_t stream;
-    /* state if event is recorded */
-    bool isRecorded;
-    bool isValid;
-
-
 public:
-
     /**
      * Constructor
      *
      * no data is allocated @see create()
      */
-    CudaEvent() : isRecorded(false), isValid(false)
-    {
+    CudaEvent() :
+        m_event(),
+        m_pStream(),
+        isRecorded(false)
+    {}
 
-    }
+    /**
+     * Copy constructor
+     */
+    CudaEvent(CudaEvent const & other) :
+        m_event(
+            new alpaka::event::Event<AlpakaStream>(*other.m_event.get())),
+        m_pStream(other.m_pStream),
+        isRecorded(other.isRecorded)
+    {}
+
+    /**
+     * Move constructor
+     */
+    CudaEvent(CudaEvent && other) = default;
 
     /**
      * Destructor
@@ -71,21 +77,20 @@ public:
      * - internal memory is allocated
      * - event must be destroyed with @see destroy
      */
-    static CudaEvent create()
+    static CudaEvent create(AlpakaDev const & dev)
     {
         CudaEvent ev;
-        ev.isValid = true;
-        CUDA_CHECK(cudaEventCreateWithFlags(&(ev.event), cudaEventDisableTiming));
+        ev.m_event.reset(new alpaka::event::Event<AlpakaStream>(dev));
         return ev;
     }
 
     /**
      * free allocated memory
      */
-    static void destroy(const CudaEvent& ev)
+    static void destroy(CudaEvent& ev)
     {
-        CUDA_CHECK(cudaEventSynchronize(ev.event));
-        CUDA_CHECK(cudaEventDestroy(ev.event));
+        alpaka::wait::wait(*ev.m_event.get());
+        ev.m_event.reset();
     }
 
     /**
@@ -93,10 +98,10 @@ public:
      *
      * @return native cuda event
      */
-    cudaEvent_t operator*() const
+    alpaka::event::Event<AlpakaStream> & operator*() const
     {
-        assert(isValid);
-        return event;
+        assert(m_event);
+        return *m_event.get();
     }
 
     /**
@@ -106,20 +111,19 @@ public:
      */
     bool isFinished() const
     {
-        assert(isValid);
-        return cudaEventQuery(event) == cudaSuccess;
+        assert(m_event);
+        return alpaka::event::test(*m_event.get());
     }
-
 
     /**
      * get stream in which this event is recorded
      *
      * @return native cuda stream
      */
-    cudaStream_t getStream() const
+    AlpakaStream & getCudaStream() const
     {
         assert(isRecorded);
-        return stream;
+        return *m_pStream;
     }
 
     /**
@@ -127,14 +131,19 @@ public:
      *
      * @param stream native cuda stream
      */
-    void recordEvent(cudaStream_t stream)
+    void recordEvent(AlpakaStream & stream)
     {
         /* disallow double recording */
         assert(isRecorded==false);
         isRecorded = true;
-        this->stream = stream;
-        CUDA_CHECK(cudaEventRecord(event, stream));
+        m_pStream = &stream;
+        alpaka::stream::enqueue(*m_pStream, *m_event.get());
     }
 
+private:
+    std::unique_ptr<alpaka::event::Event<AlpakaStream>> m_event;
+    AlpakaStream * m_pStream;
+    /* state if event is recorded */
+    bool isRecorded;
 };
 }

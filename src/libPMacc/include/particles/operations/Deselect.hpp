@@ -28,7 +28,6 @@
 #include <boost/mpl/bool.hpp>
 #include <boost/mpl/vector.hpp>
 #include "compileTime/conversion/ToSeq.hpp"
-#include <boost/utility/result_of.hpp>
 
 namespace PMacc
 {
@@ -54,9 +53,9 @@ struct Deselect;
 } //namespace detail
 
 template<typename T_Exclude, typename T_Object>
-HDINLINE
-typename boost::result_of < detail::Deselect<typename ToSeq<T_Exclude>::type,T_Object>(T_Object)>::type
+HDINLINE auto
 deselect(T_Object& object)
+-> decltype(detail::Deselect<typename ToSeq<T_Exclude>::type,T_Object>()(object))
 {
     typedef typename ToSeq< T_Exclude >::type DeselectSeq;
     typedef detail::Deselect<DeselectSeq, T_Object> BaseType;

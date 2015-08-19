@@ -140,19 +140,23 @@ public:
             filter.setWindowPosition(params->localWindowToDomainOffset,
                                      params->window.localDimensions.size);
 
-            dim3 block(PMacc::math::CT::volume<SuperCellSize>::type::value);
+            DataSpace<simDim> block(PMacc::math::CT::volume<SuperCellSize>::type::value);
 
             GridBuffer<int, DIM1> counterBuffer(DataSpace<DIM1>(1));
             AreaMapping < CORE + BORDER, MappingDesc > mapper(*(params->cellDescription));
 
-            __cudaKernel(copySpecies)
-                (mapper.getGridDim(), block)
-                (counterBuffer.getDeviceBuffer().getPointer(),
-                 deviceFrame, speciesTmp->getDeviceParticlesBox(),
-                 filter,
-                 particleOffset, /*relative to data domain (not to physical domain)*/
-                 mapper
-                 );
+            KernelCopySpecies kernelCopySpecies;
+            __cudaKernel(
+                kernelCopySpecies,
+                alpaka::dim::DimInt<simDim>,
+                mapper.getGridDim(),
+                block)(
+                    counterBuffer.getDeviceBuffer().getPointer(),
+                    deviceFrame, speciesTmp->getDeviceParticlesBox(),
+                    filter,
+                    particleOffset, /*relative to data domain (not to physical domain)*/
+                    mapper);
+
             counterBuffer.deviceToHost();
             log<picLog::INPUT_OUTPUT > ("HDF5:  ( end ) copy particle to host: %1%") % Hdf5FrameType::getName();
             __getTransactionEvent().waitForFinished();

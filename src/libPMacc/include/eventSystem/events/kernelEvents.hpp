@@ -27,61 +27,64 @@
 #include "ppFunctions.hpp"
 #include "types.h"
 
-#include <boost/preprocessor/control/if.hpp>
-
-namespace PMacc
-{
+#include <boost/predef.h>
 
 /*
  * If this flag is defined all kernel calls would be checked and synchronize
  * this flag must set by the compiler or inside of the Makefile
  */
 #if (PMACC_SYNC_KERNEL  == 1)
-    #define CUDA_CHECK_KERNEL_MSG(...)  CUDA_CHECK_MSG(__VA_ARGS__)
+    #define PMACC_KERNEL_CATCH(COMMAND, MSG)\
+        try\
+        {\
+            COMMAND;\
+        }\
+        catch(...)\
+        {\
+        }
 #else
     /*no synchronize and check of kernel calls*/
-    #define CUDA_CHECK_KERNEL_MSG(...)  ;
+    #define PMACC_KERNEL_CATCH(MSG, COMMAND)
 #endif
 
 /** Call activate kernel from taskKernel.
  *  If PMACC_SYNC_KERNEL is 1 cudaDeviceSynchronize() is called before
  *  and after activation.
+ *
+ * activateChecks is used if call is TaskKernel.waitforfinished();
  */
-#define PMACC_ACTIVATE_KERNEL                                                           \
-        CUDA_CHECK_KERNEL_MSG(cudaGetLastError( ),"Last error after kernel launch");    \
-        CUDA_CHECK_KERNEL_MSG(cudaDeviceSynchronize(),"Crash after kernel launch");     \
-        taskKernel->activateChecks();                                                   \
-        CUDA_CHECK_KERNEL_MSG(cudaDeviceSynchronize(),"Crash after kernel activation");
+#define PMACC_ACTIVATE_KERNEL()\
+    ::alpaka::stream::enqueue(taskKernel->getEventStream()->getCudaStream(), exec);\
+    PMACC_KERNEL_CATCH(::alpaka::wait::wait(::PMacc::Environment<>::get().DeviceManager().getDevice()), "__cudaKernel: crash after kernel call");\
+    taskKernel->activateChecks();\
+    PMACC_KERNEL_CATCH(::alpaka::wait::wait(::PMacc::Environment<>::get().DeviceManager().getDevice()), "__cudaKernel: crash after kernel activation");\
 
 /**
- * Appends kernel arguments to generated code and activates kernel task.
+ * Appends kernel arguments to the executor invocation and activates the kernel task.
+ * If PMACC_SYNC_KERNEL is 1 cudaThreadSynchronize() is called before and after activation.
  *
- * @param ... parameters to pass to kernel
+ * @param ... Parameters to pass to kernel
  */
-#define PMACC_CUDAPARAMS(...) (__VA_ARGS__);                                   \
-        PMACC_ACTIVATE_KERNEL                                                  \
-    }   /*this is used if call is EventTask.waitforfinished();*/
-
-/**
- * Configures block and grid sizes and shared memory for the kernel.
- *
- * @param grid sizes of grid on gpu
- * @param block sizes of block on gpu
- * @param ... amount of shared memory for the kernel (optional)
- */
-#define PMACC_CUDAKERNELCONFIG(grid,block,...) <<<(grid),(block),              \
-    /*we need +0 if VA_ARGS is empty, because we must put in a value*/         \
-    __VA_ARGS__+0,                                                             \
-    taskKernel->getCudaStream()>>> PMACC_CUDAPARAMS
+#if BOOST_COMP_MSVC
+    #define PMACC_KERNEL_PARAMS(...)\
+            ,__VA_ARGS__));\
+            PMACC_ACTIVATE_KERNEL();\
+        }
+#else
+    #define PMACC_KERNEL_PARAMS(...)\
+            ,##__VA_ARGS__));\
+            PMACC_ACTIVATE_KERNEL();\
+        }
+#endif
 
 /**
  * Calls a CUDA kernel and creates an EventTask which represents the kernel.
  *
- * @param kernelname name of the CUDA kernel (can also used with templates etc. myKernel<1>)
+ * @param KERNEL Instance of the kernel.
  */
-#define __cudaKernel(kernelname) {                                                      \
-    CUDA_CHECK_KERNEL_MSG(cudaDeviceSynchronize(),"Crash before kernel call");          \
-    TaskKernel *taskKernel =  Environment<>::get().Factory().createTaskKernel(#kernelname);     \
-    kernelname PMACC_CUDAKERNELCONFIG
-
-}
+#define __cudaKernel(KERNEL, DIM, ...)\
+    {\
+        PMACC_KERNEL_CATCH(::alpaka::wait::wait(::PMacc::Environment<>::get().DeviceManager().getDevice()), "__cudaKernel: crash before kernel call");\
+        ::PMacc::TaskKernel * const taskKernel(::PMacc::Environment<>::get().Factory().createTaskKernel(#KERNEL));\
+        auto const exec(::alpaka::exec::create<::PMacc::AlpakaAcc<DIM>>(::alpaka::workdiv::WorkDivMembers<DIM, size_t>(__VA_ARGS__), KERNEL\
+        PMACC_KERNEL_PARAMS

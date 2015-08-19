@@ -41,9 +41,6 @@ namespace picongpu
             // disable checkpoint/restart capabilities for lightweight plugins
         }
         
-        virtual ~ILightweightPlugin()
-        {
-            
-        }
+        virtual ~ILightweightPlugin() = default;
     };
 } //namespace picongpu

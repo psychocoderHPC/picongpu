@@ -57,7 +57,8 @@ namespace container
 template<typename Type, int T_dim, typename Allocator = allocator::EmptyAllocator,
                                   typename Copier = mpl::void_,
                                   typename Assigner = mpl::void_>
-class CartBuffer
+// \TODO: Remove inheritance HACK for allocator!
+class CartBuffer : private Allocator
 {
 public:
     typedef Type type;

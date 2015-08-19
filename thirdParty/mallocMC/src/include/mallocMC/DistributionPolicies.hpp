@@ -6,6 +6,7 @@
                  Helmholtz-Zentrum Dresden - Rossendorf
 
   Author(s):  Carlchristian Eckert - c.eckert ( at ) hzdr.de
+              Benjamin Worpitz - HZDR
 
   Permission is hereby granted, free of charge, to any person obtaining a copy
   of this software and associated documentation files (the "Software"), to deal
@@ -31,5 +32,9 @@
 #include "distributionPolicies/Noop.hpp"
 #include "distributionPolicies/Noop_impl.hpp"
 
+#if MAMC_CUDA_ENABLED
+
 #include "distributionPolicies/XMallocSIMD.hpp"
 #include "distributionPolicies/XMallocSIMD_impl.hpp"
+
+#endif

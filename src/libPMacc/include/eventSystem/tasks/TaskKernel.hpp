@@ -36,8 +36,8 @@ namespace PMacc
 
         TaskKernel(std::string kernelName) :
         StreamTask(),
-        kernelName(kernelName),
-        canBeChecked(false)
+        canBeChecked(false),
+        kernelName(kernelName)
         {
         }
 

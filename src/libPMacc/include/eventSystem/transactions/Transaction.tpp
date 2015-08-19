@@ -28,10 +28,11 @@
 
 namespace PMacc
 {
-
-Transaction::Transaction( EventTask event, bool isAtomic ) : baseEvent( event ), eventStream( NULL ), isAtomic( isAtomic )
+Transaction::Transaction( EventTask const & event, bool isAtomic ) :
+    baseEvent(new EventTask(event)),
+    eventStream(Environment<>::get().StreamController().getNextStream()),
+    isAtomic(isAtomic)
 {
-    eventStream = Environment<>::get().StreamController().getNextStream( );
     event.waitForFinished( );
 }
 
@@ -49,19 +50,19 @@ inline EventTask Transaction::setTransactionEvent( const EventTask& event )
         }
     }
 
-    baseEvent += event;
-    return baseEvent;
+    (*baseEvent.get()) += event;
+    return *baseEvent.get();
 }
 
 inline EventTask Transaction::getTransactionEvent( )
 {
-    return baseEvent;
+    return *baseEvent.get();
 }
 
 void Transaction::operation( ITask::TaskType )
 {
     if ( isAtomic == false )
-        baseEvent.waitForFinished( );
+        baseEvent->waitForFinished( );
 }
 
 EventStream* Transaction::getEventStream( ITask::TaskType )

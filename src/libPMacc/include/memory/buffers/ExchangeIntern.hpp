@@ -49,7 +49,7 @@ namespace PMacc
 
         ExchangeIntern(DeviceBufferIntern<TYPE, DIM>& source, GridLayout<DIM> memoryLayout, DataSpace<DIM> guardingCells, uint32_t exchange,
                        uint32_t communicationTag, uint32_t area = BORDER, bool sizeOnDevice = false) :
-        Exchange<TYPE, DIM>(exchange, communicationTag), deviceDoubleBuffer(NULL)
+        Exchange<TYPE, DIM>(exchange, communicationTag), deviceDoubleBuffer()
         {
 
             assert(!guardingCells.isOneDimensionGreaterThan(memoryLayout.getGuard()));
@@ -69,31 +69,31 @@ namespace PMacc
 
             /*This is only a pointer to other device data
              */
-            this->deviceBuffer = new DeviceBufferIntern<TYPE, DIM > (source, tmp_size,
+            this->deviceBuffer.reset(new DeviceBufferIntern<TYPE, DIM > (source, tmp_size,
                                                                      exchangeTypeToOffset(exchange, memoryLayout, guardingCells, area),
-                                                                     sizeOnDevice);
+                                                                     sizeOnDevice));
             if (DIM > DIM1)
             {
                 /*create double buffer on gpu for faster memory transfers*/
-                this->deviceDoubleBuffer = new DeviceBufferIntern<TYPE, DIM > (tmp_size, false, true);
+                this->deviceDoubleBuffer.reset(new DeviceBufferIntern<TYPE, DIM > (tmp_size, false, true));
             }
 
-            this->hostBuffer = new HostBufferIntern<TYPE, DIM > (tmp_size);
+            this->hostBuffer.reset(new HostBufferIntern<TYPE, DIM > (tmp_size));
         }
 
         ExchangeIntern(DataSpace<DIM> exchangeDataSpace, uint32_t exchange,
                        uint32_t communicationTag, bool sizeOnDevice = false) :
-        Exchange<TYPE, DIM>(exchange, communicationTag), deviceDoubleBuffer(NULL)
+        Exchange<TYPE, DIM>(exchange, communicationTag), deviceDoubleBuffer()
         {
-            this->deviceBuffer = new DeviceBufferIntern<TYPE, DIM > (exchangeDataSpace, sizeOnDevice);
-           //  this->deviceBuffer = new DeviceBufferIntern<TYPE, DIM > (exchangeDataSpace, sizeOnDevice,true);
+            this->deviceBuffer.reset(new DeviceBufferIntern<TYPE, DIM > (exchangeDataSpace, sizeOnDevice));
+            //  this->deviceBuffer.reset(new DeviceBufferIntern<TYPE, DIM > (exchangeDataSpace, sizeOnDevice,true));
             if (DIM > DIM1)
             {
                 /*create double buffer on gpu for faster memory transfers*/
-               this->deviceDoubleBuffer = new DeviceBufferIntern<TYPE, DIM > (exchangeDataSpace, false, true);
+               this->deviceDoubleBuffer.reset(new DeviceBufferIntern<TYPE, DIM > (exchangeDataSpace, false, true));
             }
 
-            this->hostBuffer = new HostBufferIntern<TYPE, DIM > (exchangeDataSpace);
+            this->hostBuffer.reset(new HostBufferIntern<TYPE, DIM > (exchangeDataSpace));
         }
 
         /**
@@ -121,9 +121,9 @@ namespace PMacc
 
         virtual ~ExchangeIntern()
         {
-            __delete(hostBuffer);
-            __delete(deviceBuffer);
-            __delete(deviceDoubleBuffer);
+            hostBuffer.reset();
+            deviceBuffer.reset();
+            deviceDoubleBuffer.reset();
         }
 
         DataSpace<DIM> exchangeTypeToOffset(uint32_t exchange, GridLayout<DIM> &memoryLayout,
@@ -228,12 +228,12 @@ namespace PMacc
         }
 
     protected:
-        HostBufferIntern<TYPE, DIM> *hostBuffer;
+        std::unique_ptr<HostBufferIntern<TYPE, DIM>> hostBuffer;
 
         /*! This buffer is a vector which is used as message buffer for faster memcopy
          */
-        DeviceBufferIntern<TYPE, DIM> *deviceDoubleBuffer;
-        DeviceBufferIntern<TYPE, DIM> *deviceBuffer;
+        std::unique_ptr<DeviceBufferIntern<TYPE, DIM>> deviceDoubleBuffer;
+        std::unique_ptr<DeviceBufferIntern<TYPE, DIM>> deviceBuffer;
 
     };
 

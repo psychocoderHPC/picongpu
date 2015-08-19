@@ -1,5 +1,5 @@
 /**
- * Copyright 2015 Rene Widera
+ * Copyright 2015 Rene Widera, Benjamin Worpitz
  *
  * This file is part of PIConGPU.
  *
@@ -26,20 +26,25 @@ namespace picongpu
 {
 using namespace PMacc;
 
-MallocMCBuffer::MallocMCBuffer( ) : hostPtr( NULL ),hostBufferOffset(0)
+MallocMCBuffer::MallocMCBuffer( ) :
+    upBufHost(),
+    hostBufferOffset(0)
 {
     /* currently mallocMC has only one heap */
     this->deviceHeapInfo=mallocMC::getHeapLocations()[0];
+
+    upBufWrapperDev.reset(
+        new BufWrapperDev(
+            reinterpret_cast<char *>(deviceHeapInfo.p),
+            Environment<>::get().DeviceManager().getDevice(),
+            deviceHeapInfo.size));
+
     Environment<>::get().DataConnector().registerData( *this);
 }
 
 MallocMCBuffer::~MallocMCBuffer( )
 {
-    if ( hostPtr != NULL )
-        cudaHostUnregister(hostPtr);
-
-    __deleteArray(hostPtr);
-
+    // alpaka automatically unpins and frees the buffer.
 }
 
 void MallocMCBuffer::synchronize( )
@@ -49,22 +54,34 @@ void MallocMCBuffer::synchronize( )
      *         system.
      *         WORKAROUND: use native cuda calls :-(
      */
-    if ( hostPtr == NULL )
+    if(!upBufHost)
     {
-        /* use `new` and than `cudaHostRegister` is faster than `cudaMallocHost`
-         * but with the some result (create page-locked memory)
-         */
-        hostPtr = new char[deviceHeapInfo.size];
-        CUDA_CHECK(cudaHostRegister(hostPtr,deviceHeapInfo.size,cudaHostRegisterDefault));
+        upBufHost.reset(
+            new BufHost(
+                alpaka::mem::buf::alloc<char, std::size_t>(
+                    Environment<>::get().DeviceManager().getDevice(),
+                    deviceHeapInfo.size)));
 
+#if defined(ALPAKA_ACC_GPU_CUDA_ENABLED) && defined(__CUDACC__)
+        alpaka::mem::buf::pin(*upBufHost.get());
+#endif
 
-        this->hostBufferOffset=int64_t(((char*)deviceHeapInfo.p) - hostPtr);
+        this->hostBufferOffset =
+            int64_t(
+                alpaka::mem::view::getPtrNative(*upBufWrapperDev.get())
+                - alpaka::mem::view::getPtrNative(*upBufHost.get()));
     }
     /* add event system hints */
     __startOperation(ITask::TASK_CUDA);
     __startOperation(ITask::TASK_HOST);
-    CUDA_CHECK(cudaMemcpy(hostPtr,deviceHeapInfo.p,deviceHeapInfo.size,cudaMemcpyDeviceToHost));
 
+    AlpakaStream stream(Environment<>::get().DeviceManager().getDevice());
+    alpaka::mem::view::copy(
+        stream,
+        *upBufHost.get(),
+        *upBufWrapperDev.get(),
+        deviceHeapInfo.size);
+    alpaka::wait::wait(stream);
 }
 
 } //namespace picongpu

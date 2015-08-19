@@ -135,11 +135,12 @@ public:
     maxExchange(0)
     {
         init(sizeOnDevice, false);
-        this->deviceBuffer = new DeviceBufferIntern<TYPE, DIM >
-            (otherDeviceBuffer,
-             this->gridLayout.getDataSpace(),
-             DataSpace<DIM > (),
-             sizeOnDevice);
+        this->deviceBuffer.reset(
+            new DeviceBufferIntern<TYPE, DIM>(
+                otherDeviceBuffer,
+                this->gridLayout.getDataSpace(),
+                DataSpace<DIM > (),
+                sizeOnDevice));
     }
 
     GridBuffer(
@@ -154,14 +155,16 @@ public:
     maxExchange(0)
     {
         init(sizeOnDevice, false, false);
-        this->deviceBuffer = new DeviceBufferIntern<TYPE, DIM >
-            (otherDeviceBuffer,
-             this->gridLayout.getDataSpace(),
-             offsetDevice, sizeOnDevice);
-        this->hostBuffer = new HostBufferIntern<TYPE, DIM >
-            (*((HostBufferIntern<TYPE, DIM>*) & otherHostBuffer),
-             this->gridLayout.getDataSpace(),
-             offsetHost);
+        this->deviceBuffer.reset(
+            new DeviceBufferIntern<TYPE, DIM >(
+                otherDeviceBuffer,
+                this->gridLayout.getDataSpace(),
+                offsetDevice, sizeOnDevice));
+        this->hostBuffer.reset(
+            new HostBufferIntern<TYPE, DIM >(
+                *((HostBufferIntern<TYPE, DIM>*) & otherHostBuffer),
+                this->gridLayout.getDataSpace(),
+                offsetHost));
     }
 
     /**
@@ -171,12 +174,12 @@ public:
     {
         for (uint32_t i = 0; i < 27; ++i)
         {
-            __delete(sendExchanges[i]);
-            __delete(receiveExchanges[i]);
+            sendExchanges[i].reset();
+            receiveExchanges[i].reset();
         }
 
-        __delete(hostBuffer);
-        __delete(deviceBuffer);
+        hostBuffer.reset();
+        deviceBuffer.reset();
     }
 
     /**
@@ -241,20 +244,27 @@ public:
                 }
                 //std::cout<<"Add Exchange: send="<<ex<<" receive="<<Mask::getMirroredExchangeType((ExchangeType)ex)<<std::endl;
                 maxExchange = std::max(maxExchange, ex + 1u);
-                sendExchanges[ex] = new ExchangeIntern<BORDERTYPE, DIM > (*deviceBuffer, gridLayout, guardingCells,
-                                                                          (ExchangeType) ex, uniqCommunicationTag,
-                                                                          dataPlace == GUARD ? BORDER : GUARD, sizeOnDevice);
+                sendExchanges[ex].reset(
+                    new ExchangeIntern<BORDERTYPE, DIM>(
+                        *deviceBuffer,
+                        gridLayout,
+                        guardingCells,
+                        (ExchangeType) ex,
+                        uniqCommunicationTag,
+                        dataPlace == GUARD ? BORDER : GUARD,
+                        sizeOnDevice));
+
                 ExchangeType recvex = Mask::getMirroredExchangeType(ex);
                 maxExchange = std::max(maxExchange, recvex + 1u);
-                receiveExchanges[recvex] =
-                    new ExchangeIntern<BORDERTYPE, DIM > (
-                                                          *deviceBuffer,
-                                                          gridLayout,
-                                                          guardingCells,
-                                                          recvex,
-                                                          uniqCommunicationTag,
-                                                          dataPlace == GUARD ? GUARD : BORDER,
-                                                          sizeOnDevice);
+                receiveExchanges[recvex].reset(
+                    new ExchangeIntern<BORDERTYPE, DIM>(
+                        *deviceBuffer,
+                        gridLayout,
+                        guardingCells,
+                        recvex,
+                        uniqCommunicationTag,
+                        dataPlace == GUARD ? GUARD : BORDER,
+                        sizeOnDevice));
             }
         }
     }
@@ -305,13 +315,17 @@ public:
 
                     //GridLayout<DIM> memoryLayout(size);
                     maxExchange = std::max(maxExchange, ex + 1u);
-                    sendExchanges[ex] = new ExchangeIntern<BORDERTYPE, DIM > (/*memoryLayout*/ dataSpace,
-                                                                              ex, uniqCommunicationTag, sizeOnDevice);
+                    sendExchanges[ex].reset(
+                        new ExchangeIntern<BORDERTYPE, DIM > (
+                            /*memoryLayout*/ dataSpace,
+                            ex, uniqCommunicationTag, sizeOnDevice));
 
                     ExchangeType recvex = Mask::getMirroredExchangeType(ex);
                     maxExchange = std::max(maxExchange, recvex + 1u);
-                    receiveExchanges[recvex] = new ExchangeIntern<BORDERTYPE, DIM > (/*memoryLayout*/ dataSpace,
-                                                                                     recvex, uniqCommunicationTag, sizeOnDevice);
+                    receiveExchanges[recvex].reset(
+                        new ExchangeIntern<BORDERTYPE, DIM>(
+                            /*memoryLayout*/ dataSpace,
+                            recvex, uniqCommunicationTag, sizeOnDevice));
                 }
             }
         }
@@ -410,11 +424,11 @@ public:
     }
 
     /**
-     * Starts sync data from own device buffer to neigbhor device buffer.
+     * Starts sync data from own device buffer to neighbor device buffer.
      *
-     * Asynchronously starts syncronization data from internal DeviceBuffer using added
+     * Asynchronously starts synchronization data from internal DeviceBuffer using added
      * Exchange buffers.
-     * This operation runs sequential to other code but intern asyncron
+     * This operation runs sequential to other code but intern asynchronous
      *
      */
     EventTask communication()
@@ -425,9 +439,9 @@ public:
     }
 
     /**
-     * Starts sync data from own device buffer to neigbhor device buffer.
+     * Starts sync data from own device buffer to neighbor device buffer.
      *
-     * Asynchronously starts syncronization data from internal DeviceBuffer using added
+     * Asynchronously starts synchronization data from internal DeviceBuffer using added
      * Exchange buffers.
      *
      */
@@ -506,15 +520,15 @@ public:
     }
 
 private:
-    
+
     friend class Environment<DIM>;
 
     void init(bool sizeOnDevice, bool buildDeviceBuffer = true, bool buildHostBuffer = true)
     {
         for (uint32_t i = 0; i < 27; ++i)
         {
-            sendExchanges[i] = NULL;
-            receiveExchanges[i] = NULL;
+            sendExchanges[i].reset();
+            receiveExchanges[i].reset();
             /* fill array with valid empty events to avoid side effects if
              * array is accessed without calling hasExchange() before usage */
             receiveEvents[i] = EventTask();
@@ -522,29 +536,27 @@ private:
         }
         if (buildDeviceBuffer)
         {
-            this->deviceBuffer = new DeviceBufferIntern<TYPE, DIM > (gridLayout.getDataSpace(), sizeOnDevice);
+            this->deviceBuffer.reset(new DeviceBufferIntern<TYPE, DIM>(gridLayout.getDataSpace(), sizeOnDevice));
         }
         if (buildHostBuffer)
         {
-            this->hostBuffer = new HostBufferIntern<TYPE, DIM > (gridLayout.getDataSpace());
+            this->hostBuffer.reset(new HostBufferIntern<TYPE, DIM>(gridLayout.getDataSpace()));
         }
     }
 
 protected:
-
-
-    HostBufferIntern<TYPE, DIM>* hostBuffer;
-    DeviceBufferIntern<TYPE, DIM>* deviceBuffer;
+    std::unique_ptr<HostBufferIntern<TYPE, DIM>> hostBuffer;
+    std::unique_ptr<DeviceBufferIntern<TYPE, DIM>> deviceBuffer;
+    GridLayout<DIM> gridLayout;
     /*if we hase one exchange we not check if communicationtag has used before*/
     bool hasOneExchange;
     uint32_t lastUsedCommunicationTag;
-    GridLayout<DIM> gridLayout;
 
     Mask sendMask;
     Mask receiveMask;
 
-    ExchangeIntern<BORDERTYPE, DIM>* sendExchanges[27];
-    ExchangeIntern<BORDERTYPE, DIM>* receiveExchanges[27];
+    std::unique_ptr<ExchangeIntern<BORDERTYPE, DIM>> sendExchanges[27];
+    std::unique_ptr<ExchangeIntern<BORDERTYPE, DIM>> receiveExchanges[27];
     EventTask receiveEvents[27];
     EventTask sendEvents[27];
 

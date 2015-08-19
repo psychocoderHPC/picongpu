@@ -27,7 +27,7 @@
 #include "eventSystem/streams/EventStream.hpp"
 #include "eventSystem/tasks/StreamTask.hpp"
 
-#include <cuda_runtime_api.h>
+#include <alpaka/alpaka.hpp>
 
 namespace PMacc
 {
@@ -38,18 +38,18 @@ namespace PMacc
     class DeviceBuffer;
 
     template <class TYPE, unsigned DIM>
-    class TaskCopyHostToDeviceBase : public StreamTask
+    class TaskCopyHostToDevice : public StreamTask
     {
     public:
 
-        TaskCopyHostToDeviceBase(HostBuffer<TYPE, DIM>& src, DeviceBuffer<TYPE, DIM>& dst) :
+        TaskCopyHostToDevice(HostBuffer<TYPE, DIM>& src, DeviceBuffer<TYPE, DIM>& dst) :
         StreamTask()
         {
             this->host =  & src;
             this->device =  & dst;
         }
 
-        virtual ~TaskCopyHostToDeviceBase()
+        virtual ~TaskCopyHostToDevice()
         {
             notify(this->myId, COPYHOST2DEVICE, NULL);
             //std::cout<<"destructor TaskH2D"<<std::endl;
@@ -66,16 +66,17 @@ namespace PMacc
 
         virtual void init()
         {
-         //   __startAtomicTransaction(__getTransactionEvent());
+            // __startAtomicTransaction(__getTransactionEvent());
             size_t current_size = host->getCurrentSize();
             DataSpace<DIM> hostCurrentSize = host->getCurrentDataSpace(current_size);
-            if (host->is1D() && device->is1D())
-                fastCopy(host->getPointer(), device->getPointer(), hostCurrentSize.productOfComponents());
-            else
-                copy(hostCurrentSize);
+            alpaka::mem::view::copy(
+                this->getEventStream()->getCudaStream(),
+                this->device->getMemBufView(),
+                this->host->getMemBufView(),
+                hostCurrentSize);
             device->setCurrentSize(current_size);
             this->activate();
-         //   __setTransactionEvent(__endTransaction());
+            // __setTransactionEvent(__endTransaction());
         }
 
         std::string toString()
@@ -83,112 +84,9 @@ namespace PMacc
             return "TaskCopyHostToDevice";
         }
 
-
     protected:
-
-        virtual void copy(DataSpace<DIM> &hostCurrentSize) = 0;
-
-        void fastCopy(TYPE* src, TYPE* dst, size_t size)
-        {
-            CUDA_CHECK(cudaMemcpyAsync(dst,
-                                       src,
-                                       size * sizeof (TYPE),
-                                       cudaMemcpyHostToDevice,
-                                       this->getCudaStream()));
-            // std::cout<<"-----------fast H2D"<<std::endl;;
-        }
-
-
         HostBuffer<TYPE, DIM> *host;
         DeviceBuffer<TYPE, DIM> *device;
-
-    };
-
-    template <class TYPE, unsigned DIM>
-    class TaskCopyHostToDevice;
-
-    template <class TYPE>
-    class TaskCopyHostToDevice<TYPE, DIM1> : public TaskCopyHostToDeviceBase<TYPE, DIM1>
-    {
-    public:
-
-        TaskCopyHostToDevice(HostBuffer<TYPE, DIM1>& src, DeviceBuffer<TYPE, DIM1>& dst) :
-        TaskCopyHostToDeviceBase<TYPE, DIM1>(src, dst)
-        {
-        }
-    private:
-
-        virtual void copy(DataSpace<DIM1> &hostCurrentSize)
-        {
-            CUDA_CHECK(cudaMemcpyAsync(this->device->getPointer(), /*pointer include X offset*/
-                                       this->host->getBasePointer(),
-                                       hostCurrentSize[0] * sizeof (TYPE), cudaMemcpyHostToDevice,
-                                       this->getCudaStream()));
-        }
-    };
-
-    template <class TYPE>
-    class TaskCopyHostToDevice<TYPE, DIM2> : public TaskCopyHostToDeviceBase<TYPE, DIM2>
-    {
-    public:
-
-        TaskCopyHostToDevice( HostBuffer<TYPE, DIM2>& src, DeviceBuffer<TYPE, DIM2>& dst) :
-        TaskCopyHostToDeviceBase<TYPE, DIM2>(src, dst)
-        {
-        }
-    private:
-
-        virtual void copy(DataSpace<DIM2> &hostCurrentSize)
-        {
-            CUDA_CHECK(cudaMemcpy2DAsync(this->device->getPointer(),
-                                         this->device->getPitch(), /*this is pitch*/
-                                         this->host->getBasePointer(),
-                                         this->host->getDataSpace()[0] * sizeof (TYPE), /*this is pitch*/
-                                         hostCurrentSize[0] * sizeof (TYPE),
-                                         hostCurrentSize[1],
-                                         cudaMemcpyHostToDevice,
-                                         this->getCudaStream()));
-        }
-    };
-
-    template <class TYPE>
-    class TaskCopyHostToDevice<TYPE, DIM3> : public TaskCopyHostToDeviceBase<TYPE, DIM3>
-    {
-    public:
-
-        TaskCopyHostToDevice( HostBuffer<TYPE, DIM3>& src, DeviceBuffer<TYPE, DIM3>& dst) :
-        TaskCopyHostToDeviceBase<TYPE, DIM3>(src, dst)
-        {
-        }
-    private:
-
-        virtual void copy(DataSpace<DIM3> &hostCurrentSize)
-        {
-            cudaPitchedPtr hostPtr;
-            hostPtr.pitch = this->host->getDataSpace()[0] * sizeof (TYPE);
-            hostPtr.ptr = this->host->getBasePointer();
-            hostPtr.xsize = this->host->getDataSpace()[0] * sizeof (TYPE);
-            hostPtr.ysize = this->host->getDataSpace()[1];
-
-            cudaMemcpy3DParms params;
-            params.dstArray = NULL;
-            params.dstPos = make_cudaPos(this->device->getOffset()[0] * sizeof (TYPE),
-                                         this->device->getOffset()[1],
-                                         this->device->getOffset()[2]);
-            params.dstPtr = this->device->getCudaPitched();
-
-            params.srcArray = NULL;
-            params.srcPos = make_cudaPos(0, 0, 0);
-            params.srcPtr = hostPtr;
-
-            params.extent = make_cudaExtent(
-                                            hostCurrentSize[0] * sizeof (TYPE),
-                                            hostCurrentSize[1],
-                                            hostCurrentSize[2]);
-            params.kind = cudaMemcpyHostToDevice;
-
-            CUDA_CHECK(cudaMemcpy3DAsync(&params, this->getCudaStream()));
-        }
     };
 
 

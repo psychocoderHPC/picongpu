@@ -108,7 +108,7 @@ public:
 private:
     HDINLINE void checkValidity() const
     {
-        #pragma unroll
+        ALPAKA_UNROLL()
         for(int i = 0; i < dim; i++)
         {
             if(this->offset[i] < LowerExtent().toRT()[i] ||

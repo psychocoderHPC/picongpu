@@ -53,7 +53,7 @@ using namespace PMacc;
 
 FieldJ::FieldJ( MappingDesc cellDescription ) :
 SimulationFieldHelper<MappingDesc>( cellDescription ),
-fieldJ( cellDescription.getGridLayout( ) ), fieldE( NULL ), fieldB( NULL ), fieldJrecv( NULL )
+fieldJ( cellDescription.getGridLayout( ) ), fieldJrecv( NULL ), fieldE( NULL ), fieldB( NULL )
 {
     const DataSpace<simDim> coreBorderSize = cellDescription.getGridLayout( ).getDataSpaceWithoutGuarding( );
 
@@ -184,31 +184,42 @@ void FieldJ::bashField( uint32_t exchangeType )
 {
     ExchangeMapping<GUARD, MappingDesc> mapper( this->cellDescription, exchangeType );
 
-    dim3 grid = mapper.getGridDim( );
+    DataSpace<simDim> grid = mapper.getGridDim( );
 
     const DataSpace<simDim> direction = Mask::getRelativeDirections<simDim > ( mapper.getExchangeType( ) );
-    __cudaKernel( kernelBashCurrent )
-        ( grid, mapper.getSuperCellSize( ) )
-        ( fieldJ.getDeviceBuffer( ).getDataBox( ),
-          fieldJ.getSendExchange( exchangeType ).getDeviceBuffer( ).getDataBox( ),
-          fieldJ.getSendExchange( exchangeType ).getDeviceBuffer( ).getDataSpace( ),
-          direction,
-          mapper );
+
+    KernelBashCurrent kernelBashCurrent;
+    __cudaKernel(
+        kernelBashCurrent,
+        alpaka::dim::DimInt<simDim>,
+        grid,
+        mapper.getSuperCellSize( ))(
+            fieldJ.getDeviceBuffer( ).getDataBox( ),
+            fieldJ.getSendExchange( exchangeType ).getDeviceBuffer( ).getDataBox( ),
+            fieldJ.getSendExchange( exchangeType ).getDeviceBuffer( ).getDataSpace( ),
+            direction,
+            mapper);
 }
 
 void FieldJ::insertField( uint32_t exchangeType )
 {
     ExchangeMapping<GUARD, MappingDesc> mapper( this->cellDescription, exchangeType );
 
-    dim3 grid = mapper.getGridDim( );
+    DataSpace<simDim> grid = mapper.getGridDim( );
 
     const DataSpace<simDim> direction = Mask::getRelativeDirections<simDim > ( mapper.getExchangeType( ) );
-    __cudaKernel( kernelInsertCurrent )
-        ( grid, mapper.getSuperCellSize( ) )
-        ( fieldJ.getDeviceBuffer( ).getDataBox( ),
-          fieldJ.getReceiveExchange( exchangeType ).getDeviceBuffer( ).getDataBox( ),
-          fieldJ.getReceiveExchange( exchangeType ).getDeviceBuffer( ).getDataSpace( ),
-          direction, mapper );
+
+    KernelInsertCurrent kernelInsertCurrent;
+    __cudaKernel(
+        kernelInsertCurrent,
+        alpaka::dim::DimInt<simDim>,
+        grid,
+        mapper.getSuperCellSize( ))(
+            fieldJ.getDeviceBuffer( ).getDataBox( ),
+            fieldJ.getReceiveExchange( exchangeType ).getDeviceBuffer( ).getDataBox( ),
+            fieldJ.getReceiveExchange( exchangeType ).getDeviceBuffer( ).getDataSpace( ),
+            direction,
+            mapper );
 }
 
 void FieldJ::init( FieldE &fieldE, FieldB &fieldB )
@@ -287,10 +298,16 @@ void FieldJ::computeCurrent( ParticlesClass &parClass, uint32_t )
     __startAtomicTransaction( __getTransactionEvent( ) );
     do
     {
-        __cudaKernel( ( kernelComputeCurrent<workerMultiplier, BlockArea, AREA> ) )
-            ( mapper.getGridDim( ), blockSize )
-            ( jBox,
-              pBox, solver, mapper );
+        KernelComputeCurrent<workerMultiplier, BlockArea, AREA> kernelComputeCurrent;
+        __cudaKernel(
+            kernelComputeCurrent,
+            alpaka::dim::DimInt<simDim>,
+            mapper.getGridDim( ),
+            blockSize)(
+                jBox,
+                pBox,
+                solver,
+                mapper );
     }
     while ( mapper.next( ) );
     __setTransactionEvent( __endTransaction( ) );
@@ -299,14 +316,17 @@ void FieldJ::computeCurrent( ParticlesClass &parClass, uint32_t )
 template<uint32_t AREA, class T_CurrentInterpolation>
 void FieldJ::addCurrentToEMF( T_CurrentInterpolation& myCurrentInterpolation )
 {
-    __picKernelArea( ( kernelAddCurrentToEMF ),
-                     cellDescription,
-                     AREA )
-        ( MappingDesc::SuperCellSize::toRT( ).toDim3( ) )
-        ( this->fieldE->getDeviceDataBox( ),
-          this->fieldB->getDeviceDataBox( ),
-          this->fieldJ.getDeviceBuffer( ).getDataBox( ),
-          myCurrentInterpolation );
+    KernelAddCurrentToEMF kernelAddCurrentToEMF;
+    __picKernelArea(
+        kernelAddCurrentToEMF,
+        alpaka::dim::DimInt<simDim>,
+        cellDescription,
+        AREA,
+        MappingDesc::SuperCellSize::toRT( ))(
+            this->fieldE->getDeviceDataBox( ),
+            this->fieldB->getDeviceDataBox( ),
+            this->fieldJ.getDeviceBuffer( ).getDataBox( ),
+            myCurrentInterpolation);
 }
 
 }

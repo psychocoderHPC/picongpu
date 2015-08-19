@@ -29,23 +29,34 @@ namespace picongpu
 
 using namespace PMacc;
 
-template<int pos, class BoxedMemory, class Mapping>
-DINLINE void absorb(BoxedMemory field, uint32_t thickness, float_X absorber_strength, Mapping mapper, const DataSpace<simDim> &direction)
+template<
+    int pos,
+    typename T_Acc,
+    typename T_BoxedMemory,
+    typename T_Mapping>
+DINLINE void absorb(
+    T_Acc const & acc,
+    T_BoxedMemory const & field,
+    uint32_t const & thickness,
+    float_X const & absorber_strength,
+    T_Mapping const & mapper,
+    DataSpace<simDim> const & direction)
 {
+    DataSpace<simDim> const blockIndex(alpaka::idx::getIdx<alpaka::Grid, alpaka::Blocks>(acc));
+    DataSpace<simDim> const threadIndex(alpaka::idx::getIdx<alpaka::Block, alpaka::Threads>(acc));
+
     typedef typename MappingDesc::SuperCellSize SuperCellSize;
-    const DataSpace<simDim> superCellIdx(mapper.getSuperCellIndex(DataSpace<simDim > (blockIdx)));
+    const DataSpace<simDim> superCellIdx(mapper.getSuperCellIndex(DataSpace<simDim > (blockIndex)));
 
-
-    const DataSpace<simDim > threadIndex(threadIdx);
     const int linearThreadIdx = DataSpaceOperations<simDim>::template map<SuperCellSize > (threadIndex);
 
     DataSpace<simDim> cell(superCellIdx * SuperCellSize::toRT() + threadIndex);
     //cells in simulation
     const DataSpace<simDim> gCells = mapper.getGridSuperCells() * SuperCellSize::toRT();
 
-    __shared__ int finish;
+    auto finish(alpaka::block::shared::allocVar<int>(acc));
 
-    __syncthreads(); /*wait that all shared memory is initialised*/
+    acc.syncBlockThreads(); /*wait that all shared memory is initialised*/
 
     float_X factor = float_X(0.0);
 
@@ -54,7 +65,7 @@ DINLINE void absorb(BoxedMemory field, uint32_t thickness, float_X absorber_stre
         cell[pos] = cell[pos] + (MappingDesc::SuperCellSize::toRT()[pos]*(direction[pos]*-1));
         if (linearThreadIdx == 0)
             finish = 0;
-        __syncthreads();
+        acc.syncBlockThreads();
 
         if (direction[pos] != 0)
         {
@@ -72,7 +83,7 @@ DINLINE void absorb(BoxedMemory field, uint32_t thickness, float_X absorber_stre
         if (factor <= float_X(0.0))
         {
             factor = float_X(0.0);
-            atomicExch(&finish, 1);
+            alpaka::atomic::atomicOp<alpaka::atomic::op::Exch>(acc, &finish, 1);
         }
         else
         {
@@ -85,25 +96,41 @@ DINLINE void absorb(BoxedMemory field, uint32_t thickness, float_X absorber_stre
             field(cell) = tmp;
         }
         //  cell =cell+ MappingDesc::SuperCellSize::toRT()*(pos*-1);
-        __syncthreads();
+        acc.syncBlockThreads();
     }
     while (finish == 0);
 }
 
-template<class BoxedMemory, class Mapping>
-__global__ void kernelAbsorbBorder(BoxedMemory field, uint32_t thickness, float_X absorber_strength, Mapping mapper)
+struct KernelAbsorbBorder
 {
+template<
+    typename T_Acc,
+    typename T_BoxedMemory,
+    typename T_Mapping>
+ALPAKA_FN_ACC void operator()(
+    T_Acc const & acc,
+    T_BoxedMemory const & field,
+    uint32_t const & thickness,
+    float_X const & absorber_strength,
+    T_Mapping const & mapper) const
+{
+    static_assert(
+        alpaka::dim::Dim<T_Acc>::value == T_Mapping::Dim,
+        "The KernelAbsorbBorder functor has to be called with a T_Mapping::Dim dimensional accelerator!");
 
-    const DataSpace<simDim> direction = Mask::getRelativeDirections<simDim > (mapper.getExchangeType());
+    DataSpace<simDim> const direction(Mask::getRelativeDirections<simDim>(mapper.getExchangeType()));
 
     //this is a workaround that we get a kernel without lmem
     if (direction.x() != 0)
-        absorb < 0 > (field, thickness, absorber_strength, mapper, direction);
+        absorb < 0 > (acc, field, thickness, absorber_strength, mapper, direction);
     else if (direction.y() != 0)
-        absorb < 1 > (field, thickness, absorber_strength, mapper, direction);
+        absorb < 1 > (acc, field, thickness, absorber_strength, mapper, direction);
 #if (SDIMDIM==DIM3)
     else if (direction.z() != 0)
-        absorb < 2 > (field, thickness, absorber_strength, mapper, direction);
+        absorb < 2 > (acc, field, thickness, absorber_strength, mapper, direction);
 #endif
 }
+
+};
+
 } //namespace

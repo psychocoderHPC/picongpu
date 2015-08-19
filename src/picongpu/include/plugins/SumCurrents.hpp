@@ -45,15 +45,26 @@ namespace po = boost::program_options;
 
 typedef FieldJ::DataBoxType J_DataBox;
 
-template<class Mapping>
-__global__ void kernelSumCurrents(J_DataBox fieldJ, float3_X* gCurrent, Mapping mapper)
+struct KernelSumCurrents
+{
+template<
+    typename T_Acc,
+    typename Mapping>
+ALPAKA_FN_ACC void operator()(
+    T_Acc const & acc,
+    J_DataBox const & fieldJ,
+    float3_X* gCurrent,
+    Mapping const & mapper) const
 {
     typedef typename Mapping::SuperCellSize SuperCellSize;
 
-    __shared__ float3_X sh_sumJ;
-    __syncthreads(); /*wait that all shared memory is initialised*/
+    DataSpace<simDim> const blockIndex(alpaka::idx::getIdx<alpaka::Grid, alpaka::Blocks>(acc));
+    DataSpace<simDim> const threadIndex(alpaka::idx::getIdx<alpaka::Block, alpaka::Threads>(acc));
 
-    const DataSpace<simDim > threadIndex(threadIdx);
+    auto sh_sumJ(alpaka::block::shared::allocVar<float3_X>(acc));
+
+    acc.syncBlockThreads(); /*wait that all shared memory is initialised*/
+
     const int linearThreadIdx = DataSpaceOperations<simDim>::template map<SuperCellSize > (threadIndex);
 
     if (linearThreadIdx == 0)
@@ -61,27 +72,28 @@ __global__ void kernelSumCurrents(J_DataBox fieldJ, float3_X* gCurrent, Mapping 
         sh_sumJ = float3_X::create(0.0);
     }
 
-    __syncthreads();
+    acc.syncBlockThreads();
 
 
-    const DataSpace<simDim> superCellIdx(mapper.getSuperCellIndex(DataSpace<simDim > (blockIdx)));
+    const DataSpace<simDim> superCellIdx(mapper.getSuperCellIndex(DataSpace<simDim > (blockIndex)));
     const DataSpace<simDim> cell(superCellIdx * SuperCellSize::toRT() + threadIndex);
 
     const float3_X myJ = fieldJ(cell);
 
-    atomicAddWrapper(&(sh_sumJ.x()), myJ.x());
-    atomicAddWrapper(&(sh_sumJ.y()), myJ.y());
-    atomicAddWrapper(&(sh_sumJ.z()), myJ.z());
+    alpaka::atomic::atomicOp<alpaka::atomic::op::Add>(acc, &(sh_sumJ.x()), myJ.x());
+    alpaka::atomic::atomicOp<alpaka::atomic::op::Add>(acc, &(sh_sumJ.y()), myJ.y());
+    alpaka::atomic::atomicOp<alpaka::atomic::op::Add>(acc, &(sh_sumJ.z()), myJ.z());
 
-    __syncthreads();
+    acc.syncBlockThreads();
 
     if (linearThreadIdx == 0)
     {
-        atomicAddWrapper(&(gCurrent->x()), sh_sumJ.x());
-        atomicAddWrapper(&(gCurrent->y()), sh_sumJ.y());
-        atomicAddWrapper(&(gCurrent->z()), sh_sumJ.z());
+        alpaka::atomic::atomicOp<alpaka::atomic::op::Add>(acc, &(gCurrent->x()), sh_sumJ.x());
+        alpaka::atomic::atomicOp<alpaka::atomic::op::Add>(acc, &(gCurrent->y()), sh_sumJ.y());
+        alpaka::atomic::atomicOp<alpaka::atomic::op::Add>(acc, &(gCurrent->z()), sh_sumJ.z());
     }
 }
+};
 
 class SumCurrents : public ILightweightPlugin
 {
@@ -104,10 +116,7 @@ public:
         Environment<>::get().PluginConnector().registerPlugin(this);
     }
 
-    virtual ~SumCurrents()
-    {
-
-    }
+    virtual ~SumCurrents() = default;
 
     void notify(uint32_t currentStep)
     {
@@ -186,12 +195,18 @@ private:
     float3_X getSumCurrents()
     {
         sumcurrents->getDeviceBuffer().setValue(float3_X::create(0.0));
-        dim3 block(MappingDesc::SuperCellSize::toRT().toDim3());
+        DataSpace<simDim> block(MappingDesc::SuperCellSize::toRT());
 
-        __picKernelArea(kernelSumCurrents, *cellDescription, CORE + BORDER)
-            (block)
-            (fieldJ->getDeviceDataBox(),
-             sumcurrents->getDeviceBuffer().getBasePointer());
+        KernelSumCurrents kernelSumCurrents;
+        __picKernelArea(
+            kernelSumCurrents,
+            alpaka::dim::DimInt<simDim>,
+            *cellDescription,
+            CORE + BORDER,
+            block)(
+                fieldJ->getDeviceDataBox(),
+                sumcurrents->getDeviceBuffer().getBasePointer());
+
         sumcurrents->deviceToHost();
         return sumcurrents->getHostBuffer().getDataBox()[0];
     }

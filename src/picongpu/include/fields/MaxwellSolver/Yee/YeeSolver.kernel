@@ -1,5 +1,6 @@
 /**
- * Copyright 2013-2015 Axel Huebl, Heiko Burau, Rene Widera, Marco Garten
+ * Copyright 2013-2015 Axel Huebl, Heiko Burau, Rene Widera, Marco Garten,
+ *                     Benjamin Worpitz
  *
  * This file is part of PIConGPU.
  *
@@ -24,18 +25,31 @@ namespace yeeSolver
 {
 using namespace PMacc;
 
-
-template<class BlockDescription_, class CurlType_, class EBox, class BBox, class Mapping>
-__global__ void kernelUpdateE(EBox fieldE, BBox fieldB, Mapping mapper)
+template<
+    typename BlockDescription_,
+    typename CurlType_>
+struct KernelUpdateE
 {
+template<
+    typename T_Acc,
+    typename EBox,
+    typename BBox,
+    typename Mapping>
+ALPAKA_FN_ACC void operator()(
+    T_Acc const & acc,
+    EBox const & fieldE,
+    BBox const & fieldB,
+    Mapping const & mapper) const
+{
+    DataSpace<simDim> const blockIndex(alpaka::idx::getIdx<alpaka::Grid, alpaka::Blocks>(acc));
+    DataSpace<simDim> const threadIndex(alpaka::idx::getIdx<alpaka::Block, alpaka::Threads>(acc));
 
-    PMACC_AUTO(cachedB, CachedBox::create < 0, typename BBox::ValueType > (BlockDescription_()));
+    auto cachedB(CachedBox::create < 0, typename BBox::ValueType > (acc, BlockDescription_()));
 
     nvidia::functors::Assign assign;
-    const DataSpace<simDim> block(mapper.getSuperCellIndex(DataSpace<simDim > (blockIdx)));
+    const DataSpace<simDim> block(mapper.getSuperCellIndex(DataSpace<simDim > (blockIndex)));
     const DataSpace<simDim> blockCell = block * MappingDesc::SuperCellSize::toRT();
 
-    const DataSpace<simDim > threadIndex(threadIdx);
     PMACC_AUTO(fieldBBlock, fieldB.shift(blockCell));
 
     ThreadCollective<BlockDescription_> collective(threadIndex);
@@ -45,27 +59,41 @@ __global__ void kernelUpdateE(EBox fieldE, BBox fieldB, Mapping mapper)
               fieldBBlock
               );
 
-    __syncthreads();
+    acc.syncBlockThreads();
 
     const float_X c2 = SPEED_OF_LIGHT * SPEED_OF_LIGHT;
     const float_X dt = DELTA_T;
 
     CurlType_ curl;
-    fieldE(blockCell + threadIndex) += curl(cachedB.shift(DataSpace<simDim > (threadIdx))) * c2 * dt;
+    fieldE(blockCell + threadIndex) += curl(cachedB.shift(DataSpace<simDim > (threadIndex))) * c2 * dt;
 }
+};
 
-template<class BlockDescription_, class CurlType_, class EBox, class BBox, class Mapping>
-__global__ void kernelUpdateBHalf(BBox fieldB,
-                                  EBox fieldE,
-                                  Mapping mapper)
+template<
+    typename BlockDescription_,
+    typename CurlType_>
+struct KernelUpdateBHalf
 {
+template<
+    typename T_Acc,
+    typename EBox,
+    typename BBox,
+    typename Mapping>
+ALPAKA_FN_ACC void operator()(
+    T_Acc const & acc,
+    BBox const & fieldB,
+    EBox const & fieldE,
+    Mapping const & mapper) const
+{
+    DataSpace<simDim> const blockIndex(alpaka::idx::getIdx<alpaka::Grid, alpaka::Blocks>(acc));
+    DataSpace<simDim> const threadIndex(alpaka::idx::getIdx<alpaka::Block, alpaka::Threads>(acc));
 
-    PMACC_AUTO(cachedE, CachedBox::create < 0, typename EBox::ValueType > (BlockDescription_()));
+    auto cachedE(CachedBox::create < 0, typename EBox::ValueType > (acc, BlockDescription_()));
 
     nvidia::functors::Assign assign;
-    const DataSpace<simDim> block(mapper.getSuperCellIndex(DataSpace<simDim > (blockIdx)));
+    const DataSpace<simDim> block(mapper.getSuperCellIndex(DataSpace<simDim > (blockIndex)));
     const DataSpace<simDim> blockCell = block * MappingDesc::SuperCellSize::toRT();
-    const DataSpace<simDim > threadIndex(threadIdx);
+
     PMACC_AUTO(fieldEBlock, fieldE.shift(blockCell));
 
     ThreadCollective<BlockDescription_> collective(threadIndex);
@@ -76,14 +104,14 @@ __global__ void kernelUpdateBHalf(BBox fieldB,
               );
 
 
-    __syncthreads();
+    acc.syncBlockThreads();
 
     const float_X dt = DELTA_T;
 
     CurlType_ curl;
     fieldB(blockCell + threadIndex) -= curl(cachedE.shift(threadIndex)) * float_X(0.5) * dt;
 }
-
+};
 } // yeeSolver
 
 } // picongpu

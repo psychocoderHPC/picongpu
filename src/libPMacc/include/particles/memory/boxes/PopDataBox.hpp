@@ -23,12 +23,12 @@
 
 #pragma once
 
-#include <cuda.h>
-
 #include "particles/memory/boxes/TileDataBox.hpp"
 
 #include "memory/boxes/DataBox.hpp"
 #include "memory/boxes/PitchedBox.hpp"
+
+#include <alpaka/alpaka.hpp>
 
 namespace PMacc
 {
@@ -67,14 +67,16 @@ public:
      * @param count number of elements to pop from stack
      * @return a TileDataBox of type VALUE with count elements
      */
-    HDINLINE TileDataBox<VALUE> popN(TYPE count)
+    template<typename T_Acc>
+    HDINLINE TileDataBox<VALUE> popN(
+        T_Acc const & acc,
+        TYPE count)
     {
-#if !defined(__CUDA_ARCH__) // Host code path
-        int32_t old_addr = (*currentSize);
-        (*currentSize) -= count;
-#else
-        int32_t old_addr = (int32_t) atomicSub((int32_t*) currentSize, (int32_t) count);
-#endif
+        int32_t const old_addr(
+            alpaka::atomic::atomicOp<alpaka::atomic::op::Sub>(
+                acc,
+                currentSize,
+                count));
 
         if (old_addr <= 0)
         {
@@ -98,20 +100,23 @@ public:
      */
 
     /* \todo not working if we have no elements on stack*/
-    HDINLINE VALUE &pop()
+    template<typename T_Acc>
+    HDINLINE VALUE &pop(
+        T_Acc const & acc)
     {
-#if !defined(__CUDA_ARCH__) // Host code path
-        TYPE old_addr = --(*currentSize);
-#else
-        TYPE old_addr = atomicSub(currentSize, 1) - 1;
-#endif
+        int32_t const old_addr(
+            alpaka::atomic::atomicOp<alpaka::atomic::op::Sub>(
+                acc,
+                currentSize,
+                1));
+
         return (*this)[old_addr];
     }
 
 
 protected:
 
-    PMACC_ALIGN(maxSize, TYPE);
+    PMACC_ALIGN(maxSize, TYPE const);
     // ptr must be in device-memory
     PMACC_ALIGN(currentSize, TYPE*);
 };

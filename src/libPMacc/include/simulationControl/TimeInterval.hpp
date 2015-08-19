@@ -24,11 +24,10 @@
 
 #include "types.h"
 
-#include <sys/time.h>
-
 #include <string>
 #include <iostream>
 #include <sstream>
+#include <chrono>
 
 namespace PMacc
 {
@@ -47,9 +46,9 @@ namespace PMacc
          */
         static double getTime()
         {
-            struct timeval act_time;
-            gettimeofday(&act_time, NULL);
-            return (double)act_time.tv_sec*1000. + (double)act_time.tv_usec / 1000.;
+            return
+                std::chrono::duration<double, std::milli>(
+                    std::chrono::high_resolution_clock::now().time_since_epoch()).count();
         }
 
         double toggleStart()

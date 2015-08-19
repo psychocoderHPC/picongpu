@@ -62,10 +62,7 @@ namespace picongpu
             Environment<>::get().PluginConnector().registerPlugin(this);
         }
 
-        virtual ~PngPlugin()
-        {
-
-        }
+        virtual ~PngPlugin() = default;
 
         std::string pluginGetName() const
         {

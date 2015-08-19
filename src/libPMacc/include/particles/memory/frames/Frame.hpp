@@ -22,33 +22,29 @@
 
 #pragma once
 
-#include "types.h"
-
-#include <boost/mpl/map.hpp>
-#include <boost/mpl/list.hpp>
 #include "math/MapTuple.hpp"
-
-
-#include <boost/type_traits.hpp>
-
 #include "particles/boostExtension/InheritLinearly.hpp"
 #include "particles/memory/dataTypes/Particle.hpp"
+#include "particles/ParticleDescription.hpp"
 #include "particles/frame_types.hpp"
 #include "compileTime/conversion/SeqToMap.hpp"
 #include "compileTime/conversion/OperateOnSeq.hpp"
-#include <boost/utility/result_of.hpp>
-#include <boost/mpl/find.hpp>
-#include <boost/type_traits/is_same.hpp>
-
 #include "compileTime/GetKeyFromAlias.hpp"
 
 #include "traits/HasIdentifier.hpp"
 #include "traits/HasFlag.hpp"
 #include "traits/GetFlagType.hpp"
-#include <boost/mpl/contains.hpp>
 
-#include "particles/ParticleDescription.hpp"
+#include "types.h"
+
+#include <boost/mpl/contains.hpp>
+#include <boost/utility/result_of.hpp>
+#include <boost/mpl/find.hpp>
+#include <boost/type_traits/is_same.hpp>
+#include <boost/type_traits.hpp>
 #include <boost/mpl/string.hpp>
+#include <boost/mpl/map.hpp>
+#include <boost/mpl/list.hpp>
 
 namespace PMacc
 {
@@ -97,28 +93,6 @@ public InheritLinearly<
     /* type of a single particle*/
     typedef pmacc::Particle<ThisType> ParticleType;
 
-    /* define boost result_of results
-     * normaly result_of defines operator() result, in this case we define the result for
-     * operator[]
-     */
-    template<class> struct result;
-
-    /* const operator[]*/
-    template<class F, class TKey>
-    struct result<const F(TKey)>
-    {
-        typedef typename GetKeyFromAlias_assert<ValueTypeSeq, TKey>::type Key;
-        typedef typename boost::result_of<const BaseType(Key)>::type type;
-    };
-
-    /* non const operator[]*/
-    template<class F, class TKey>
-    struct result< F(TKey)>
-    {
-        typedef typename GetKeyFromAlias_assert<ValueTypeSeq, TKey>::type Key;
-        typedef typename boost::result_of< BaseType(Key)>::type type;
-    };
-
     /** access the Nth particle*/
     HDINLINE ParticleType operator[](const uint32_t idx)
     {
@@ -128,7 +102,7 @@ public InheritLinearly<
     /** access the Nth particle*/
     HDINLINE const ParticleType operator[](const uint32_t idx) const
     {
-        return ParticleType(*this, idx);
+        return ParticleType(*const_cast<ThisType *>(this), idx);
     }
 
     /** access attribute with a identifier
@@ -139,8 +113,8 @@ public InheritLinearly<
      */
     template<typename T_Key >
     HDINLINE
-    typename boost::result_of < ThisType(T_Key)>::type
-    getIdentifier(const T_Key)
+    auto getIdentifier(const T_Key)
+    -> decltype(BaseType::operator[](typename GetKeyFromAlias<ValueTypeSeq, T_Key>::type()))
     {
         typedef typename GetKeyFromAlias<ValueTypeSeq, T_Key>::type Key;
         return BaseType::operator[](Key());
@@ -149,8 +123,8 @@ public InheritLinearly<
     /** const version of method getIdentifier(const T_Key) */
     template<typename T_Key >
     HDINLINE
-    typename boost::result_of < const ThisType(T_Key)>::type
-    getIdentifier(const T_Key) const
+    auto getIdentifier(const T_Key) const
+    -> decltype(BaseType::operator[](typename GetKeyFromAlias<ValueTypeSeq, T_Key>::type())) const
     {
         typedef typename GetKeyFromAlias<ValueTypeSeq, T_Key>::type Key;
         return BaseType::operator[](Key());

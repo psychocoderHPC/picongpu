@@ -1,5 +1,5 @@
 /**
- * Copyright 2014 Rene Widera
+ * Copyright 2014-2015 Rene Widera, Benjamin Worpitz
  *
  * This file is part of PIConGPU.
  *
@@ -42,27 +42,44 @@ using namespace PMacc;
  * @param localDomainCellOffset offset in cells to global origin (@see wiki PIConGPU domain definitions)
  * @param cellDesc picongpu cellDescription
  */
-template<class T_CounterBox, class T_DestBox, class T_SrcFrame, class T_Space, class T_CellDescription>
-__global__ void copySpeciesGlobal2Local(T_CounterBox counter, T_DestBox destBox, T_SrcFrame srcFrame,
-                                        const int maxParticles,
-                                        T_Space localDomainCellOffset, T_CellDescription cellDesc)
+struct CopySpeciesGlobal2Local
+{
+template<
+    typename T_Acc,
+    typename T_CounterBox,
+    typename T_DestBox,
+    typename T_SrcFrame,
+    typename T_Space,
+    typename T_CellDescription>
+ALPAKA_FN_ACC void operator()(
+    T_Acc const & acc,
+    T_CounterBox const & counter,
+    T_DestBox const & destBox,
+    T_SrcFrame const & srcFrame,
+    int const & maxParticles,
+    T_Space const & localDomainCellOffset,
+    T_CellDescription const & cellDesc) const
 {
     using namespace PMacc::particles::operations;
 
     typedef T_SrcFrame SrcFrameType;
     typedef typename T_DestBox::FrameType DestFrameType;
     typedef typename T_CellDescription::SuperCellSize SuperCellSize;
-    const uint32_t cellsInSuperCell = PMacc::math::CT::volume<SuperCellSize>::type::value;
 
     typedef DestFrameType* DestFramePtr;
-    __shared__ DestFramePtr destFramePtr[cellsInSuperCell];
-    __shared__ int linearSuperCellIds[cellsInSuperCell];
-    __shared__ int hdf5ParticleOffset;
+
+    const uint32_t cellsInSuperCell = PMacc::math::CT::volume<SuperCellSize>::type::value;
+
+    DataSpace<simDim> const threadIndex(alpaka::idx::getIdx<alpaka::Block, alpaka::Threads>(acc));
+
+    auto destFramePtr(alpaka::block::shared::allocArr<DestFramePtr, cellsInSuperCell>(acc));
+    auto linearSuperCellIds(alpaka::block::shared::allocArr<int, cellsInSuperCell>(acc));
+    auto hdf5ParticleOffset(alpaka::block::shared::allocVar<int>(acc));
 
 
-    const int linearThreadIdx = threadIdx.x;
+    const int linearThreadIdx = threadIndex.x();
 
-    __syncthreads(); /*wait that all shared memory is initialized*/
+    acc.syncBlockThreads(); /*wait that all shared memory is initialized*/
 
     const DataSpace<simDim> superCellsCount(cellDesc.getGridSuperCells() - cellDesc.getGuardingSuperCells()*2);
     if (linearThreadIdx == 0)
@@ -70,12 +87,12 @@ __global__ void copySpeciesGlobal2Local(T_CounterBox counter, T_DestBox destBox,
         /* apply for work for the full block
          * counter [0] -> offset to load particles
          */
-        hdf5ParticleOffset = atomicAdd(&(counter[0]), cellsInSuperCell);
+        hdf5ParticleOffset = alpaka::atomic::atomicOp<alpaka::atomic::op::Add>(acc, &(counter[0]), cellsInSuperCell);
     }
     destFramePtr[linearThreadIdx] = NULL;
     linearSuperCellIds[linearThreadIdx] = -1;
 
-    __syncthreads();
+    acc.syncBlockThreads();
 
     const int globalParticleId = hdf5ParticleOffset + linearThreadIdx;
     const bool hasValidParticle = globalParticleId < maxParticles;
@@ -93,7 +110,7 @@ __global__ void copySpeciesGlobal2Local(T_CounterBox counter, T_DestBox destBox,
         DataSpace<simDim> inSuperCell(globalCellIdx - superCellIdx * SuperCellSize::toRT());
         lCellIdx = DataSpaceOperations<simDim>::template map<SuperCellSize>(inSuperCell);
     }
-    __syncthreads();
+    acc.syncBlockThreads();
 
     int masterIdx = linearThreadIdx - 1;
 
@@ -113,13 +130,16 @@ __global__ void copySpeciesGlobal2Local(T_CounterBox counter, T_DestBox destBox,
         if (masterIdx == linearThreadIdx)
         {
             /* counter[2] -> number of used frames */
-            atomicAdd(&(counter[2]), 1u);
+            alpaka::atomic::atomicOp<alpaka::atomic::op::Add>(acc, &(counter[2]), 1u);
             DestFramePtr tmpFrame = &(destBox.getEmptyFrame());
             destFramePtr[linearThreadIdx] = tmpFrame;
-            destBox.setAsFirstFrame(*tmpFrame, superCellIdx + cellDesc.getGuardingSuperCells());
+            destBox.setAsFirstFrame(
+                acc,
+                *tmpFrame,
+                superCellIdx + cellDesc.getGuardingSuperCells());
         }
     }
-    __syncthreads();
+    acc.syncBlockThreads();
 
     if (hasValidParticle)
     {
@@ -132,8 +152,9 @@ __global__ void copySpeciesGlobal2Local(T_CounterBox counter, T_DestBox destBox,
         /* counter[1] -> number of loaded particles
          * this counter is evaluated on host side
          * (check that loaded particles by this kernel == loaded particles from HDF5 file)*/
-        atomicAdd(&(counter[1]), 1u);
+        alpaka::atomic::atomicOp<alpaka::atomic::op::Add>(acc, &(counter[1]), 1u);
     }
 }
+};
 
 } //namespace picongpu

@@ -1,5 +1,5 @@
 /**
- * Copyright 2013 Axel Huebl, Heiko Burau, Rene Widera
+ * Copyright 2013-2015 Axel Huebl, Heiko Burau, Rene Widera, Benjamin Worpitz
  *
  * This file is part of PIConGPU.
  *
@@ -59,13 +59,16 @@ struct ConditionCheck<DirSplitting, T_Dummy>
      *
      * using SI units to avoid round off errors
      */
-    PMACC_CASSERT_MSG(DirectionSplitting_Set_dX_equal_dt_times_c____check_your_gridConfig_param_file,
-                      (SI::SPEED_OF_LIGHT_SI * SI::DELTA_T_SI) == SI::CELL_WIDTH_SI);
-    PMACC_CASSERT_MSG(DirectionSplitting_use_cubic_cells____check_your_gridConfig_param_file,
-                      SI::CELL_HEIGHT_SI == SI::CELL_WIDTH_SI);
+    static_assert(
+        (SI::SPEED_OF_LIGHT_SI * SI::DELTA_T_SI) == SI::CELL_WIDTH_SI,
+        "DirSplitting: Set dX equal_dt_times_c. Check your gridConfig.param file.");
+    static_assert(
+        SI::CELL_HEIGHT_SI == SI::CELL_WIDTH_SI,
+        "DirSplitting: Use cubic cells. Check your gridConfig.param file.");
 #if (SIMDIM == DIM3)
-    PMACC_CASSERT_MSG(DirectionSplitting_use_cubic_cells____check_your_gridConfig_param_file,
-                      SI::CELL_DEPTH_SI == SI::CELL_WIDTH_SI);
+    static_assert(
+        SI::CELL_DEPTH_SI == SI::CELL_WIDTH_SI,
+        "DirSplitting: Use cubic cells. Check your gridConfig.param file.");
 #endif
 };
 

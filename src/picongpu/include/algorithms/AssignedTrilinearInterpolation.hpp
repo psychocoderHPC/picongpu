@@ -75,15 +75,15 @@ struct AssignedTrilinearInterpolation
         typedef typename ::PMacc::result_of::Functor<AssignedTrilinearInterpolation, Cursor>::type type;
 
         type result_z = type(0.0);
-#pragma unroll 4
+        ALPAKA_UNROLL(4)
         for (float_X z = Begin; z <= End; z += float_X(1.0))
         {
             type result_y = type(0.0);
-#pragma unroll 4
+            ALPAKA_UNROLL(4)
             for (float_X y = Begin; y <= End; y += float_X(1.0))
             {
                 type result_x = type(0.0);
-#pragma unroll 4
+                ALPAKA_UNROLL(4)
                 for (float_X x = Begin; x <= End; x += float_X(1.0))
                     //a form factor is the "amount of particle" that is affected by this cell
                     //so we have to sum over: cell_value * form_factor
@@ -107,11 +107,11 @@ struct AssignedTrilinearInterpolation
 
 
         type result_y = type(0.0);
-#pragma unroll 4
+        ALPAKA_UNROLL(4)
         for (float_X y = Begin; y <= End; y += float_X(1.0))
         {
             type result_x = type(0.0);
-#pragma unroll 4
+            ALPAKA_UNROLL(4)
             for (float_X x = Begin; x <= End; x += float_X(1.0))
                 //a form factor is the "amount of particle" that is affected by this cell
                 //so we have to sum over: cell_value * form_factor

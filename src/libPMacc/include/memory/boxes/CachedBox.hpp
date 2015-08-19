@@ -1,5 +1,5 @@
 /**
- * Copyright 2013-2014 Heiko Burau, Rene Widera
+ * Copyright 2013-2015 Heiko Burau, Rene Widera, Benjamin Worpitz
  *
  * This file is part of libPMacc.
  *
@@ -47,10 +47,13 @@ namespace PMacc
         public:
             typedef DataBox<SharedBox<ValueType, FullSuperCellSize,T_Id> > Type;
 
-            HDINLINE static Type create()
+            template<
+                typename T_Acc>
+            HDINLINE static Type create(
+                T_Acc const & acc)
             {
                 DataSpace<OffsetOrigin::dim> offset(OffsetOrigin::toRT());
-                Type c_box(Type::init());
+                Type c_box(Type::init(acc));
                 return c_box.shift(offset);
             }
 
@@ -60,18 +63,29 @@ namespace PMacc
     struct CachedBox
     {
 
-        template<uint32_t Id_, typename ValueType_, class BlockDescription_ >
-        DINLINE static typename intern::CachedBox<ValueType_, BlockDescription_, Id_ >::Type
-        create(const ValueType_& value, const BlockDescription_ block)
+        template<
+            uint32_t Id_,
+            typename ValueType_,
+            typename T_Acc,
+            class BlockDescription_>
+        DINLINE static typename intern::CachedBox<ValueType_, BlockDescription_, Id_ >::Type create(
+            T_Acc const & acc,
+            const ValueType_& value,
+            const BlockDescription_ block)
         {
-            return intern::CachedBox<ValueType_, BlockDescription_, Id_>::create();
+            return intern::CachedBox<ValueType_, BlockDescription_, Id_>::create(acc);
         }
 
-        template< uint32_t Id_, typename ValueType_, class BlockDescription_ >
-        DINLINE static typename intern::CachedBox<ValueType_, BlockDescription_, Id_ >::Type
-        create(const BlockDescription_ block)
+        template<
+            uint32_t Id_,
+            typename ValueType_,
+            typename T_Acc,
+            class BlockDescription_>
+        DINLINE static typename intern::CachedBox<ValueType_, BlockDescription_, Id_ >::Type create(
+            T_Acc const & acc,
+            const BlockDescription_ block)
         {
-            return intern::CachedBox<ValueType_, BlockDescription_, Id_>::create();
+            return intern::CachedBox<ValueType_, BlockDescription_, Id_>::create(acc);
         }
 
     };

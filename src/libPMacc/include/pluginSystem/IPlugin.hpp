@@ -63,9 +63,7 @@ namespace PMacc
 
         }
 
-        virtual ~IPlugin()
-        {
-        }
+        virtual ~IPlugin() = default;
 
         virtual void load()
         {

@@ -45,7 +45,7 @@ namespace ionization
 
 using namespace PMacc;
 
-/** kernelIonizeParticles
+/** KernelIonizeParticles
  * \brief main kernel for ionization
  *
  * - maps the frame dimensions and gathers the particle boxes
@@ -58,13 +58,21 @@ using namespace PMacc;
  * \tparam FrameIonizer \see e.g. BSI_Impl in BSI_Impl.hpp
  *         instance of the ionization model functor
  */
-template<class ParBoxIons, class ParBoxElectrons, class Mapping, class FrameIonizer>
-__global__ void kernelIonizeParticles(ParBoxIons ionBox,
-                                      ParBoxElectrons electronBox,
-                                      FrameIonizer frameIonizer,
-                                      Mapping mapper)
+struct KernelIonizeParticles
 {
-
+template<
+    typename T_Acc,
+    typename ParBoxIons,
+    typename ParBoxElectrons,
+    typename Mapping,
+    typename FrameIonizer>
+ALPAKA_FN_ACC void operator()(
+    T_Acc const & acc,
+    ParBoxIons const & ionBox,
+    ParBoxElectrons const & electronBox,
+    FrameIonizer const & frameIonizer,
+    Mapping const & mapper) const
+{
     /* "particle box" : container/iterator where the particles live in
      * and where one can get the frame in a super cell from
      */
@@ -92,11 +100,15 @@ __global__ void kernelIonizeParticles(ParBoxIons ionBox,
 
     /* definitions for domain variables, like indices of blocks and threads */
     typedef typename BlockDescription_::SuperCellSize SuperCellSize;
-    /* "offset" 3D distance to origin in units of super cells */
-    const DataSpace<simDim> block(mapper.getSuperCellIndex(DataSpace<simDim > (blockIdx)));
+
+    DataSpace<simDim> const blockIndex(alpaka::idx::getIdx<alpaka::Grid, alpaka::Blocks>(acc));
 
     /* 3D vector from origin of the block to a cell in units of cells */
-    const DataSpace<simDim > threadIndex(threadIdx);
+    DataSpace<simDim> const threadIndex(alpaka::idx::getIdx<alpaka::Block, alpaka::Threads>(acc));
+
+    /* "offset" 3D distance to origin in units of super cells */
+    const DataSpace<simDim> block(mapper.getSuperCellIndex(DataSpace<simDim > (blockIndex)));
+
     /* conversion from a 3D cell coordinate to a linear coordinate of the cell in its super cell */
     const int linearThreadIdx = DataSpaceOperations<simDim>::template map<SuperCellSize > (threadIndex);
 
@@ -109,14 +121,14 @@ __global__ void kernelIonizeParticles(ParBoxIons ionBox,
     /* typedef for the functor that writes new macro electrons into electron frames during runtime */
     typedef typename particles::ionization::WriteElectronIntoFrame WriteElectronIntoFrame;
 
-    __syncthreads();
+    acc.syncBlockThreads();
 
-    __shared__ IONFRAME *ionFrame;
-    __shared__ ELECTRONFRAME *electronFrame;
-    __shared__ bool isValid;
-    __shared__ lcellId_t maxParticlesInFrame;
+    auto ionFrame(alpaka::block::shared::allocVar<IONFRAME *>(acc));
+    auto electronFrame(alpaka::block::shared::allocVar<ELECTRONFRAME *>(acc));
+    auto isValid(alpaka::block::shared::allocVar<bool>(acc));
+    auto maxParticlesInFrame(alpaka::block::shared::allocVar<lcellId_t>(acc));
 
-    __syncthreads(); /*wait that all shared memory is initialized*/
+    acc.syncBlockThreads(); /*wait that all shared memory is initialized*/
 
     /* find last frame in super cell
      * define maxParticlesInFrame as the maximum frame size
@@ -127,7 +139,7 @@ __global__ void kernelIonizeParticles(ParBoxIons ionBox,
         maxParticlesInFrame = PMacc::math::CT::volume<SuperCellSize>::type::value;
     }
 
-    __syncthreads();
+    acc.syncBlockThreads();
     if (!isValid)
         return; //end kernel if we have no frames
 
@@ -137,9 +149,9 @@ __global__ void kernelIonizeParticles(ParBoxIons ionBox,
     /* Declare counter in shared memory that will later tell the current fill level or
      * occupation of the newly created target electron frames.
      */
-    __shared__ int newFrameFillLvl;
+    auto newFrameFillLvl(alpaka::block::shared::allocVar<int>(acc));
 
-    __syncthreads(); /*wait until all shared memory is initialized*/
+    acc.syncBlockThreads(); /*wait until all shared memory is initialized*/
 
     /* Declare local variable oldFrameFillLvl for each thread */
     int oldFrameFillLvl;
@@ -160,7 +172,7 @@ __global__ void kernelIonizeParticles(ParBoxIons ionBox,
         newFrameFillLvl = 0;
         electronFrame = NULL;
     }
-    __syncthreads();
+    acc.syncBlockThreads();
 
     /* move over source species frames and call frameIonizer
      * frames are worked on in backwards order to avoid asking if there is another frame
@@ -172,7 +184,7 @@ __global__ void kernelIonizeParticles(ParBoxIons ionBox,
     {
         /* casting uint8_t multiMask to boolean */
         const bool isParticle = (*ionFrame)[linearThreadIdx][multiMask_];
-        __syncthreads();
+        acc.syncBlockThreads();
 
         /* < IONIZATION and change of charge states >
          * if the threads contain particles, the frameIonizer can ionize them
@@ -182,7 +194,7 @@ __global__ void kernelIonizeParticles(ParBoxIons ionBox,
             /* ionization based on ionization model - this actually increases charge states*/
             frameIonizer(*ionFrame, linearThreadIdx, newMacroElectrons);
 
-        __syncthreads();
+        acc.syncBlockThreads();
         /* always true while-loop over all particles inside source frame until each thread breaks out individually
          *
          * **Attention**: Speaking of 1st and 2nd frame only may seem odd.
@@ -201,7 +213,7 @@ __global__ void kernelIonizeParticles(ParBoxIons ionBox,
              */
             electronId = -1;
             oldFrameFillLvl = newFrameFillLvl;
-            __syncthreads();
+            acc.syncBlockThreads();
             /* < CHECK & ADD >
              * - if a thread wants to create electrons in each cycle it can do that only once
              * and before that it atomically adds to the shared counter and uses the current
@@ -209,15 +221,15 @@ __global__ void kernelIonizeParticles(ParBoxIons ionBox,
              * - then sync
              */
             if (newMacroElectrons > 0)
-                electronId = atomicAdd(&newFrameFillLvl, 1);
+                electronId = alpaka::atomic::atomicOp<alpaka::atomic::op::Add>(acc, &newFrameFillLvl, 1);
 
-            __syncthreads();
+            acc.syncBlockThreads();
             /* < EXIT? >
              * - if the counter hasn't changed all threads break out of the loop */
             if (oldFrameFillLvl == newFrameFillLvl)
                 break;
 
-            __syncthreads();
+            acc.syncBlockThreads();
             /* < FIRST NEW FRAME >
              * - if there is no frame, yet, the master will create a new target electron frame
              * and attach it to the back of the frame list
@@ -228,10 +240,10 @@ __global__ void kernelIonizeParticles(ParBoxIons ionBox,
                 if (electronFrame == NULL)
                 {
                     electronFrame = &(electronBox.getEmptyFrame());
-                    electronBox.setAsLastFrame(*electronFrame, block);
+                    electronBox.setAsLastFrame(acc, *electronFrame, block);
                 }
             }
-            __syncthreads();
+            acc.syncBlockThreads();
             /* < CREATE 1 >
              * - all electrons fitting into the current frame are created there
              * - internal ionization counter is decremented by 1
@@ -252,7 +264,7 @@ __global__ void kernelIonizeParticles(ParBoxIons ionBox,
 
                 newMacroElectrons -= 1;
             }
-            __syncthreads();
+            acc.syncBlockThreads();
             /* < SECOND NEW FRAME >
              * - if the shared counter is larger than the frame size a new electron frame is reserved
              * and attached to the back of the frame list
@@ -264,11 +276,11 @@ __global__ void kernelIonizeParticles(ParBoxIons ionBox,
                 if (newFrameFillLvl >= maxParticlesInFrame)
                 {
                     electronFrame = &(electronBox.getEmptyFrame());
-                    electronBox.setAsLastFrame(*electronFrame, block);
+                    electronBox.setAsLastFrame(acc, *electronFrame, block);
                     newFrameFillLvl -= maxParticlesInFrame;
                 }
             }
-            __syncthreads();
+            acc.syncBlockThreads();
             /* < CREATE 2 >
              * - if the EID is larger than the frame size
              *      - the EID is set back by one frame size
@@ -292,18 +304,19 @@ __global__ void kernelIonizeParticles(ParBoxIons ionBox,
 
                 newMacroElectrons -= 1;
             }
-            __syncthreads();
+            acc.syncBlockThreads();
         }
-        __syncthreads();
+        acc.syncBlockThreads();
 
         if (linearThreadIdx == 0)
         {
             ionFrame = &(ionBox.getPreviousFrame(*ionFrame, isValid));
             maxParticlesInFrame = PMacc::math::CT::volume<SuperCellSize>::type::value;
         }
-        __syncthreads();
+        acc.syncBlockThreads();
     }
-} // void kernelIonizeParticles
+}
+};
 
 } // namespace ionization
 } // namespace particles

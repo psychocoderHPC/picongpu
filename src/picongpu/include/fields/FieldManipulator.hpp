@@ -78,10 +78,17 @@ public:
                 if (MovingWindow::getInstance().isSlidingWindowActive() && i == BOTTOM) continue;
 
                 ExchangeMapping<GUARD, MappingDesc> mapper(cellDescription, i);
-                __cudaKernel(kernelAbsorbBorder)
-                    (mapper.getGridDim(), mapper.getSuperCellSize())
-                    (deviceBox, thickness, absorber_strength,
-                     mapper);
+
+                KernelAbsorbBorder kernelAbsorbBorder;
+                __cudaKernel(
+                    kernelAbsorbBorder,
+                    alpaka::dim::DimInt<simDim>,
+                    mapper.getGridDim(),
+                    mapper.getSuperCellSize())(
+                        deviceBox,
+                        thickness,
+                        absorber_strength,
+                        mapper);
             }
         }
     }

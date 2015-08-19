@@ -47,17 +47,37 @@ using namespace PMacc;
 
 typedef FieldJ::DataBoxType J_DataBox;
 
-template<int workerMultiplier, class BlockDescription_, uint32_t AREA, class JBox, class ParBox, class Mapping, class FrameSolver>
-__global__ void kernelComputeCurrent(JBox fieldJ,
-                                     ParBox boxPar, FrameSolver frameSolver, Mapping mapper)
+template<
+    int workerMultiplier,
+    typename BlockDescription_,
+    uint32_t AREA>
+struct KernelComputeCurrent
 {
+template<
+    typename T_Acc,
+    typename JBox,
+    typename ParBox,
+    typename FrameSolver,
+    typename Mapping>
+ALPAKA_FN_ACC void operator()(
+    T_Acc const & acc,
+    JBox const & fieldJ,
+    ParBox const & boxPar,
+    FrameSolver const & frameSolver,
+    Mapping const & mapper) const
+{
+    static_assert(
+        alpaka::dim::Dim<T_Acc>::value == simDim,
+        "The KernelComputeCurrent functor has to be called with a simDim dimensional accelerator!");
+
     typedef typename ParBox::FrameType FrameType;
     typedef typename Mapping::SuperCellSize SuperCellSize;
+    DataSpace<simDim> const blockIndex(alpaka::idx::getIdx<alpaka::Grid, alpaka::Blocks>(acc));
+    DataSpace<simDim> const threadIndex(alpaka::idx::getIdx<alpaka::Block, alpaka::Threads>(acc));
 
     const uint32_t cellsPerSuperCell = PMacc::math::CT::volume<SuperCellSize>::type::value;
 
-    const DataSpace<simDim> block(mapper.getSuperCellIndex(DataSpace<simDim > (blockIdx)));
-    const DataSpace<simDim > threadIndex(threadIdx);
+    const DataSpace<simDim> block(mapper.getSuperCellIndex(DataSpace<simDim > (blockIndex)));
 
     /* thread id, can be greater than cellsPerSuperCell*/
     const int linearThreadIdx = DataSpaceOperations<simDim>::template map<SuperCellSize > (threadIndex);
@@ -83,15 +103,15 @@ __global__ void kernelComputeCurrent(JBox fieldJ,
     }
 
     /* This memory is used by all virtual blocks*/
-    PMACC_AUTO(cachedJ, CachedBox::create < 0, typename JBox::ValueType > (BlockDescription_()));
+    auto cachedJ(CachedBox::create < 0, typename JBox::ValueType > (acc, BlockDescription_()));
 
-    __syncthreads();
+    acc.syncBlockThreads();
 
     Set<typename JBox::ValueType > set(float3_X::create(0.0));
     ThreadCollective<BlockDescription_, cellsPerSuperCell * workerMultiplier> collectiveSet(linearThreadIdx);
     collectiveSet(set, cachedJ);
 
-    __syncthreads();
+    acc.syncBlockThreads();
 
     while (isValid)
     {
@@ -100,7 +120,8 @@ __global__ void kernelComputeCurrent(JBox fieldJ,
          */
         if (virtualLinearId < particlesInSuperCell)
         {
-            frameSolver(*frame,
+            frameSolver(acc,
+                        *frame,
                         virtualLinearId,
                         cachedJ);
         }
@@ -113,7 +134,7 @@ __global__ void kernelComputeCurrent(JBox fieldJ,
     }
 
     /* we wait that all threads finish the loop*/
-    __syncthreads();
+    acc.syncBlockThreads();
 
     nvidia::functors::Add add;
     const DataSpace<simDim> blockCell = block * SuperCellSize::toRT();
@@ -121,6 +142,7 @@ __global__ void kernelComputeCurrent(JBox fieldJ,
     PMACC_AUTO(fieldJBlock, fieldJ.shift(blockCell));
     collectiveAdd(add, fieldJBlock, cachedJ);
 }
+};
 
 template<class ParticleAlgo, class Velocity, class TVec>
 struct ComputeCurrentPerFrame
@@ -131,10 +153,16 @@ struct ComputeCurrentPerFrame
     {
     }
 
-    template<class FrameType, class BoxJ >
-    DINLINE void operator()(FrameType& frame, const int localIdx, BoxJ & jBox)
+    template<
+        typename T_Acc,
+        class FrameType,
+        class BoxJ >
+    DINLINE void operator()(
+        T_Acc const & acc,
+        FrameType& frame,
+        const int localIdx,
+        BoxJ & jBox) const
     {
-
         PMACC_AUTO(particle, frame[localIdx]);
         const float_X weighting = particle[weighting_];
         const floatD_X pos = particle[position_];
@@ -148,7 +176,8 @@ struct ComputeCurrentPerFrame
                                       attribute::getMass(weighting,particle));
         PMACC_AUTO(fieldJShiftToParticle, jBox.shift(localCell));
         ParticleAlgo perParticle;
-        perParticle(fieldJShiftToParticle,
+        perParticle(acc,
+                    fieldJShiftToParticle,
                     pos,
                     vel,
                     charge,
@@ -157,16 +186,27 @@ struct ComputeCurrentPerFrame
     }
 
 private:
-    const PMACC_ALIGN(deltaTime, float);
+    PMACC_ALIGN(deltaTime, const float);
 };
 
-template<class T_CurrentInterpolation, class T_Mapping>
-__global__ void kernelAddCurrentToEMF(typename FieldE::DataBoxType fieldE,
-                                      typename FieldB::DataBoxType fieldB,
-                                      J_DataBox fieldJ,
-                                      T_CurrentInterpolation currentInterpolation,
-                                      T_Mapping mapper)
+struct KernelAddCurrentToEMF
 {
+template<
+    typename T_Acc,
+    typename T_CurrentInterpolation,
+    typename Mapping>
+ALPAKA_FN_ACC void operator()(
+    T_Acc const & acc,
+    FieldE::DataBoxType const & fieldE,
+    FieldB::DataBoxType const & fieldB,
+    J_DataBox const & fieldJ,
+    T_CurrentInterpolation const & currentInterpolation,
+    Mapping const & mapper) const
+{
+    static_assert(
+        alpaka::dim::Dim<T_Acc>::value == simDim,
+        "The KernelIntensity functor has to be called with a simDim dimensional accelerator!");
+
     /* Caching of fieldJ */
     typedef SuperCellDescription<
                 SuperCellSize,
@@ -174,13 +214,15 @@ __global__ void kernelAddCurrentToEMF(typename FieldE::DataBoxType fieldE,
                 typename T_CurrentInterpolation::UpperMargin
                 > BlockArea;
 
-    PMACC_AUTO(cachedJ, CachedBox::create < 0, typename J_DataBox::ValueType > (BlockArea()));
+    DataSpace<simDim> const blockIndex(alpaka::idx::getIdx<alpaka::Grid, alpaka::Blocks>(acc));
+    DataSpace<simDim> const threadIndex(alpaka::idx::getIdx<alpaka::Block, alpaka::Threads>(acc));
+
+    auto cachedJ(CachedBox::create < 0, typename J_DataBox::ValueType > (acc, BlockArea()));
 
     nvidia::functors::Assign assign;
-    const DataSpace<simDim> block(mapper.getSuperCellIndex(DataSpace<simDim > (blockIdx)));
+    const DataSpace<simDim> block(mapper.getSuperCellIndex(DataSpace<simDim > (blockIndex)));
     const DataSpace<simDim> blockCell = block * MappingDesc::SuperCellSize::toRT();
 
-    const DataSpace<simDim > threadIndex(threadIdx);
     PMACC_AUTO(fieldJBlock, fieldJ.shift(blockCell));
 
     ThreadCollective<BlockArea> collective(threadIndex);
@@ -190,9 +232,9 @@ __global__ void kernelAddCurrentToEMF(typename FieldE::DataBoxType fieldE,
               fieldJBlock
               );
 
-    __syncthreads();
+    acc.syncBlockThreads();
 
-    const DataSpace<T_Mapping::Dim> cell(blockCell + threadIndex);
+    const DataSpace<Mapping::Dim> cell(blockCell + threadIndex);
 
     // Amperes Law:
     //   Change of the dE = - j / EPS0 * dt
@@ -200,19 +242,32 @@ __global__ void kernelAddCurrentToEMF(typename FieldE::DataBoxType fieldE,
     //                          = fieldJ
     currentInterpolation( fieldE.shift(cell), fieldB.shift(cell), cachedJ.shift(threadIndex) );
 }
+};
 
-template<class Mapping>
-__global__ void kernelBashCurrent(J_DataBox fieldJ,
-                                  J_DataBox targetJ,
-                                  DataSpace<simDim> exchangeSize,
-                                  DataSpace<simDim> direction,
-                                  Mapping mapper)
+struct KernelBashCurrent
 {
+template<
+    typename T_Acc,
+    typename Mapping>
+ALPAKA_FN_ACC void operator()(
+    T_Acc const & acc,
+    J_DataBox const & fieldJ,
+    J_DataBox const & targetJ,
+    DataSpace<simDim> const & exchangeSize,
+    DataSpace<simDim> const & direction,
+    Mapping const & mapper) const
+{
+    static_assert(
+        alpaka::dim::Dim<T_Acc>::value == simDim,
+        "The KernelBashCurrent functor has to be called with a simDim dimensional accelerator!");
+
+    DataSpace<simDim> const blockIndex(alpaka::idx::getIdx<alpaka::Grid, alpaka::Blocks>(acc));
+    DataSpace<simDim> const threadIndex(alpaka::idx::getIdx<alpaka::Block, alpaka::Threads>(acc));
+
     const DataSpace<simDim> blockCell(
-                                      mapper.getSuperCellIndex(DataSpace<simDim > (blockIdx))
+                                      mapper.getSuperCellIndex(DataSpace<simDim > (blockIndex))
                                       * Mapping::SuperCellSize::toRT()
                                       );
-    const DataSpace<Mapping::Dim> threadIndex(threadIdx);
     const DataSpace<Mapping::Dim> sourceCell(blockCell + threadIndex);
 
     /*origin in area from local GPU*/
@@ -234,17 +289,30 @@ __global__ void kernelBashCurrent(J_DataBox fieldJ,
 
     targetJ(targetCell) = fieldJ(sourceCell);
 }
+};
 
-template<class Mapping>
-__global__ void kernelInsertCurrent(J_DataBox fieldJ,
-                                    J_DataBox sourceJ,
-                                    DataSpace<simDim> exchangeSize,
-                                    DataSpace<simDim> direction,
-                                    Mapping mapper)
+struct KernelInsertCurrent
 {
-    const DataSpace<Mapping::Dim> threadIndex(threadIdx);
+template<
+    typename T_Acc,
+    typename Mapping>
+ALPAKA_FN_ACC void operator()(
+    T_Acc const & acc,
+    J_DataBox const & fieldJ,
+    J_DataBox const & sourceJ,
+    DataSpace<simDim> const & exchangeSize,
+    DataSpace<simDim> const & direction,
+    Mapping const & mapper) const
+{
+    static_assert(
+        alpaka::dim::Dim<T_Acc>::value == simDim,
+        "The KernelInsertCurrent functor has to be called with a simDim dimensional accelerator!");
+
+    DataSpace<simDim> const blockIndex(alpaka::idx::getIdx<alpaka::Grid, alpaka::Blocks>(acc));
+    DataSpace<simDim> const threadIndex(alpaka::idx::getIdx<alpaka::Block, alpaka::Threads>(acc));
+
     const DataSpace<simDim> blockCell(
-                                      mapper.getSuperCellIndex(DataSpace<simDim > (blockIdx))
+                                      mapper.getSuperCellIndex(DataSpace<simDim > (blockIndex))
                                       * Mapping::SuperCellSize::toRT()
                                       );
     DataSpace<Mapping::Dim> targetCell(blockCell + threadIndex);
@@ -273,5 +341,6 @@ __global__ void kernelInsertCurrent(J_DataBox fieldJ,
 
     fieldJ(targetCell) += sourceJ(sourceCell);
 }
+};
 
 }

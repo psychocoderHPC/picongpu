@@ -52,17 +52,28 @@ namespace po = boost::program_options;
 /** This kernel computes the kinetic and total energy summed over
  *  all particles of a species.
  **/
-template<class FRAME, class DBox, class Mapping>
-__global__ void kernelEnergyParticles(ParticlesBox<FRAME, simDim> pb,
-                                      DBox gEnergy,
-                                      Mapping mapper)
+struct KernelEnergyParticles
 {
+template<
+    typename T_Acc,
+    typename FRAME,
+    typename DBox,
+    typename Mapping>
+ALPAKA_FN_ACC void operator()(
+    T_Acc const & acc,
+    ParticlesBox<FRAME, simDim> const & pb,
+    DBox const & gEnergy,
+    Mapping const & mapper) const
+{
+    DataSpace<simDim> const blockIndex(alpaka::idx::getIdx<alpaka::Grid, alpaka::Blocks>(acc));
+    DataSpace<simDim> const threadIndex(alpaka::idx::getIdx<alpaka::Block, alpaka::Threads>(acc));
 
-    __shared__ FRAME *frame; /* pointer to particle data frame */
-    __shared__ bool isValid; /* is data frame valid? */
-    __shared__ float_X shEnergyKin; /* shared kinetic energy */
-    __shared__ float_X shEnergy; /* shared total energy */
-    __syncthreads(); /* wait that all shared memory is initialised */
+    auto frame(alpaka::block::shared::allocVar<FRAME *>(acc));         /* pointer to particle data frame */
+    auto isValid(alpaka::block::shared::allocVar<bool>(acc));          /* is data frame valid? */
+    auto shEnergyKin(alpaka::block::shared::allocVar<float_X>(acc));   /* shared kinetic energy */
+    auto shEnergy(alpaka::block::shared::allocVar<float_X>(acc));      /* shared total energy */
+
+    acc.syncBlockThreads(); /* wait that all shared memory is initialised */
 
     float_X _local_energyKin = float_X(0.0); /* sum kinetic energy for this thread */
     float_X _local_energy = float_X(0.0); /* sum total energy for this thread */
@@ -70,18 +81,17 @@ __global__ void kernelEnergyParticles(ParticlesBox<FRAME, simDim> pb,
 
     typedef typename Mapping::SuperCellSize SuperCellSize;
 
-    const DataSpace<simDim > threadIndex(threadIdx);
     const int linearThreadIdx = DataSpaceOperations<simDim>::template map<SuperCellSize > (threadIndex);
 
     if (linearThreadIdx == 0) /* only thread 0 runs initial set up */
     {
-        const DataSpace<simDim> superCellIdx(mapper.getSuperCellIndex(DataSpace<simDim > (blockIdx)));
+        const DataSpace<simDim> superCellIdx(mapper.getSuperCellIndex(DataSpace<simDim > (blockIndex)));
         frame = &(pb.getLastFrame(superCellIdx, isValid)); /* get first(=last) frame */
         shEnergyKin = float_X(0.0); /* set shared kinetic energy to zero */
         shEnergy = float_X(0.0); /* set shared total energy to zero */
     }
 
-    __syncthreads(); /* wait till thread 0 finishes set up */
+    acc.syncBlockThreads(); /* wait till thread 0 finishes set up */
     if (!isValid)
         return; /* end kernel if we have no frames */
 
@@ -128,7 +138,7 @@ __global__ void kernelEnergyParticles(ParticlesBox<FRAME, simDim> pb,
             _local_energy += sqrtf(mom2 + mass * mass * c2) * SPEED_OF_LIGHT;
 
         }
-        __syncthreads(); /* wait till all threads have added their particle energies */
+        acc.syncBlockThreads(); /* wait till all threads have added their particle energies */
 
         /* get next particle frame */
         if (linearThreadIdx == 0)
@@ -137,22 +147,23 @@ __global__ void kernelEnergyParticles(ParticlesBox<FRAME, simDim> pb,
             frame = &(pb.getPreviousFrame(*frame, isValid));
         }
         isParticle = true; /* all following frames are filled with particles */
-        __syncthreads(); /* wait till thread 0 is done */
+        acc.syncBlockThreads(); /* wait till thread 0 is done */
     }
 
     /* add energies on block level using shared memory */
-    atomicAddWrapper(&shEnergyKin, _local_energyKin); /* add kinetic energy */
-    atomicAddWrapper(&shEnergy, _local_energy);       /* add total energy */
+    alpaka::atomic::atomicOp<alpaka::atomic::op::Add>(acc, &shEnergyKin, _local_energyKin); /* add kinetic energy */
+    alpaka::atomic::atomicOp<alpaka::atomic::op::Add>(acc, &shEnergy, _local_energy);       /* add total energy */
 
-    __syncthreads(); /* wait till all threads have added their energies */
+    acc.syncBlockThreads(); /* wait till all threads have added their energies */
 
     /* add energies on global level using global memory */
     if (linearThreadIdx == 0) /* only done by thread 0 of a block */
     {
-        atomicAddWrapper(&(gEnergy[0]), (float_64) (shEnergyKin)); /* add kinetic energy */
-        atomicAddWrapper(&(gEnergy[1]), (float_64) (shEnergy));    /* add total energy */
+        alpaka::atomic::atomicOp<alpaka::atomic::op::Add>(acc, &(gEnergy[0]), (float_64) (shEnergyKin)); /* add kinetic energy */
+        alpaka::atomic::atomicOp<alpaka::atomic::op::Add>(acc, &(gEnergy[1]), (float_64) (shEnergy));    /* add total energy */
     }
 }
+};
 
 template<class ParticlesType>
 class EnergyParticles : public ISimulationPlugin
@@ -191,10 +202,7 @@ public:
         Environment<>::get().PluginConnector().registerPlugin(this);
     }
 
-    virtual ~EnergyParticles()
-    {
-
-    }
+    virtual ~EnergyParticles() = default;
 
   /** this code is executed if the current time step is supposed to compute
    * the energy **/
@@ -311,14 +319,20 @@ private:
     template< uint32_t AREA>
     void calculateEnergyParticles(uint32_t currentStep)
     {
+        KernelEnergyParticles kernelEnergyParticles;
+
         gEnergy->getDeviceBuffer().setValue(0.0); /* init global energy with zero */
-        dim3 block(MappingDesc::SuperCellSize::toRT().toDim3()); /* GPU parallelization */
+        DataSpace<simDim> block(MappingDesc::SuperCellSize::toRT()); /* GPU parallelization */
 
         /* kernel call = sum all particle energies on GPU */
-        __picKernelArea(kernelEnergyParticles, *cellDescription, AREA)
-            (block)
-            (particles->getDeviceParticlesBox(),
-             gEnergy->getDeviceBuffer().getDataBox());
+        __picKernelArea(
+            kernelEnergyParticles,
+            alpaka::dim::DimInt<simDim>,
+            *cellDescription,
+            AREA,
+            block)(
+                particles->getDeviceParticlesBox(),
+                gEnergy->getDeviceBuffer().getDataBox());
 
         gEnergy->deviceToHost(); /* get energy from GPU */
 

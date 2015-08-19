@@ -1,5 +1,5 @@
 /**
- * Copyright 2013-2015 Heiko Burau, Rene Widera, Benjamin Worpitz
+ * Copyright 2013-2014 Heiko Burau, Rene Widera
  *
  * This file is part of libPMacc.
  *
@@ -26,7 +26,6 @@
 #include <math/vector/navigator/StandardNavigator.hpp>
 #include <lambda/Expression.hpp>
 #include "result_of_Functor.hpp"
-#include "static_assert.hpp"
 #include "types.h"
 
 #include <boost/mpl/size.hpp>
@@ -79,8 +78,9 @@ struct CopyElementWise
     template<typename T_Dest,typename T_Src>
     HDINLINE void operator()(T_Dest& dest,const T_Src& src) const
     {
-        PMACC_CASSERT_MSG(CopyElementWise_destination_and_source_had_different_dimension,
-                          T_Dest::dim == T_Src::dim);
+        static_assert(
+            T_Dest::dim == T_Src::dim,
+            "destination and source had different dimension");
         for (int d = 0; d < T_Dest::dim; d++)
             dest[d] = src[d];
     }
@@ -121,7 +121,7 @@ struct Vector : private T_Storage<T_Type, T_dim>, protected T_Accessor, protecte
     typedef Vector<type, dim, Accessor, Navigator, T_Storage> This;
 
     /*Vectors without elements are not allowed*/
-    PMACC_CASSERT_MSG(math_Vector__with_DIM_0_is_not_allowed,dim > 0);
+    static_assert(dim > 0, "Vector with DIM=0 is not allowed");
 
     template<class> struct result;
 
@@ -140,25 +140,31 @@ struct Vector : private T_Storage<T_Type, T_dim>, protected T_Accessor, protecte
     HDINLINE Vector()
     {}
 
+    template<
+        int T_dim1 = T_dim,
+        typename = typename std::enable_if<(T_dim1 == 1)>::type>
     HDINLINE
     Vector(const type x)
     {
-        PMACC_CASSERT_MSG(math_Vector__constructor_is_only_allowed_for_DIM1,dim == 1);
         (*this)[0] = x;
     }
 
+    template<
+        int T_dim1 = T_dim,
+        typename = typename std::enable_if<(T_dim1 == 2)>::type>
     HDINLINE
     Vector(const type x, const type y)
     {
-        PMACC_CASSERT_MSG(math_Vector__constructor_is_only_allowed_for_DIM2,dim == 2);
         (*this)[0] = x;
         (*this)[1] = y;
     }
 
+    template<
+        int T_dim1 = T_dim,
+        typename = typename std::enable_if<(T_dim1 == 3)>::type>
     HDINLINE
     Vector(const type x, const type y, const type z)
     {
-        PMACC_CASSERT_MSG(math_Vector__constructor_is_only_allowed_for_DIM3,dim == 3);
         (*this)[0] = x;
         (*this)[1] = y;
         (*this)[2] = z;
@@ -246,44 +252,58 @@ struct Vector : private T_Storage<T_Type, T_dim>, protected T_Accessor, protecte
         return Accessor::operator()(Storage::operator[](Navigator::operator()(idx)));
     }
 
+    template<
+        int T_dim1 = T_dim,
+        typename = typename std::enable_if<(T_dim1 >= 1)>::type>
     HDINLINE type & x()
     {
         return (*this)[0];
     }
 
+    template<
+        int T_dim1 = T_dim,
+        typename = typename std::enable_if<(T_dim1 >= 2)>::type>
     HDINLINE type & y()
     {
-        PMACC_CASSERT_MSG(math_Vector__access_to_y_is_not_allowed_for_DIM_lesser_than_2,dim >= 2);
         return (*this)[1];
     }
 
+    template<
+        int T_dim1 = T_dim,
+        typename = typename std::enable_if<(T_dim1 >= 3)>::type>
     HDINLINE type & z()
     {
-        PMACC_CASSERT_MSG(math_Vector__access_to_z_is_not_allowed_for_DIM_lesser_than_3,dim >= 3);
         return (*this)[2];
     }
 
+    template<
+        int T_dim1 = T_dim,
+        typename = typename std::enable_if<(T_dim1 >= 1)>::type>
     HDINLINE const type & x() const
     {
         return (*this)[0];
     }
 
+    template<
+        int T_dim1 = T_dim,
+        typename = typename std::enable_if<(T_dim1 >= 2)>::type>
     HDINLINE const type & y() const
     {
-        PMACC_CASSERT_MSG(math_Vector__access_to_y_is_not_allowed_for_DIM_lesser_than_2,dim >= 2);
         return (*this)[1];
     }
 
+    template<
+        int T_dim1 = T_dim,
+        typename = typename std::enable_if<(T_dim1 >= 3)>::type>
     HDINLINE const type & z() const
     {
-        PMACC_CASSERT_MSG(math_Vector__access_to_z_is_not_allowed_for_DIM_lesser_than_3,dim >= 3);
         return (*this)[2];
     }
 
     template<int shrinkedDim >
     HDINLINE Vector<type, shrinkedDim, Accessor, Navigator, T_Storage> shrink(const int startIdx = 0) const
     {
-        PMACC_CASSERT_MSG(math_Vector__shrinkedDim_DIM_must_be_lesser_or_equal_to_Vector_DIM,shrinkedDim <= dim);
+        static_assert(shrinkedDim <= dim, "math Vector shrinkedDim DIM must be lesser or equal to Vector DIM");
         Vector<type, shrinkedDim, Accessor, Navigator> result;
         for (int i = 0; i < shrinkedDim; i++)
             result[i] = (*this)[(startIdx + i) % dim];
@@ -476,15 +496,6 @@ struct Vector : private T_Storage<T_Type, T_dim>, protected T_Accessor, protecte
             stream << separator << (*this)[i];
         stream << locale_enclosing_end;
         return stream.str();
-    }
-
-    HDINLINE dim3 toDim3() const
-    {
-        dim3 result;
-        unsigned int* ptr = &result.x;
-        for (int d = 0; d < dim; ++d)
-            ptr[d] = (*this)[d];
-        return result;
     }
 };
 
@@ -825,3 +836,154 @@ struct Functor<math::Abs, TVector>
 
 } //namespace result_of
 } //namespace PMacc
+
+
+namespace alpaka
+{
+    namespace dim
+    {
+        namespace traits
+        {
+            //#############################################################################
+            //! The DataSpace dimension get trait specialization.
+            //#############################################################################
+            template<
+                typename T_Type,
+                int T_dim,
+                typename T_Accessor,
+                typename T_Navigator,
+                template<typename, int> class T_Storage>
+            struct DimType<
+                PMacc::math::Vector<T_Type, T_dim, T_Accessor, T_Navigator, T_Storage>>
+            {
+                using type = alpaka::dim::DimInt<T_dim>;
+            };
+        }
+    }
+    namespace extent
+    {
+        namespace traits
+        {
+            //#############################################################################
+            //! The DataSpace extent get trait specialization.
+            //#############################################################################
+            template<
+                typename T_Idx,
+                typename T_Type,
+                int T_dim,
+                typename T_Accessor,
+                typename T_Navigator,
+                template<typename, int> class T_Storage>
+            struct GetExtent<
+                T_Idx,
+                PMacc::math::Vector<T_Type, T_dim, T_Accessor, T_Navigator, T_Storage>,
+                typename std::enable_if<(T_dim > T_Idx::value)>::type>
+            {
+                ALPAKA_FN_HOST_ACC static auto getExtent(
+                    PMacc::math::Vector<T_Type, T_dim, T_Accessor, T_Navigator, T_Storage> const & extents)
+                -> T_Type
+                {
+                    return extents[(T_dim - 1u) - T_Idx::value];
+                }
+            };
+            //#############################################################################
+            //! The DataSpace extent set trait specialization.
+            //#############################################################################
+            template<
+                typename T_Idx,
+                typename T_Type,
+                int T_dim,
+                typename T_Accessor,
+                typename T_Navigator,
+                template<typename, int> class T_Storage,
+                typename T_Extent>
+            struct SetExtent<
+                T_Idx,
+                PMacc::math::Vector<T_Type, T_dim, T_Accessor, T_Navigator, T_Storage>,
+                T_Extent,
+                typename std::enable_if<(T_dim > T_Idx::value)>::type>
+            {
+                ALPAKA_FN_HOST_ACC static auto setExtent(
+                    PMacc::math::Vector<T_Type, T_dim, T_Accessor, T_Navigator, T_Storage> & extents,
+                    T_Extent const & extent)
+                -> void
+                {
+                    extents[(T_dim - 1u) - T_Idx::value] = extent;
+                }
+            };
+        }
+    }
+    namespace offset
+    {
+        namespace traits
+        {
+            //#############################################################################
+            //! The Vector offset get trait specialization.
+            //#############################################################################
+            template<
+                typename T_Idx,
+                typename T_Type,
+                int T_dim,
+                typename T_Accessor,
+                typename T_Navigator,
+                template<typename, int> class T_Storage>
+            struct GetOffset<
+                T_Idx,
+                PMacc::math::Vector<T_Type, T_dim, T_Accessor, T_Navigator, T_Storage>,
+                typename std::enable_if<(T_dim > T_Idx::value)>::type>
+            {
+                ALPAKA_FN_HOST_ACC static auto getOffset(
+                    PMacc::math::Vector<T_Type, T_dim, T_Accessor, T_Navigator, T_Storage> const & offsets)
+                -> T_Type
+                {
+                    return offsets[(T_dim - 1u) - T_Idx::value];
+                }
+            };
+            //#############################################################################
+            //! The Vector offset set trait specialization.
+            //#############################################################################
+            template<
+                typename T_Idx,
+                typename T_Type,
+                int T_dim,
+                typename T_Accessor,
+                typename T_Navigator,
+                template<typename, int> class T_Storage,
+                typename T_Offset>
+            struct SetOffset<
+                T_Idx,
+                PMacc::math::Vector<T_Type, T_dim, T_Accessor, T_Navigator, T_Storage>,
+                T_Offset,
+                typename std::enable_if<(T_dim > T_Idx::value)>::type>
+            {
+                ALPAKA_FN_HOST_ACC static auto setOffset(
+                    PMacc::math::Vector<T_Type, T_dim, T_Accessor, T_Navigator, T_Storage> & offsets,
+                    T_Offset const & offset)
+                -> void
+                {
+                    offsets[(T_dim - 1u) - T_Idx::value] = offset;
+                }
+            };
+        }
+    }
+    namespace size
+    {
+        namespace traits
+        {
+            //#############################################################################
+            //! The Vector size type trait specialization.
+            //#############################################################################
+            template<
+                typename T_Type,
+                int T_dim,
+                typename T_Accessor,
+                typename T_Navigator,
+                template<typename, int> class T_Storage>
+            struct SizeType<
+                PMacc::math::Vector<T_Type, T_dim, T_Accessor, T_Navigator, T_Storage>>
+            {
+                using type = std::size_t;
+            };
+        }
+    }
+}

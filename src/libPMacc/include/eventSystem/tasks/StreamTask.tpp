@@ -34,7 +34,7 @@ namespace PMacc
 inline StreamTask::StreamTask( ) :
 ITask( ),
 stream( NULL ),
-hasCudaEvent( false ),
+cudaEvent( ),
 alwaysFinished( false )
 {
     this->setTaskType( TASK_CUDA );
@@ -42,23 +42,22 @@ alwaysFinished( false )
 
 inline CudaEvent StreamTask::getCudaEvent( ) const
 {
-    assert( hasCudaEvent );
-    return cudaEvent;
+    assert(cudaEvent);
+    return *cudaEvent.get();
 }
 
 inline void StreamTask::setCudaEvent(const CudaEvent& cudaEvent )
 {
-    this->hasCudaEvent = true;
-    this->cudaEvent = cudaEvent;
+    this->cudaEvent.reset(new CudaEvent(cudaEvent));
 }
 
 inline bool StreamTask::isFinished( )
 {
     if ( alwaysFinished )
         return true;
-    if ( hasCudaEvent )
+    if(cudaEvent)
     {
-        if ( cudaEvent.isFinished( ) )
+        if ( cudaEvent->isFinished( ) )
         {
             alwaysFinished = true;
             return true;
@@ -67,10 +66,10 @@ inline bool StreamTask::isFinished( )
     return false;
 }
 
-inline EventStream* StreamTask::getEventStream( )
+inline EventStream* StreamTask::getEventStream() const
 {
-    if ( stream == NULL )
-        stream = __getEventStream( TASK_CUDA );
+    if(stream == nullptr)
+        stream = Environment<>::get().TransactionManager().getEventStream(TASK_CUDA);
     return stream;
 }
 
@@ -81,18 +80,11 @@ inline void StreamTask::setEventStream( EventStream* newStream )
     this->stream = newStream;
 }
 
-inline cudaStream_t StreamTask::getCudaStream( )
-{
-    if ( stream == NULL )
-        stream = Environment<>::get( ).TransactionManager( ).getEventStream( TASK_CUDA );
-    return stream->getCudaStream( );
-}
 
 inline void StreamTask::activate( )
 {
-    cudaEvent = Environment<>::get().Manager().getEventPool( ).getNextEvent( );
-    cudaEvent.recordEvent(this->stream->getCudaStream());
-    hasCudaEvent = true;
+    cudaEvent.reset(new CudaEvent(Environment<>::get().Manager().getEventPool().getNextEvent()));
+    cudaEvent->recordEvent(this->stream->getCudaStream());
 }
 
 } //namespace PMacc

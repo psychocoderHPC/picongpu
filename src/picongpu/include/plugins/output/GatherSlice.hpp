@@ -41,7 +41,7 @@ using namespace PMacc;
 struct GatherSlice
 {
 
-    GatherSlice() : mpiRank(-1), numRanks(0), filteredData(NULL), comm(MPI_COMM_NULL), fullData(NULL), isMPICommInitialized(false)
+    GatherSlice() : filteredData(NULL), fullData(NULL), comm(MPI_COMM_NULL), mpiRank(-1), numRanks(0), isMPICommInitialized(false)
     {
     }
 

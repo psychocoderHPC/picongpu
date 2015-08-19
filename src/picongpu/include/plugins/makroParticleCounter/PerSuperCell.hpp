@@ -1,5 +1,5 @@
 /**
- * Copyright 2014 Rene Widera
+ * Copyright 2014-2015 Rene Widera, Benjamin Worpitz
  *
  * This file is part of PIConGPU.
  *
@@ -44,23 +44,34 @@ namespace picongpu
 using namespace PMacc;
 using namespace splash;
 
-template<class ParBox, class CounterBox, class Mapping>
-__global__ void CountMakroParticle(ParBox parBox, CounterBox counterBox, Mapping mapper)
+struct CountMakroParticle
 {
-
+template<
+    typename T_Acc,
+    typename ParBox,
+    typename CounterBox,
+    typename Mapping>
+ALPAKA_FN_ACC void operator()(
+    T_Acc const & acc,
+    ParBox const & parBox,
+    CounterBox const & counterBox,
+    Mapping const & mapper) const
+{
     typedef MappingDesc::SuperCellSize SuperCellSize;
     typedef typename ParBox::FrameType FrameType;
 
-    const DataSpace<simDim> block(mapper.getSuperCellIndex(DataSpace<simDim > (blockIdx)));
+    DataSpace<simDim> const blockIndex(alpaka::idx::getIdx<alpaka::Grid, alpaka::Blocks>(acc));
+    DataSpace<simDim> const threadIndex(alpaka::idx::getIdx<alpaka::Block, alpaka::Threads>(acc));
+
+    const DataSpace<simDim> block(mapper.getSuperCellIndex(DataSpace<simDim > (blockIndex)));
     /* counterBox has no guarding supercells*/
     const DataSpace<simDim> counterCell = block - mapper.getGuardingSuperCells();
 
-    const DataSpace<simDim > threadIndex(threadIdx);
     const int linearThreadIdx = DataSpaceOperations<simDim>::template map<SuperCellSize > (threadIndex);
 
-    __shared__ uint64_cu counterValue;
-    __shared__ FrameType *frame;
-    __shared__ bool isValid;
+    auto counterValue(alpaka::block::shared::allocVar<uint64_cu>(acc));
+    auto frame(alpaka::block::shared::allocVar<FrameType *>(acc));
+    auto isValid(alpaka::block::shared::allocVar<bool>(acc));
 
     if (linearThreadIdx == 0)
     {
@@ -71,7 +82,7 @@ __global__ void CountMakroParticle(ParBox parBox, CounterBox counterBox, Mapping
             counterBox(counterCell) = counterValue;
         }
     }
-    __syncthreads();
+    acc.syncBlockThreads();
     if (!isValid)
         return; //end kernel if we have no frames
 
@@ -81,20 +92,21 @@ __global__ void CountMakroParticle(ParBox parBox, CounterBox counterBox, Mapping
     {
         if (isParticle)
         {
-            atomicAdd(&counterValue, static_cast<uint64_cu> (1LU));
+            alpaka::atomic::atomicOp<alpaka::atomic::op::Add>(acc, &counterValue, static_cast<uint64_cu> (1LU));
         }
-        __syncthreads();
+        acc.syncBlockThreads();
         if (linearThreadIdx == 0)
         {
             frame = &(parBox.getPreviousFrame(*frame, isValid));
         }
         isParticle = true;
-        __syncthreads();
+        acc.syncBlockThreads();
     }
 
     if (linearThreadIdx == 0)
         counterBox(counterCell) = counterValue;
 }
+};
 
 /** Count makro particle of a species and write down the result to a global HDF5 file.
  *
@@ -213,10 +225,14 @@ private:
         typedef MappingDesc::SuperCellSize SuperCellSize;
         AreaMapping<AREA, MappingDesc> mapper(*cellDescription);
 
-        __cudaKernel(CountMakroParticle)
-            (mapper.getGridDim(), SuperCellSize::toRT().toDim3())
-            (particles->getDeviceParticlesBox(),
-             localResult->getDeviceBuffer().getDataBox(), mapper);
+        CountMakroParticle countMakroParticle;
+        __cudaKernel(
+            countMakroParticle,
+            alpaka::dim::DimInt<simDim>,
+            mapper.getGridDim(),
+            SuperCellSize::toRT())(
+                particles->getDeviceParticlesBox(),
+                localResult->getDeviceBuffer().getDataBox(), mapper);
 
         localResult->deviceToHost();
 

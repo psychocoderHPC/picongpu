@@ -64,17 +64,17 @@ namespace kernel
         /* ... */                                                                                           \
         BOOST_PP_REPEAT(N, SHIFT_CURSOR_ZONE, _)                                                            \
                                                                                                             \
-        dim3 blockDim(BlockDim::toRT().toDim3());                                                           \
         detail::SphericMapper<Zone::dim, BlockDim> mapper;                                                  \
         using namespace PMacc;                                                                              \
-        __cudaKernel(detail::kernelForeach)(mapper.cudaGridDim(p_zone.size), blockDim)                       \
+        detail::kernelForeach kernel; \
+        __cudaKernel(kernel, alpaka::dim::DimInt<3u>, mapper.gridDim(p_zone.size), BlockDim::toRT())                       \
                   /* c0_shifted, c1_shifted, ... */                                                         \
-            (mapper, BOOST_PP_ENUM(N, SHIFTED_CURSOR, _), lambda::make_Functor(functor));                   \
+            (mapper, lambda::make_Functor(functor), BOOST_PP_ENUM(N, SHIFTED_CURSOR, _));                   \
     }
 
 /** Foreach algorithm that calls a cuda kernel
  *
- * \tparam BlockDim 3D compile-time vector (PMacc::math::CT::Int) of the size of the cuda blockDim.
+ * \tparam BlockDim 3D compile-time vector (PMacc::math::CT::Int) of the size of the cuda blockSize.
  *
  * blockDim has to fit into the computing volume.
  * E.g. (8,8,4) fits into (256, 256, 256)

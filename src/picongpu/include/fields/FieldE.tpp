@@ -172,10 +172,15 @@ void FieldE::laserManipulation( uint32_t currentStep )
     gridBlocks.y()=fieldE->getGridLayout( ).getDataSpaceWithoutGuarding( ).z( ) / SuperCellSize::z::value;
     blockSize.y()=SuperCellSize::z::value;
 #endif
-    __cudaKernel( kernelLaserE )
-        ( gridBlocks,
-          blockSize )
-        ( this->getDeviceDataBox( ), laser->getLaserManipulator( currentStep ) );
+
+    KernelLaserE kernelLaserE;
+    __cudaKernel(
+        kernelLaserE,
+        alpaka::dim::DimInt<simDim>,
+        gridBlocks,
+        blockSize)(
+            this->getDeviceDataBox( ),
+            laser->getLaserManipulator( currentStep ));
 }
 
 void FieldE::reset( uint32_t )

@@ -107,19 +107,17 @@ public:
     fieldE(NULL),
     fieldB(NULL),
     cellDescription(NULL),
+    notifyFrequency(0),
     analyzerName("EnergyFields: calculate the energy of the fields"),
     analyzerPrefix(std::string("fields_energy")),
     filename(analyzerPrefix + ".dat"),
-    notifyFrequency(0),
     writeToFile(false),
     localReduce(NULL)
     {
         Environment<>::get().PluginConnector().registerPlugin(this);
     }
 
-    virtual ~EnergyFields()
-    {
-    }
+    virtual ~EnergyFields() = default;
 
     void notify(uint32_t currentStep)
     {

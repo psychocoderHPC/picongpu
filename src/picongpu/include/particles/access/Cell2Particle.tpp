@@ -38,23 +38,24 @@ DINLINE void Cell2Particle<SuperCellSize>::operator() \
 (TParticlesBox pb, const CellIndex& cellIndex, Functor functor \
 BOOST_PP_ENUM_TRAILING(N, NORMAL_ARGS, _)) \
 { \
+    DataSpace<simDim> const threadIndex(alpaka::idx::getIdx<alpaka::Block, alpaka::Threads>(acc));\
     CellIndex superCellIdx = cellIndex / (CellIndex)SuperCellSize::toRT(); \
     \
-    uint16_t linearThreadIdx = threadIdx.z * SuperCellSize::x::value * SuperCellSize::y::value + \
-                               threadIdx.y * SuperCellSize::x::value + threadIdx.x; \
+    uint16_t linearThreadIdx = threadIndex.z() * SuperCellSize::x::value * SuperCellSize::y::value + \
+                               threadIndex.y() * SuperCellSize::x::value + threadIndex.x(); \
     \
     typedef typename TParticlesBox::FrameType Frame; \
-    __shared__ Frame* frame; \
-    __shared__ bool isValid; \
-    __shared__ uint16_t particlesInSuperCell; \
-    __syncthreads(); /*wait that all shared memory is initialised*/ \
+    auto frame(alpaka::block::shared::allocVar<Frame*>(acc)); \
+    auto isValid(alpaka::block::shared::allocVar<bool>(acc)); \
+    auto particlesInSuperCell(alpaka::block::shared::allocVar<uint16_t>(acc)); \
+    acc.syncBlockThreads(); /*wait that all shared memory is initialised*/ \
     \
     if(linearThreadIdx == 0) \
     { \
         frame = &(pb.getLastFrame(superCellIdx, isValid)); \
         particlesInSuperCell = pb.getSuperCell(superCellIdx).getSizeLastFrame(); \
     } \
-    __syncthreads(); \
+    acc.syncBlockThreads(); \
     \
     if (!isValid) return; /* leave kernel if we have no frames*/ \
     \
@@ -67,13 +68,13 @@ BOOST_PP_ENUM_TRAILING(N, NORMAL_ARGS, _)) \
                 BOOST_PP_ENUM_TRAILING(N, ARGS, _) \
                 ); \
         } \
-        __syncthreads(); \
+        acc.syncBlockThreads(); \
         if (linearThreadIdx == 0) \
         { \
             frame = &(pb.getPreviousFrame(*frame, isValid)); \
             particlesInSuperCell = PMacc::math::CT::volume<SuperCellSize>::type::value; \
         } \
-        __syncthreads(); \
+        acc.syncBlockThreads(); \
     } \
 }
 

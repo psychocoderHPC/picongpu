@@ -1,5 +1,5 @@
 /**
- * Copyright 2013-2014 Axel Huebl, Heiko Burau, Rene Widera
+ * Copyright 2013-2015 Axel Huebl, Heiko Burau, Rene Widera, Benjamin Worpitz
  *
  * This file is part of PIConGPU.
  *
@@ -23,10 +23,9 @@
 
 #include "simulation_defines.hpp"
 #include "particles/startPosition/MacroParticleCfg.hpp"
-#include "nvidia/rng/RNG.hpp"
-#include "nvidia/rng/methods/Xor.hpp"
-#include "nvidia/rng/distributions/Uniform_float.hpp"
 #include "mpi/SeedPerRank.hpp"
+
+#include <utility>
 
 namespace picongpu
 {
@@ -35,11 +34,9 @@ namespace particles
 namespace startPosition
 {
 
-namespace nvrng = nvidia::rng;
-namespace rngMethods = nvidia::rng::methods;
-namespace rngDistributions = nvidia::rng::distributions;
-
-template<typename T_ParamClass, typename T_SpeciesType>
+template<
+    typename T_ParamClass,
+    typename T_SpeciesType>
 struct RandomImpl
 {
     typedef T_ParamClass ParamClass;
@@ -61,13 +58,16 @@ struct RandomImpl
         totalGpuOffset.y( ) += numSlides * localCells.y( );
     }
 
-    DINLINE void init(const DataSpace<simDim>& totalCellOffset)
+    DINLINE void init(
+        PMacc::AlpakaAcc<alpaka::dim::DimInt<simDim>> const & acc,
+        const DataSpace<simDim>& totalCellOffset)
     {
         const DataSpace<simDim> localCellIdx(totalCellOffset - totalGpuOffset);
         const uint32_t cellIdx = DataSpaceOperations<simDim>::map(
                                                                   localCells,
                                                                   localCellIdx);
-        rng = nvrng::create(rngMethods::Xor(seed, cellIdx), rngDistributions::Uniform_float());
+        gen = alpaka::rand::generator::createDefault(acc, seed, cellIdx);
+        dist = alpaka::rand::distribution::createUniformReal<float_X>(acc);
     }
 
     /** Distributes the initial particles uniformly random within the cell.
@@ -81,7 +81,7 @@ struct RandomImpl
     {
         floatD_X result;
         for (uint32_t i = 0; i < simDim; ++i)
-            result[i] = rng();
+            result[i] = dist(gen);
 
         return result;
     }
@@ -117,10 +117,19 @@ struct RandomImpl
     }
 
 protected:
-    typedef PMacc::nvidia::rng::RNG<rngMethods::Xor, rngDistributions::Uniform_float> RngType;
-
-    PMACC_ALIGN(rng, RngType);
-    PMACC_ALIGN(seed,uint32_t);
+    using Gen =
+        decltype(
+            alpaka::rand::generator::createDefault(
+                std::declval<PMacc::AlpakaAcc<alpaka::dim::DimInt<simDim>> const &>(),
+                std::declval<uint32_t &>(),
+                std::declval<uint32_t &>()));
+    PMACC_ALIGN(gen, Gen);
+    using Dist =
+        decltype(
+            alpaka::rand::distribution::createUniformReal<float_X>(
+                std::declval<PMacc::AlpakaAcc<alpaka::dim::DimInt<simDim>> const &>()));
+    PMACC_ALIGN(dist, Dist);
+    PMACC_ALIGN(seed, uint32_t);
     PMACC_ALIGN(localCells, DataSpace<simDim>);
     PMACC_ALIGN(totalGpuOffset, DataSpace<simDim>);
 };

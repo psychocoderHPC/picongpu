@@ -62,7 +62,8 @@ template<typename Mapper, BOOST_PP_ENUM_PARAMS(N, typename C), typename Functor>
                                                 /* C0 c0, C1 c1, ... */                                     \
 __global__ void kernelForeachBlock(Mapper mapper, BOOST_PP_ENUM_BINARY_PARAMS(N, C, c), Functor functor)    \
 {                                                                                                           \
-    math::Int<Mapper::dim> cellIndex(mapper(blockIdx));                                                     \
+    DataSpace<Mapper::dim> const blockIndex(alpaka::idx::getIdx<alpaka::Grid, alpaka::Blocks>(acc));          \
+    math::Int<Mapper::dim> cellIndex(mapper(blockIndex));                                                     \
          /* c0[cellIndex], c1[cellIndex], ... */                                                            \
     functor(BOOST_PP_ENUM(N, SHIFTACCESS_CURSOR, _));                                                       \
 }
@@ -88,10 +89,10 @@ BOOST_PP_REPEAT_FROM_TO(1, BOOST_PP_INC(FOREACH_KERNEL_MAX_PARAMS), KERNEL_FOREA
         /* ... */                                                                                           \
         BOOST_PP_REPEAT(N, SHIFT_CURSOR_ZONE, _)                                                            \
                                                                                                             \
-        dim3 blockDim(ThreadBlock::toRT().toDim3());                                                        \
         detail::SphericMapper<Zone::dim, BlockDim> mapper;                                                  \
         using namespace PMacc;                                                                              \
-        __cudaKernel(detail::kernelForeachBlock)(mapper.cudaGridDim(p_zone.size), blockDim)                  \
+        detail::kernelForeachBlock kernel; \
+        __cudaKernel(kernel, alpaka::dim::DimInt<3u>, mapper.gridDim(p_zone.size), ThreadBlock::toRT())                  \
                     /* c0_shifted, c1_shifted, ... */                                                       \
             (mapper, BOOST_PP_ENUM(N, SHIFTED_CURSOR, _), lambda::make_Functor(functor));                   \
     }
@@ -102,7 +103,7 @@ BOOST_PP_REPEAT_FROM_TO(1, BOOST_PP_INC(FOREACH_KERNEL_MAX_PARAMS), KERNEL_FOREA
  * shifts them to the top left (front) corner cell of their corresponding cuda block.
  * So if BlockDim is 4x4x4 it shifts 64 cursors to (0,0,0), 64 to (4,0,0), 64 to (8,0,0), ...
  *
- * \tparam BlockDim 3D compile-time vector (PMacc::math::CT::Int) of the size of the cuda blockDim.
+ * \tparam BlockDim 3D compile-time vector (PMacc::math::CT::Int) of the size of the cuda blockSize.
  * \tparam ThreadBlock ignored
  */
 template<typename BlockDim, typename ThreadBlock = BlockDim>

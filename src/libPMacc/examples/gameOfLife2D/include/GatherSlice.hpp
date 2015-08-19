@@ -31,8 +31,6 @@
 
 namespace gol
 {
-using namespace PMacc;
-
 struct MessageHeader
 {
 
@@ -40,7 +38,10 @@ struct MessageHeader
     {
     }
 
-    MessageHeader(Space simSize, GridLayout<DIM2> layout, Space nodeOffset) :
+    MessageHeader(
+        PMacc::DataSpace<DIM2> simSize,
+        PMacc::GridLayout<DIM2> layout,
+        PMacc::DataSpace<DIM2> nodeOffset) :
     simSize(simSize),
     nodeOffset(nodeOffset)
     {
@@ -49,11 +50,11 @@ struct MessageHeader
         nodeGuardCells = layout.getGuard();
     }
 
-    Space simSize;
-    Space nodeSize;
-    Space nodePictureSize;
-    Space nodeGuardCells;
-    Space nodeOffset;
+    PMacc::DataSpace<DIM2> simSize;
+    PMacc::DataSpace<DIM2> nodeSize;
+    PMacc::DataSpace<DIM2> nodePictureSize;
+    PMacc::DataSpace<DIM2> nodeGuardCells;
+    PMacc::DataSpace<DIM2> nodeOffset;
 
 };
 
@@ -96,10 +97,10 @@ struct GatherSlice
     {
         header = mHeader;
 
-        int countRanks = Environment<DIM2>::get().GridController().getGpuNodes().productOfComponents();
+        int countRanks = PMacc::Environment<DIM2>::get().GridController().getGpuNodes().productOfComponents();
         std::vector<int> gatherRanks(countRanks);
         std::vector<int> groupRanks(countRanks);
-        mpiRank = Environment<DIM2>::get().GridController().getGlobalRank();
+        mpiRank = PMacc::Environment<DIM2>::get().GridController().getGlobalRank();
         if (!isActive)
             mpiRank = -1;
 
@@ -135,12 +136,12 @@ struct GatherSlice
     {
         typedef typename Box::ValueType ValueType;
 
-        Box dstBox = Box(PitchedBox<ValueType, DIM2 > (
-                                                       (ValueType*) filteredData,
-                                                       Space(),
-                                                       header.simSize,
-                                                       header.simSize.x() * sizeof (ValueType)
-                                                       ));
+        Box dstBox = Box(PMacc::PitchedBox<ValueType, DIM2>(
+            (ValueType*) filteredData,
+            PMacc::DataSpace<DIM2>(),
+            header.simSize,
+            header.simSize.x() * sizeof (ValueType)
+            ));
         MessageHeader mHeader;
         MessageHeader* fakeHeader = &mHeader;
         memcpy(fakeHeader, &header, sizeof(MessageHeader));
@@ -150,42 +151,41 @@ struct GatherSlice
         if (fullData == NULL && mpiRank == 0)
             fullData = (char*) new ValueType[header.nodeSize.productOfComponents() * numRanks];
 
+        MPI_CHECK(MPI_Gather(
+            static_cast<void*>(fakeHeader), static_cast<int>(sizeof(MessageHeader)), MPI_CHAR,
+            static_cast<void*>(recvHeader), static_cast<int>(sizeof(MessageHeader)), MPI_CHAR,
+            0, comm));
 
-        MPI_CHECK(MPI_Gather(fakeHeader, sizeof(MessageHeader), MPI_CHAR, recvHeader, sizeof(MessageHeader),
-                             MPI_CHAR, 0, comm));
-
-        const size_t elementsCount = header.nodeSize.productOfComponents() * sizeof (ValueType);
+        std::size_t const elementsCount(header.nodeSize.productOfComponents() * sizeof (ValueType));
 
         MPI_CHECK(MPI_Gather(
-                             (char*) (data.getPointer()), elementsCount, MPI_CHAR,
-                             fullData, elementsCount, MPI_CHAR,
-                             0, comm));
-
-
+            static_cast<void*>(data.getPointer()), static_cast<int>(elementsCount), MPI_CHAR,
+            static_cast<void*>(fullData), static_cast<int>(elementsCount), MPI_CHAR,
+            0, comm));
 
         if (mpiRank == 0)
         {
             if (filteredData == NULL)
                 filteredData = (char*) new ValueType[header.simSize.productOfComponents()];
 
-            /*create box with valid memory*/
-            dstBox = Box(PitchedBox<ValueType, DIM2 > (
-                                                       (ValueType*) filteredData,
-                                                       Space(),
-                                                       header.simSize,
-                                                       header.simSize.x() * sizeof (ValueType)
-                                                       ));
+            // Create box with valid memory.
+            dstBox = Box(PMacc::PitchedBox<ValueType, DIM2>(
+                (ValueType*) filteredData,
+                PMacc::DataSpace<DIM2>(),
+                header.simSize,
+                header.simSize.x() * sizeof (ValueType)
+                ));
 
 
             for (int i = 0; i < numRanks; ++i)
             {
                 MessageHeader* head = (MessageHeader*) (recvHeader + sizeof(MessageHeader)* i);
-                Box srcBox = Box(PitchedBox<ValueType, DIM2 > (
-                                                               (ValueType*) fullData,
-                                                               Space(0, head->nodeSize.y() * i),
-                                                               head->nodeSize,
-                                                               head->nodeSize.x() * sizeof (ValueType)
-                                                               ));
+                Box srcBox = Box(PMacc::PitchedBox<ValueType, DIM2>(
+                    (ValueType*) fullData,
+                    PMacc::DataSpace<DIM2>(0, head->nodeSize.y() * i),
+                    head->nodeSize,
+                    head->nodeSize.x() * sizeof (ValueType)
+                    ));
 
                 insertData(dstBox, srcBox, head->nodeOffset, head->nodePictureSize, head->nodeGuardCells);
             }
@@ -198,7 +198,12 @@ struct GatherSlice
     }
 
     template<class DstBox, class SrcBox>
-    void insertData(DstBox& dst, const SrcBox& src, Space offsetToSimNull, Space srcSize, Space nodeGuardCells)
+    void insertData(
+        DstBox& dst,
+        const SrcBox& src,
+        PMacc::DataSpace<DIM2> offsetToSimNull,
+        PMacc::DataSpace<DIM2> srcSize,
+        PMacc::DataSpace<DIM2> nodeGuardCells)
     {
         for (int y = 0; y < srcSize.y(); ++y)
         {

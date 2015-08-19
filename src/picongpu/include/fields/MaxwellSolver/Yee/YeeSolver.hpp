@@ -65,18 +65,25 @@ private:
     void updateE()
     {
         /* Courant-Friedrichs-Levy-Condition for Yee Field Solver: */
-        PMACC_CASSERT_MSG(Courant_Friedrichs_Levy_condition_failure____check_your_gridConfig_param_file,
-            (SPEED_OF_LIGHT*SPEED_OF_LIGHT*DELTA_T*DELTA_T*INV_CELL2_SUM)<=1.0);
-        
+        static_assert(
+            (SPEED_OF_LIGHT*SPEED_OF_LIGHT*DELTA_T*DELTA_T*INV_CELL2_SUM)<=1.0,
+            "Courant Friedrichs Levy condition failure. Check your gridConfig.param file.");
+
         typedef SuperCellDescription<
                 SuperCellSize,
                 typename CurlB::LowerMargin,
                 typename CurlB::UpperMargin
                 > BlockArea;
 
-        __picKernelArea((kernelUpdateE<BlockArea, CurlB>), cellDescription, AREA)
-                (SuperCellSize::toRT().toDim3())
-                (this->fieldE->getDeviceDataBox(), this->fieldB->getDeviceDataBox());
+        KernelUpdateE<BlockArea, CurlB> kernelUpdateE;
+        __picKernelArea(
+            kernelUpdateE,
+            alpaka::dim::DimInt<simDim>,
+            cellDescription,
+            AREA,
+            SuperCellSize::toRT())(
+                this->fieldE->getDeviceDataBox(),
+                this->fieldB->getDeviceDataBox());
     }
 
     template<uint32_t AREA>
@@ -88,9 +95,14 @@ private:
                 typename CurlE::UpperMargin
                 > BlockArea;
 
-        __picKernelArea((kernelUpdateBHalf<BlockArea, CurlE>), cellDescription, AREA)
-                (SuperCellSize::toRT().toDim3())
-                (this->fieldB->getDeviceDataBox(),
+        KernelUpdateBHalf<BlockArea, CurlE> kernelUpdateBHalf;
+        __picKernelArea(
+            kernelUpdateBHalf,
+            alpaka::dim::DimInt<simDim>,
+            cellDescription,
+            AREA,
+            SuperCellSize::toRT())(
+                this->fieldB->getDeviceDataBox(),
                 this->fieldE->getDeviceDataBox());
     }
 

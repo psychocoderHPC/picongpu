@@ -1,5 +1,5 @@
 /**
- * Copyright 2014 Felix Schmitt, Conrad Schumann
+ * Copyright 2014-2015 Felix Schmitt, Conrad Schumann, Benjamin Worpitz
  *
  * This file is part of libPMacc.
  *
@@ -21,6 +21,62 @@
  */
 
 #pragma once
+
+#include "types.h"
+
+#include <memory>
+
+namespace PMacc
+{
+    // \TODO: Move to own header!
+    class DeviceManager
+    {
+    public:
+        void init(std::size_t uiIdx)
+        {
+            auto const uiNumDevices(alpaka::dev::DevMan<AlpakaDev>::getDevCount());
+
+            // Beginning from the device given by the index, try if they are usable.
+            for(std::size_t iDeviceOffset(0); iDeviceOffset < uiNumDevices; ++iDeviceOffset)
+            {
+                std::size_t const iDevice((uiIdx + iDeviceOffset) % uiNumDevices);
+
+                try
+                {
+                    m_Dev.reset(
+                        new AlpakaDev(alpaka::dev::DevMan<AlpakaDev>::getDevByIdx(iDevice)));
+                    return;
+                }
+                catch(...)
+                {}
+            }
+
+            // If we came until here, none of the devices was usable.
+            std::stringstream ssErr;
+            ssErr << "Unable to return device handle for device " << uiIdx << " because none of the " << uiNumDevices << " devices is accessible!";
+            throw std::runtime_error(ssErr.str());
+        }
+
+        AlpakaDev const & getDevice() const
+        {
+            return *m_Dev.get();
+        }
+
+        AlpakaDev & getDevice()
+        {
+            return *m_Dev.get();
+        }
+
+        static DeviceManager& getInstance()
+        {
+            static DeviceManager instance;
+            return instance;
+        }
+
+    private:
+        std::unique_ptr<AlpakaDev> m_Dev;
+    };
+}
 
 #include "eventSystem/EventSystem.hpp"
 #include "particles/tasks/ParticleFactory.hpp"
@@ -50,6 +106,11 @@ public:
     PMacc::GridController<DIM>& GridController()
     {
         return PMacc::GridController<DIM>::getInstance();
+    }
+
+    PMacc::DeviceManager& DeviceManager()
+    {
+        return PMacc::DeviceManager::getInstance();
     }
 
     PMacc::StreamController& StreamController()
@@ -119,11 +180,13 @@ public:
 
         PMacc::Filesystem<DIM>::getInstance();
 
-        setDevice((int) (PMacc::GridController<DIM>::getInstance().getHostRank()));
+        PMacc::DeviceManager::getInstance().init(static_cast<std::size_t>(PMacc::GridController<DIM>::getInstance().getHostRank()));
 
-        StreamController::getInstance().activate();
+        PMacc::StreamController::getInstance().activate(PMacc::DeviceManager::getInstance().getDevice());
 
-        TransactionManager::getInstance();
+        nvidia::memory::MemoryInfo::getInstance().activate(PMacc::DeviceManager::getInstance().getDevice());
+
+        PMacc::TransactionManager::getInstance();
 
     }
 
@@ -131,11 +194,11 @@ public:
     {
         PMacc::SubGrid<DIM>::getInstance().init(gridSizeLocal, gridSizeGlobal, gridOffset);
 
-        EnvironmentController::getInstance();
+        PMacc::EnvironmentController::getInstance();
 
-        DataConnector::getInstance();
+        PMacc::DataConnector::getInstance();
 
-        PluginConnector::getInstance();
+        PMacc::PluginConnector::getInstance();
 
         nvidia::memory::MemoryInfo::getInstance();
 
@@ -154,91 +217,14 @@ private:
     Environment(const Environment&);
 
     Environment& operator=(const Environment&);
-
-    void setDevice(int deviceNumber)
-    {
-        int num_gpus = 0; //number of gpus
-        cudaGetDeviceCount(&num_gpus);
-        //##ERROR handling
-        if (num_gpus < 1) //check if cuda device is found
-        {
-            throw std::runtime_error("no CUDA capable devices detected");
-        }
-        else if (num_gpus < deviceNumber) //check if device can be selected by deviceNumber
-        {
-            std::cerr << "no CUDA device " << deviceNumber << ", only " << num_gpus << " devices found" << std::endl;
-            throw std::runtime_error("CUDA capable devices can't be selected");
-        }
-
-
-        int maxTries = num_gpus;
-
-        cudaDeviceProp devProp;
-        cudaError rc;
-        CUDA_CHECK(cudaGetDeviceProperties(&devProp, deviceNumber));
-
-        /* if the gpu compute mode is set to default we use the given `deviceNumber` */
-        if (devProp.computeMode == cudaComputeModeDefault)
-            maxTries = 1;
-
-        for (int deviceOffset = 0; deviceOffset < maxTries; ++deviceOffset)
-        {
-            const int tryDeviceId = (deviceOffset + deviceNumber) % num_gpus;
-            rc = cudaSetDevice(tryDeviceId);
-
-            if(rc == cudaSuccess)
-            {
-               cudaStream_t stream;
-               /* \todo: Check if this workaround is needed
-                *
-                * - since NVIDIA change something in driver cudaSetDevice never
-                * return an error if another process already use the selected
-                * device if gpu compute mode is set "process exclusive"
-                * - create a dummy stream to check if the device is already used by
-                * an other process.
-                * - cudaStreamCreate fail if gpu is already in use
-                */
-               rc = cudaStreamCreate(&stream);
-            }
-
-            if (rc == cudaSuccess)
-            {
-                cudaDeviceProp dprop;
-                CUDA_CHECK(cudaGetDeviceProperties(&dprop, deviceNumber));
-                log<ggLog::CUDA_RT > ("Set device to %1%: %2%") % tryDeviceId % dprop.name;
-                if(cudaErrorSetOnActiveProcess == cudaSetDeviceFlags(cudaDeviceScheduleSpin))
-                {
-                    cudaGetLastError(); //reset all errors
-                    /* - because of cudaStreamCreate was called cudaSetDeviceFlags crashed
-                     * - to set the flags reset the device and set flags again
-                     */
-                    CUDA_CHECK(cudaDeviceReset());
-                    CUDA_CHECK(cudaSetDeviceFlags(cudaDeviceScheduleSpin));
-                }
-                CUDA_CHECK(cudaGetLastError());
-                break;
-            }
-            else if (rc == cudaErrorDeviceAlreadyInUse || rc==cudaErrorDevicesUnavailable)
-            {
-                cudaGetLastError(); //reset all errors
-                log<ggLog::CUDA_RT > ("Device %1% already in use, try next.") % tryDeviceId;
-                continue;
-            }
-            else
-            {
-                CUDA_CHECK(rc); /*error message*/
-            }
-        }
-    }
 };
 
-#define __startTransaction(...) (Environment<>::get().TransactionManager().startTransaction(__VA_ARGS__))
-#define __startAtomicTransaction(...) (Environment<>::get().TransactionManager().startAtomicTransaction(__VA_ARGS__))
-#define __endTransaction() (Environment<>::get().TransactionManager().endTransaction())
-#define __startOperation(opType) (Environment<>::get().TransactionManager().startOperation(opType))
-#define __getEventStream(opType) (Environment<>::get().TransactionManager().getEventStream(opType))
-#define __getTransactionEvent() (Environment<>::get().TransactionManager().getTransactionEvent())
-#define __setTransactionEvent(event) (Environment<>::get().TransactionManager().setTransactionEvent((event)))
+#define __startTransaction(...) (PMacc::Environment<>::get().TransactionManager().startTransaction(__VA_ARGS__))
+#define __startAtomicTransaction(...) (PMacc::Environment<>::get().TransactionManager().startAtomicTransaction(__VA_ARGS__))
+#define __endTransaction() (PMacc::Environment<>::get().TransactionManager().endTransaction())
+#define __startOperation(opType) (PMacc::Environment<>::get().TransactionManager().startOperation(opType))
+#define __getTransactionEvent() (PMacc::Environment<>::get().TransactionManager().getTransactionEvent())
+#define __setTransactionEvent(event) (PMacc::Environment<>::get().TransactionManager().setTransactionEvent((event)))
 
 }
 

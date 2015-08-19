@@ -28,16 +28,28 @@
 #include "eventSystem/events/kernelEvents.hpp"
 #include "dimensions/DataSpace.hpp"
 
-#include <cuda_runtime_api.h>
-#include <cuda.h>
-
-__global__ void kernelSetValueOnDeviceMemory(size_t* pointer, const size_t size)
-{
-    *pointer = size;
-}
-
 namespace PMacc
 {
+class kernelSetValueOnDeviceMemory
+{
+public:
+    //-----------------------------------------------------------------------------
+    //! The kernel.
+    //-----------------------------------------------------------------------------
+    template<
+        typename T_Acc>
+    ALPAKA_FN_ACC void operator()(
+        T_Acc const &,
+        size_t * const pointer,
+        size_t const & size) const
+    {
+        static_assert(
+            alpaka::dim::Dim<T_Acc>::value == 1u,
+            "kernelSetValueOnDeviceMemory has to be executed in one dimension only!");
+        // TODO: Assert that grid block and block thread extents are 1!
+        *pointer = size;
+    }
+};
 
 template <class TYPE, unsigned DIM>
 class DeviceBuffer;
@@ -61,7 +73,7 @@ public:
 
     virtual void init()
     {
-        setSize();
+        setCurrentSize();
     }
 
     bool executeIntern()
@@ -80,11 +92,21 @@ public:
 
 private:
 
-    void setSize() throw (std::runtime_error)
+    void setCurrentSize()
     {
-        kernelSetValueOnDeviceMemory
-            << < 1, 1, 0, this->getCudaStream() >> >
-            (destination->getCurrentSizeOnDevicePointer(), size);
+        kernelSetValueOnDeviceMemory kernel;
+        alpaka::workdiv::WorkDivMembers<alpaka::dim::DimInt<1u>, size_t> workDiv(
+            static_cast<std::size_t>(1u),
+            static_cast<std::size_t>(1u));
+        auto const exec(
+            alpaka::exec::create<AlpakaAcc<alpaka::dim::DimInt<1u>>>(
+                workDiv,
+                kernel,
+                alpaka::mem::view::getPtrNative(destination->getMemBufSizeAcc()),
+                size));
+        alpaka::stream::enqueue(
+            this->getEventStream()->getCudaStream(),
+            exec);
 
         activate();
     }

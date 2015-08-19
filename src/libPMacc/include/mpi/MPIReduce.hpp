@@ -43,7 +43,7 @@ struct MPIReduce
 {
 
     /*reduce data over selected mpi nodes*/
-    MPIReduce() : mpiRank(-1), numRanks(0), comm(MPI_COMM_NULL), isMPICommInitialized(false)
+    MPIReduce() : comm(MPI_COMM_NULL), mpiRank(-1), numRanks(0), isMPICommInitialized(false)
     {
         participate(true);
     }
@@ -52,7 +52,7 @@ struct MPIReduce
     {
         if (isMPICommInitialized)
         {
-            MPI_CHECK(MPI_Comm_free(&comm));
+            MPI_CHECK_NOEXCEPT(MPI_Comm_free(&comm));
         }
     }
 

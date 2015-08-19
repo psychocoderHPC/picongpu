@@ -37,11 +37,8 @@ namespace PMacc
 
 inline Manager::~Manager( )
 {
-    CUDA_CHECK( cudaGetLastError( ) );
     waitForAllTasks( );
-    CUDA_CHECK( cudaGetLastError( ) );
-    delete eventPool;
-    CUDA_CHECK( cudaGetLastError( ) );
+    eventPool.reset();
 }
 
 inline bool Manager::execute( id_t taskToWait )
@@ -192,7 +189,7 @@ inline Manager::Manager( )
      * The \see Environment ensures that the \see StreamController is
      * already created before calling this
      */
-    eventPool = new EventPool( );
+    eventPool.reset(new EventPool( ));
     eventPool->addEvents( 300 );
 }
 

@@ -1,5 +1,5 @@
 /**
- * Copyright 2013 Rene Widera
+ * Copyright 2013-2015 Rene Widera, Benjamin Worpitz
  *
  * This file is part of libPMacc.
  *
@@ -35,29 +35,38 @@ namespace PMacc
 /* count particles in an area
  * is not optimized, it checks any particle position if its really a particle
  */
-template<class PBox, class Filter, class Mapping>
-__global__ void kernelCountParticles(PBox pb,
-                                     uint64_cu* gCounter,
-                                     Filter filter,
-                                     Mapping mapper)
+struct KernelCountParticles
 {
-
+template<
+    typename T_Acc,
+    typename PBox,
+    typename Filter,
+    typename Mapping>
+ALPAKA_FN_ACC void operator()(
+    T_Acc const & acc,
+    PBox const & pb,
+    uint64_cu* gCounter,
+    Filter filter,
+    Mapping const & mapper) const
+{
     typedef typename PBox::FrameType FRAME;
     const uint32_t Dim = Mapping::Dim;
 
-    __shared__ FRAME *frame;
-    __shared__ bool isValid;
-    __shared__ int counter;
-    __shared__ lcellId_t particlesInSuperCell;
+    DataSpace<Dim> const blockIndex(alpaka::idx::getIdx<alpaka::Grid, alpaka::Blocks>(acc));
+    DataSpace<Dim> const threadIndex(alpaka::idx::getIdx<alpaka::Block, alpaka::Threads>(acc));
+
+    auto frame(alpaka::block::shared::allocVar<FRAME *>(acc));
+    auto isValid(alpaka::block::shared::allocVar<bool>(acc));
+    auto counter(alpaka::block::shared::allocVar<int>(acc));
+    auto particlesInSuperCell(alpaka::block::shared::allocVar<lcellId_t>(acc));
 
 
-    __syncthreads(); /*wait that all shared memory is initialised*/
+    acc.syncBlockThreads(); /*wait that all shared memory is initialized*/
 
     typedef typename Mapping::SuperCellSize SuperCellSize;
 
-    const DataSpace<Dim > threadIndex(threadIdx);
     const int linearThreadIdx = DataSpaceOperations<Dim>::template map<SuperCellSize > (threadIndex);
-    const DataSpace<Dim> superCellIdx(mapper.getSuperCellIndex(DataSpace<Dim > (blockIdx)));
+    const DataSpace<Dim> superCellIdx(mapper.getSuperCellIndex(DataSpace<Dim > (blockIndex)));
 
     if (linearThreadIdx == 0)
     {
@@ -65,7 +74,7 @@ __global__ void kernelCountParticles(PBox pb,
         particlesInSuperCell = pb.getSuperCell(superCellIdx).getSizeLastFrame();
         counter = 0;
     }
-    __syncthreads();
+    acc.syncBlockThreads();
     if (!isValid)
         return; //end kernel if we have no frames
     filter.setSuperCellPosition((superCellIdx - mapper.getGuardingSuperCells()) * mapper.getSuperCellSize());
@@ -74,23 +83,24 @@ __global__ void kernelCountParticles(PBox pb,
         if (linearThreadIdx < particlesInSuperCell)
         {
             if (filter(*frame, linearThreadIdx))
-                atomicAdd(&counter, 1);
+                alpaka::atomic::atomicOp<alpaka::atomic::op::Add>(acc, &counter, 1);
         }
-        __syncthreads();
+        acc.syncBlockThreads();
         if (linearThreadIdx == 0)
         {
             frame = &(pb.getPreviousFrame(*frame, isValid));
             particlesInSuperCell = math::CT::volume<SuperCellSize>::type::value;
         }
-        __syncthreads();
+        acc.syncBlockThreads();
     }
 
-    __syncthreads();
+    acc.syncBlockThreads();
     if (linearThreadIdx == 0)
     {
-        atomicAdd(gCounter, (uint64_cu) counter);
+        alpaka::atomic::atomicOp<alpaka::atomic::op::Add>(acc, gCounter, (uint64_cu) counter);
     }
 }
+};
 
 struct CountParticles
 {
@@ -109,16 +119,19 @@ struct CountParticles
     {
         GridBuffer<uint64_cu, DIM1> counter(DataSpace<DIM1>(1));
 
-        dim3 block(CellDesc::SuperCellSize::toRT().toDim3());
-
         AreaMapping<AREA, CellDesc> mapper(cellDescription);
 
-        __cudaKernel(kernelCountParticles)
-            (mapper.getGridDim(), block)
-            (buffer.getDeviceParticlesBox(),
-             counter.getDeviceBuffer().getBasePointer(),
-             filter,
-             mapper);
+        KernelCountParticles kernelCountParticles;
+
+        __cudaKernel(
+            kernelCountParticles,
+            alpaka::dim::DimInt<3u>,
+            mapper.getGridDim(),
+            CellDesc::SuperCellSize::toRT())(
+                buffer.getDeviceParticlesBox(),
+                counter.getDeviceBuffer().getBasePointer(),
+                filter,
+                mapper);
 
         counter.deviceToHost();
         return *(counter.getHostBuffer().getDataBox());

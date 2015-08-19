@@ -145,7 +145,7 @@ namespace PMacc
 #if !defined(__CUDA_ARCH__) // Host code path
         *(this->data) += (rhs << this->bit);
 #else
-        atomicAdd(this->data, rhs << this->bit);
+        alpaka::atomic::atomicOp<alpaka::atomic::op::Add>(acc, this->data, rhs << this->bit);
 #endif
     }
 
@@ -155,7 +155,7 @@ namespace PMacc
 #if !defined(__CUDA_ARCH__) // Host code path
         *(this->data) &= ~(TO_BITS(NUMBITS) << this->bit);
 #else
-        atomicAnd(this->data, ~(TO_BITS(NUMBITS) << this->bit));
+        alpaka::atomic::atomicOp<alpaka::atomic::op::And>(acc, this->data, ~(TO_BITS(NUMBITS) << this->bit));
 #endif
     }
 
@@ -167,7 +167,7 @@ namespace PMacc
         *(this->data) |= (rhs << this->bit);
 #else
         setBitsToNull();
-        atomicOr(this->data, (rhs << this->bit));
+        alpaka::atomic::atomicOp<alpaka::atomic::op::Or>(acc, this->data, (rhs << this->bit));
 #endif
     }
 
@@ -181,9 +181,9 @@ namespace PMacc
             *(this->data) &= (~(1u << this->bit));
 #else
         if (rhs)
-            atomicOr(this->data, 1u << this->bit);
+            alpaka::atomic::atomicOp<alpaka::atomic::op::Or>(acc, this->data, 1u << this->bit);
         else
-            atomicAnd(this->data, ~(1u << this->bit));
+            alpaka::atomic::atomicOp<alpaka::atomic::op::And>(acc, this->data, ~(1u << this->bit));
 #endif
     }
 

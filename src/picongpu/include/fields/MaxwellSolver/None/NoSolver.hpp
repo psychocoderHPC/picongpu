@@ -48,8 +48,9 @@ namespace picongpu
         struct ConditionCheck<NoSolver, T_Dummy>
         {
             /* Courant-Friedrichs-Levy-Condition for Yee Field Solver: */
-            PMACC_CASSERT_MSG(Courant_Friedrichs_Levy_condition_failure____check_your_gridConfig_param_file,
-                (SPEED_OF_LIGHT*SPEED_OF_LIGHT*DELTA_T*DELTA_T*INV_CELL2_SUM)<=1.0);
+            static_assert(
+                (SPEED_OF_LIGHT*SPEED_OF_LIGHT*DELTA_T*DELTA_T*INV_CELL2_SUM)<=1.0,
+                "Courant Friedrichs Levy condition failure. Check your gridConfig.param file.");
         };
 
         class NoSolver : private ConditionCheck<fieldSolver::FieldSolver>

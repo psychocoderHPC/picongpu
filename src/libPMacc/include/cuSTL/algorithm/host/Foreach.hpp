@@ -28,27 +28,12 @@
 #include "lambda/make_Functor.hpp"
 #include <forward.hpp>
 
-#include <boost/preprocessor/repetition/enum.hpp>
-#include <boost/preprocessor/repetition/enum_params.hpp>
-#include <boost/preprocessor/repetition/enum_binary_params.hpp>
-#include <boost/preprocessor/arithmetic/inc.hpp>
-#include <boost/preprocessor/repetition/repeat.hpp>
-#include <boost/preprocessor/repetition/repeat_from_to.hpp>
-
 namespace PMacc
 {
 namespace algorithm
 {
 namespace host
 {
-
-#ifndef FOREACH_HOST_MAX_PARAMS
-#define FOREACH_HOST_MAX_PARAMS 4
-#endif
-
-#define SHIFT_CURSOR_ZONE(Z, N, _) C ## N c ## N ## _shifted = c ## N (p_zone.offset);
-#define SHIFTACCESS_SHIFTEDCURSOR(Z, N, _) forward(c ## N ## _shifted [cellIndex])
-
 namespace detail
 {
     /** Return pseudo 3D-range of the zone as math::Int<dim> */
@@ -84,29 +69,6 @@ namespace detail
     };
 } // namespace detail
 
-#define FOREACH_OPERATOR(Z, N, _)                                              \
-    template<typename Zone, BOOST_PP_ENUM_PARAMS(N, typename C), typename Functor> \
-    void operator()(const Zone& p_zone, BOOST_PP_ENUM_BINARY_PARAMS(N, C, c), const Functor& functor) \
-    {                                                                          \
-        BOOST_PP_REPEAT(N, SHIFT_CURSOR_ZONE, _)                               \
-                                                                               \
-        typename lambda::result_of::make_Functor<Functor>::type fun            \
-            = lambda::make_Functor(functor);                                   \
-        detail::GetRange<Zone::dim> getRange;                                  \
-        for(int z = 0; z < getRange(p_zone).z(); z++)                           \
-        {                                                                      \
-            for(int y = 0; y < getRange(p_zone).y(); y++)                       \
-            {                                                                  \
-                for(int x = 0; x < getRange(p_zone).x(); x++)                   \
-                {                                                              \
-                    math::Int<Zone::dim> cellIndex =                           \
-                        math::Int<3u>(x, y, z).shrink<Zone::dim>();            \
-                    fun(BOOST_PP_ENUM(N, SHIFTACCESS_SHIFTEDCURSOR, _));       \
-                }                                                              \
-            }                                                                  \
-        }                                                                      \
-    }
-
 /** Foreach algorithm (restricted to 3D)
  */
 struct Foreach
@@ -121,12 +83,52 @@ struct Foreach
      * It is called like functor(*cursor0(cellId), ..., *cursorN(cellId))
      *
      */
-    BOOST_PP_REPEAT_FROM_TO(1, BOOST_PP_INC(FOREACH_HOST_MAX_PARAMS), FOREACH_OPERATOR, _)
-};
+    template<
+        typename Zone,
+        typename Functor,
+        typename... TCs>
+    void operator()(
+        Zone const & p_zone,
+        Functor const & functor,
+        TCs && ... cs)
+    {
+        forEachShifted(
+            p_zone,
+            functor,
+            cs(_zone.offset)...);
+    }
 
-#undef FOREACH_OPERATOR
-#undef SHIFT_CURSOR_ZONE
-#undef SHIFTACCESS_SHIFTEDCURSOR
+private:
+    /*
+     *
+     */
+    template<
+        typename Zone,
+        typename Functor,
+        typename... TShiftedCs>
+    void forEachShifted(
+        Zone const & p_zone,
+        Functor const & functor,
+        TShiftedCs && ... shiftedCs)
+    {
+        typename lambda::result_of::make_Functor<Functor>::type fun =
+            lambda::make_Functor(functor);
+
+        detail::GetRange<Zone::dim> getRange;
+        for(int z = 0; z < getRange(p_zone).z(); z++)
+        {
+            for(int y = 0; y < getRange(p_zone).y(); y++)
+            {
+                for(int x = 0; x < getRange(p_zone).x(); x++)
+                {
+                    math::Int<Zone::dim> cellIndex =
+                        math::Int<3u>(x, y, z).shrink<Zone::dim>();
+                    fun(std::forward<TShiftedCs>(shiftedCs)...);
+                }
+            }
+        }
+    }
+};
 
 } // host
 } // algorithm

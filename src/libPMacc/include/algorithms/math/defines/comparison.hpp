@@ -49,6 +49,130 @@ HDINLINE typename Max< T1,T2 >::result max(const T1& value1,const T2& value2)
     return Max< T1,T2 > ()(value1,value2);
 }
 
+#ifndef __CUDA_ARCH__
+    #include <algorithm>
+#endif
+
+template<>
+struct Min<int, int>
+{
+    typedef int result;
+
+    HDINLINE int operator()(int value1, int value2)
+    {
+#ifdef __CUDA_ARCH__ /*device version*/
+        return ::min(value1, value2);
+#else
+        return std::min(value1, value2);
+#endif
+    }
+};
+
+template<>
+struct Min<unsigned int, unsigned int>
+{
+    typedef unsigned int result;
+
+    HDINLINE unsigned int operator()(unsigned int value1, unsigned int value2)
+    {
+#ifdef __CUDA_ARCH__ /*device version*/
+        return ::umin(value1, value2);
+#else
+        return std::min(value1, value2);
+#endif
+    }
+};
+
+template<>
+struct Min<long long int, long long int>
+{
+    typedef long long int result;
+
+    HDINLINE long long int operator()(long long int value1, long long int value2)
+    {
+#ifdef __CUDA_ARCH__ /*device version*/
+        return ::llmin(value1, value2);
+#else
+        return std::min(value1, value2);
+#endif
+    }
+};
+
+template<>
+struct Min<unsigned long long int, unsigned long long int>
+{
+    typedef unsigned long long int result;
+
+    HDINLINE unsigned long long int operator()(unsigned long long int value1, unsigned long long int value2)
+    {
+#ifdef __CUDA_ARCH__ /*device version*/
+        return ::ullmin(value1, value2);
+#else
+        return std::min(value1, value2);
+#endif
+    }
+};
+
+template<>
+struct Max<int, int>
+{
+    typedef int result;
+
+    HDINLINE int operator()(int value1, int value2)
+    {
+#ifdef __CUDA_ARCH__ /*device version*/
+        return ::max(value1, value2);
+#else
+        return std::max(value1, value2);
+#endif
+    }
+};
+
+template<>
+struct Max<unsigned int, unsigned int>
+{
+    typedef unsigned int result;
+
+    HDINLINE unsigned int operator()(unsigned int value1, unsigned int value2)
+    {
+#ifdef __CUDA_ARCH__ /*device version*/
+        return ::umax(value1, value2);
+#else
+        return std::max(value1, value2);
+#endif
+    }
+};
+
+template<>
+struct Max<long long int, long long int>
+{
+    typedef long long int result;
+
+    HDINLINE long long int operator()(long long int value1, long long int value2)
+    {
+#ifdef __CUDA_ARCH__ /*device version*/
+        return ::llmax(value1, value2);
+#else
+        return std::max(value1, value2);
+#endif
+    }
+};
+
+template<>
+struct Max<unsigned long long int, unsigned long long int>
+{
+    typedef unsigned long long int result;
+
+    HDINLINE unsigned long long int operator()(unsigned long long int value1, unsigned long long int value2)
+    {
+#ifdef __CUDA_ARCH__ /*device version*/
+        return ::ullmax(value1, value2);
+#else
+        return std::max(value1, value2);
+#endif
+    }
+};
+
 } //namespace math
 } //namespace algorithms
 }//namespace PMacc

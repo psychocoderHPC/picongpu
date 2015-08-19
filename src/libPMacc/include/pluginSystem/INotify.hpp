@@ -40,9 +40,7 @@ namespace PMacc
         {
         }
 
-        virtual ~INotify()
-        {
-        }
+        virtual ~INotify() = default;
 
         /** Notification callback
          *

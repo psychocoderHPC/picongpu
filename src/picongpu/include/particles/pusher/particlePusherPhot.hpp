@@ -1,5 +1,5 @@
 /**
- * Copyright 2013-2014 Axel Huebl, Heiko Burau, Rene Widera
+ * Copyright 2013-2015 Axel Huebl, Heiko Burau, Rene Widera, Benjamin Worpitz
  *
  * This file is part of PIConGPU.
  *
@@ -30,15 +30,22 @@ namespace picongpu
         template<class Velocity, class Gamma>
         struct Push
         {
-
-            template<typename EType, typename BType, typename PosType, typename MomType, typename MassType, typename ChargeType >
-                    __host__ DINLINE void operator()(
-                                                        const BType bField,
-                                                        const EType eField,
-                                                        PosType& pos,
-                                                        MomType& mom,
-                                                        const MassType mass,
-                                                        const ChargeType charge)
+            template<
+                typename T_Acc,
+                typename EType,
+                typename BType,
+                typename PosType,
+                typename MomType,
+                typename MassType,
+                typename ChargeType>
+            ALPAKA_FN_ACC void operator()(
+                T_Acc const & acc,
+                BType const & bField,
+                EType const & eField,
+                PosType & pos,
+                MomType & mom,
+                MassType const & mass,
+                ChargeType const & charge) const
             {
 
                 const float_X mom_abs = abs( mom );

@@ -22,9 +22,6 @@
 #pragma once
 
 #include "simulation_defines.hpp"
-#include "nvidia/rng/RNG.hpp"
-#include "nvidia/rng/methods/Xor.hpp"
-#include "nvidia/rng/distributions/Uniform_float.hpp"
 #include "mpi/SeedPerRank.hpp"
 
 namespace picongpu
@@ -33,10 +30,6 @@ namespace particles
 {
 namespace manipulators
 {
-
-namespace nvrng = nvidia::rng;
-namespace rngMethods = nvidia::rng::methods;
-namespace rngDistributions = nvidia::rng::distributions;
 
 template< typename T_SpeciesType>
 struct RandomPositionImpl
@@ -57,10 +50,14 @@ struct RandomPositionImpl
         localCells = subGrid.getLocalDomain().size;
     }
 
-    template<typename T_Particle1, typename T_Particle2>
-    DINLINE void operator()(const DataSpace<simDim>& localCellIdx,
-                            T_Particle1& particle, T_Particle2&,
-                            const bool isParticle, const bool)
+    template<
+        typename T_Particle1,
+        typename T_Particle2>
+    DINLINE void operator()(
+        PMacc::AlpakaAcc<alpaka::dim::DimInt<simDim>> const & acc,
+        const DataSpace<simDim>& localCellIdx,
+        T_Particle1& particle, T_Particle2&,
+        const bool isParticle, const bool)
     {
         typedef typename T_Particle1::FrameType FrameType;
 
@@ -69,7 +66,8 @@ struct RandomPositionImpl
             const uint32_t cellIdx = DataSpaceOperations<simDim>::map(
                                                                       localCells,
                                                                       localCellIdx);
-            rng = nvrng::create(rngMethods::Xor(seed, cellIdx), rngDistributions::Uniform_float());
+            gen = alpaka::rand::generator::createDefault(acc, seed, cellIdx);
+            dist = alpaka::rand::distribution::createNormalReal<float_X>(acc);
             isInitialized = true;
         }
         if (isParticle)
@@ -77,15 +75,25 @@ struct RandomPositionImpl
             floatD_X tmpPos;
 
             for (uint32_t d = 0; d < simDim; ++d)
-                tmpPos[d] = rng();
+                tmpPos[d] = dist(gen);
 
             particle[position_] = tmpPos;
         }
     }
 
 private:
-    typedef PMacc::nvidia::rng::RNG<rngMethods::Xor, rngDistributions::Uniform_float> RngType;
-    RngType rng;
+    using Gen =
+        decltype(
+            alpaka::rand::generator::createDefault(
+                std::declval<PMacc::AlpakaAcc<alpaka::dim::DimInt<simDim>> const &>(),
+                std::declval<uint32_t &>(),
+                std::declval<uint32_t &>()));
+    PMACC_ALIGN(gen, Gen);
+    using Dist =
+        decltype(
+            alpaka::rand::distribution::createUniformReal<float_X>(
+                std::declval<PMacc::AlpakaAcc<alpaka::dim::DimInt<simDim>> const &>()));
+    PMACC_ALIGN(dist, Dist);
     bool isInitialized;
     uint32_t seed;
     DataSpace<simDim> localCells;

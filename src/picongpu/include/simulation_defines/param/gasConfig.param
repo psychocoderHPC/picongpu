@@ -53,25 +53,25 @@ struct GaussianParam
     takes GAS_CENTER_LEFT for y < GAS_CENTER_LEFT,
           GAS_CENTER_RIGHT for y > GAS_CENTER_RIGHT,
     and exponent = float_X(0.0) for GAS_CENTER_LEFT < y < GAS_CENTER_RIGHT */
-    static const float_X GAS_FACTOR = -1.0;
-    static const float_X GAS_POWER = 4.0;
+    static constexpr float_X GAS_FACTOR = -1.0;
+    static constexpr float_X GAS_POWER = 4.0;
 
     /** height of vacuum area on top border
      *      this vacuum is really important because of the laser initialization,
      *      which is done in the first cell of the simulation
      *  unit: cells */
-    static const uint32_t VACUUM_CELLS_Y = 50;
+    static constexpr uint32_t VACUUM_CELLS_Y = 50;
 
     struct SI
     {
         /** The central position of the gas distribution
          *  unit: meter */
-        static const float_64 GAS_CENTER_LEFT = 4.62e-5;
-        static const float_64 GAS_CENTER_RIGHT = 4.62e-5;
+        static constexpr float_64 GAS_CENTER_LEFT = 4.62e-5;
+        static constexpr float_64 GAS_CENTER_RIGHT = 4.62e-5;
         /** the distance from GAS_CENTER until the gas density decreases to its 1/e-th part
          *  unit: meter */
-        static const float_64 GAS_SIGMA_LEFT = 4.0e-5;
-        static const float_64 GAS_SIGMA_RIGHT = 4.0e-5;
+        static constexpr float_64 GAS_SIGMA_LEFT = 4.0e-5;
+        static constexpr float_64 GAS_SIGMA_RIGHT = 4.0e-5;
     };
 };
 
@@ -97,7 +97,7 @@ struct LinearExponentialParam
      *      this vacuum is really important because of the laser initialization,
      *      which is done in the first cell of the simulation
      *  unit: cells */
-    static const uint32_t VACUUM_CELLS_Y = 50;
+    static constexpr uint32_t VACUUM_CELLS_Y = 50;
 
     struct SI
     {
@@ -105,7 +105,7 @@ struct LinearExponentialParam
          *  begins
          *  unit: meter
          */
-        static const float_64 GAS_Y_MAX_SI = 1.0e-3;
+        static constexpr float_64 GAS_Y_MAX_SI = 1.0e-3;
 
         /** Parameters for the linear slope:
          *  For Y <= GAS_Y_MAX_SI:
@@ -114,7 +114,7 @@ struct LinearExponentialParam
          *  unit for A: 1/m
          *  unit for B: none
          */
-        static const float_64 GAS_A_SI = 1.0e-3;
+        static constexpr float_64 GAS_A_SI = 1.0e-3;
 
         /** Parameters for the exponential slope
          *  For Y > GAS_MAX_SI:
@@ -123,10 +123,10 @@ struct LinearExponentialParam
          *         = element [0.0; 1.0]
          *  unit: 1/m
          */
-        static const float_64 GAS_D_SI = 1.0 / 1.0e-3;
+        static constexpr float_64 GAS_D_SI = 1.0 / 1.0e-3;
     };
 
-    static const float_X GAS_B = 0.0;
+    static constexpr float_X GAS_B = 0.0;
 };
 
 /* definition of gas with linear start slop and exponential end slope */
@@ -142,7 +142,7 @@ struct GaussianCloudParam
      *      this vacuum is really important because of the laser initialization,
      *      which is done in the first cell of the simulation
      *  unit: cells */
-    static const uint32_t vacuum_y_cells = 50;
+    static constexpr uint32_t vacuum_y_cells = 50;
     /** Gas Formular:
                 const float_X exponent = fabs((y - GAS_CENTER) / GAS_SIGMA);
                 const float_X density = __expf(factor*__powf(exponent, power));
@@ -150,8 +150,8 @@ struct GaussianCloudParam
         takes GAS_CENTER_LEFT for y < GAS_CENTER_LEFT,
               GAS_CENTER_RIGHT for y > GAS_CENTER_RIGHT,
         and exponent = float_X(0.0) for GAS_CENTER_LEFT < y < GAS_CENTER_RIGHT */
-    static const float_X factor = 1.0;
-    static const float_X power = 4.0;
+    static constexpr float_X factor = 1.0;
+    static constexpr float_X power = 4.0;
 
     struct SI
     {
@@ -189,17 +189,17 @@ struct SphereFlanksParam
      *      this vacuum is really important because of the laser initialization,
      *      which is done in the first cell of the simulation
      *  unit: cells */
-    static const uint32_t vacuum_y_cells = 50;
+    static constexpr uint32_t vacuum_y_cells = 50;
 
     struct SI
     {
         /** Radius of the constant sphere
          *  unit: meter */
-        static const float_64 r = 1.0e3;
+        static constexpr float_64 r = 1.0e3;
 
         /** Inner radius if you want to build a shell/ring
          *  unit: meter */
-        static const float_64 ri = 0.0;
+        static constexpr float_64 ri = 0.0;
 
         /** Middle of the constant sphere
          *  unit: meter */
@@ -211,7 +211,7 @@ struct SphereFlanksParam
          *    \rho = exp[ - radius' * exponent ]
          *  unit: 1/m
          */
-        static const float_64 exponent = 1.0e-3;
+        static constexpr float_64 exponent = 1.0e-3;
 
     };
 };
@@ -219,24 +219,26 @@ struct SphereFlanksParam
 /* definition of gas sphere with flanks*/
 typedef SphereFlanksImpl<SphereFlanksParam> SphereFlanks;
 
-struct FromHDF5Param
-{
-    /* prefix of filename
-     * full file name: gas_0.h5
-     * filename = "gas"
-     * iteration = 0
-     */
-    static const char* filename;
-    static const char* datasetName;
-    /* simulation step*/
-    static const uint32_t iteration = 0;
-    static const float_X defaultDensity = 0.0;
-};
-const char* FromHDF5Param::filename = (char*) "gas";
-const char* FromHDF5Param::datasetName = (char*) "fields/Density_e";
+#if (ENABLE_HDF5 == 1)
+    struct FromHDF5Param
+    {
+        /* prefix of filename
+         * full file name: gas_0.h5
+         * filename = "gas"
+         * iteration = 0
+         */
+        static const char* filename;
+        static const char* datasetName;
+        /* simulation step*/
+        static const uint32_t iteration = 0;
+        static constexpr float_X defaultDensity = 0.0;
+    };
+    const char* FromHDF5Param::filename = (char*) "gas";
+    const char* FromHDF5Param::datasetName = (char*) "fields/Density_e";
 
-/* definition of gas cloud profile*/
-typedef FromHDF5Impl<FromHDF5Param> FromHDF5;
+    /* definition of gas cloud profile*/
+    typedef FromHDF5Impl<FromHDF5Param> FromHDF5;
+#endif
 
 struct FreeFormulaFunctor
 {

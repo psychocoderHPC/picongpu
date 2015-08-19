@@ -18,56 +18,52 @@
  * If not, see <http://www.gnu.org/licenses/>.
  */
 
-
-
 #pragma once
-
-#include "static_assert.hpp"
-
 
 #if (ENABLE_RADIATION == 1 )
 
-PMACC_CASSERT_MSG(ENABLE_ELECTRONS_must_set_to_1__change_ENABLE_ELECTRONS_in_file_componentsConfig_param,ENABLE_ELECTRONS==1);
-
+#if (ENABLE_ELECTRONS != 1)
+    #error "ENABLE_ELECTRONS must be set to 1. Change ENABLE_ELECTRONS in file componentsConfig.param"
+#endif
 
 namespace picongpu
 {
-  namespace rad_linear_frequencies
-  {
-    const float_X omega_min = SI::omega_min*UNIT_TIME;
-    const float_X omega_max = SI::omega_max*UNIT_TIME;
-    const float_X delta_omega = (float_X) ((omega_max - omega_min) / (float_X) (N_omega - 1)); // difference beween two omega
+    namespace rad_linear_frequencies
+    {
+        static constexpr float_X omega_min = SI::omega_min*UNIT_TIME;
+        static constexpr float_X omega_max = SI::omega_max*UNIT_TIME;
+        static constexpr float_X delta_omega = (float_X) ((omega_max - omega_min) / (float_X) (N_omega - 1)); // difference beween two omega
 
-    const unsigned int blocksize_omega = PMacc::math::CT::volume<typename MappingDesc::SuperCellSize>::type::value;
-    const unsigned int gridsize_omega = N_omega / blocksize_omega; // size of grid (dim: x); radiation
-  }
+        static constexpr unsigned int blocksize_omega = PMacc::math::CT::volume<typename MappingDesc::SuperCellSize>::type::value;
+        static constexpr unsigned int gridsize_omega = N_omega / blocksize_omega; // size of grid (dim: x); radiation
+    }
 
-  namespace rad_log_frequencies
-  {
-    const float_X omega_min = (SI::omega_min*UNIT_TIME);
-    const float_X omega_max = (SI::omega_max*UNIT_TIME);
+    namespace rad_log_frequencies
+    {
+        static constexpr float_X omega_min = (SI::omega_min*UNIT_TIME);
+        static constexpr float_X omega_max = (SI::omega_max*UNIT_TIME);
 
-    const unsigned int blocksize_omega = PMacc::math::CT::volume<typename MappingDesc::SuperCellSize>::type::value;
-    const unsigned int gridsize_omega = N_omega / blocksize_omega; // size of grid (dim: x); radiation
-  }
+        static constexpr unsigned int blocksize_omega = PMacc::math::CT::volume<typename MappingDesc::SuperCellSize>::type::value;
+        static constexpr unsigned int gridsize_omega = N_omega / blocksize_omega; // size of grid (dim: x); radiation
+    }
 
-  namespace rad_frequencies_from_list
-  {
-    const unsigned int blocksize_omega = PMacc::math::CT::volume<typename MappingDesc::SuperCellSize>::type::value;
-    const unsigned int gridsize_omega = N_omega / blocksize_omega; // size of grid (dim: x); radiation
-  }
+    namespace rad_frequencies_from_list
+    {
+        static constexpr unsigned int blocksize_omega = PMacc::math::CT::volume<typename MappingDesc::SuperCellSize>::type::value;
+        static constexpr unsigned int gridsize_omega = N_omega / blocksize_omega; // size of grid (dim: x); radiation
+    }
+}
 
 namespace parameters
 {
 
-    const unsigned int gridsize_theta = N_observer; // size of grid /dim: y); radiation
+    static constexpr unsigned int gridsize_theta = N_observer; // size of grid /dim: y); radiation
 
 }
 
 } //namespace picongpu
 
 #endif
-
 
 #include "plugins/radiation/frequencies/radiation_lin_freq.hpp"
 #include "plugins/radiation/frequencies/radiation_log_freq.hpp"

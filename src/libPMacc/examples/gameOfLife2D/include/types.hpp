@@ -19,26 +19,15 @@
  * If not, see <http://www.gnu.org/licenses/>.
  */
 
-#ifndef TYPES_HPP
-#define	TYPES_HPP
+#pragma once
 
-#include "types.hpp"
 #include "dimensions/DataSpace.hpp"
 #include "memory/buffers/GridBuffer.hpp"
 
 namespace gol
 {
-    using namespace PMacc;
-
-    typedef DataSpace<DIM2> Space;
-    typedef GridController<DIM2> GC;
-    typedef GridBuffer<uint8_t, DIM2 > Buffer;
-
     enum CommunicationTags
     {
         BUFF1 = 0u, BUFF2 = 1u
     };
 }
-
-#endif	/* TYPES_HPP */
-

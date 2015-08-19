@@ -137,7 +137,8 @@ CartBuffer<Type, T_dim, Allocator, Copier, Assigner>::CartBuffer
 template<typename Type, int T_dim, typename Allocator, typename Copier, typename Assigner>
 void CartBuffer<Type, T_dim, Allocator, Copier, Assigner>::init()
 {
-    typename Allocator::Cursor cursor = Allocator::allocate(this->_size);
+    // \TODO: Remove inheritance HACK for allocator!
+    typename Allocator::Cursor cursor = this->Allocator::allocate(this->_size);
     this->dataPointer = cursor.getMarker();
 #ifndef __CUDA_ARCH__
     this->refCount = new int;
@@ -159,7 +160,8 @@ void CartBuffer<Type, T_dim, Allocator, Copier, Assigner>::exit()
     (*(this->refCount))--;
     if(*(this->refCount) > 0)
         return;
-    Allocator::deallocate(origin());
+    // \TODO: Remove inheritance HACK for allocator!
+    this->Allocator::deallocate(origin());
     this->dataPointer = 0;
 #ifndef __CUDA_ARCH__
     delete this->refCount;

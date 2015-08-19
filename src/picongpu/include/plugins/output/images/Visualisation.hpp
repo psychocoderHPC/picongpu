@@ -1,5 +1,6 @@
 /**
- * Copyright 2013-2014 Axel Huebl, Heiko Burau, Rene Widera, Richard Pausch, Felix Schmitt
+ * Copyright 2013-2015 Axel Huebl, Heiko Burau, Rene Widera, Richard Pausch,
+ *                     Felix Schmitt, Benjamin Worpitz
  *
  * This file is part of PIConGPU.
  *
@@ -175,22 +176,37 @@ struct typicalFields < 5 >
     }
 };
 
-template<class EBox, class BBox, class JBox, class Mapping>
-__global__ void kernelPaintFields(
-                                  EBox fieldE,
-                                  BBox fieldB,
-                                  JBox fieldJ,
-                                  DataBox<PitchedBox<float3_X, DIM2> > image,
-                                  DataSpace<DIM2> transpose,
-                                  const int slice,
-                                  const uint32_t globalOffset,
-                                  const uint32_t sliceDim,
-                                  Mapping mapper)
+struct KernelPaintFields
 {
+template<
+    typename T_Acc,
+    typename EBox,
+    typename BBox,
+    typename JBox,
+    typename Mapping>
+ALPAKA_FN_ACC void operator()(
+    T_Acc const & acc,
+    EBox const & fieldE,
+    BBox const & fieldB,
+    JBox const & fieldJ,
+    DataBox<PitchedBox<float3_X, DIM2> > const & image,
+    DataSpace<DIM2> const & transpose,
+    int const & slice,
+    uint32_t const & globalOffset,
+    uint32_t const & sliceDim,
+    Mapping const & mapper) const
+{
+    static_assert(
+        alpaka::dim::Dim<T_Acc>::value == simDim,
+        "KernelDivideAnyCell has to be used as a simDim dimensional kernel only!");
+
+    DataSpace<simDim> const blockSize(alpaka::workdiv::getWorkDiv<alpaka::Block, alpaka::Threads>(acc));
+    DataSpace<simDim> const blockIndex(alpaka::idx::getIdx<alpaka::Grid, alpaka::Blocks>(acc));
+    DataSpace<simDim> const threadIndex(alpaka::idx::getIdx<alpaka::Block, alpaka::Threads>(acc));
+
     typedef typename MappingDesc::SuperCellSize Block;
-    const DataSpace<simDim> threadId(threadIdx);
-    const DataSpace<simDim> block = mapper.getSuperCellIndex(DataSpace<simDim > (blockIdx));
-    const DataSpace<simDim> cell(block * Block::toRT() + threadId);
+    const DataSpace<simDim> block = mapper.getSuperCellIndex(DataSpace<simDim > (blockIndex));
+    const DataSpace<simDim> cell(block * Block::toRT() + blockIndex);
     const DataSpace<simDim> blockOffset((block - mapper.getGuardingSuperCells()) * Block::toRT());
 
 
@@ -198,7 +214,7 @@ __global__ void kernelPaintFields(
     const DataSpace<DIM2> imageCell(
                                     realCell[transpose.x()],
                                     realCell[transpose.y()]);
-    const DataSpace<simDim> realCell2(blockOffset + threadId); //delete guard from cell idx
+    const DataSpace<simDim> realCell2(blockOffset + blockIndex); //delete guard from cell idx
 
 #if (SIMDIM==DIM3)
     uint32_t globalCell = realCell2[sliceDim] + globalOffset;
@@ -260,39 +276,50 @@ __global__ void kernelPaintFields(
     // draw to (perhaps smaller) image cell
     image(imageCell) = pic;
 }
+};
 
-template<class ParBox, class Mapping>
-__global__ void
-kernelPaintParticles3D(ParBox pb,
-                       DataBox<PitchedBox<float3_X, DIM2> > image,
-                       DataSpace<DIM2> transpose,
-                       int slice,
-                       uint32_t globalOffset,
-                       uint32_t sliceDim,
-                       Mapping mapper)
+struct KernelPaintParticles3D
+{
+template<
+    typename T_Acc,
+    typename ParBox,
+    typename Mapping>
+ALPAKA_FN_ACC void operator()(
+    T_Acc const & acc,
+    ParBox const & pb,
+    DataBox<PitchedBox<float3_X, DIM2> > const & image,
+    DataSpace<DIM2> const & transpose,
+    int const & slice,
+    uint32_t const & globalOffset,
+    uint32_t const & sliceDim,
+    Mapping const & mapper) const
 {
     typedef typename ParBox::FrameType FRAME;
     typedef typename MappingDesc::SuperCellSize Block;
-    __shared__ FRAME *frame;
-    __shared__ bool isValid;
-    __syncthreads(); /*wait that all shared memory is initialised*/
+
+    DataSpace<simDim> const blockSize(alpaka::workdiv::getWorkDiv<alpaka::Block, alpaka::Threads>(acc));
+    DataSpace<simDim> const blockIndex(alpaka::idx::getIdx<alpaka::Grid, alpaka::Blocks>(acc));
+    DataSpace<simDim> const threadIndex(alpaka::idx::getIdx<alpaka::Block, alpaka::Threads>(acc));
+
+    auto frame(alpaka::block::shared::allocVar<FRAME *>(acc));
+    auto isValid(alpaka::block::shared::allocVar<bool>(acc));
+    acc.syncBlockThreads(); /*wait that all shared memory is initialised*/
     bool isImageThread = false;
 
-    const DataSpace<simDim> threadId(threadIdx);
-    const DataSpace<DIM2> localCell(threadId[transpose.x()], threadId[transpose.y()]);
-    const DataSpace<simDim> block = mapper.getSuperCellIndex(DataSpace<simDim > (blockIdx));
+    const DataSpace<DIM2> localCell(threadIndex[transpose.x()], threadIndex[transpose.y()]);
+    const DataSpace<simDim> block = mapper.getSuperCellIndex(DataSpace<simDim > (blockIndex));
     const DataSpace<simDim> blockOffset((block - 1) * Block::toRT());
 
 
-    int localId = threadIdx.z * Block::x::value * Block::y::value + threadIdx.y * Block::x::value + threadIdx.x;
+    int localId = threadIndex.z() * Block::x::value * Block::y::value + threadIndex.y() * Block::x::value + threadIndex.x();
 
 
     if (localId == 0)
         isValid = false;
-    __syncthreads();
+    acc.syncBlockThreads();
 
     //\todo: guard size should not be set to (fixed) 1 here
-    const DataSpace<simDim> realCell(blockOffset + threadId); //delete guard from cell idx
+    const DataSpace<simDim> realCell(blockOffset + threadIndex); //delete guard from cell idx
 
 #if(SIMDIM==DIM3)
     uint32_t globalCell = realCell[sliceDim] + globalOffset;
@@ -300,10 +327,10 @@ kernelPaintParticles3D(ParBox pb,
     if (globalCell == slice)
 #endif
     {
-        atomicExch((int*) &isValid, 1); /*WAW Error in cuda-memcheck racecheck*/
+        alpaka::atomic::atomicOp<alpaka::atomic::op::Exch>(acc, (int*) &isValid, 1); /*WAW Error in cuda-memcheck racecheck*/
         isImageThread = true;
     }
-    __syncthreads();
+    acc.syncBlockThreads();
 
     if (!isValid)
         return;
@@ -316,10 +343,9 @@ kernelPaintParticles3D(ParBox pb,
 
     // counter is always DIM2
     typedef DataBox < PitchedBox< float_X, DIM2 > > SharedMem;
-    extern __shared__ float_X shBlock[];
-    __syncthreads(); /*wait that all shared memory is initialised*/
+    float_X * const shBlock(acc.template getBlockSharedExternMem<float_X>());
+    acc.syncBlockThreads(); /*wait that all shared memory is initialised*/
 
-    const DataSpace<simDim> blockSize(blockDim);
     SharedMem counter(PitchedBox<float_X, DIM2 > ((float_X*) shBlock,
                                                   DataSpace<DIM2 > (),
                                                   blockSize[transpose.x()] * sizeof (float_X)));
@@ -334,7 +360,7 @@ kernelPaintParticles3D(ParBox pb,
     {
         frame = &(pb.getFirstFrame(block, isValid));
     }
-    __syncthreads();
+    acc.syncBlockThreads();
 
     while (isValid) //move over all Frames
     {
@@ -350,16 +376,16 @@ kernelPaintParticles3D(ParBox pb,
 #endif
             {
                 const DataSpace<DIM2> reducedCell(particleCellId[transpose.x()], particleCellId[transpose.y()]);
-                atomicAddWrapper(&(counter(reducedCell)), particle[weighting_] / particles::TYPICAL_NUM_PARTICLES_PER_MACROPARTICLE);
+                alpaka::atomic::atomicOp<alpaka::atomic::op::Add>(acc, &(counter(reducedCell)), particle[weighting_] / particles::TYPICAL_NUM_PARTICLES_PER_MACROPARTICLE);
             }
         }
-        __syncthreads();
+        acc.syncBlockThreads();
 
         if (localId == 0)
         {
             frame = &(pb.getNextFrame(*frame, isValid));
         }
-        __syncthreads();
+        acc.syncBlockThreads();
     }
 
 
@@ -389,25 +415,96 @@ kernelPaintParticles3D(ParBox pb,
         if (image(imageCell).z() > float_X(1.0)) image(imageCell).z() = float_X(1.0);
     }
 }
+};
 
+}
 
+namespace alpaka
+{
+    namespace kernel
+    {
+        namespace traits
+        {
+            //#############################################################################
+            //! The trait for getting the size of the block shared extern memory for a kernel.
+            //#############################################################################
+            template<
+                typename T_Acc>
+            struct BlockSharedExternMemSizeBytes<
+                picongpu::KernelPaintParticles3D,
+                T_Acc>
+            {
+                //-----------------------------------------------------------------------------
+                //! \return The size of the shared memory allocated for a block.
+                //-----------------------------------------------------------------------------
+                template<
+                    typename TDim,
+                    typename... TArgs>
+                ALPAKA_FN_HOST static auto getBlockSharedExternMemSizeBytes(
+                    alpaka::Vec<TDim, alpaka::size::Size<T_Acc>> const & vuiBlockThreadsExtents,
+                    TArgs const & ...)
+                -> alpaka::size::Size<T_Acc>
+                {
+                    return vuiBlockThreadsExtents.prod() * sizeof(picongpu::float_X);
+                }
+            };
+        }
+    }
+}
+
+namespace picongpu
+{
 namespace vis_kernels
 {
 
-template<class Mem, typename Type>
-__global__ void divideAnyCell(Mem mem, uint32_t n, Type divisor)
+struct KernelDivideAnyCell
 {
-    uint32_t tid = blockIdx.x * blockDim.x + threadIdx.x;
+template<
+    typename T_Acc,
+    typename Mem,
+    typename Type>
+ALPAKA_FN_ACC void operator()(
+    T_Acc const & acc,
+    Mem const & mem,
+    uint32_t const & n,
+    Type const & divisor) const
+{
+    static_assert(
+        alpaka::dim::Dim<T_Acc>::value == 1,
+        "KernelDivideAnyCell has to be used as a 1 dimensional kernel only!");
+
+    DataSpace<1> const blockSize(alpaka::workdiv::getWorkDiv<alpaka::Block, alpaka::Threads>(acc));
+    DataSpace<1> const blockIndex(alpaka::workdiv::getWorkDiv<alpaka::Grid, alpaka::Blocks>(acc));
+    DataSpace<simDim> const threadIndex(alpaka::idx::getIdx<alpaka::Block, alpaka::Threads>(acc));
+
+    uint32_t tid = blockIndex.x() * blockSize.x() + threadIndex.x();
     if (tid >= n) return;
 
     const float3_X FLT3_MIN = float3_X(FLT_MIN, FLT_MIN, FLT_MIN);
     mem[tid] /= (divisor + FLT3_MIN);
 }
+};
 
-template<class Mem>
-__global__ void channelsToRGB(Mem mem, uint32_t n)
+struct KernelChannelsToRGB
 {
-    uint32_t tid = blockIdx.x * blockDim.x + threadIdx.x;
+template<
+    typename T_Acc,
+    typename Mem,
+    typename Type>
+ALPAKA_FN_ACC void operator()(
+    T_Acc const & acc,
+    Mem const & mem,
+    uint32_t const & n) const
+{
+    static_assert(
+        alpaka::dim::Dim<T_Acc>::value == 1,
+        "KernelDivideAnyCell has to be used as a 1 dimensional kernel only!");
+
+    DataSpace<1> const blockSize(alpaka::workdiv::getWorkDiv<alpaka::Block, alpaka::Threads>(acc));
+    DataSpace<1> const blockIndex(alpaka::workdiv::getWorkDiv<alpaka::Grid, alpaka::Blocks>(acc));
+    DataSpace<simDim> const threadIndex(alpaka::idx::getIdx<alpaka::Block, alpaka::Threads>(acc));
+
+    uint32_t tid = blockIndex.x() * blockSize.x() + threadIndex.x();
     if (tid >= n) return;
 
     float3_X rgb(float3_X::create(0.0));
@@ -423,6 +520,7 @@ __global__ void channelsToRGB(Mem mem, uint32_t n)
                                        visPreview::preChannel3_opacity);
     mem[tid] = rgb;
 }
+};
 
 }
 
@@ -517,16 +615,22 @@ public:
         typedef MappingDesc::SuperCellSize SuperCellSize;
         assert(cellDescription != NULL);
         //create image fields
-        __picKernelArea((kernelPaintFields), *cellDescription, CORE + BORDER)
-            (SuperCellSize::toRT().toDim3())
-            (fieldE->getDeviceDataBox(),
-             fieldB->getDeviceDataBox(),
-             fieldJ->getDeviceDataBox(),
-             img->getDeviceBuffer().getDataBox(),
-             transpose,
-             sliceOffset,
-             globalOffset, sliceDim
-             );
+        KernelPaintFields kernelPaintFields;
+
+        __picKernelArea(
+            kernelPaintFields,
+            alpaka::dim::DimInt<simDim>,
+            *cellDescription,
+            CORE + BORDER,
+            SuperCellSize::toRT())(
+                fieldE->getDeviceDataBox(),
+                fieldB->getDeviceDataBox(),
+                fieldJ->getDeviceDataBox(),
+                img->getDeviceBuffer().getDataBox(),
+                transpose,
+                sliceOffset,
+                globalOffset,
+                sliceDim);
 
         // find maximum for img.x()/y and z and return it as float3_X
         int elements = img->getGridLayout().getDataSpace().productOfComponents();
@@ -557,25 +661,44 @@ public:
         //We don't know the superCellSize at compile time
         // (because of the runtime dimension selection in any analyser),
         // thus we must use a one dimension kernel and no mapper
-        __cudaKernel(vis_kernels::divideAnyCell)(ceil((double) elements / 256), 256)(d1access, elements, max);
+        vis_kernels::KernelDivideAnyCell kernelDivideAnyCell;
+        __cudaKernel(
+            kernelDivideAnyCell,
+            alpaka::dim::DimInt<1>,
+            ceil((double) elements / 256),
+            256)(
+                d1access,
+                elements,
+                max);
 #endif
 
         // convert channels to RGB
-        __cudaKernel(vis_kernels::channelsToRGB)(ceil((double) elements / 256), 256)(d1access, elements);
+        vis_kernels::KernelChannelsToRGB kernelChannelsToRGB;
+        __cudaKernel(
+            kernelChannelsToRGB,
+            alpaka::dim::DimInt<1>,
+            ceil((double) elements / 256),
+            256)(
+                d1access,
+                elements);
 
         // add density color channel
         DataSpace<simDim> blockSize(MappingDesc::SuperCellSize::toRT());
         DataSpace<DIM2> blockSize2D(blockSize[transpose.x()], blockSize[transpose.y()]);
 
         //create image particles
-        __picKernelArea((kernelPaintParticles3D), *cellDescription, CORE + BORDER)
-            (SuperCellSize::toRT().toDim3(), blockSize2D.productOfComponents() * sizeof (float_X))
-            (particles->getDeviceParticlesBox(),
-             img->getDeviceBuffer().getDataBox(),
-             transpose,
-             sliceOffset,
-             globalOffset, sliceDim
-             );
+        KernelPaintParticles3D kernelPaintParticles3D;
+        __picKernelArea(
+            kernelPaintParticles3D,
+            alpaka::dim::DimInt<simDim>,
+            *cellDescription,
+            CORE + BORDER,
+            SuperCellSize::toRT())(
+                particles->getDeviceParticlesBox(),
+                img->getDeviceBuffer().getDataBox(),
+                transpose,
+                sliceOffset,
+                globalOffset, sliceDim);
 
         // send the RGB image back to host
         img->deviceToHost();

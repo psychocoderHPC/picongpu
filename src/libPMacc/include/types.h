@@ -25,15 +25,13 @@
 
 #include "debug/PMaccVerbose.hpp"
 
+#include <alpaka/alpaka.hpp>
+
 #define BOOST_MPL_LIMIT_VECTOR_SIZE 20
 #define BOOST_MPL_LIMIT_MAP_SIZE 20
 #include <boost/typeof/std/utility.hpp>
 #include <boost/mpl/placeholders.hpp>
 #include <boost/filesystem.hpp>
-
-#include <builtin_types.h>
-#include <cuda_runtime.h>
-#include <cuda.h>
 
 #include <stdint.h>
 #include <stdexcept>
@@ -43,6 +41,11 @@
 
 namespace PMacc
 {
+using AlpakaDev = alpaka::dev::DevCpu;
+using AlpakaStream = alpaka::stream::StreamCpuAsync;
+template<
+    typename TDim>
+using AlpakaAcc = alpaka::acc::AccCpuOmp2Blocks<TDim, int>;
 
 namespace bmpl = boost::mpl;
 namespace bfs = boost::filesystem;
@@ -54,31 +57,10 @@ typedef uint64_t id_t;
 typedef unsigned long long int uint64_cu;
 typedef long long int int64_cu;
 
-#define BOOST_MPL_LIMIT_VECTOR_SIZE 20
-
-#define HDINLINE __device__ __host__ __forceinline__
-#define DINLINE __device__ __forceinline__
-#define HINLINE __host__ inline
-
-/*
- * Disable nvcc warning:
- * calling a __host__ function from __host__ __device__ function.
- *
- * Usage:
- * PMACC_NO_NVCC_HDWARNING
- * HDINLINE function_declaration()
- *
- * It is not possible to disable the warning for a __host__ function
- * if there are calls of virtual functions inside. For this case use a wrapper
- * function.
- * WARNING: only use this method if there is no other way to create runable code.
- * Most cases can solved by #ifdef __CUDA_ARCH__ or #ifdef __CUDACC__.
- */
-#if defined(__CUDACC__)
-#define PMACC_NO_NVCC_HDWARNING _Pragma("hd_warning_disable")
-#else
-#define PMACC_NO_NVCC_HDWARNING
-#endif
+#define PMACC_NO_NVCC_HDWARNING ALPAKA_NO_HOST_ACC_WARNING
+#define HDINLINE ALPAKA_FN_HOST_ACC
+#define DINLINE ALPAKA_FN_ACC
+#define HINLINE ALPAKA_FN_HOST
 
 /**
  * Bitmask which describes the direction of communication.
@@ -109,33 +91,15 @@ enum EventType
 };
 
 /**
- * Captures CUDA errors and prints messages to stdout, including line number and file.
+ * Alignment macros.
  *
- * @param cmd command with cudaError_t return value to check
+ * You must align all array and structs which can used on device!
+ *
+ * We use __VA_ARGS__ here even though we only ever allow one type!
+ * This allows types as argument that contain commas which would not be possible else.
  */
-#define CUDA_CHECK(cmd) {cudaError_t error = cmd; if(error!=cudaSuccess){std::cerr<<"<"<<__FILE__<<">:"<<__LINE__<<std::endl; throw std::runtime_error(std::string("[CUDA] Error: ") + std::string(cudaGetErrorString(error)));}}
-
-#define CUDA_CHECK_MSG(cmd,msg) {cudaError_t error = cmd; if(error!=cudaSuccess){std::cerr<<"<"<<__FILE__<<">:"<<__LINE__<<msg<<std::endl; throw std::runtime_error(std::string("[CUDA] Error: ") + std::string(cudaGetErrorString(error)));}}
-
-#define CUDA_CHECK_NO_EXCEP(cmd) {cudaError_t error = cmd; if(error!=cudaSuccess){printf("[CUDA] Error: <%s>:%i ",__FILE__,__LINE__);}}
-
-/* calculate and set the optimal alignment for data
- * you must align all array and structs which can used on device
- * @param byte byte of data which must aligned
- */
-#define __optimal_align__(byte)   \
-        __align__(                \
-        ((byte)==1?1:             \
-        ((byte)<=2?2:             \
-        ((byte)<=4?4:             \
-        ((byte)<=8?8:             \
-        ((byte)<=16?16:           \
-        ((byte)<=32?32:           \
-        ((byte)<=64?64:128        \
-        ))))))))
-
-#define PMACC_ALIGN(var,...) __optimal_align__(sizeof(__VA_ARGS__)) __VA_ARGS__ var
-#define PMACC_ALIGN8(var,...) __align__(8) __VA_ARGS__ var
+#define PMACC_ALIGN(name, ...) alignas(ALPAKA_OPTIMAL_ALIGNMENT(__VA_ARGS__)) __VA_ARGS__ name
+#define PMACC_ALIGN8(name, ...) alignas(8) __VA_ARGS__ name
 
 /*! area which is calculated
  *

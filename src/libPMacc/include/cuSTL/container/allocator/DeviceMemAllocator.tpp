@@ -20,6 +20,10 @@
  * If not, see <http://www.gnu.org/licenses/>.
  */
 
+#include "DeviceMemAllocator.hpp"
+
+#include "Environment.hpp"
+
 namespace PMacc
 {
 namespace allocator
@@ -29,79 +33,37 @@ template<typename Type, int T_dim>
 cursor::BufferCursor<Type, T_dim>
 DeviceMemAllocator<Type, T_dim>::allocate(const math::Size_t<T_dim>& size)
 {
-#ifndef __CUDA_ARCH__
-    Type* dataPointer;
+    assert(!m_upBuf);
+
     math::Size_t<T_dim-1> pitch;
-    cudaPitchedPtr cudaData;
 
-    cudaData.ptr = NULL;
-    cudaData.pitch = 1;
-    cudaData.xsize = size.x();
-    cudaData.ysize = 1;
-
-    if (dim == 2u)
-    {
-        cudaData.xsize = size[0];
-        cudaData.ysize = size[1];
-        CUDA_CHECK_NO_EXCEP(cudaMallocPitch(&cudaData.ptr, &cudaData.pitch, cudaData.xsize * sizeof (Type), cudaData.ysize));
-        pitch[0] = cudaData.pitch;
-    }
-    else if (dim == 3u)
-    {
-        cudaExtent extent;
-        extent.width = size[0] * sizeof (Type);
-        extent.height = size[1];
-        extent.depth = size[2];
-        CUDA_CHECK_NO_EXCEP(cudaMalloc3D(&cudaData, extent));
-        pitch[0] = cudaData.pitch;
-        pitch[1] = cudaData.pitch * size[1];
-    }
-    dataPointer = (Type*)cudaData.ptr;
-
-    return cursor::BufferCursor<Type, T_dim>(dataPointer, pitch);
-#endif
-
-#ifdef __CUDA_ARCH__
-    Type* dataPointer = 0;
-    math::Size_t<T_dim-1> pitch;
-    return cursor::BufferCursor<Type, T_dim>(dataPointer, pitch);
-#endif
-}
-
-template<typename Type>
-cursor::BufferCursor<Type, 1>
-DeviceMemAllocator<Type, 1>::allocate(const math::Size_t<1>& size)
-{
 #ifndef __CUDA_ARCH__
-    Type* dataPointer;
+    m_upBuf.reset(new MemBuf(
+        alpaka::mem::buf::alloc<Type, std::size_t>(
+            Environment<>::get().DeviceManager().getDevice(),
+            size)));
 
-    CUDA_CHECK_NO_EXCEP(cudaMalloc((void**)&dataPointer, size[0] * sizeof(Type)));
-
-    return cursor::BufferCursor<Type, 1>(dataPointer, math::Size_t<0>());
+    if(dim == 2u)
+    {
+        pitch[0] = alpaka::mem::view::getPitchBytes<1u>(*m_upBuf.get());
+    }
+    else if(dim == 3u)
+    {
+        pitch[0] = alpaka::mem::view::getPitchBytes<2u>(*m_upBuf.get());
+        pitch[1] = alpaka::mem::view::getPitchBytes<1u>(*m_upBuf.get());
+    }
 #endif
 
-#ifdef __CUDA_ARCH__
-    Type* dataPointer = 0;
-    return cursor::BufferCursor<Type, 1>(dataPointer, math::Size_t<0>());
-#endif
+    return cursor::BufferCursor<Type, T_dim>(alpaka::mem::view::getPtrNative(*m_upBuf.get()), pitch);
 }
 
 template<typename Type, int T_dim>
 template<typename TCursor>
 void DeviceMemAllocator<Type, T_dim>::deallocate(const TCursor& cursor)
 {
-#ifndef __CUDA_ARCH__
-    CUDA_CHECK_NO_EXCEP(cudaFree(cursor.getMarker()));
-#endif
-}
-
-template<typename Type>
-template<typename TCursor>
-void DeviceMemAllocator<Type, 1>::deallocate(const TCursor& cursor)
-{
-#ifndef __CUDA_ARCH__
-    CUDA_CHECK_NO_EXCEP(cudaFree(cursor.getMarker()));
-#endif
+    // HACK: we ignore the cursor and hope it is the one created in the only allocate call.
+    assert(cursor.getMarker() == alpaka::mem::view::getPtrNative(*m_upBuf.get()));
+    m_upBuf.reset();
 }
 
 } // allocator

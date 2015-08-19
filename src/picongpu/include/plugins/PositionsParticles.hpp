@@ -96,28 +96,38 @@ struct SglParticle
  * \warning this analyser MUST NOT be used with more than one (global!)
  * particle and is created for one-particle-test-purposes only
  */
-template<class FRAME, class FloatPos, class Mapping>
-__global__ void kernelPositionsParticles(ParticlesBox<FRAME, simDim> pb,
-                                         SglParticle<FloatPos>* gParticle,
-                                         Mapping mapper)
+struct KernelPositionsParticles
 {
+template<
+    typename T_Acc,
+    typename FRAME,
+    typename FloatPos,
+    typename Mapping>
+ALPAKA_FN_ACC void operator()(
+    T_Acc const & acc,
+    ParticlesBox<FRAME, simDim> const & pb,
+    SglParticle<FloatPos>* gParticle,
+    Mapping const & mapper) const
+{
+    DataSpace<simDim> const blockIndex(alpaka::idx::getIdx<alpaka::Grid, alpaka::Blocks>(acc));
+    DataSpace<simDim> const threadIndex(alpaka::idx::getIdx<alpaka::Block, alpaka::Threads>(acc));
 
-    __shared__ FRAME *frame;
-    __shared__ bool isValid;
-    __syncthreads(); /*wait that all shared memory is initialised*/
+    auto frame(alpaka::block::shared::allocVar<FRAME *>(acc));
+    auto isValid(alpaka::block::shared::allocVar<bool>(acc));
+
+    acc.syncBlockThreads(); /*wait that all shared memory is initialised*/
 
     typedef typename Mapping::SuperCellSize SuperCellSize;
 
-    const DataSpace<simDim > threadIndex(threadIdx);
     const int linearThreadIdx = DataSpaceOperations<simDim>::template map<SuperCellSize > (threadIndex);
-    const DataSpace<simDim> superCellIdx(mapper.getSuperCellIndex(DataSpace<simDim > (blockIdx)));
+    const DataSpace<simDim> superCellIdx(mapper.getSuperCellIndex(DataSpace<simDim > (blockIndex)));
 
     if (linearThreadIdx == 0)
     {
         frame = &(pb.getLastFrame(superCellIdx, isValid));
     }
 
-    __syncthreads();
+    acc.syncBlockThreads();
     if (!isValid)
         return; //end kernel if we have no frames
 
@@ -148,16 +158,16 @@ __global__ void kernelPositionsParticles(ParticlesBox<FRAME, simDim> pb,
                 * MappingDesc::SuperCellSize::toRT()
                 + frameCellOffset;
         }
-        __syncthreads();
+        acc.syncBlockThreads();
         if (linearThreadIdx == 0)
         {
             frame = &(pb.getPreviousFrame(*frame, isValid));
         }
         isParticle = true;
-        __syncthreads();
+        acc.syncBlockThreads();
     }
-
 }
+};
 
 template<class ParticlesType>
 class PositionsParticles : public ILightweightPlugin
@@ -190,9 +200,7 @@ public:
         Environment<>::get().PluginConnector().registerPlugin(this);
     }
 
-    virtual ~PositionsParticles()
-    {
-    }
+    virtual ~PositionsParticles() = default;
 
     void notify(uint32_t currentStep)
     {
@@ -254,12 +262,18 @@ private:
         SglParticle<FloatPos> positionParticleTmp;
 
         gParticle->getDeviceBuffer().setValue(positionParticleTmp);
-        dim3 block(SuperCellSize::toRT().toDim3());
+        DataSpace<simDim> block(SuperCellSize::toRT());
 
-        __picKernelArea(kernelPositionsParticles, *cellDescription, AREA)
-            (block)
-            (particles->getDeviceParticlesBox(),
-             gParticle->getDeviceBuffer().getBasePointer());
+        KernelPositionsParticles kernelPositionsParticles;
+        __picKernelArea(
+            kernelPositionsParticles,
+            alpaka::dim::DimInt<simDim>,
+            *cellDescription,
+            AREA,
+            block)(
+                particles->getDeviceParticlesBox(),
+                gParticle->getDeviceBuffer().getBasePointer());
+
         gParticle->deviceToHost();
 
         DataSpace<simDim> localSize(cellDescription->getGridLayout().getDataSpaceWithoutGuarding());

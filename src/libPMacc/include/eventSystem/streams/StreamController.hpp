@@ -27,7 +27,6 @@
 #include "eventSystem/streams/EventStream.hpp"
 #include "types.h"
 
-#include <cuda_runtime.h>
 
 #include <string>
 #include <stdexcept>
@@ -56,7 +55,7 @@ namespace PMacc
             if (currentStreamIndex == streams.size())
                 currentStreamIndex = 0;
 
-            return streams[oldIndex];
+            return streams[oldIndex].get();
         }
 
         /**
@@ -65,17 +64,12 @@ namespace PMacc
          */
         virtual ~StreamController()
         {
-
-            for (size_t i = 0; i < streams.size(); i++)
-            {
-                __delete(streams[i]);
-            }
             streams.clear();
 
-            /* This is the single point in PIC where ALL CUDA work must be finished. */
-            /* Accessing CUDA objects after this point may fail! */
-            CUDA_CHECK(cudaDeviceSynchronize());
-            CUDA_CHECK(cudaDeviceReset());
+            /* This is the single point in PIC where ALL accelerator work must be finished. */
+            /* Accessing accelerator objects after this point may fail! */
+            alpaka::wait::wait(*device.get());
+            alpaka::dev::reset(*device.get());
         }
 
         /**
@@ -86,7 +80,8 @@ namespace PMacc
         {
             for (size_t i = 0; i < count; i++)
             {
-                streams.push_back(new EventStream());
+                streams.emplace_back(
+                    new EventStream(*device.get()));
             }
         }
 
@@ -94,8 +89,9 @@ namespace PMacc
          *
          * If StreamController is not activated getNextStream() will crash on its first call
          */
-        void activate()
+        void activate(AlpakaDev const & dev)
         {
+            device.reset(new AlpakaDev(dev));
             addStreams(1);
             isActivated=true;
         }
@@ -118,7 +114,7 @@ namespace PMacc
         /**
          * Constructor.
          */
-        StreamController() : isActivated(false),currentStreamIndex(0)
+        StreamController() : currentStreamIndex(0),isActivated(false)
         {
         }
 
@@ -133,7 +129,8 @@ namespace PMacc
             return instance;
         }
 
-        std::vector<EventStream*> streams;
+        std::unique_ptr<AlpakaDev> device;
+        std::vector<std::unique_ptr<EventStream>> streams;
         size_t currentStreamIndex;
         bool isActivated;
 

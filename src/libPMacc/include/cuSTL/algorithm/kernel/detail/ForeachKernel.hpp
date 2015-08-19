@@ -22,37 +22,44 @@
 
 #pragma once
 
+#include <math/vector/Int.hpp>  // math::Int
+#include "types.h"
+
+#include <utility>              // std::forward
+
 namespace PMacc
 {
 namespace algorithm
 {
 namespace kernel
 {
-
-#ifndef FOREACH_KERNEL_MAX_PARAMS
-#define FOREACH_KERNEL_MAX_PARAMS 4
-#endif
-
 namespace detail
 {
+    class kernelForeach
+    {
+    public:
+        //-----------------------------------------------------------------------------
+        //! The kernel.
+        //-----------------------------------------------------------------------------
+        template<
+            typename T_Acc,
+            typename TMapper,
+            typename TFunctor,
+            typename... TC>
+        ALPAKA_FN_ACC void operator()(
+            T_Acc const & acc,
+            TMapper const & mapper,
+            TFunctor const & functor,
+            TC && ... c) const
+        {
+            math::Int<TMapper::dim> cellIndex(
+                mapper(
+                    alpaka::idx::getIdx<alpaka::Grid, alpaka::Blocks>(acc),
+                    alpaka::idx::getIdx<alpaka::Block, alpaka::Threads>(acc)));
 
-#define SHIFTACCESS_CURSOR(Z, N, _) forward(c ## N [cellIndex])
-
-#define KERNEL_FOREACH(Z, N, _) \
-/*                        typename C0, ..., typename CN     */ \
-template<typename Mapper, BOOST_PP_ENUM_PARAMS(N, typename C), typename Functor> \
-/*                                          C0 c0, ..., CN cN   */ \
-__global__ void kernelForeach(Mapper mapper, BOOST_PP_ENUM_BINARY_PARAMS(N, C, c), Functor functor) \
-{ \
-    math::Int<Mapper::dim> cellIndex(mapper(blockIdx, threadIdx)); \
-/*          forward(c0[cellIndex]), ..., forward(cN[cellIndex])     */ \
-    functor(BOOST_PP_ENUM(N, SHIFTACCESS_CURSOR, _)); \
-}
-
-BOOST_PP_REPEAT_FROM_TO(1, BOOST_PP_INC(FOREACH_KERNEL_MAX_PARAMS), KERNEL_FOREACH, _)
-
-#undef KERNEL_FOREACH
-#undef SHIFTACCESS_CURSOR
+            functor(std::forward<TC>(c[cellIndex])...);
+        }
+    };
 
 } // namespace detail
 } // namespace kernel

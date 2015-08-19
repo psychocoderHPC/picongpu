@@ -29,67 +29,35 @@ template<typename Type, int T_dim>
 cursor::BufferCursor<Type, T_dim>
 HostMemAllocator<Type, T_dim>::allocate(const math::Size_t<T_dim>& size)
 {
-#ifndef __CUDA_ARCH__
-    Type* dataPointer;
+    assert(!m_upBuf);
+
     math::Size_t<T_dim-1> pitch;
 
-    CUDA_CHECK_NO_EXCEP(cudaMallocHost((void**)&dataPointer, sizeof(Type) * size.productOfComponents()));
+#ifndef __CUDA_ARCH__
+    m_upBuf.reset(new MemBuf(
+        alpaka::mem::buf::alloc<Type, std::size_t>(
+            alpaka::dev::cpu::getDev(),
+            size)));
+
     if(dim == 2u)
     {
-        pitch[0] = size[0] * sizeof(Type);
+        pitch[0] = alpaka::mem::view::getPitchBytes<1u>(*m_upBuf.get());
     }
     else if(dim == 3u)
     {
-        pitch[0] = size[0] * sizeof(Type);
-        pitch[1] = pitch[0] * size[1];
+        pitch[0] = alpaka::mem::view::getPitchBytes<2u>(*m_upBuf.get());
+        pitch[1] = alpaka::mem::view::getPitchBytes<1u>(*m_upBuf.get());
     }
-
-    return cursor::BufferCursor<Type, T_dim>(dataPointer, pitch);
 #endif
 
-#ifdef __CUDA_ARCH__
-    Type* dataPointer = 0;
-    math::Size_t<T_dim-1> pitch;
-    return cursor::BufferCursor<Type, T_dim>(dataPointer, pitch);
-#endif
-}
-
-template<typename Type>
-cursor::BufferCursor<Type, 1>
-HostMemAllocator<Type, 1>::allocate(const math::Size_t<1>& size)
-{
-#ifndef __CUDA_ARCH__
-    Type* dataPointer;
-    math::Size_t<0> pitch;
-
-    CUDA_CHECK_NO_EXCEP(cudaMallocHost((void**)&dataPointer, sizeof(Type) * size.productOfComponents()));
-
-    return cursor::BufferCursor<Type, 1>(dataPointer, pitch);
-#endif
-
-#ifdef __CUDA_ARCH__
-    Type* dataPointer = 0;
-    math::Size_t<0> pitch;
-    return cursor::BufferCursor<Type, 1>(dataPointer, pitch);
-#endif
+    return cursor::BufferCursor<Type, T_dim>(alpaka::mem::view::getPtrNative(*m_upBuf.get()), pitch);
 }
 
 template<typename Type, int T_dim>
 template<typename TCursor>
 void HostMemAllocator<Type, T_dim>::deallocate(const TCursor& cursor)
 {
-#ifndef __CUDA_ARCH__
-    CUDA_CHECK_NO_EXCEP(cudaFreeHost(cursor.getMarker()));
-#endif
-}
-
-template<typename Type>
-template<typename TCursor>
-void HostMemAllocator<Type, 1>::deallocate(const TCursor& cursor)
-{
-#ifndef __CUDA_ARCH__
-    CUDA_CHECK_NO_EXCEP(cudaFreeHost(cursor.getMarker()));
-#endif
+    m_upBuf.reset();
 }
 
 } // allocator

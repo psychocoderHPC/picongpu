@@ -27,6 +27,8 @@
 #include "memory/buffers/DeviceBuffer.hpp"
 #include "memory/boxes/DataBox.hpp"
 
+#include <alpaka/alpaka.hpp>
+
 #include <cassert>
 
 namespace PMacc
@@ -39,6 +41,11 @@ template <class TYPE, unsigned DIM>
 class DeviceBufferIntern : public DeviceBuffer<TYPE, DIM>
 {
 public:
+    using DataBufDev = alpaka::mem::buf::Buf<
+        AlpakaDev,
+        TYPE,
+        alpaka::dim::DimInt<DIM>,
+        std::size_t>;
 
     typedef typename DeviceBuffer<TYPE, DIM>::DataBoxType DataBoxType;
 
@@ -48,138 +55,123 @@ public:
      * @param useVectorAsBase use a vector as base of the array (is not lined pitched)
      *                      if true size on device is atomaticly set to false
      */
-    DeviceBufferIntern(DataSpace<DIM> dataSpace, bool sizeOnDevice = false, bool useVectorAsBase = false) :
-    DeviceBuffer<TYPE, DIM>(dataSpace),
-    sizeOnDevice(sizeOnDevice),
-    useOtherMemory(false),
-    offset(DataSpace<DIM>())
+    DeviceBufferIntern(DataSpace<DIM> dataSpace, bool _sizeOnDevice = false, bool useVectorAsBase = false) :
+        DeviceBuffer<TYPE, DIM>(dataSpace, useVectorAsBase || (DIM==1)),
+        m_upDataBufDev(new DataBufDev(useVectorAsBase ? createData1d() : createData())),
+        m_dataViewDev(alpaka::mem::view::createView<typename PMacc::DeviceBuffer<TYPE, DIM>::DataViewDev>(*m_upDataBufDev.get()))
     {
-        //create size on device before any use of setCurrentSize
-        if (useVectorAsBase)
+        if(_sizeOnDevice && (!useVectorAsBase))
         {
-            sizeOnDevice = false;
-            createSizeOnDevice(sizeOnDevice);
-            createFakeData();
-            this->data1D = true;
+            createSizeOnDevice();
         }
-        else
-        {
-            createSizeOnDevice(sizeOnDevice);
-            createData();
-            this->data1D = false;
-        }
+        this->setCurrentSize(this->getDataSpace().productOfComponents());
 
+        reset(false);
     }
 
-    DeviceBufferIntern(DeviceBuffer<TYPE, DIM>& source, DataSpace<DIM> dataSpace, DataSpace<DIM> offset, bool sizeOnDevice = false) :
-    DeviceBuffer<TYPE, DIM>(dataSpace),
-    sizeOnDevice(sizeOnDevice),
-    offset(offset + source.getOffset()),
-    data(source.getCudaPitched()),
-    useOtherMemory(true)
+    DeviceBufferIntern(DeviceBuffer<TYPE, DIM>& source, DataSpace<DIM> dataSpace, DataSpace<DIM> offset, bool _sizeOnDevice = false) :
+        DeviceBuffer<TYPE, DIM>(dataSpace, (DIM==1)),
+        m_dataViewDev(
+            alpaka::mem::view::createView<typename PMacc::DeviceBuffer<TYPE, DIM>::DataViewDev>(
+                source.getMemBufView(),
+                this->getDataSpace(),
+                offset))
     {
-        createSizeOnDevice(sizeOnDevice);
-        this->data1D = false;
+        if(_sizeOnDevice)
+        {
+            createSizeOnDevice();
+        }
+        setCurrentSize(this->getDataSpace().productOfComponents());
     }
 
     virtual ~DeviceBufferIntern()
     {
         __startOperation(ITask::TASK_CUDA);
-
-        if (sizeOnDevice)
-        {
-            CUDA_CHECK(cudaFree(sizeOnDevicePtr));
-        }
-        if (!useOtherMemory)
-        {
-            CUDA_CHECK(cudaFree(data.ptr));
-
-        }
+        m_upSizeOnDevice.reset();
     }
 
     void reset(bool preserveData = true)
     {
-        this->setCurrentSize(Buffer<TYPE, DIM>::getDataSpace().productOfComponents());
+        setCurrentSize(this->getDataSpace().productOfComponents());
 
         __startOperation(ITask::TASK_CUDA);
         if (!preserveData)
         {
-            if (DIM == DIM1)
-            {
-                CUDA_CHECK(cudaMemset(data.ptr, 0, Buffer<TYPE, DIM>::getDataSpace()[0] * sizeof (TYPE)));
-            }
-            if (DIM == DIM2)
-            {
-                CUDA_CHECK(cudaMemset2D(data.ptr, data.pitch, 0, data.xsize, data.ysize));
-            }
-            if (DIM == DIM3)
-            {
-                cudaExtent extent;
-                extent.width = this->data_space[0] * sizeof (TYPE);
-                extent.height = this->data_space[1];
-                extent.depth = this->data_space[2];
-                CUDA_CHECK(cudaMemset3D(data, 0, extent));
-            }
+            AlpakaStream stream(Environment<>::get().DeviceManager().getDevice());
+            alpaka::mem::view::set(
+                stream,
+                m_dataViewDev,
+                0,
+                this->getDataSpace());
+            alpaka::wait::wait(stream);
         }
     }
 
     DataBoxType getDataBox()
     {
         __startOperation(ITask::TASK_CUDA);
-        return DataBoxType(PitchedBox<TYPE, DIM > ((TYPE*) data.ptr, offset,
-                                                   this->data_space, data.pitch));
-    }
-
-    TYPE* getPointer()
-    {
-        __startOperation(ITask::TASK_CUDA);
-
-        if (DIM == DIM1)
-        {
-            return (TYPE*) (data.ptr) + this->offset[0];
-        }
-        else if (DIM == DIM2)
-        {
-            return (TYPE*) ((char*) data.ptr + this->offset[1] * this->data.pitch) + this->offset[0];
-        }
-        else
-        {
-            const size_t offsetY = this->offset[1] * this->data.pitch;
-            const size_t sizePlaneXY = this->data_space[1] * this->data.pitch;
-            return (TYPE*) ((char*) data.ptr + this->offset[2] * sizePlaneXY + offsetY) + this->offset[0];
-        }
-    }
-
-    DataSpace<DIM> getOffset() const
-    {
-        return offset;
-    }
-
-    bool hasCurrentSizeOnDevice() const
-    {
-        return sizeOnDevice;
-    }
-
-    size_t* getCurrentSizeOnDevicePointer() throw (std::runtime_error)
-    {
-        __startOperation(ITask::TASK_CUDA);
-        if (!sizeOnDevice)
-        {
-            throw std::runtime_error("Buffer has no size on device!, currentSize is only stored on host side.");
-        }
-        return sizeOnDevicePtr;
-    }
-
-    size_t* getCurrentSizeHostSidePointer()
-    {
-        __startOperation(ITask::TASK_HOST);
-        return this->current_size;
+        return DataBoxType(
+            PitchedBox<TYPE, DIM>(
+                getBasePointer(),
+                getOffset(),
+                this->getDataSpace(),
+                getPitch()));
     }
 
     TYPE* getBasePointer()
     {
         __startOperation(ITask::TASK_CUDA);
-        return (TYPE*) data.ptr;
+        return alpaka::mem::view::getPtrNative(alpaka::mem::view::getBuf(m_dataViewDev));
+    }
+
+    TYPE const * getPointer() const
+    {
+        __startOperation(ITask::TASK_CUDA);
+        return alpaka::mem::view::getPtrNative(m_dataViewDev);
+    }
+    TYPE * getPointer()
+    {
+        __startOperation(ITask::TASK_CUDA);
+        return alpaka::mem::view::getPtrNative(m_dataViewDev);
+    }
+
+    DataSpace<DIM> getOffset() const
+    {
+        return DataSpace<DIM>(alpaka::offset::getOffsetsVec(m_dataViewDev));
+    }
+
+    bool hasCurrentSizeOnDevice() const
+    {
+        return m_upSizeOnDevice.get() != nullptr;
+    }
+
+    typename PMacc::DeviceBuffer<TYPE, DIM>::SizeBufDev const & getMemBufSizeAcc() const
+    {
+        __startOperation(ITask::TASK_CUDA);
+        if(!m_upSizeOnDevice)
+        {
+            throw std::runtime_error("Buffer has no size on device!, currentSize is only stored on host side.");
+        }
+        return *m_upSizeOnDevice.get();
+    }
+    typename PMacc::DeviceBuffer<TYPE, DIM>::SizeBufDev & getMemBufSizeAcc()
+    {
+        __startOperation(ITask::TASK_CUDA);
+        if(!m_upSizeOnDevice)
+        {
+            throw std::runtime_error("Buffer has no size on device!, currentSize is only stored on host side.");
+        }
+        return *m_upSizeOnDevice.get();
+    }
+
+    typename PMacc::DeviceBuffer<TYPE, DIM>::DataViewDev const & getMemBufView() const
+    {
+        return m_dataViewDev;
+    }
+
+    typename PMacc::DeviceBuffer<TYPE, DIM>::DataViewDev & getMemBufView()
+    {
+        return m_dataViewDev;
     }
 
     /*! Get current size of any dimension
@@ -187,24 +179,29 @@ public:
      */
     virtual size_t getCurrentSize()
     {
-        if (sizeOnDevice)
+        if(m_upSizeOnDevice)
         {
             __startTransaction(__getTransactionEvent());
             Environment<>::get().Factory().createTaskGetCurrentSizeFromDevice(*this);
             __endTransaction().waitForFinished();
         }
 
-        return DeviceBuffer<TYPE, DIM>::getCurrentSize();
+        return this->getSizeHost();
     }
 
-    virtual void setCurrentSize(const size_t size)
+    /**
+     * If stream is 0, this function is blocking (we use a kernel to set size).
+     * Keep in mind: on Fermi-architecture, kernels in different streams may run at the same time
+     * (only used if size is on device).
+     */
+    void setCurrentSize(const size_t size)
     {
-        Buffer<TYPE, DIM>::setCurrentSize(size);
+        this->setSizeHost(size);
 
-        if (sizeOnDevice)
+        if(m_upSizeOnDevice)
         {
             Environment<>::get().Factory().createTaskSetCurrentSizeOnDevice(
-                                                                            *this, size);
+                *this, size);
         }
     }
 
@@ -224,103 +221,76 @@ public:
         __setTransactionEvent(__endTransaction());
     }
 
-    const cudaPitchedPtr getCudaPitched() const
-    {
-        __startOperation(ITask::TASK_CUDA);
-        return data;
-    }
-
     size_t getPitch() const
     {
-        return data.pitch;
+        return alpaka::mem::view::getPitchBytes<0u>(m_dataViewDev);
     }
 
-    virtual void setValue(const TYPE& value)
+    void setValue(const TYPE& value)
     {
         Environment<>::get().Factory().createTaskSetValue(*this, value);
     };
 
 private:
-
-    /*! create native array with pitched lines
+    /*! Creates a ND-buffer with pitch
      */
-    void createData()
+    DataBufDev createData()
     {
         __startOperation(ITask::TASK_CUDA);
-        data.ptr = NULL;
-        data.pitch = 1;
-        data.xsize = this->data_space[0] * sizeof (TYPE);
-        data.ysize = 1;
 
-        if (DIM == DIM1)
-        {
-            log<ggLog::MEMORY >("Create device 1D data: %1% MiB") % (data.xsize / 1024 / 1024);
-            CUDA_CHECK(cudaMallocPitch(&data.ptr, &data.pitch, data.xsize, 1));
-        }
-        if (DIM == DIM2)
-        {
-            data.ysize = this->data_space[1];
-            log<ggLog::MEMORY >("Create device 2D data: %1% MiB") % (data.xsize * data.ysize / 1024 / 1024);
-            CUDA_CHECK(cudaMallocPitch(&data.ptr, &data.pitch, data.xsize, data.ysize));
+        log<ggLog::MEMORY>("Create device %1%D data: %2% MiB") % DIM % (this->getDataSpace().productOfComponents() * sizeof(TYPE) / 1024 / 1024 );
 
-        }
-        if (DIM == DIM3)
-        {
-            cudaExtent extent;
-            extent.width = this->data_space[0] * sizeof (TYPE);
-            extent.height = this->data_space[1];
-            extent.depth = this->data_space[2];
-
-            log<ggLog::MEMORY >("Create device 3D data: %1% MiB") % (this->data_space.productOfComponents() * sizeof (TYPE) / 1024 / 1024);
-            CUDA_CHECK(cudaMalloc3D(&data, extent));
-        }
-
-        reset(false);
+        return alpaka::mem::buf::alloc<TYPE, std::size_t>(
+            Environment<>::get().DeviceManager().getDevice(),
+            this->getDataSpace());
     }
 
-    /*!create 1D, 2D, 3D Array which use only a vector as base
+    /*! Creates a ND-buffer without pitch.
      */
-    void createFakeData()
+    DataBufDev createData1d()
     {
         __startOperation(ITask::TASK_CUDA);
-        data.ptr = NULL;
-        data.pitch = 1;
-        data.xsize = this->data_space[0] * sizeof (TYPE);
-        data.ysize = 1;
 
-        log<ggLog::MEMORY >("Create device fake data: %1% MiB") % (this->data_space.productOfComponents() * sizeof (TYPE) / 1024 / 1024);
-        CUDA_CHECK(cudaMallocPitch(&data.ptr, &data.pitch, this->data_space.productOfComponents() * sizeof (TYPE), 1));
+        log<ggLog::MEMORY>("Create device 1D data: %1% MiB") % (this->getDataSpace().productOfComponents() * sizeof (TYPE) / 1024 / 1024 );
 
-        //fake the pitch, thus we can use this 1D Buffer as 2D or 3D
-        data.pitch = this->data_space[0] * sizeof (TYPE);
+        // \HACK \TODO \FIXME: This allocates the memory twice. One time (possibly with padding) and a second time without padding and deletes the first buffer.
+        DataBufDev buf(
+            alpaka::mem::buf::alloc<TYPE, std::size_t>(
+                Environment<>::get().DeviceManager().getDevice(),
+                this->getDataSpace()));
 
-        if (DIM > DIM1)
-        {
-            data.ysize = this->data_space[1];
-        }
+        using MemBufFake = alpaka::mem::buf::Buf<
+            AlpakaDev,
+            TYPE,
+            alpaka::dim::DimInt<1u>,
+            std::size_t>;
+        MemBufFake fakeBuf(
+            alpaka::mem::buf::alloc<TYPE, std::size_t>(
+                Environment<>::get().DeviceManager().getDevice(),
+                static_cast<std::size_t>(this->getDataSpace().productOfComponents())));
 
-        reset(false);
+        // Swap the pointers of our buffers.
+        std::swap(const_cast<TYPE *>(buf.m_spBufCpuImpl->m_pMem), const_cast<TYPE *>(fakeBuf.m_spBufCpuImpl->m_pMem));
+        // Reset the pitch of the original buffer to the correct pitch of the fake buffer.
+        *const_cast<std::size_t *>(&buf.m_spBufCpuImpl->m_uiPitchBytes) = this->getDataSpace()[0u] * sizeof(TYPE);
+
+        return buf;
     }
 
-    void createSizeOnDevice(bool sizeOnDevice)
+    void createSizeOnDevice()
     {
         __startOperation(ITask::TASK_HOST);
-        sizeOnDevicePtr = NULL;
-
-        if (sizeOnDevice)
-        {
-            CUDA_CHECK(cudaMalloc(&sizeOnDevicePtr, sizeof (size_t)));
-        }
-        setCurrentSize(Buffer<TYPE, DIM>::getDataSpace().productOfComponents());
+        m_upSizeOnDevice.reset(
+            new typename PMacc::DeviceBuffer<TYPE, DIM>::SizeBufDev(
+                alpaka::mem::buf::alloc<std::size_t, std::size_t>(
+                    Environment<>::get().DeviceManager().getDevice(),
+                    static_cast<std::size_t>(1u))));
     }
 
 private:
-    DataSpace<DIM> offset;
-
-    bool sizeOnDevice;
-    size_t* sizeOnDevicePtr;
-    cudaPitchedPtr data;
-    bool useOtherMemory;
+    std::unique_ptr<typename PMacc::DeviceBuffer<TYPE, DIM>::SizeBufDev> m_upSizeOnDevice;
+    std::unique_ptr<DataBufDev> m_upDataBufDev;
+    typename PMacc::DeviceBuffer<TYPE, DIM>::DataViewDev m_dataViewDev;
 };
 
 } //namespace PMacc

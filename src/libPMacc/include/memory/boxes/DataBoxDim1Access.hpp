@@ -75,7 +75,7 @@ public:
     {
     }
 private:
-    const PMACC_ALIGN(originalSize, PMacc::DataSpace<Dim>);
+    PMACC_ALIGN(originalSize, const PMacc::DataSpace<Dim>);
 
 };
 

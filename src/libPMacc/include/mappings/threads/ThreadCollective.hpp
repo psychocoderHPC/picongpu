@@ -28,6 +28,8 @@
 #include "dimensions/DataSpace.hpp"
 #include "types.h"
 
+#include <utility>
+
 namespace PMacc
 {
 
@@ -56,29 +58,24 @@ public:
     {
     }
 
-    template<class F, class P1, class P2>
-    DINLINE void operator()(F& f, P1& p1, P2& p2)
+    template<
+        class F,
+        typename... TArgs>
+    DINLINE void operator()(
+        F && f,
+        TArgs && ... args)
     {
         for (int i = threadId; i < math::CT::volume<FullSuperCellSize>::type::value; i += maxThreads)
         {
             const DataSpace<Dim> pos(DataSpaceOperations<Dim>::template map<FullSuperCellSize > (i) - OffsetOrigin::toRT());
-            f(p1(pos), p2(pos));
-        }
-    }
-
-    template<class F, class P1>
-    DINLINE void operator()(F& f, P1 & p1)
-    {
-        for (int i = threadId; i < math::CT::volume<FullSuperCellSize>::type::value; i += maxThreads)
-        {
-            const DataSpace<Dim> pos(DataSpaceOperations<Dim>::template map<FullSuperCellSize > (i) - OffsetOrigin::toRT());
-            f(p1(pos));
+            std::forward<F>(f)(
+                (std::forward<TArgs>(args)(pos))...);
         }
     }
 
 
 private:
-    const PMACC_ALIGN(threadId, int);
+    PMACC_ALIGN(threadId, int const);
 
 };
 

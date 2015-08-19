@@ -25,15 +25,18 @@
 #include "compileTime/conversion/SeqToMap.hpp"
 #include "compileTime/conversion/TypeToAliasPair.hpp"
 #include "compileTime/conversion/TypeToPair.hpp"
-#include "static_assert.hpp"
 #include "types.h"
 
 #include <boost/mpl/at.hpp>
 #include <boost/mpl/copy.hpp>
-#include <boost/type_traits/is_same.hpp>
+
+#include <boost/mpl/assert.hpp>
+#include <type_traits>
 
 namespace PMacc
 {
+
+
 
 template<typename T_MPLSeq,
          typename T_Key
@@ -65,7 +68,9 @@ struct GetKeyFromAlias_assert
 {
     typedef typename GetKeyFromAlias<T_MPLSeq,T_Key>::type type;
     /*this assert fails if T_Key was not found*/
-    PMACC_CASSERT_MSG_TYPE(key_not_found,T_Key,(!boost::is_same<type,bmpl::void_>::value));
+    static_assert(
+        !std::is_same<type, bmpl::void_>::value,
+        "Key not found!");
 };
 
 }//namespace PMacc

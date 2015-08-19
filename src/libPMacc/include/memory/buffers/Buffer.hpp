@@ -44,27 +44,38 @@ namespace PMacc
     class Buffer
     {
     public:
+        using MemBufSizeHost = alpaka::mem::buf::Buf<
+            AlpakaDev,
+            std::size_t,
+            alpaka::dim::DimInt<1u>,
+            std::size_t>;
 
-        typedef DataBox<PitchedBox<TYPE, DIM> > DataBoxType;
+        using DataBoxType = DataBox<PitchedBox<TYPE, DIM>>;
 
+    protected:
         /**
          * constructor
          * @param dataSpace description of spread of any dimension
          */
-        Buffer(DataSpace<DIM> dataSpace) :
-        data_space(dataSpace),data1D(true)
+        Buffer(
+            DataSpace<DIM> dataSpace,
+            bool bData1d) :
+                data_space(dataSpace),
+                data1D(bData1d),
+                current_size_buf(
+                    alpaka::mem::buf::alloc<std::size_t, std::size_t>(
+                        Environment<>::get().DeviceManager().getDevice(),
+                        static_cast<std::size_t>(1u)))
         {
-            CUDA_CHECK(cudaMallocHost(&current_size, sizeof (size_t)));
-            *current_size = dataSpace.productOfComponents();
+            *alpaka::mem::view::getPtrNative(current_size_buf) = dataSpace.productOfComponents();
         }
 
+    public:
         /**
          * destructor
          */
         virtual ~Buffer()
-        {
-            CUDA_CHECK(cudaFreeHost(current_size));
-        }
+        {}
 
         /*! Get base pointer to memory
          * @return pointer to this buffer in memory
@@ -74,17 +85,18 @@ namespace PMacc
         /*! Get pointer that includes all offsets
          * @return pointer to a point in a memory array
          */
+        virtual TYPE const * getPointer() const = 0;
         virtual TYPE* getPointer() = 0;
 
         /*! Get max spread (elements) of any dimension
          * @return spread (elements) per dimension
          */
-        virtual DataSpace<DIM> getDataSpace() const
+        DataSpace<DIM> getDataSpace() const
         {
             return data_space;
         }
 
-        virtual DataSpace<DIM> getCurrentDataSpace()
+        DataSpace<DIM> getCurrentDataSpace()
         {
             return getCurrentDataSpace(getCurrentSize());
         }
@@ -94,77 +106,99 @@ namespace PMacc
          * if DIM == DIM2 than return how many lines (y-direction) of memory is used
          * if DIM == DIM3 than return how many slides (z-direction) of memory is used
          */
-        virtual DataSpace<DIM> getCurrentDataSpace(size_t currentSize)
+        DataSpace<DIM> getCurrentDataSpace(size_t currentSize)
         {
             DataSpace<DIM> tmp;
-            int64_t current_size = static_cast<int64_t>(currentSize);
+            int64_t i64CurrentSize = static_cast<int64_t>(currentSize);
 
             //!\todo: current size can be changed if it is a DeviceBuffer and current size is on device
             //call first get current size (but const not allow this)
 
             if (DIM == DIM1)
             {
-                tmp[0] = current_size;
+                tmp[0] = static_cast<int>(i64CurrentSize);
             }
             if (DIM == DIM2)
             {
-                if (current_size <= data_space[0])
+                if (i64CurrentSize <= data_space[0])
                 {
-                    tmp[0] = current_size;
+                    tmp[0] = static_cast<int>(i64CurrentSize);
                     tmp[1] = 1;
                 } else
                 {
                     tmp[0] = data_space[0];
-                    tmp[1] = (current_size+data_space[0]-1) / data_space[0];
+                    tmp[1] = static_cast<int>((i64CurrentSize+data_space[0]-1) / data_space[0]);
                 }
             }
             if (DIM == DIM3)
             {
-                if (current_size <= data_space[0])
+                if (i64CurrentSize <= data_space[0])
                 {
-                    tmp[0] = current_size;
+                    tmp[0] = static_cast<int>(i64CurrentSize);
                     tmp[1] = 1;
                     tmp[2] = 1;
-                } else if (current_size <= (data_space[0] * data_space[1]))
+                } else if (i64CurrentSize <= (data_space[0] * data_space[1]))
                 {
                     tmp[0] = data_space[0];
-                    tmp[1] = (current_size+data_space[0]-1) / data_space[0];
+                    tmp[1] = static_cast<int>((i64CurrentSize+data_space[0]-1) / data_space[0]);
                     tmp[2] = 1;
                 } else
                 {
                     tmp[0] = data_space[0];
                     tmp[1] = data_space[1];
-                    tmp[2] = (current_size+(data_space[0] * data_space[1])-1) / (data_space[0] * data_space[1]);
+                    tmp[2] = static_cast<int>((i64CurrentSize+(data_space[0] * data_space[1])-1) / (data_space[0] * data_space[1]));
                 }
             }
 
             return tmp;
         }
 
+
+        MemBufSizeHost const & getMemBufSizeHost() const
+        {
+            __startOperation(ITask::TASK_HOST);
+            return current_size_buf;
+        }
+        MemBufSizeHost & getMemBufSizeHost()
+        {
+            __startOperation(ITask::TASK_HOST);
+            return current_size_buf;
+        }
+
         /*! returns the current size (count of elements)
          * @return current size
          */
-        virtual size_t getCurrentSize()
+        size_t getSizeHost()
         {
             __startOperation(ITask::TASK_HOST);
-            return *current_size;
+            return *alpaka::mem::view::getPtrNative(current_size_buf);
         }
 
         /*! sets the current size (count of elements)
          * @param newsize new current size
          */
-        virtual void setCurrentSize(const size_t newsize)
+        void setSizeHost(const size_t newsize)
         {
             __startOperation(ITask::TASK_HOST);
             assert(static_cast<size_t>(newsize) <= static_cast<size_t>(data_space.productOfComponents()));
-            *current_size = newsize;
+            *alpaka::mem::view::getPtrNative(current_size_buf) = newsize;
         }
 
-        virtual void reset(bool preserveData = false)=0;
+        /*! returns the current size (count of elements)
+         * @return current size
+         */
+        virtual size_t getCurrentSize() = 0;
 
-        virtual void setValue(const TYPE& value)=0;
+        /*! sets the current size (count of elements)
+         * @param newsize new current size
+         */
+        virtual void setCurrentSize(const size_t newsize) = 0;
 
-        virtual DataBox<PitchedBox<TYPE,DIM> > getDataBox()=0;
+        virtual void reset(bool preserveData = false) = 0;
+
+        virtual void setValue(const TYPE& value) = 0;
+
+        virtual DataBox<PitchedBox<TYPE,DIM>> getDataBox() = 0;
 
         inline bool is1D()
         {
@@ -182,12 +216,12 @@ namespace PMacc
             return !other.isOneDimensionGreaterThan(data_space);
         }
 
+    private:
         DataSpace<DIM> data_space;
 
-        size_t *current_size;
+        MemBufSizeHost current_size_buf;
 
-        bool data1D;
-
+        bool const data1D;
     };
 
 } //namespace PMacc

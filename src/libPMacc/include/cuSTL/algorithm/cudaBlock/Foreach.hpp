@@ -66,7 +66,7 @@ namespace cudaBlock
 
 /** Foreach algorithm that is executed by one cuda thread block
  *
- * \tparam BlockDim 3D compile-time vector (PMacc::math::CT::Int) of the size of the cuda blockDim.
+ * \tparam BlockDim 3D compile-time vector (PMacc::math::CT::Int) of the size of the cuda blockSize.
  *
  * BlockDim could also be obtained from cuda itself at runtime but
  * it is faster to know it at compile-time.
@@ -79,9 +79,9 @@ private:
 public:
     DINLINE Foreach()
      : linearThreadIdx(
-        threadIdx.z * BlockDim::x::value * BlockDim::y::value +
-        threadIdx.y * BlockDim::x::value +
-        threadIdx.x) {}
+        threadIndex.z() * BlockDim::x::value * BlockDim::y::value +
+        threadIndex.y() * BlockDim::x::value +
+        threadIndex.x()) {}
     DINLINE Foreach(int linearThreadIdx) : linearThreadIdx(linearThreadIdx) {}
 
     /* operator()(zone, cursor0, cursor1, ..., cursorN-1, functor or lambdaFun)

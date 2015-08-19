@@ -29,47 +29,18 @@ template<typename Type, int T_dim>
 cursor::BufferCursor<Type, T_dim>
 DeviceMemEvenPitch<Type, T_dim>::allocate(const math::Size_t<T_dim>& size)
 {
-    Type* dataPointer;
     math::Size_t<T_dim-1> pitch;
 
-    CUDA_CHECK(cudaMalloc((void**)&dataPointer, sizeof(Type) * size.productOfComponents()));
+    // FIXME: Implement!
 
-    if (dim == 2u)
-    {
-        pitch[0] = sizeof(Type) * size[0];
-    }
-    else if (dim == 3u)
-    {
-        pitch[0] = sizeof(Type) * size[0];
-        pitch[1] = pitch[0] * size[1];
-    }
-
-    return cursor::BufferCursor<Type, T_dim>(dataPointer, pitch);
-}
-
-template<typename Type>
-cursor::BufferCursor<Type, 1>
-DeviceMemEvenPitch<Type, 1>::allocate(const math::Size_t<1>& size)
-{
-    Type* dataPointer;
-
-    CUDA_CHECK(cudaMalloc((void**)&dataPointer, size[0] * sizeof(Type)));
-
-    return cursor::BufferCursor<Type, 1>(dataPointer, math::Size_t<0>());
+    return cursor::BufferCursor<Type, T_dim>(nullptr, pitch);
 }
 
 template<typename Type, int T_dim>
 template<typename TCursor>
 void DeviceMemEvenPitch<Type, T_dim>::deallocate(const TCursor& cursor)
 {
-    CUDA_CHECK(cudaFree(cursor.getMarker()));
-}
-
-template<typename Type>
-template<typename TCursor>
-void DeviceMemEvenPitch<Type, 1>::deallocate(const TCursor& cursor)
-{
-    CUDA_CHECK(cudaFree(cursor.getMarker()));
+    // FIXME: Implement!
 }
 
 } // allocator

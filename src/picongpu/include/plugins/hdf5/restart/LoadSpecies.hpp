@@ -1,5 +1,5 @@
 /**
- * Copyright 2013-2014 Rene Widera, Felix Schmitt
+ * Copyright 2013-2015 Rene Widera, Felix Schmitt, Benjamin Worpitz
  *
  * This file is part of PIConGPU.
  *
@@ -156,7 +156,7 @@ public:
 
         if (totalNumParticles != 0)
         {
-            dim3 block(PMacc::math::CT::volume<SuperCellSize>::type::value);
+            DataSpace<simDim> block(PMacc::math::CT::volume<SuperCellSize>::type::value);
 
             /* counter is used to apply for work, count used frames and count loaded particles
              * [0] -> offset for loading particles
@@ -181,14 +181,19 @@ public:
                 uint32_t currentChunkSize = std::min(leftOverParticles, restartChunkSize);
                 log<picLog::INPUT_OUTPUT > ("HDF5:   load particles on device chunk offset=%1%; chunk size=%2%; left particles %3%") %
                     (i * restartChunkSize) % currentChunkSize % leftOverParticles;
-                __cudaKernel(copySpeciesGlobal2Local)
-                    (ceil(double(currentChunkSize) / double(cellsInSuperCell)), cellsInSuperCell)
-                    (counterBuffer.getDeviceBuffer().getDataBox(),
-                     speciesTmp->getDeviceParticlesBox(), deviceFrame,
-                     (int) totalNumParticles,
-                     localDomain.offset, /*relative to data domain (not to physical domain)*/
-                     *(params->cellDescription)
-                     );
+
+                CopySpeciesGlobal2Local copySpeciesGlobal2Local;
+                __cudaKernel(
+                    copySpeciesGlobal2Local,
+                    alpaka::dim::DimInt<1>,
+                    ceil(double(currentChunkSize) / double(cellsInSuperCell)),
+                    cellsInSuperCell)(
+                        counterBuffer.getDeviceBuffer().getDataBox(),
+                        speciesTmp->getDeviceParticlesBox(), deviceFrame,
+                        (int) totalNumParticles,
+                        localDomain.offset, /*relative to data domain (not to physical domain)*/
+                        *(params->cellDescription));
+
                 speciesTmp->fillAllGaps();
                 leftOverParticles -= currentChunkSize;
             }

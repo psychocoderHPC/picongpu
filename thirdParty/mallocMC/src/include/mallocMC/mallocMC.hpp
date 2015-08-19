@@ -14,6 +14,7 @@
               Rene Widera - r.widera ( at ) hzdr.de
               Axel Huebl - a.huebl ( at ) hzdr.de
               Carlchristian Eckert - c.eckert ( at ) hzdr.de
+              Benjamin Worpitz - HZDR
 
   Permission is hereby granted, free of charge, to any person obtaining a copy
   of this software and associated documentation files (the "Software"), to deal

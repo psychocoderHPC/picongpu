@@ -94,10 +94,11 @@ public:
     }
 
     /* This call synchronizes a block and must be called from all threads and not inside a if clauses*/
-    static DINLINE This init()
+    template<typename T_Acc>
+    static DINLINE This init(T_Acc const & acc)
     {
-        __shared__ ValueType mem_sh[Size::x::value];
-        __syncthreads(); /*wait that all shared memory is initialised*/
+        ValueType * mem_sh(alpaka::block::shared::allocArr<ValueType, Size::x::value>(acc));
+        acc.syncBlockThreads(); /*wait that all shared memory is initialised*/
         return This((ValueType*) mem_sh);
     }
 
@@ -154,10 +155,11 @@ public:
     }
 
     /* This call synchronizes a block and must be called from all threads and not inside a if clauses*/
-    static DINLINE This init()
+    template<typename T_Acc>
+    static DINLINE This init(T_Acc const & acc)
     {
-        __shared__ ValueType mem_sh[Size::y::value][Size::x::value];
-        __syncthreads(); /*wait that all shared memory is initialised*/
+        ValueType * mem_sh(alpaka::block::shared::allocArr<ValueType, Size::x::value * Size::y::value>(acc));
+        acc.syncBlockThreads(); /*wait that all shared memory is initialised*/
         return This((ValueType*) mem_sh);
     }
 
@@ -230,10 +232,11 @@ public:
     }
 
     /*this call synchronize a block and must called from any thread and not inside a if clauses*/
-    static DINLINE This init()
+    template<typename T_Acc>
+    static DINLINE This init(T_Acc const & acc)
     {
-        __shared__ ValueType mem_sh[Size::z::value][Size::y::value][Size::x::value];
-        __syncthreads(); /*wait that all shared memory is initialised*/
+        ValueType * mem_sh(alpaka::block::shared::allocArr<ValueType, Size::x::value * Size::y::value * Size::z::value>(acc));
+        acc.syncBlockThreads(); /*wait that all shared memory is initialized*/
         return This((ValueType*) mem_sh);
     }
 

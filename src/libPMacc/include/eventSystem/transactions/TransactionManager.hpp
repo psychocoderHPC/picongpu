@@ -26,6 +26,7 @@
 #include "eventSystem/transactions/Transaction.hpp"
 
 #include <stack>
+#include <memory>
 
 namespace PMacc
 {
@@ -45,7 +46,7 @@ public:
     /**
      * Destructor.
      */
-    virtual ~TransactionManager() /*noexcept(false)*/;
+    virtual ~TransactionManager() noexcept(false);
 
     /**
      * Adds a new transaction to the stack.
@@ -105,7 +106,7 @@ private:
 
     static TransactionManager& getInstance();
 
-    std::stack<Transaction> transactions;
+    std::stack<std::unique_ptr<Transaction>> transactions;
 };
 
 

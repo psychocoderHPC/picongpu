@@ -730,7 +730,7 @@ private:
        *  definitly slower on kepler k20)
        */
       const int N_observer = parameters::N_observer;
-      const dim3 gridDim_rad(N_observer);
+      const DataSpace<simDim> gridDim_rad(N_observer);
 
       /* number of threads per block = number of cells in a super cell
        *          = number of particles in a Frame
@@ -740,7 +740,7 @@ private:
        * Particles in a Frame can be accessed in parallel.
        */
 
-      const dim3 blockDim_rad(PMacc::math::CT::volume<typename MappingDesc::SuperCellSize>::type::value);
+      const DataSpace<simDim> blockDim_rad(PMacc::math::CT::volume<typename MappingDesc::SuperCellSize>::type::value);
 
       // Some funny things that make it possible for the kernel to calculate
       // the absolut position of the particles
@@ -750,21 +750,22 @@ private:
       DataSpace<simDim> globalOffset(subGrid.getLocalDomain().offset);
       globalOffset.y() += (localSize.y() * numSlides);
 
-
+      KernelRadiationParticles kernelRadiationParticles;
       // PIC-like kernel call of the radiation kernel
-      __cudaKernel(kernelRadiationParticles)
-        (gridDim_rad, blockDim_rad)
-        (
-         /*Pointer to particles memory on the device*/
-         particles->getDeviceParticlesBox(),
+      __cudaKernel(
+            kernelRadiationParticles,
+            alpaka::dim::DimInt<simDim>,
+            gridDim_rad,
+            blockDim_rad)(
+                /*Pointer to particles memory on the device*/
+                particles->getDeviceParticlesBox(),
 
-         /*Pointer to memory of radiated amplitude on the device*/
-         radiation->getDeviceBuffer().getDataBox(),
-         globalOffset,
-         currentStep, *cellDescription,
-         freqFkt,
-         subGrid.getGlobalDomain().size
-         );
+                /*Pointer to memory of radiated amplitude on the device*/
+                radiation->getDeviceBuffer().getDataBox(),
+                globalOffset,
+                currentStep, *cellDescription,
+                freqFkt,
+                subGrid.getGlobalDomain().size);
 
       if (dumpPeriod != 0 && currentStep % dumpPeriod == 0)
       {

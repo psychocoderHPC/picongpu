@@ -22,10 +22,12 @@
 
 #pragma once
 
-#include <stdint.h>
 #include "math/vector/Size_t.hpp"
 #include "cuSTL/cursor/BufferCursor.hpp"
 #include "tag.h"
+
+#include <stdint.h>
+#include <memory>
 
 namespace PMacc
 {
@@ -35,31 +37,24 @@ namespace allocator
 template<typename Type, int T_dim>
 struct HostMemAllocator
 {
+    using MemBuf = alpaka::mem::buf::Buf<
+        alpaka::dev::DevCpu,
+        Type,
+        alpaka::dim::DimInt<T_dim>,
+        std::size_t>;
+
     typedef Type type;
     static const int dim = T_dim;
     typedef cursor::BufferCursor<type, T_dim> Cursor;
     typedef allocator::tag::host tag;
 
     HDINLINE
-    static cursor::BufferCursor<type, T_dim> allocate(const math::Size_t<T_dim>& size);
+    cursor::BufferCursor<type, T_dim> allocate(const math::Size_t<T_dim>& size);
     template<typename TCursor>
     HDINLINE
-    static void deallocate(const TCursor& cursor);
-};
+    void deallocate(const TCursor& cursor);
 
-template<typename Type>
-struct HostMemAllocator<Type, 1>
-{
-    typedef Type type;
-    static const int dim = 1;
-    typedef cursor::BufferCursor<type, 1> Cursor;
-    typedef allocator::tag::host tag;
-
-    HDINLINE
-    static cursor::BufferCursor<type, 1> allocate(const math::Size_t<1>& size);
-    template<typename TCursor>
-    HDINLINE
-    static void deallocate(const TCursor& cursor);
+    std::unique_ptr<MemBuf> m_upBuf;
 };
 
 } // allocator

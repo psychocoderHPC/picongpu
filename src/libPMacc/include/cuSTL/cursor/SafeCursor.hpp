@@ -128,7 +128,7 @@ private:
     HDINLINE void checkValidity() const
     {
         if(!this->enabled) return;
-        #pragma unroll
+        ALPAKA_UNROLL()
         for(int i = 0; i < dim; i++)
         {
             if(this->offset[i] < this->lowerExtent[i] ||

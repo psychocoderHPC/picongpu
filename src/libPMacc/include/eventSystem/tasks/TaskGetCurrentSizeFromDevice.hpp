@@ -28,8 +28,7 @@
 #include "dimensions/DataSpace.hpp"
 #include "types.h"
 
-#include <cuda_runtime_api.h>
-#include <cuda.h>
+#include <alpaka/alpaka.hpp>
 
 namespace PMacc
 {
@@ -54,7 +53,7 @@ public:
         notify(this->myId,GETVALUE, NULL);
     }
 
-    bool executeIntern() throw(std::runtime_error)
+    bool executeIntern()
     {
         return isFinished();
     }
@@ -65,11 +64,12 @@ public:
 
     virtual void init()
     {
-        CUDA_CHECK(cudaMemcpyAsync((void*) buffer->getCurrentSizeHostSidePointer(),
-                                   buffer->getCurrentSizeOnDevicePointer(),
-                                   sizeof (size_t),
-                                   cudaMemcpyDeviceToHost,
-                                   this->getCudaStream()));
+        alpaka::mem::view::copy(
+            this->getEventStream()->getCudaStream(),
+            buffer->getMemBufSizeHost(),
+            buffer->getMemBufSizeAcc(),
+            1u);
+
         this->activate();
     }
 

@@ -83,10 +83,7 @@ public:
         Environment<>::get().PluginConnector().registerPlugin(this);
     }
 
-    virtual ~CountParticles()
-    {
-
-    }
+    virtual ~CountParticles() = default;
 
     void notify(uint32_t currentStep)
     {

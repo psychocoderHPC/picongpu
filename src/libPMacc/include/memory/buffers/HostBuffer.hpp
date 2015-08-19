@@ -42,25 +42,25 @@ namespace PMacc
     template <class TYPE, unsigned DIM>
     class HostBuffer : public Buffer<TYPE, DIM>
     {
-    public:
-        /**
-         * Copies the data from the given DeviceBuffer to this HostBuffer.
-         *
-         * @param other DeviceBuffer to copy data from
-         */
-        virtual void copyFrom(DeviceBuffer<TYPE, DIM>& other) = 0;
+    protected:
+        using DataViewHost = alpaka::mem::view::View<
+            AlpakaDev,
+            TYPE,
+            alpaka::dim::DimInt<DIM>,
+            std::size_t>;
 
+    protected:
         /**
-         * Returns the current size pointer.
+         * Constructor.
          *
-         * @return pointer to current size
+         * @param dataSpace size of each dimension of the buffer
          */
-        virtual size_t* getCurrentSizePointer()
-        {
-            __startOperation(ITask::TASK_HOST);
-            return this->current_size;
-        }
-        
+        HostBuffer(DataSpace<DIM> dataSpace) :
+            Buffer<TYPE, DIM>(dataSpace, (DIM==1))
+        {}
+
+    public:
+
         /**
          * Destructor.
          */
@@ -68,17 +68,35 @@ namespace PMacc
         {
         };
 
-    protected:
+        /**
+         * Returns the internal alpaka buffer.
+         *
+         * @return internal alpaka buffer
+         */
+        virtual DataViewHost const & getMemBufView() const = 0;
+        virtual DataViewHost & getMemBufView() = 0;
 
         /**
-         * Constructor.
+         * Copies the data from the given DeviceBuffer to this HostBuffer.
          *
-         * @param dataSpace size of each dimension of the buffer
+         * @param other DeviceBuffer to copy data from
          */
-        HostBuffer(DataSpace<DIM> dataSpace) :
-        Buffer<TYPE, DIM>(dataSpace)
-        {
+        virtual void copyFrom(DeviceBuffer<TYPE, DIM>& other) = 0;
 
+        /*! returns the current size (count of elements)
+         * @return current size
+         */
+        size_t getCurrentSize()
+        {
+            return this->getSizeHost();
+        }
+
+        /*! sets the current size (count of elements)
+         * @param newsize new current size
+         */
+        void setCurrentSize(const size_t newsize)
+        {
+            this->setSizeHost(newsize);
         }
     };
 

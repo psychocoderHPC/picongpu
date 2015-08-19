@@ -1,5 +1,5 @@
 /**
- * Copyright 2013-2014 Axel Huebl, Rene Widera, Felix Schmitt
+ * Copyright 2013-2015 Axel Huebl, Rene Widera, Felix Schmitt, Benjamin Worpitz
  *
  * This file is part of PIConGPU.
  *
@@ -39,11 +39,9 @@ namespace picongpu
     class ISimulationPlugin : public IPlugin
     {
     public:
-        virtual void setMappingDescription(MappingDesc *cellDescription) = 0;
+        virtual ~ISimulationPlugin() = default;
 
-        virtual ~ISimulationPlugin()
-        {
-        }
+        virtual void setMappingDescription(MappingDesc *cellDescription) = 0;
     };
 }
 

@@ -64,11 +64,11 @@ namespace PMacc
         {
             return ExchangePushDataBox<vint_t, FRAME, DIM > (
                                                              stack.getHostBuffer().getBasePointer(),
-                                                             stack.getHostBuffer().getCurrentSizePointer(),
+                                                             alpaka::mem::view::getPtrNative(stack.getHostBuffer().getMemBufSizeHost()),
                                                              stack.getHostBuffer().getDataSpace().productOfComponents(),
                                                              PushDataBox<vint_t, FRAMEINDEX > (
                                                                                                stackIndexer.getHostBuffer().getBasePointer(),
-                                                                                               stackIndexer.getHostBuffer().getCurrentSizePointer()));
+                                                                                               alpaka::mem::view::getPtrNative(stackIndexer.getHostBuffer().getMemBufSizeHost())));
         }
 
         /**
@@ -82,7 +82,7 @@ namespace PMacc
                                                             stack.getHostBuffer().getBasePointer(),
                                                             PopDataBox<vint_t, FRAMEINDEX > (
                                                                                              stackIndexer.getHostBuffer().getBasePointer(),
-                                                                                             (vint_t*) stackIndexer.getHostBuffer().getCurrentSizePointer(),
+                                                                                             (vint_t*) alpaka::mem::view::getPtrNative(stackIndexer.getHostBuffer().getMemBufSizeHost()),
                                                                                              (vint_t) stackIndexer.getHostBuffer().getCurrentSize()));
         }
 
@@ -97,11 +97,11 @@ namespace PMacc
             assert(stackIndexer.getDeviceBuffer().hasCurrentSizeOnDevice() == true);
             return ExchangePushDataBox<vint_t, FRAME, DIM > (
                                                              stack.getDeviceBuffer().getBasePointer(),
-                                                             (vint_t*) stack.getDeviceBuffer().getCurrentSizeOnDevicePointer(),
+                                                             (vint_t*) alpaka::mem::view::getPtrNative(stack.getDeviceBuffer().getMemBufSizeAcc()),
                                                              stack.getDeviceBuffer().getDataSpace().productOfComponents(),
                                                              PushDataBox<vint_t, FRAMEINDEX > (
                                                                                                stackIndexer.getDeviceBuffer().getBasePointer(),
-                                                                                               (vint_t*) stackIndexer.getDeviceBuffer().getCurrentSizeOnDevicePointer()));
+                                                                                               (vint_t*) alpaka::mem::view::getPtrNative(stackIndexer.getDeviceBuffer().getMemBufSizeAcc())));
         }
 
         /**
@@ -115,7 +115,7 @@ namespace PMacc
                                                             stack.getDeviceBuffer().getBasePointer(),
                                                             PopDataBox<vint_t, FRAMEINDEX > (
                                                                                              stackIndexer.getDeviceBuffer().getBasePointer(),
-                                                                                             (vint_t*) stackIndexer.getDeviceBuffer().getCurrentSizeOnDevicePointer(),
+                                                                                             (vint_t*) alpaka::mem::view::getPtrNative(stackIndexer.getDeviceBuffer().getMemBufSizeAcc()),
                                                                                              (vint_t) stackIndexer.getDeviceBuffer().getCurrentSize()));
         }
 

@@ -1,6 +1,6 @@
 /**
  * Copyright 2013-2015 Axel Huebl, Felix Schmitt, Heiko Burau,
- *                     Rene Widera, Richard Pausch
+ *                     Rene Widera, Richard Pausch, Benjamin Worpitz
  *
  * This file is part of PIConGPU.
  *
@@ -30,7 +30,6 @@
 #include "types.h"
 #include "simulation_defines.hpp"
 #include "simulation_types.hpp"
-#include "basicOperations.hpp"
 #include "dimensions/DataSpace.hpp"
 
 #include "simulation_classTypes.hpp"
@@ -54,21 +53,32 @@ namespace po = boost::program_options;
 /* sum up the energy of all particles
  * the kinetic energy of all active particles will be calculated
  */
-template<class FRAME, class BinBox, class Mapping>
-__global__ void kernelBinEnergyParticles(ParticlesBox<FRAME, simDim> pb,
-                                         BinBox gBins, int numBins,
-                                         float_X minEnergy,
-                                         float_X maxEnergy,
-                                         float_X maximumSlopeToDetectorX,
-                                         float_X maximumSlopeToDetectorZ,
-                                         Mapping mapper)
+struct KernelBinEnergyParticles
 {
-
+template<
+    typename T_Acc,
+    typename FRAME,
+    typename BinBox,
+    typename Mapping>
+ALPAKA_FN_ACC void operator()(
+    T_Acc const & acc,
+    ParticlesBox<FRAME, simDim> const & pb,
+    BinBox const & gBins,
+    int const & numBins,
+    float_X const & minEnergy,
+    float_X const & maxEnergy,
+    float_X const & maximumSlopeToDetectorX,
+    float_X const & maximumSlopeToDetectorZ,
+    Mapping const & mapper) const
+{
     typedef typename MappingDesc::SuperCellSize Block;
 
-    __shared__ FRAME *frame;
-    __shared__ bool isValid;
-    __shared__ lcellId_t particlesInSuperCell;
+    DataSpace<simDim> const blockIndex(alpaka::idx::getIdx<alpaka::Grid, alpaka::Blocks>(acc));
+    DataSpace<simDim> const threadIndex(alpaka::idx::getIdx<alpaka::Block, alpaka::Threads>(acc));
+
+    auto frame(alpaka::block::shared::allocVar<FRAME *>(acc));
+    auto isValid(alpaka::block::shared::allocVar<bool>(acc));
+    auto particlesInSuperCell(alpaka::block::shared::allocVar<lcellId_t>(acc));
 
     const bool enableDetector = maximumSlopeToDetectorX != float_X(0.0) && maximumSlopeToDetectorZ != float_X(0.0);
 
@@ -76,9 +86,9 @@ __global__ void kernelBinEnergyParticles(ParticlesBox<FRAME, simDim> pb,
      * 0 is for <minEnergy
      * (numBins+2)-1 is for >maxEnergy
      */
-    extern __shared__ float_X shBin[]; /* size must be numBins+2 because we have <min and >max */
+    float_X * const shBin(acc.template getBlockSharedExternMem<float_X>()); /* size must be numBins+2 because we have <min and >max */
 
-    __syncthreads(); /*wait that all shared memory is initialised*/
+    acc.syncBlockThreads(); /*wait that all shared memory is initialised*/
 
     int realNumBins = numBins + 2;
 
@@ -87,12 +97,11 @@ __global__ void kernelBinEnergyParticles(ParticlesBox<FRAME, simDim> pb,
     typedef typename Mapping::SuperCellSize SuperCellSize;
     const int threads = PMacc::math::CT::volume<SuperCellSize>::type::value;
 
-    const DataSpace<simDim > threadIndex(threadIdx);
     const int linearThreadIdx = DataSpaceOperations<simDim>::template map<SuperCellSize > (threadIndex);
 
     if (linearThreadIdx == 0)
     {
-        const DataSpace<simDim> superCellIdx(mapper.getSuperCellIndex(DataSpace<simDim > (blockIdx)));
+        const DataSpace<simDim> superCellIdx(mapper.getSuperCellIndex(DataSpace<simDim > (blockIndex)));
         frame = &(pb.getLastFrame(superCellIdx, isValid));
         particlesInSuperCell = pb.getSuperCell(superCellIdx).getSizeLastFrame();
     }
@@ -102,7 +111,7 @@ __global__ void kernelBinEnergyParticles(ParticlesBox<FRAME, simDim> pb,
         shBin[i] = float_X(0.);
     }
 
-    __syncthreads();
+    acc.syncBlockThreads();
     if (!isValid)
         return; /* end kernel if we have no frames */
 
@@ -173,25 +182,73 @@ __global__ void kernelBinEnergyParticles(ParticlesBox<FRAME, simDim> pb,
                 /* overflow for big weighting reduces in shared mem */
                 /* atomicAdd(&(shBin[binNumber]), (uint32_t) weighting); */
                 const float_X normedWeighting = float_X(weighting) / float_X(particles::TYPICAL_NUM_PARTICLES_PER_MACROPARTICLE);
-                atomicAddWrapper(&(shBin[binNumber]), normedWeighting);
+                alpaka::atomic::atomicOp<alpaka::atomic::op::Add>(acc, &(shBin[binNumber]), normedWeighting);
             }
         }
-        __syncthreads();
+        acc.syncBlockThreads();
         if (linearThreadIdx == 0)
         {
             frame = &(pb.getPreviousFrame(*frame, isValid));
             particlesInSuperCell = PMacc::math::CT::volume<Block>::type::value;
         }
-        __syncthreads();
+        acc.syncBlockThreads();
     }
 
-    __syncthreads();
+    acc.syncBlockThreads();
     for (int i = linearThreadIdx; i < realNumBins; i += threads)
     {
-        atomicAddWrapper(&(gBins[i]), float_64(shBin[i]));
+        alpaka::atomic::atomicOp<alpaka::atomic::op::Add>(acc, &(gBins[i]), float_64(shBin[i]));
     }
-    __syncthreads();
+    acc.syncBlockThreads();
 }
+};
+
+}
+
+namespace alpaka
+{
+    namespace kernel
+    {
+        namespace traits
+        {
+            //#############################################################################
+            //! The trait for getting the size of the block shared extern memory for a kernel.
+            //#############################################################################
+            template<
+                typename T_Acc>
+            struct BlockSharedExternMemSizeBytes<
+                picongpu::KernelBinEnergyParticles,
+                T_Acc>
+            {
+                //-----------------------------------------------------------------------------
+                //! \return The size of the shared memory allocated for a block.
+                //-----------------------------------------------------------------------------
+                template<
+                    typename TDim,
+                    typename FRAME,
+                    typename BinBox,
+                    typename Mapping>
+                ALPAKA_FN_HOST static auto getBlockSharedExternMemSizeBytes(
+                    alpaka::Vec<TDim, alpaka::size::Size<T_Acc>> const & vuiBlockThreadsExtents,
+                    picongpu::ParticlesBox<FRAME, picongpu::simDim> const & pb,
+                    BinBox const & gBins,
+                    int const & numBins,
+                    picongpu::float_X const & minEnergy,
+                    picongpu::float_X const & maxEnergy,
+                    picongpu::float_X const & maximumSlopeToDetectorX,
+                    picongpu::float_X const & maximumSlopeToDetectorZ,
+                    Mapping const & mapper)
+                -> alpaka::size::Size<T_Acc>
+                {
+                    return (numBins + 2) * sizeof(picongpu::float_X);
+                }
+            };
+        }
+    }
+}
+
+namespace picongpu
+{
 
 template<class ParticlesType>
 class BinEnergyParticles : public ISimulationPlugin
@@ -246,10 +303,7 @@ public:
         Environment<>::get().PluginConnector().registerPlugin(this);
     }
 
-    virtual ~BinEnergyParticles()
-    {
-
-    }
+    virtual ~BinEnergyParticles() = default;
 
     void notify(uint32_t currentStep)
     {
@@ -390,7 +444,7 @@ private:
     void calBinEnergyParticles(uint32_t currentStep)
     {
         gBins->getDeviceBuffer().setValue(0);
-        dim3 block(MappingDesc::SuperCellSize::toRT().toDim3());
+        DataSpace<simDim> block(MappingDesc::SuperCellSize::toRT());
 
         /** Assumption: distanceToDetector >> simulated Area in y-Direction
          *          AND     simulated area in X,Z << slit  */
@@ -407,8 +461,13 @@ private:
         const float_X minEnergy = minEnergy_keV * UNITCONV_keV_to_Joule / UNIT_ENERGY;
         const float_X maxEnergy = maxEnergy_keV * UNITCONV_keV_to_Joule / UNIT_ENERGY;
 
-        __picKernelArea(kernelBinEnergyParticles, *cellDescription, AREA)
-            (block, (realNumBins) * sizeof (float_X))
+        KernelBinEnergyParticles kernelBinEnergyParticles;
+        __picKernelArea(
+            kernelBinEnergyParticles,
+            alpaka::dim::DimInt<simDim>,
+            *cellDescription,
+            AREA,
+            block)
             (particles->getDeviceParticlesBox(),
              gBins->getDeviceBuffer().getDataBox(), numBins, minEnergy,
              maxEnergy, maximumSlopeToDetectorX, maximumSlopeToDetectorZ);

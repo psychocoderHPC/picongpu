@@ -9,21 +9,25 @@ set(CMAKE_PREFIX_PATH "/usr/lib/x86_64-linux-gnu/"
 ###############################################################################
 # CUDA
 ###############################################################################
-find_package(CUDA REQUIRED)
-set(CUDA_NVCC_FLAGS "-arch=sm_20;-use_fast_math;")
-set(CUDA_INCLUDE_DIRS ${CMAKE_CURRENT_SOURCE_DIR})
-include_directories(${CUDA_INCLUDE_DIRS})
-cuda_include_directories(${CUDA_INCLUDE_DIRS})
+find_package(CUDA)
+if(CUDA_FOUND)
+    add_definitions("-DMAMC_CUDA_ENABLED=1")
 
-OPTION(CUDA_OUTPUT_INTERMEDIATE_CODE "Output ptx code" OFF)
-if(CUDA_OUTPUT_INTERMEDIATE_CODE)
-set(CUDA_NVCC_FLAGS "${CUDA_NVCC_FLAGS};-Xptxas;-v;--keep")
-endif(CUDA_OUTPUT_INTERMEDIATE_CODE)
+    set(CUDA_NVCC_FLAGS "-arch=sm_20;-use_fast_math;")
+    set(CUDA_INCLUDE_DIRS ${CMAKE_CURRENT_SOURCE_DIR})
+    include_directories(${CUDA_INCLUDE_DIRS})
+    cuda_include_directories(${CUDA_INCLUDE_DIRS})
 
-SET(CUDA_OPTIMIZATION_TYPE "unset" CACHE STRING "CUDA Optimization")
-set_property(CACHE CUDA_OPTIMIZATION_TYPE PROPERTY STRINGS "unset;-G0;-O0;-O1;-O2;-O3")
-if(NOT ${CUDA_OPTIMIZATION_TYPE} STREQUAL  "unset")
-  set(CUDA_NVCC_FLAGS "${CUDA_NVCC_FLAGS};${CUDA_OPTIMIZATION_TYPE}")
+    option(CUDA_OUTPUT_INTERMEDIATE_CODE "Output ptx code" OFF)
+    if(CUDA_OUTPUT_INTERMEDIATE_CODE)
+    set(CUDA_NVCC_FLAGS "${CUDA_NVCC_FLAGS};-Xptxas;-v;--keep")
+    endif(CUDA_OUTPUT_INTERMEDIATE_CODE)
+
+    SET(CUDA_OPTIMIZATION_TYPE "unset" CACHE STRING "CUDA Optimization")
+    set_property(CACHE CUDA_OPTIMIZATION_TYPE PROPERTY STRINGS "unset;-G0;-O0;-O1;-O2;-O3")
+    if(NOT ${CUDA_OPTIMIZATION_TYPE} STREQUAL  "unset")
+      set(CUDA_NVCC_FLAGS "${CUDA_NVCC_FLAGS};${CUDA_OPTIMIZATION_TYPE}")
+    endif()
 endif()
 
 

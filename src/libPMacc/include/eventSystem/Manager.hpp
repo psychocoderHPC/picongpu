@@ -100,7 +100,7 @@ namespace PMacc
 
         TaskMap tasks;
         TaskMap passiveTasks;
-        EventPool *eventPool;
+        std::unique_ptr<EventPool> eventPool;
     };
 
 } //namespace PMacc
