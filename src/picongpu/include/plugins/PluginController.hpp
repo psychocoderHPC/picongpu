@@ -120,8 +120,8 @@ private:
         typename T_TupleVector>
     struct ApplyDataToPlugin :
         bmpl::apply1<
-            typename PMacc::math::CT::At_c<T_TupleVector, 0>::type,
-            typename PMacc::math::CT::At_c<T_TupleVector, 1>::type>
+            typename PMacc::math::CT::At_c<T_TupleVector, 1>::type,
+            typename PMacc::math::CT::At_c<T_TupleVector, 0>::type>
     {};
 
     /* define stand alone plugins*/
@@ -144,98 +144,64 @@ private:
         >;
 
     /* define field plugins */
+    using UnspecializedFieldPlugins =
+        bmpl::vector<
+            /*SliceFieldPrinterMulti<bmpl::_1>*/
+        >;
 
-//#if BOOST_COMP_MSVC
+    using AllFields =
+        bmpl::vector<
+            FieldB,
+            FieldE,
+            FieldJ
+        >;
+
+    using CombinedUnspecializedFieldPlugins =
+        AllCombinations<
+            bmpl::vector<AllFields,UnspecializedFieldPlugins>
+        >::type;
+
     using FieldPlugins =
-        bmpl::vector</*SliceFieldPrinterMulti<FieldB>, SliceFieldPrinterMulti<FieldE>, SliceFieldPrinterMulti<FieldJ>*/>;
-//#else
-//    using UnspecializedFieldPlugins =
-//        bmpl::vector<
-//            /*SliceFieldPrinterMulti<bmpl::_1>*/
-//        >;
-//
-//    using AllFields =
-//        bmpl::vector<
-//            FieldB,
-//            FieldE,
-//            FieldJ
-//        >;
-//
-//    using CombinedUnspecializedFieldPlugins =
-//        AllCombinations<
-//            bmpl::vector<UnspecializedFieldPlugins, AllFields>
-//        >::type;
-//
-//    using FieldPlugins =
-//        bmpl::transform<
-//            CombinedUnspecializedFieldPlugins,
-//            ApplyDataToPlugin<bmpl::_1>
-//        >::type;
-//#endif
+        bmpl::transform<
+            CombinedUnspecializedFieldPlugins,
+            ApplyDataToPlugin<bmpl::_1>
+        >::type;
 
-//#if BOOST_COMP_MSVC
-    using SpeciesPlugins =
-        bmpl::vector <
-            CountParticles<PIC_Electrons>,
-            CountParticles<PIC_Ions>,
-            EnergyParticles<PIC_Electrons>,
-            EnergyParticles<PIC_Ions>,
-            BinEnergyParticles<PIC_Electrons>,
-            BinEnergyParticles<PIC_Ions>,
-            PositionsParticles<PIC_Electrons>,
-            PositionsParticles<PIC_Ions>
+
+
+    /* define species plugins */
+    using UnspecializedSpeciesPlugins =
+        bmpl::vector<
+            CountParticles<bmpl::_1>,
+            EnergyParticles<bmpl::_1>,
+            BinEnergyParticles<bmpl::_1>,
+            PositionsParticles<bmpl::_1>
 #if(PIC_ENABLE_LIVE_VIEW == 1)
-          , LiveViewPlugin<PIC_Electrons>
-          , LiveViewPlugin<PIC_Ions>
+            , LiveViewPlugin<bmpl::_1>
 #endif
 #if(ENABLE_RADIATION == 1)
-          , Radiation<PIC_Electrons>
-          , Radiation<PIC_Ions>
+          , Radiation<bmpl::_1>
 #endif
 #if(PIC_ENABLE_PNG==1)
-          , PngPlugin< Visualisation<PIC_Electrons, PngCreator> >
-          , PngPlugin< Visualisation<PIC_Ions, PngCreator> >
+          , PngPlugin< Visualisation<bmpl::_1, PngCreator> >
 #endif
 #if(ENABLE_HDF5 == 1)
           , PerSuperCell<bmpl::_1>
-          , PhaseSpaceMulti<particles::shapes::Counter::ChargeAssignment, PIC_Electrons>
-          , PhaseSpaceMulti<particles::shapes::Counter::ChargeAssignment, PIC_Ions>
+          , PhaseSpaceMulti<particles::shapes::Counter::ChargeAssignment, bmpl::_1>
 #endif
         >;
-//#else
-//    /* define species plugins */
-//    using UnspecializedSpeciesPlugins =
-//        bmpl::vector<
-//            CountParticles<bmpl::_1>,
-//            EnergyParticles<bmpl::_1>,
-//            BinEnergyParticles<bmpl::_1>,
-//            PositionsParticles<bmpl::_1>
-//#if(PIC_ENABLE_LIVE_VIEW == 1)
-//          , LiveViewPlugin<bmpl::_1>
-//#endif
-//#if(ENABLE_RADIATION == 1)
-//          , Radiation<bmpl::_1>
-//#endif
-//#if(PIC_ENABLE_PNG==1)
-//          , PngPlugin< Visualisation<bmpl::_1, PngCreator> >
-//#endif
-//#if(ENABLE_HDF5 == 1)
-//          , PerSuperCell<FieldB>
-//          , PhaseSpaceMulti<particles::shapes::Counter::ChargeAssignment, bmpl::_1>
-//#endif
-//        >;
-//
-//    using CombinedUnspecializedSpeciesPlugins =
-//        AllCombinations<
-//            bmpl::vector<UnspecializedSpeciesPlugins, VectorAllSpecies>
-//        >::type;
-//
-//    using SpeciesPlugins =
-//        bmpl::transform<
-//            CombinedUnspecializedSpeciesPlugins,
-//            ApplyDataToPlugin<bmpl::_1>
-//        >::type;
-//#endif
+
+    using CombinedUnspecializedSpeciesPlugins =
+        AllCombinations<
+            bmpl::vector<VectorAllSpecies,UnspecializedSpeciesPlugins>
+        >::type;
+
+    using SpeciesPlugins =
+        bmpl::transform<
+            CombinedUnspecializedSpeciesPlugins,
+            ApplyDataToPlugin<bmpl::_1>
+        >::type;
+
 
     /* create sequence with all plugins*/
     using AllPlugins =
