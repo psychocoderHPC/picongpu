@@ -83,7 +83,7 @@ namespace PMacc
         template<
             typename TDim,
             typename TVal,
-            typename = typename std::enable_if<(TDim::value > DIM)>::type>
+            typename = typename std::enable_if<(TDim::value == DIM)>::type>
         HDINLINE DataSpace(
             alpaka::Vec<TDim, TVal> const & vec)
         {
