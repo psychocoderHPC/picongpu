@@ -26,6 +26,7 @@
 #include "eventSystem/tasks/Factory.hpp"
 #include "memory/buffers/DeviceBuffer.hpp"
 #include "memory/boxes/DataBox.hpp"
+#include "algorithms/TypeCast.hpp"
 
 #include <alpaka/alpaka.hpp>
 
@@ -242,7 +243,8 @@ private:
 
         return alpaka::mem::buf::alloc<TYPE, std::size_t>(
             Environment<>::get().DeviceManager().getDevice(),
-            this->getDataSpace());
+            algorithms::precisionCast::precisionCast<std::size_t>(this->getDataSpace())
+            );
     }
 
     /*! Creates a ND-buffer without pitch.
@@ -257,7 +259,8 @@ private:
         DataBufDev buf(
             alpaka::mem::buf::alloc<TYPE, std::size_t>(
                 Environment<>::get().DeviceManager().getDevice(),
-                this->getDataSpace()));
+                algorithms::precisionCast::precisionCast<std::size_t>(this->getDataSpace())
+            ));
 
         using MemBufFake = alpaka::mem::buf::Buf<
             AlpakaDev,
