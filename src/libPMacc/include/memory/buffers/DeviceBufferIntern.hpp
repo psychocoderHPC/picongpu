@@ -270,9 +270,12 @@ private:
                 static_cast<std::size_t>(this->getDataSpace().productOfComponents())));
 
         // Swap the pointers of our buffers.
-        std::swap(const_cast<TYPE *>(buf.m_spBufCpuImpl->m_pMem), const_cast<TYPE *>(fakeBuf.m_spBufCpuImpl->m_pMem));
+        TYPE * tmp(const_cast<TYPE *>(buf.m_spBufCpuImpl->m_pMem));
+        const_cast<TYPE *>(buf.m_spBufCpuImpl->m_pMem) = const_cast<TYPE *>(fakeBuf.m_spBufCpuImpl->m_pMem);
+        const_cast<TYPE *>(fakeBuf.m_spBufCpuImpl->m_pMem) = tmp;
+
         // Reset the pitch of the original buffer to the correct pitch of the fake buffer.
-        *const_cast<std::size_t *>(&buf.m_spBufCpuImpl->m_uiPitchBytes) = this->getDataSpace()[0u] * sizeof(TYPE);
+        *const_cast<std::size_t *>(&buf.m_spBufCpuImpl->m_pitchBytes) = this->getDataSpace()[0u] * sizeof(TYPE);
 
         return buf;
     }
