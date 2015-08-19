@@ -86,5 +86,5 @@
     {\
         PMACC_KERNEL_CATCH(::alpaka::wait::wait(::PMacc::Environment<>::get().DeviceManager().getDevice()), "__cudaKernel: crash before kernel call");\
         ::PMacc::TaskKernel * const taskKernel(::PMacc::Environment<>::get().Factory().createTaskKernel(#KERNEL));\
-        auto const exec(::alpaka::exec::create<::PMacc::AlpakaAcc<DIM>>(::alpaka::workdiv::WorkDivMembers<DIM, size_t>(__VA_ARGS__), KERNEL\
+        auto const exec(::alpaka::exec::create<::PMacc::AlpakaAcc<DIM>>(::alpaka::workdiv::WorkDivMembers<DIM, AlpakaSize>(__VA_ARGS__), KERNEL\
         PMACC_KERNEL_PARAMS

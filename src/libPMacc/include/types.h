@@ -41,11 +41,12 @@
 
 namespace PMacc
 {
+using AlpakaSize = int;
 using AlpakaDev = alpaka::dev::DevCpu;
 using AlpakaStream = alpaka::stream::StreamCpuAsync;
 template<
     typename TDim>
-using AlpakaAcc = alpaka::acc::AccCpuOmp2Blocks<TDim, int>;
+using AlpakaAcc = alpaka::acc::AccCpuOmp2Blocks<TDim, AlpakaSize>;
 
 namespace bmpl = boost::mpl;
 namespace bfs = boost::filesystem;
