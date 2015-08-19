@@ -33,6 +33,7 @@
 #include <boost/mpl/at.hpp>
 #include <boost/mpl/copy.hpp>
 #include <boost/mpl/pop_back.hpp>
+#include <boost/mpl/if.hpp>
 #include <boost/type_traits/is_same.hpp>
 
 namespace PMacc
@@ -90,6 +91,7 @@ struct AllCombinations<T_MplSeq, T_TmpResult, false >
 
     static const uint32_t rangeVectorSize = bmpl::size<MplSeq>::value;
     typedef typename bmpl::at<MplSeq, bmpl::integral_c<uint32_t, rangeVectorSize - 1 > > ::type LastElement;
+    typedef bmpl::empty<LastElement> IsLastElementEmpty;
     typedef typename MakeSeq<LastElement>::type LastElementAsSequence;
     typedef typename bmpl::pop_back<MplSeq>::type ShrinkedRangeVector;
 
@@ -105,7 +107,8 @@ struct AllCombinations<T_MplSeq, T_TmpResult, false >
 
     typedef typename MakeSeqFromNestedSeq<NestedSeq>::type OneSeq;
 
-    typedef typename detail::AllCombinations<ShrinkedRangeVector, OneSeq>::type type;
+    typedef typename detail::AllCombinations<ShrinkedRangeVector, OneSeq>::type ResultIfNotEmpty;
+        typedef typename bmpl::if_<IsLastElementEmpty,bmpl::vector0<>,ResultIfNotEmpty>::type type;
 };
 
 /** recursive end implementation
@@ -148,6 +151,7 @@ struct AllCombinations
 
     static const uint32_t rangeVectorSize = bmpl::size<MplSeq>::value;
     typedef typename bmpl::at<MplSeq, bmpl::integral_c<uint32_t, rangeVectorSize - 1 > > ::type LastElement;
+    typedef bmpl::empty<LastElement> IsLastElementEmpty;
     typedef typename MakeSeq<LastElement>::type LastElementAsSequence;
 
     typedef typename bmpl::pop_back<MplSeq>::type ShrinkedRangeVector;
@@ -166,7 +170,8 @@ struct AllCombinations
     >::type FirstList;
 
     /* result type: MplSequence of N-tuples */
-    typedef typename detail::AllCombinations<ShrinkedRangeVector, FirstList>::type type;
+    typedef typename detail::AllCombinations<ShrinkedRangeVector, FirstList>::type ResultIfNotEmpty;
+    typedef typename bmpl::if_<IsLastElementEmpty,bmpl::vector0<>,ResultIfNotEmpty>::type type;
 };
 
 
