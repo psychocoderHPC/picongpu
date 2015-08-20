@@ -58,15 +58,6 @@ struct Push
 
         const MomType new_mom = mom_plus + float_X(0.5) * charge * eField * deltaT;
         mom = new_mom;
-
-        Velocity velocity;
-        const float3_X vel = velocity(new_mom, mass);
-
-        for(uint32_t d=0;d<simDim;++d)
-        {
-            pos[d] += (vel[d] * deltaT) / cellSize[d];
-        }
-
     }
 };
 } //namespace particlePusherBoris

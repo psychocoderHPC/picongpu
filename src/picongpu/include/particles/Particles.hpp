@@ -57,6 +57,7 @@ public:
     void init(FieldE &fieldE, FieldB &fieldB, FieldJ &fieldJ, FieldTmp &fieldTmp);
 
     void update(uint32_t currentStep);
+    void move(uint32_t currentStep);
 
     template<typename T_GasFunctor, typename T_PositionFunctor>
     void initGas(T_GasFunctor& gasFunctor, T_PositionFunctor& positionFunctor, const uint32_t currentStep);

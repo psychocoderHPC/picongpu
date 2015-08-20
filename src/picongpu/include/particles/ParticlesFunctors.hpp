@@ -138,6 +138,33 @@ struct CallUpdate
                             T_StorageTuple& tuple,
                             const uint32_t currentStep,
                             const T_Event eventInt,
+                            T_Event& updateEvent
+                            ) const
+    {
+        typedef typename HasFlag<FrameType, particlePusher<> >::type hasPusher;
+        if (hasPusher::value)
+        {
+            PMACC_AUTO(speciesPtr, tuple[SpeciesName()]);
+
+            __startTransaction(eventInt);
+            speciesPtr->update(currentStep);
+            updateEvent += __endTransaction();
+        }
+    }
+};
+
+template<typename T_SpeciesName>
+struct CallMove
+{
+    typedef T_SpeciesName SpeciesName;
+    typedef typename SpeciesName::type SpeciesType;
+    typedef typename SpeciesType::FrameType FrameType;
+
+    template<typename T_StorageTuple, typename T_Event>
+    HINLINE void operator()(
+                            T_StorageTuple& tuple,
+                            const uint32_t currentStep,
+                            const T_Event eventInt,
                             T_Event& updateEvent,
                             T_Event& commEvent
                             ) const
@@ -148,7 +175,7 @@ struct CallUpdate
             PMACC_AUTO(speciesPtr, tuple[SpeciesName()]);
 
             __startTransaction(eventInt);
-            speciesPtr->update(currentStep);
+            speciesPtr->move(currentStep);
             commEvent += speciesPtr->asyncCommunication(__getTransactionEvent());
             updateEvent += __endTransaction();
         }
@@ -156,7 +183,7 @@ struct CallUpdate
 };
 
 /** \struct CallIonization
- * 
+ *
  * \brief Tests if species can be ionized and calls the kernel to do that
  *
  * \tparam T_SpeciesName name of particle species that is checked for ionization

@@ -240,8 +240,8 @@ struct ZigZag
 
         /*note: all positions are normalized to the grid*/
         floatD_X pos[2];
-        pos[0] = (pos1 - deltaPos);
-        pos[1] = (pos1);
+        pos[0] = (pos1);
+        pos[1] = (pos1 + deltaPos);
 
         DataSpace<simDim> I[2];
         floatD_X relayPoint;

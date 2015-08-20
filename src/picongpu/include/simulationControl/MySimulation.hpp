@@ -398,10 +398,9 @@ public:
 
         EventTask initEvent = __getTransactionEvent();
         EventTask updateEvent;
-        EventTask commEvent;
 
         ForEach<VectorAllSpecies, particles::CallUpdate<bmpl::_1>, MakeIdentifier<bmpl::_1> > particleUpdate;
-        particleUpdate(forward(particleStorage), currentStep, initEvent, forward(updateEvent), forward(commEvent));
+        particleUpdate(forward(particleStorage), currentStep, initEvent, forward(updateEvent));
 
         __setTransactionEvent(updateEvent);
         /** remove background field for particle pusher */
@@ -414,19 +413,29 @@ public:
 
         fieldJ->clear();
 
-        __setTransactionEvent(commEvent);
+
         (*currentBGField)(fieldJ, nvfct::Add(), FieldBackgroundJ(fieldJ->getUnit()),
                           currentStep, FieldBackgroundJ::activated);
 #if (ENABLE_CURRENT == 1)
         ForEach<VectorAllSpecies, ComputeCurrent<bmpl::_1,bmpl::int_<CORE + BORDER> >, MakeIdentifier<bmpl::_1> > computeCurrent;
         computeCurrent(forward(fieldJ),forward(particleStorage), currentStep);
 #endif
+        EventTask initEventMove = __getTransactionEvent();
+        EventTask moveEvent;
+        EventTask commEvent;
+#if (ENABLE_CURRENT == 1)
+        EventTask eRecvCurrent;
+        if(bmpl::size<VectorAllSpecies>::type::value > 0)
+        {
+            eRecvCurrent = fieldJ->asyncCommunication(__getTransactionEvent());
+        }
+#endif
+        ForEach<VectorAllSpecies, particles::CallMove<bmpl::_1>, MakeIdentifier<bmpl::_1> > particleMove;
+        particleMove(forward(particleStorage), currentStep, initEventMove, forward(moveEvent), forward(commEvent));
 
 #if  (ENABLE_CURRENT == 1)
         if(bmpl::size<VectorAllSpecies>::type::value > 0)
         {
-            EventTask eRecvCurrent = fieldJ->asyncCommunication(__getTransactionEvent());
-
             const DataSpace<simDim> currentRecvLower( GetMargin<fieldSolver::CurrentInterpolation>::LowerMargin( ).toRT( ) );
             const DataSpace<simDim> currentRecvUpper( GetMargin<fieldSolver::CurrentInterpolation>::UpperMargin( ).toRT( ) );
 
@@ -452,6 +461,8 @@ public:
             }
         }
 #endif
+        __setTransactionEvent(moveEvent);
+        __setTransactionEvent(commEvent);
 
         this->myFieldSolver->update_afterCurrent(currentStep);
     }
