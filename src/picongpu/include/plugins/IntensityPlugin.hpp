@@ -76,7 +76,7 @@ ALPAKA_FN_ACC void operator()(
     auto const s_integrated(alpaka::block::shared::allocArr<float_X, SuperCellSize::y::value>(acc));
     auto const s_max(alpaka::block::shared::allocArr<float_X, SuperCellSize::y::value>(acc));
 
-    acc.syncBlockThreads(); /*wait that all shared memory is initialised*/
+    alpaka::block::sync::syncBlockThreads(acc); /*wait that all shared memory is initialised*/
 
     /*descripe size of a worker block for cached memory*/
     typedef SuperCellDescription<
@@ -94,7 +94,7 @@ ALPAKA_FN_ACC void operator()(
         s_integrated[threadIndex.y()] = float_X(0.0);
         s_max[threadIndex.y()] = float_X(0.0);
     }
-    acc.syncBlockThreads();
+    alpaka::block::sync::syncBlockThreads(acc);
 
     /*move cell wise over z direction(without garding cells)*/
     for (int z = GUARD_SIZE * SuperCellSize::z::value; z < cellsCount.z() - GUARD_SIZE * SuperCellSize::z::value; ++z)
@@ -104,7 +104,7 @@ ALPAKA_FN_ACC void operator()(
         {
             const float3_X field_at_point(field(DataSpace<DIM3 > (x, yGlobal, z)));
             s_field(threadIndex) = math::abs2(field_at_point);
-            acc.syncBlockThreads();
+            alpaka::block::sync::syncBlockThreads(acc);
             if (threadIndex.x() == 0)
             {
                 /*master threads moves cell wise over 2D supercell*/
@@ -118,7 +118,7 @@ ALPAKA_FN_ACC void operator()(
             }
         }
     }
-    acc.syncBlockThreads();
+    alpaka::block::sync::syncBlockThreads(acc);
 
     if (threadIndex.x() == 0)
     {

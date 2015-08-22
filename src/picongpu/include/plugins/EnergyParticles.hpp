@@ -73,7 +73,7 @@ ALPAKA_FN_ACC void operator()(
     auto shEnergyKin(alpaka::block::shared::allocVar<float_X>(acc));   /* shared kinetic energy */
     auto shEnergy(alpaka::block::shared::allocVar<float_X>(acc));      /* shared total energy */
 
-    acc.syncBlockThreads(); /* wait that all shared memory is initialised */
+    alpaka::block::sync::syncBlockThreads(acc); /* wait that all shared memory is initialised */
 
     float_X _local_energyKin = float_X(0.0); /* sum kinetic energy for this thread */
     float_X _local_energy = float_X(0.0); /* sum total energy for this thread */
@@ -91,7 +91,7 @@ ALPAKA_FN_ACC void operator()(
         shEnergy = float_X(0.0); /* set shared total energy to zero */
     }
 
-    acc.syncBlockThreads(); /* wait till thread 0 finishes set up */
+    alpaka::block::sync::syncBlockThreads(acc); /* wait till thread 0 finishes set up */
     if (!isValid)
         return; /* end kernel if we have no frames */
 
@@ -138,7 +138,7 @@ ALPAKA_FN_ACC void operator()(
             _local_energy += sqrtf(mom2 + mass * mass * c2) * SPEED_OF_LIGHT;
 
         }
-        acc.syncBlockThreads(); /* wait till all threads have added their particle energies */
+        alpaka::block::sync::syncBlockThreads(acc); /* wait till all threads have added their particle energies */
 
         /* get next particle frame */
         if (linearThreadIdx == 0)
@@ -147,14 +147,14 @@ ALPAKA_FN_ACC void operator()(
             frame = &(pb.getPreviousFrame(*frame, isValid));
         }
         isParticle = true; /* all following frames are filled with particles */
-        acc.syncBlockThreads(); /* wait till thread 0 is done */
+        alpaka::block::sync::syncBlockThreads(acc); /* wait till thread 0 is done */
     }
 
     /* add energies on block level using shared memory */
     alpaka::atomic::atomicOp<alpaka::atomic::op::Add>(acc, &shEnergyKin, _local_energyKin); /* add kinetic energy */
     alpaka::atomic::atomicOp<alpaka::atomic::op::Add>(acc, &shEnergy, _local_energy);       /* add total energy */
 
-    acc.syncBlockThreads(); /* wait till all threads have added their energies */
+    alpaka::block::sync::syncBlockThreads(acc); /* wait till all threads have added their energies */
 
     /* add energies on global level using global memory */
     if (linearThreadIdx == 0) /* only done by thread 0 of a block */

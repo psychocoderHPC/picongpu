@@ -162,7 +162,7 @@ ALPAKA_FN_ACC void operator()(
     // old:  DataSpaceOperations<DIM3>::map<Block > (DataSpace<DIM3 > (threadIndex));
 
 
-    acc.syncBlockThreads(); /*wait that all shared memory is initialized*/
+    alpaka::block::sync::syncBlockThreads(acc); /*wait that all shared memory is initialized*/
 
 
     // simulation time (needed for retarded time)
@@ -192,7 +192,7 @@ ALPAKA_FN_ACC void operator()(
            all threads must wait for the selection of a new frame
            until all threads have evaluated "isValid"
         */
-        acc.syncBlockThreads();
+        alpaka::block::sync::syncBlockThreads(acc);
 
         // select SuperCell and add one sided guard again
         DataSpace<simDim> superCell = DataSpaceOperations<simDim>::map(superCellsCount, super_cell_index);
@@ -220,7 +220,7 @@ ALPAKA_FN_ACC void operator()(
             counter_s = 0;
           }
 
-        acc.syncBlockThreads();
+        alpaka::block::sync::syncBlockThreads(acc);
 
         /* goto next supercell
          *
@@ -382,7 +382,7 @@ ALPAKA_FN_ACC void operator()(
               } // END: only threads with particles are running
 
 
-            acc.syncBlockThreads(); // wait till every thread has loaded its particle data
+            alpaka::block::sync::syncBlockThreads(acc); // wait till every thread has loaded its particle data
 
 
 
@@ -466,7 +466,7 @@ ALPAKA_FN_ACC void operator()(
 
 
             // wait till all radiation contributions for this super cell are done
-            acc.syncBlockThreads();
+            alpaka::block::sync::syncBlockThreads(acc);
 
 
 
@@ -484,7 +484,7 @@ ALPAKA_FN_ACC void operator()(
               }
 
             // wait till first thread has loaded new frame
-            acc.syncBlockThreads();
+            alpaka::block::sync::syncBlockThreads(acc);
 
             // run thrue while-loop(is Valid) again
 

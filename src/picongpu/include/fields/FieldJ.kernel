@@ -105,13 +105,13 @@ ALPAKA_FN_ACC void operator()(
     /* This memory is used by all virtual blocks*/
     auto cachedJ(CachedBox::create < 0, typename JBox::ValueType > (acc, BlockDescription_()));
 
-    acc.syncBlockThreads();
+    alpaka::block::sync::syncBlockThreads(acc);
 
     Set<typename JBox::ValueType > set(float3_X::create(0.0));
     ThreadCollective<BlockDescription_, cellsPerSuperCell * workerMultiplier> collectiveSet(linearThreadIdx);
     collectiveSet(set, cachedJ);
 
-    acc.syncBlockThreads();
+    alpaka::block::sync::syncBlockThreads(acc);
 
     while (isValid)
     {
@@ -134,7 +134,7 @@ ALPAKA_FN_ACC void operator()(
     }
 
     /* we wait that all threads finish the loop*/
-    acc.syncBlockThreads();
+    alpaka::block::sync::syncBlockThreads(acc);
 
     nvidia::functors::Add add;
     const DataSpace<simDim> blockCell = block * SuperCellSize::toRT();
@@ -232,7 +232,7 @@ ALPAKA_FN_ACC void operator()(
               fieldJBlock
               );
 
-    acc.syncBlockThreads();
+    alpaka::block::sync::syncBlockThreads(acc);
 
     const DataSpace<Mapping::Dim> cell(blockCell + threadIndex);
 

@@ -41,9 +41,11 @@ struct IFunctor : private T_Base
     {
     }
 
-    DINLINE void init(const DataSpace<simDim>& totalCellOffset)
+    DINLINE void init(
+        PMacc::AlpakaAcc<alpaka::dim::DimInt<simDim>> const & acc,
+        const DataSpace<simDim>& totalCellOffset)
     {
-        Base::init(totalCellOffset);
+        Base::init(acc, totalCellOffset);
     }
 
     DINLINE floatD_X operator()(const uint32_t currentParticleIdx)

@@ -54,13 +54,13 @@ namespace PMacc
             AlpakaDev,
             std::size_t,
             alpaka::dim::DimInt<1u>,
-            std::size_t>;
+            AlpakaSize>;
 
         using DataViewDev = alpaka::mem::view::View<
             AlpakaDev,
             TYPE,
             alpaka::dim::DimInt<DIM>,
-            std::size_t>;
+            AlpakaSize>;
 
     protected:
         DeviceBuffer(

@@ -161,7 +161,8 @@ ELSE()
         LIST(APPEND _PMACC_COMPILE_OPTIONS_PUBLIC "-Wno-unused-parameter")
         LIST(APPEND _PMACC_COMPILE_OPTIONS_PUBLIC "-Wno-unused-local-typedefs")
         LIST(APPEND _PMACC_COMPILE_OPTIONS_PUBLIC "-Wno-attributes")
-        LIST(APPEND _PMACC_COMPILE_OPTIONS_PUBLIC "-Wreorder")
+        LIST(APPEND _PMACC_COMPILE_OPTIONS_PUBLIC "-Wno-reorder")
+        LIST(APPEND _PMACC_COMPILE_OPTIONS_PUBLIC "-Wno-sign-compare")
     # ICC
     ELSEIF(${CMAKE_CXX_COMPILER_ID} STREQUAL "Intel")
         LIST(APPEND _PMACC_COMPILE_OPTIONS_PUBLIC "-Wall")
@@ -190,6 +191,7 @@ append_recursive_files_add_to_src_group("${_PMACC_SUFFIXED_INCLUDE_DIR}" "${_PMA
 append_recursive_files_add_to_src_group("${_PMACC_SUFFIXED_INCLUDE_DIR}" "${_PMACC_SUFFIXED_INCLUDE_DIR}" "h" _PMACC_FILES_HEADER)
 append_recursive_files_add_to_src_group("${_PMACC_SUFFIXED_INCLUDE_DIR}" "${_PMACC_SUFFIXED_INCLUDE_DIR}" "tpp" _PMACC_FILES_HEADER)
 append_recursive_files_add_to_src_group("${_PMACC_SUFFIXED_INCLUDE_DIR}" "${_PMACC_SUFFIXED_INCLUDE_DIR}" "def" _PMACC_FILES_HEADER)
+append_recursive_files_add_to_src_group("${_PMACC_SUFFIXED_INCLUDE_DIR}" "${_PMACC_SUFFIXED_INCLUDE_DIR}" "kernel" _PMACC_FILES_HEADER)
 
 #append_recursive_files_add_to_src_group("${_PMACC_SUFFIXED_INCLUDE_DIR}" "${_PMACC_SUFFIXED_INCLUDE_DIR}" "cpp" _PMACC_FILES_SOURCE)
 

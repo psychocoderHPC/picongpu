@@ -196,9 +196,9 @@ public:
         gridSize.x() = static_cast<typename DataSpace<dim>::type>(std::ceil(double(gridSize.x()) / 256.));
 
         kernelSetValue kernel;
-        alpaka::workdiv::WorkDivMembers<alpaka::dim::DimInt<dim>, size_t> workDiv(
+        alpaka::workdiv::WorkDivMembers<alpaka::dim::DimInt<dim>, AlpakaSize> workDiv(
             gridSize,
-            static_cast<std::size_t>(256u));
+            static_cast<AlpakaSize>(256u));
         auto const exec(
             alpaka::exec::create<AlpakaAcc<alpaka::dim::DimInt<dim>>>(
                 workDiv,
@@ -230,7 +230,7 @@ public:
         AlpakaDev,
         ValueType,
         alpaka::dim::DimInt<1u>,
-        std::size_t>;
+        AlpakaSize>;
 
     TaskSetValue(DeviceBuffer<ValueType, dim>& dst, const ValueType& value) :
         TaskSetValueBase<ValueType, dim>(dst, value),
@@ -253,21 +253,21 @@ public:
 
         m_spMemBufValueHost.reset(
             new MemBufValueHost(
-                alpaka::mem::buf::alloc<ValueType, std::size_t>(
+                alpaka::mem::buf::alloc<ValueType, AlpakaSize>(
                     Environment<>::get().DeviceManager().getDevice(),
-                    static_cast<std::size_t>(1u))));
+                    static_cast<AlpakaSize>(1u))));
         *alpaka::mem::view::getPtrNative(*m_spMemBufValueHost.get()) = this->value; // copy value to new place
 
         alpaka::mem::view::copy(
             this->getEventStream()->getCudaStream(),
             this->destination->getMemBufView(),
             *m_spMemBufValueHost.get(),
-            static_cast<std::size_t>(1u));
+            static_cast<AlpakaSize>(1u));
 
         kernelSetValue kernel;
-        alpaka::workdiv::WorkDivMembers<alpaka::dim::DimInt<dim>, size_t> workDiv(
+        alpaka::workdiv::WorkDivMembers<alpaka::dim::DimInt<dim>, AlpakaSize> workDiv(
             gridSize,
-            static_cast<std::size_t>(256u));
+            static_cast<AlpakaSize>(256u));
         auto const exec(
             alpaka::exec::create<AlpakaAcc<alpaka::dim::DimInt<dim>>>(
                 workDiv,

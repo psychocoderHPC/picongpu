@@ -59,7 +59,7 @@ ALPAKA_FN_ACC void operator()(
               fieldBBlock
               );
 
-    acc.syncBlockThreads();
+    alpaka::block::sync::syncBlockThreads(acc);
 
     const float_X c2 = SPEED_OF_LIGHT * SPEED_OF_LIGHT;
     const float_X dt = DELTA_T;
@@ -104,7 +104,7 @@ ALPAKA_FN_ACC void operator()(
               );
 
 
-    acc.syncBlockThreads();
+    alpaka::block::sync::syncBlockThreads(acc);
 
     const float_X dt = DELTA_T;
 

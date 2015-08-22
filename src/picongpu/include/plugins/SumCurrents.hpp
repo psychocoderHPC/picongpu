@@ -63,7 +63,7 @@ ALPAKA_FN_ACC void operator()(
 
     auto sh_sumJ(alpaka::block::shared::allocVar<float3_X>(acc));
 
-    acc.syncBlockThreads(); /*wait that all shared memory is initialised*/
+    alpaka::block::sync::syncBlockThreads(acc); /*wait that all shared memory is initialised*/
 
     const int linearThreadIdx = DataSpaceOperations<simDim>::template map<SuperCellSize > (threadIndex);
 
@@ -72,7 +72,7 @@ ALPAKA_FN_ACC void operator()(
         sh_sumJ = float3_X::create(0.0);
     }
 
-    acc.syncBlockThreads();
+    alpaka::block::sync::syncBlockThreads(acc);
 
 
     const DataSpace<simDim> superCellIdx(mapper.getSuperCellIndex(DataSpace<simDim > (blockIndex)));
@@ -84,7 +84,7 @@ ALPAKA_FN_ACC void operator()(
     alpaka::atomic::atomicOp<alpaka::atomic::op::Add>(acc, &(sh_sumJ.y()), myJ.y());
     alpaka::atomic::atomicOp<alpaka::atomic::op::Add>(acc, &(sh_sumJ.z()), myJ.z());
 
-    acc.syncBlockThreads();
+    alpaka::block::sync::syncBlockThreads(acc);
 
     if (linearThreadIdx == 0)
     {

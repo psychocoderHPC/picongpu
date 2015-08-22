@@ -75,8 +75,8 @@ template<
     typename Mapping>
 ALPAKA_FN_ACC void operator()(
     T_Acc const & acc,
-    T_GasProfile const & gasFunctor,
-    T_PositionFunctor const & positionFunctor,
+    T_GasProfile gasFunctor,
+    T_PositionFunctor positionFunctor,
     DataSpace<simDim> const & totalGpuCellOffset,
     ParBox const & pb,
     Mapping const & mapper) const
@@ -91,7 +91,7 @@ ALPAKA_FN_ACC void operator()(
 
     auto frame(alpaka::block::shared::allocVar<FRAME *>(acc));
 
-    acc.syncBlockThreads(); /*wait that all shared memory is initialised*/
+    alpaka::block::sync::syncBlockThreads(acc); /*wait that all shared memory is initialised*/
 
     const int linearThreadIdx = DataSpaceOperations<simDim>::template map<SuperCellSize > (threadIndex);
     const DataSpace<simDim> superCellIdx(mapper.getSuperCellIndex(DataSpace<simDim > (blockIndex)));
@@ -115,9 +115,9 @@ ALPAKA_FN_ACC void operator()(
     auto finished(alpaka::block::shared::allocVar<int>(acc));
     if (linearThreadIdx == 0)
         finished = 1;
-    acc.syncBlockThreads();
+    alpaka::block::sync::syncBlockThreads(acc);
 
-    positionFunctor.init(totalGpuCellIdx);
+    positionFunctor.init(acc, totalGpuCellIdx);
     // decrease number of macro particles, if weighting would be too small
     particles::startPosition::MacroParticleCfg makroCfg =
         positionFunctor.mapRealToMacroParticle(realParticlesPerCell);
@@ -129,7 +129,7 @@ ALPAKA_FN_ACC void operator()(
     if (numParsPerCell > 0)
         alpaka::atomic::atomicOp<alpaka::atomic::op::Exch>(acc, &finished, 0); //one or more cell has particles to create
 
-    acc.syncBlockThreads();
+    alpaka::block::sync::syncBlockThreads(acc);
     if (finished == 1)
         return; // if there is no particle which has to be created
 
@@ -139,16 +139,16 @@ ALPAKA_FN_ACC void operator()(
         pb.setAsLastFrame(acc, *frame, superCellIdx);
     }
 
-    acc.syncBlockThreads();
+    alpaka::block::sync::syncBlockThreads(acc);
 
     // distribute the particles within the cell
     do
     {
 
-        acc.syncBlockThreads();
+        alpaka::block::sync::syncBlockThreads(acc);
         if (linearThreadIdx == 0)
             finished = 1; //clear flag
-        acc.syncBlockThreads();
+        alpaka::block::sync::syncBlockThreads(acc);
 
         floatD_X pos = positionFunctor(totalNumParsPerCell - numParsPerCell);
 
@@ -185,7 +185,7 @@ ALPAKA_FN_ACC void operator()(
             if (numParsPerCell > 0)
                 alpaka::atomic::atomicOp<alpaka::atomic::op::Exch>(acc, &finished, 0); //one or more cell has particles to create
         }
-        acc.syncBlockThreads();
+        alpaka::block::sync::syncBlockThreads(acc);
         if (linearThreadIdx == 0 && finished == 0)
         {
             frame = &(pb.getEmptyFrame());

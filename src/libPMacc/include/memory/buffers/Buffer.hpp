@@ -48,7 +48,7 @@ namespace PMacc
             AlpakaDev,
             std::size_t,
             alpaka::dim::DimInt<1u>,
-            std::size_t>;
+            AlpakaSize>;
 
         using DataBoxType = DataBox<PitchedBox<TYPE, DIM>>;
 
@@ -63,9 +63,9 @@ namespace PMacc
                 data_space(dataSpace),
                 data1D(bData1d),
                 current_size_buf(
-                    alpaka::mem::buf::alloc<std::size_t, std::size_t>(
+                    alpaka::mem::buf::alloc<std::size_t, AlpakaSize>(
                         Environment<>::get().DeviceManager().getDevice(),
-                        static_cast<std::size_t>(1u)))
+                        static_cast<AlpakaSize>(1u)))
         {
             *alpaka::mem::view::getPtrNative(current_size_buf) = dataSpace.productOfComponents();
         }

@@ -111,7 +111,7 @@ namespace gol
                     shiftedBuffRead);
                 // ... resulting in the values from the input buffer corresponding to the current block being cached.
                 // Wait for the collective operation to be finished by all threads.
-                acc.syncBlockThreads();
+                alpaka::block::sync::syncBlockThreads(acc);
 
                 //----------
                 // Update the alive state.

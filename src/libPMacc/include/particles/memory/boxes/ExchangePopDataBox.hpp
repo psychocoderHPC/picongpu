@@ -65,7 +65,7 @@ public:
 
 
 protected:
-    PMACC_ALIGN8(virtualMemory, PopDataBox<TYPE, PopType >);
+    PMACC_ALIGN(virtualMemory, PopDataBox<TYPE, PopType >);
 };
 
 }

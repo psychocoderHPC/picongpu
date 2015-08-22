@@ -114,7 +114,7 @@ public InheritLinearly<
     template<typename T_Key >
     HDINLINE
     auto getIdentifier(const T_Key)
-    -> decltype(BaseType::operator[](typename GetKeyFromAlias<ValueTypeSeq, T_Key>::type()))
+    -> decltype(this->BaseType::operator[](typename GetKeyFromAlias<ValueTypeSeq, T_Key>::type()))
     {
         typedef typename GetKeyFromAlias<ValueTypeSeq, T_Key>::type Key;
         return BaseType::operator[](Key());
@@ -124,7 +124,7 @@ public InheritLinearly<
     template<typename T_Key >
     HDINLINE
     auto getIdentifier(const T_Key) const
-    -> decltype(BaseType::operator[](typename GetKeyFromAlias<ValueTypeSeq, T_Key>::type())) const
+    -> decltype(this->BaseType::operator[](typename GetKeyFromAlias<ValueTypeSeq, T_Key>::type()))
     {
         typedef typename GetKeyFromAlias<ValueTypeSeq, T_Key>::type Key;
         return BaseType::operator[](Key());

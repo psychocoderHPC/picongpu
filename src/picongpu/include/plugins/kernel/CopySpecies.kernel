@@ -186,7 +186,7 @@ ALPAKA_FN_ACC void operator()(
 
     auto isValid(alpaka::block::shared::allocVar<bool>(acc));
 
-    acc.syncBlockThreads(); /*wait that all shared memory is initialised*/
+    alpaka::block::sync::syncBlockThreads(acc); /*wait that all shared memory is initialised*/
 
     const DataSpace<Mapping::Dim> block = mapper.getSuperCellIndex(DataSpace<simDim > (blockIndex));
     const DataSpace<Mapping::Dim> superCellPosition((block - mapper.getGuardingSuperCells()) * mapper.getSuperCellSize());
@@ -196,7 +196,7 @@ ALPAKA_FN_ACC void operator()(
         localCounter = 0;
         srcFramePtr = &(srcBox.getFirstFrame(block, isValid));
     }
-    acc.syncBlockThreads();
+    alpaka::block::sync::syncBlockThreads(acc);
     while (isValid) //move over all Frames
     {
         PMACC_AUTO(parSrc, ((*srcFramePtr)[threadIndex.x()]));
@@ -204,13 +204,13 @@ ALPAKA_FN_ACC void operator()(
         /*count particle in frame*/
         if (parSrc[multiMask_] == 1 && filter(*srcFramePtr, threadIndex.x()))
             storageOffset = alpaka::atomic::atomicOp<alpaka::atomic::op::Add>(acc, &localCounter, 1);
-        acc.syncBlockThreads();
+        alpaka::block::sync::syncBlockThreads(acc);
         if (threadIndex.x() == 0)
         {
             /*reserve host memory for particle*/
             globalOffset = alpaka::atomic::atomicOp<alpaka::atomic::op::Add>(acc, counter, localCounter);
         }
-        acc.syncBlockThreads();
+        alpaka::block::sync::syncBlockThreads(acc);
         if (storageOffset != -1)
         {
             PMACC_AUTO(parDest, destFrame[globalOffset + storageOffset]);
@@ -220,14 +220,14 @@ ALPAKA_FN_ACC void operator()(
             DataSpace<Mapping::Dim> localCell(DataSpaceOperations<Mapping::Dim>::template map<Block>(parSrc[localCellIdx_]));
             parDest[globalCellIdx_] = particleOffset + superCellPosition + localCell;
         }
-        acc.syncBlockThreads();
+        alpaka::block::sync::syncBlockThreads(acc);
         if (threadIndex.x() == 0)
         {
             /*get next frame in supercell*/
             srcFramePtr = &(srcBox.getNextFrame(*srcFramePtr, isValid));
             localCounter = 0;
         }
-        acc.syncBlockThreads();
+        alpaka::block::sync::syncBlockThreads(acc);
     }
 }
 };

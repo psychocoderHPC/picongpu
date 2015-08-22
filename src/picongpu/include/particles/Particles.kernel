@@ -76,7 +76,7 @@ ALPAKA_FN_ACC void operator()(
     auto frame(alpaka::block::shared::allocVar<OTHERFRAME *>(acc));
     auto isValid(alpaka::block::shared::allocVar<bool>(acc));
 
-    acc.syncBlockThreads(); /*wait that all shared memory is initialised*/
+    alpaka::block::sync::syncBlockThreads(acc); /*wait that all shared memory is initialised*/
 
     const DataSpace<Mapping::Dim> block = mapper.getSuperCellIndex(DataSpace<simDim > (blockIndex));
 
@@ -90,7 +90,7 @@ ALPAKA_FN_ACC void operator()(
             //myBox.setAsFirstFrame(acc, *myFrame, block);
         }
     }
-    acc.syncBlockThreads();
+    alpaka::block::sync::syncBlockThreads(acc);
     while (isValid) //move over all Frames
     {
         PMACC_AUTO(parDest, ((*myFrame)[threadIndex.x()]));
@@ -104,7 +104,7 @@ ALPAKA_FN_ACC void operator()(
                           parDest, parSrc,
                           true, parSrc[multiMask_] == 1);
 
-        acc.syncBlockThreads();
+        alpaka::block::sync::syncBlockThreads(acc);
         if (threadIndex.x() == 0)
         {
             myBox.setAsLastFrame(acc, *myFrame, block);
@@ -115,7 +115,7 @@ ALPAKA_FN_ACC void operator()(
                 myFrame = &(myBox.getEmptyFrame());
             }
         }
-        acc.syncBlockThreads();
+        alpaka::block::sync::syncBlockThreads(acc);
     }
 }
 };
@@ -141,7 +141,7 @@ ALPAKA_FN_ACC void operator()(
     auto frame(alpaka::block::shared::allocVar<typename T_ParBox::FrameType*>(acc));
     auto isValid(alpaka::block::shared::allocVar<bool>(acc));
 
-    acc.syncBlockThreads(); /*wait that all shared memory is initialised*/
+    alpaka::block::sync::syncBlockThreads(acc); /*wait that all shared memory is initialised*/
 
     const int linearThreadIdx = DataSpaceOperations<simDim>::template map<SuperCellSize > (threadIndex);
 
@@ -152,7 +152,7 @@ ALPAKA_FN_ACC void operator()(
         frame = &(pb.getLastFrame(superCellIdx, isValid));
     }
 
-    acc.syncBlockThreads();
+    alpaka::block::sync::syncBlockThreads(acc);
     if (!isValid)
         return; //end kernel if we have no frames
 
@@ -164,20 +164,20 @@ ALPAKA_FN_ACC void operator()(
     const DataSpace<simDim> localCellIdx = idx - mapper.getGuardingSuperCells() * SuperCellSize::toRT();
 
 
-    acc.syncBlockThreads();
+    alpaka::block::sync::syncBlockThreads(acc);
 
     while (isValid)
     {
         PMACC_AUTO(particle, ((*frame)[linearThreadIdx]));
         particleFunctor(localCellIdx, particle, particle, isParticle, isParticle);
 
-        acc.syncBlockThreads();
+        alpaka::block::sync::syncBlockThreads(acc);
         if (linearThreadIdx == 0)
         {
             frame = &(pb.getPreviousFrame(*frame, isValid));
         }
         isParticle = true;
-        acc.syncBlockThreads();
+        alpaka::block::sync::syncBlockThreads(acc);
     }
 }
 };
@@ -221,7 +221,7 @@ ALPAKA_FN_ACC void operator()(
     auto mustShift(alpaka::block::shared::allocVar<int>(acc));
     lcellId_t particlesInSuperCell;
 
-    acc.syncBlockThreads(); /*wait that all shared memory is initialised*/
+    alpaka::block::sync::syncBlockThreads(acc); /*wait that all shared memory is initialised*/
 
     if (linearThreadIdx == 0)
     {
@@ -233,7 +233,7 @@ ALPAKA_FN_ACC void operator()(
     auto cachedB(CachedBox::create < 0, typename BBox::ValueType > (acc, BlockDescription_()));
     auto cachedE(CachedBox::create < 1, typename EBox::ValueType > (acc, BlockDescription_()));
 
-    acc.syncBlockThreads();
+    alpaka::block::sync::syncBlockThreads(acc);
     if (!isValid)
         return; //end kernel if we have no frames
 
@@ -254,7 +254,7 @@ ALPAKA_FN_ACC void operator()(
               cachedE,
               fieldEBlock
               );
-    acc.syncBlockThreads();
+    alpaka::block::sync::syncBlockThreads(acc);
 
     /*move over frames and call frame solver*/
     while (isValid)
@@ -267,7 +267,7 @@ ALPAKA_FN_ACC void operator()(
         particlesInSuperCell = PMacc::math::CT::volume<SuperCellSize>::type::value;
 
     }
-    acc.syncBlockThreads();
+    alpaka::block::sync::syncBlockThreads(acc);
     /*set in SuperCell the mustShift flag which is a optimization for shift particles and fillGaps*/
     if (linearThreadIdx == 0 && mustShift == 1)
     {

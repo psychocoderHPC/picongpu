@@ -121,14 +121,14 @@ ALPAKA_FN_ACC void operator()(
     /* typedef for the functor that writes new macro electrons into electron frames during runtime */
     typedef typename particles::ionization::WriteElectronIntoFrame WriteElectronIntoFrame;
 
-    acc.syncBlockThreads();
+    alpaka::block::sync::syncBlockThreads(acc);
 
     auto ionFrame(alpaka::block::shared::allocVar<IONFRAME *>(acc));
     auto electronFrame(alpaka::block::shared::allocVar<ELECTRONFRAME *>(acc));
     auto isValid(alpaka::block::shared::allocVar<bool>(acc));
     auto maxParticlesInFrame(alpaka::block::shared::allocVar<lcellId_t>(acc));
 
-    acc.syncBlockThreads(); /*wait that all shared memory is initialized*/
+    alpaka::block::sync::syncBlockThreads(acc); /*wait that all shared memory is initialized*/
 
     /* find last frame in super cell
      * define maxParticlesInFrame as the maximum frame size
@@ -139,7 +139,7 @@ ALPAKA_FN_ACC void operator()(
         maxParticlesInFrame = PMacc::math::CT::volume<SuperCellSize>::type::value;
     }
 
-    acc.syncBlockThreads();
+    alpaka::block::sync::syncBlockThreads(acc);
     if (!isValid)
         return; //end kernel if we have no frames
 
@@ -151,7 +151,7 @@ ALPAKA_FN_ACC void operator()(
      */
     auto newFrameFillLvl(alpaka::block::shared::allocVar<int>(acc));
 
-    acc.syncBlockThreads(); /*wait until all shared memory is initialized*/
+    alpaka::block::sync::syncBlockThreads(acc); /*wait until all shared memory is initialized*/
 
     /* Declare local variable oldFrameFillLvl for each thread */
     int oldFrameFillLvl;
@@ -172,7 +172,7 @@ ALPAKA_FN_ACC void operator()(
         newFrameFillLvl = 0;
         electronFrame = NULL;
     }
-    acc.syncBlockThreads();
+    alpaka::block::sync::syncBlockThreads(acc);
 
     /* move over source species frames and call frameIonizer
      * frames are worked on in backwards order to avoid asking if there is another frame
@@ -184,7 +184,7 @@ ALPAKA_FN_ACC void operator()(
     {
         /* casting uint8_t multiMask to boolean */
         const bool isParticle = (*ionFrame)[linearThreadIdx][multiMask_];
-        acc.syncBlockThreads();
+        alpaka::block::sync::syncBlockThreads(acc);
 
         /* < IONIZATION and change of charge states >
          * if the threads contain particles, the frameIonizer can ionize them
@@ -194,7 +194,7 @@ ALPAKA_FN_ACC void operator()(
             /* ionization based on ionization model - this actually increases charge states*/
             frameIonizer(*ionFrame, linearThreadIdx, newMacroElectrons);
 
-        acc.syncBlockThreads();
+        alpaka::block::sync::syncBlockThreads(acc);
         /* always true while-loop over all particles inside source frame until each thread breaks out individually
          *
          * **Attention**: Speaking of 1st and 2nd frame only may seem odd.
@@ -213,7 +213,7 @@ ALPAKA_FN_ACC void operator()(
              */
             electronId = -1;
             oldFrameFillLvl = newFrameFillLvl;
-            acc.syncBlockThreads();
+            alpaka::block::sync::syncBlockThreads(acc);
             /* < CHECK & ADD >
              * - if a thread wants to create electrons in each cycle it can do that only once
              * and before that it atomically adds to the shared counter and uses the current
@@ -223,13 +223,13 @@ ALPAKA_FN_ACC void operator()(
             if (newMacroElectrons > 0)
                 electronId = alpaka::atomic::atomicOp<alpaka::atomic::op::Add>(acc, &newFrameFillLvl, 1);
 
-            acc.syncBlockThreads();
+            alpaka::block::sync::syncBlockThreads(acc);
             /* < EXIT? >
              * - if the counter hasn't changed all threads break out of the loop */
             if (oldFrameFillLvl == newFrameFillLvl)
                 break;
 
-            acc.syncBlockThreads();
+            alpaka::block::sync::syncBlockThreads(acc);
             /* < FIRST NEW FRAME >
              * - if there is no frame, yet, the master will create a new target electron frame
              * and attach it to the back of the frame list
@@ -243,7 +243,7 @@ ALPAKA_FN_ACC void operator()(
                     electronBox.setAsLastFrame(acc, *electronFrame, block);
                 }
             }
-            acc.syncBlockThreads();
+            alpaka::block::sync::syncBlockThreads(acc);
             /* < CREATE 1 >
              * - all electrons fitting into the current frame are created there
              * - internal ionization counter is decremented by 1
@@ -264,7 +264,7 @@ ALPAKA_FN_ACC void operator()(
 
                 newMacroElectrons -= 1;
             }
-            acc.syncBlockThreads();
+            alpaka::block::sync::syncBlockThreads(acc);
             /* < SECOND NEW FRAME >
              * - if the shared counter is larger than the frame size a new electron frame is reserved
              * and attached to the back of the frame list
@@ -280,7 +280,7 @@ ALPAKA_FN_ACC void operator()(
                     newFrameFillLvl -= maxParticlesInFrame;
                 }
             }
-            acc.syncBlockThreads();
+            alpaka::block::sync::syncBlockThreads(acc);
             /* < CREATE 2 >
              * - if the EID is larger than the frame size
              *      - the EID is set back by one frame size
@@ -304,16 +304,16 @@ ALPAKA_FN_ACC void operator()(
 
                 newMacroElectrons -= 1;
             }
-            acc.syncBlockThreads();
+            alpaka::block::sync::syncBlockThreads(acc);
         }
-        acc.syncBlockThreads();
+        alpaka::block::sync::syncBlockThreads(acc);
 
         if (linearThreadIdx == 0)
         {
             ionFrame = &(ionBox.getPreviousFrame(*ionFrame, isValid));
             maxParticlesInFrame = PMacc::math::CT::volume<SuperCellSize>::type::value;
         }
-        acc.syncBlockThreads();
+        alpaka::block::sync::syncBlockThreads(acc);
     }
 }
 };

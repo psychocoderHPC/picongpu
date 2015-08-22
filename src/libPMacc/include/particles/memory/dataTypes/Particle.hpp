@@ -104,7 +104,7 @@ struct Particle : public InheritLinearly<typename T_FrameType::MethodsList>
     template<typename T_Key >
     HDINLINE auto
     operator[](const T_Key key)
-    -> decltype(frame->getIdentifier(key)[idx])
+    -> decltype(this->frame->getIdentifier(key)[this->idx])
     {
         return frame->getIdentifier(key)[idx];
     }
@@ -113,9 +113,8 @@ struct Particle : public InheritLinearly<typename T_FrameType::MethodsList>
     template<typename T_Key >
     HDINLINE auto
     operator[](const T_Key key) const
-    -> decltype(frame->getIdentifier(key)[idx])
+    -> decltype(this->frame->getIdentifier(key)[this->idx])
     {
-
         return frame->getIdentifier(key)[idx];
     }
 private:

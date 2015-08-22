@@ -48,7 +48,7 @@ struct ScatterConfig
     typedef boost::mpl::bool_<true> resetfreedpages;
 };
 
-#if ALPAKA_ACC_GPU_CUDA_ENABLED && defined(__CUDACC__)
+#if defined(ALPAKA_ACC_GPU_CUDA_ENABLED) && defined(__CUDACC__) && !defined(PMACC_ACC_CPU)
 
 // Define a new allocator and call it ScatterAllocator
 // which resembles the behavior of ScatterAlloc

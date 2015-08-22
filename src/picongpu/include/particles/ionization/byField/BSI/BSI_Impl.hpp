@@ -130,7 +130,7 @@ namespace ionization
                 cachedB = CachedBox::create < 0, ValueType_B > (acc, BlockArea());
                 cachedE = CachedBox::create < 1, ValueType_E > (acc, BlockArea());
                 /* wait for shared memory to be initialized */
-                acc.syncBlockThreads();
+                alpaka::block::sync::syncBlockThreads(acc);
                 /* instance of nvidia assignment operator */
                 nvidia::functors::Assign assign;
                 /* copy fields from global to shared */

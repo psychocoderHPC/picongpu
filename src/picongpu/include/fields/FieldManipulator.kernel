@@ -56,7 +56,7 @@ DINLINE void absorb(
 
     auto finish(alpaka::block::shared::allocVar<int>(acc));
 
-    acc.syncBlockThreads(); /*wait that all shared memory is initialised*/
+    alpaka::block::sync::syncBlockThreads(acc); /*wait that all shared memory is initialised*/
 
     float_X factor = float_X(0.0);
 
@@ -65,7 +65,7 @@ DINLINE void absorb(
         cell[pos] = cell[pos] + (MappingDesc::SuperCellSize::toRT()[pos]*(direction[pos]*-1));
         if (linearThreadIdx == 0)
             finish = 0;
-        acc.syncBlockThreads();
+        alpaka::block::sync::syncBlockThreads(acc);
 
         if (direction[pos] != 0)
         {
@@ -96,7 +96,7 @@ DINLINE void absorb(
             field(cell) = tmp;
         }
         //  cell =cell+ MappingDesc::SuperCellSize::toRT()*(pos*-1);
-        acc.syncBlockThreads();
+        alpaka::block::sync::syncBlockThreads(acc);
     }
     while (finish == 0);
 }

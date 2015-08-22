@@ -48,14 +48,14 @@ BOOST_PP_ENUM_TRAILING(N, NORMAL_ARGS, _)) \
     auto frame(alpaka::block::shared::allocVar<Frame*>(acc)); \
     auto isValid(alpaka::block::shared::allocVar<bool>(acc)); \
     auto particlesInSuperCell(alpaka::block::shared::allocVar<uint16_t>(acc)); \
-    acc.syncBlockThreads(); /*wait that all shared memory is initialised*/ \
+    alpaka::block::sync::syncBlockThreads(acc); /*wait that all shared memory is initialised*/ \
     \
     if(linearThreadIdx == 0) \
     { \
         frame = &(pb.getLastFrame(superCellIdx, isValid)); \
         particlesInSuperCell = pb.getSuperCell(superCellIdx).getSizeLastFrame(); \
     } \
-    acc.syncBlockThreads(); \
+    alpaka::block::sync::syncBlockThreads(acc); \
     \
     if (!isValid) return; /* leave kernel if we have no frames*/ \
     \
@@ -68,13 +68,13 @@ BOOST_PP_ENUM_TRAILING(N, NORMAL_ARGS, _)) \
                 BOOST_PP_ENUM_TRAILING(N, ARGS, _) \
                 ); \
         } \
-        acc.syncBlockThreads(); \
+        alpaka::block::sync::syncBlockThreads(acc); \
         if (linearThreadIdx == 0) \
         { \
             frame = &(pb.getPreviousFrame(*frame, isValid)); \
             particlesInSuperCell = PMacc::math::CT::volume<SuperCellSize>::type::value; \
         } \
-        acc.syncBlockThreads(); \
+        alpaka::block::sync::syncBlockThreads(acc); \
     } \
 }
 

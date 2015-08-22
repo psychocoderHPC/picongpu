@@ -98,7 +98,7 @@ public:
     static DINLINE This init(T_Acc const & acc)
     {
         ValueType * mem_sh(alpaka::block::shared::allocArr<ValueType, Size::x::value>(acc));
-        acc.syncBlockThreads(); /*wait that all shared memory is initialised*/
+        alpaka::block::sync::syncBlockThreads(acc); /*wait that all shared memory is initialised*/
         return This((ValueType*) mem_sh);
     }
 
@@ -159,7 +159,7 @@ public:
     static DINLINE This init(T_Acc const & acc)
     {
         ValueType * mem_sh(alpaka::block::shared::allocArr<ValueType, Size::x::value * Size::y::value>(acc));
-        acc.syncBlockThreads(); /*wait that all shared memory is initialised*/
+        alpaka::block::sync::syncBlockThreads(acc); /*wait that all shared memory is initialised*/
         return This((ValueType*) mem_sh);
     }
 
@@ -236,7 +236,7 @@ public:
     static DINLINE This init(T_Acc const & acc)
     {
         ValueType * mem_sh(alpaka::block::shared::allocArr<ValueType, Size::x::value * Size::y::value * Size::z::value>(acc));
-        acc.syncBlockThreads(); /*wait that all shared memory is initialized*/
+        alpaka::block::sync::syncBlockThreads(acc); /*wait that all shared memory is initialized*/
         return This((ValueType*) mem_sh);
     }
 

@@ -37,7 +37,7 @@ MallocMCBuffer::MallocMCBuffer( ) :
         new BufWrapperDev(
             reinterpret_cast<char *>(deviceHeapInfo.p),
             Environment<>::get().DeviceManager().getDevice(),
-            deviceHeapInfo.size));
+            static_cast<AlpakaSize>(deviceHeapInfo.size)));
 
     Environment<>::get().DataConnector().registerData( *this);
 }
@@ -58,16 +58,16 @@ void MallocMCBuffer::synchronize( )
     {
         upBufHost.reset(
             new BufHost(
-                alpaka::mem::buf::alloc<char, std::size_t>(
+                alpaka::mem::buf::alloc<char, AlpakaSize>(
                     Environment<>::get().DeviceManager().getDevice(),
-                    deviceHeapInfo.size)));
+                    static_cast<AlpakaSize>(deviceHeapInfo.size))));
 
 #if defined(ALPAKA_ACC_GPU_CUDA_ENABLED) && defined(__CUDACC__)
         alpaka::mem::buf::pin(*upBufHost.get());
 #endif
 
         this->hostBufferOffset =
-            int64_t(
+            std::ptrdiff_t(
                 alpaka::mem::view::getPtrNative(*upBufWrapperDev.get())
                 - alpaka::mem::view::getPtrNative(*upBufHost.get()));
     }

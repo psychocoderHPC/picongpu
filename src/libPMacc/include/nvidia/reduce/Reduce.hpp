@@ -73,7 +73,7 @@ namespace PMacc
                     if (tid >= src_count) return;
 
                     /*wait that all shared memory is initialized*/
-                    acc.syncBlockThreads();
+                    alpaka::block::sync::syncBlockThreads(acc);
 
                     /*fill shared mem*/
                     T_Val r_value = src[tid];
@@ -85,7 +85,7 @@ namespace PMacc
                         i += globalThreadCount;
                     }
                     s_mem[l_tid] = r_value;
-                    acc.syncBlockThreads();;
+                    alpaka::block::sync::syncBlockThreads(acc);;
                     /*now reduce shared memory*/
                     uint32_t chunk_count = blockSize.x();
                     uint32_t active_threads;
@@ -99,7 +99,7 @@ namespace PMacc
                         chunk_count = ceilf(half_threads);
                         func(s_mem[l_tid], s_mem[l_tid + chunk_count]);
 
-                        acc.syncBlockThreads();;
+                        alpaka::block::sync::syncBlockThreads(acc);;
                     }
 
                     func2(dest[blockIndex.x()], s_mem[0]);
@@ -198,7 +198,7 @@ namespace PMacc
                     uint32_t blocks = threads / 2 / blockcount;
                     if (blocks == 0) blocks = 1;
                     {
-                        __cudaKernel(kernel, alpaka::dim::DimInt<1u>, static_cast<std::size_t>(blocks), static_cast<std::size_t>(blockcount))
+                        __cudaKernel(kernel, alpaka::dim::DimInt<1u>, static_cast<AlpakaSize>(blocks), static_cast<AlpakaSize>(blockcount))
                             (src, n, dest, func, PMacc::nvidia::functors::Assign());
                     }
                     n = blocks;
@@ -216,13 +216,13 @@ namespace PMacc
                             uint32_t problemSize = n - (blockOffset * blockcount);
                             Type* srcPtr = dest + (blockOffset * blockcount);
 
-                            __cudaKernel(kernel, alpaka::dim::DimInt<1u>, static_cast<std::size_t>(useBlocks), static_cast<std::size_t>(blockcount))
+                            __cudaKernel(kernel, alpaka::dim::DimInt<1u>, static_cast<AlpakaSize>(useBlocks), static_cast<AlpakaSize>(blockcount))
                                 (srcPtr, problemSize, dest, func, func);
                             blocks = blockOffset*blockcount;
                         }
                         else
                         {
-                            __cudaKernel(kernel, alpaka::dim::DimInt<1u>, static_cast<std::size_t>(blocks), static_cast<std::size_t>(blockcount))
+                            __cudaKernel(kernel, alpaka::dim::DimInt<1u>, static_cast<AlpakaSize>(blocks), static_cast<AlpakaSize>(blockcount))
                                 (dest, n, dest, func, PMacc::nvidia::functors::Assign());
                         }
 

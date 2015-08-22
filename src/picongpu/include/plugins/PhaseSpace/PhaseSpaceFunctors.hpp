@@ -180,7 +180,7 @@ namespace picongpu
                                       dBufferInBlock.origin(),
                                       _1 = float_PS(0.0) );
             }
-            acc.syncBlockThreads();
+            alpaka::block::sync::syncBlockThreads(acc);
 
             FunctorParticle<r_dir, num_pbins, SuperCellSize> functorParticle;
             particleAccess::Cell2Particle<SuperCellSize> forEachParticleInCell;
@@ -192,7 +192,7 @@ namespace picongpu
                                    axis_p_range
                                  );
 
-            acc.syncBlockThreads();
+            alpaka::block::sync::syncBlockThreads(acc);
             /* add to global dBuffer */
             forEachThreadInBlock( /* area to work on */
                                   dBufferInBlock.zone(),

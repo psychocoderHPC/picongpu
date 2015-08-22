@@ -115,7 +115,7 @@ ALPAKA_FN_ACC void operator()(
     auto frame(alpaka::block::shared::allocVar<FRAME *>(acc));
     auto isValid(alpaka::block::shared::allocVar<bool>(acc));
 
-    acc.syncBlockThreads(); /*wait that all shared memory is initialised*/
+    alpaka::block::sync::syncBlockThreads(acc); /*wait that all shared memory is initialised*/
 
     typedef typename Mapping::SuperCellSize SuperCellSize;
 
@@ -127,7 +127,7 @@ ALPAKA_FN_ACC void operator()(
         frame = &(pb.getLastFrame(superCellIdx, isValid));
     }
 
-    acc.syncBlockThreads();
+    alpaka::block::sync::syncBlockThreads(acc);
     if (!isValid)
         return; //end kernel if we have no frames
 
@@ -158,13 +158,13 @@ ALPAKA_FN_ACC void operator()(
                 * MappingDesc::SuperCellSize::toRT()
                 + frameCellOffset;
         }
-        acc.syncBlockThreads();
+        alpaka::block::sync::syncBlockThreads(acc);
         if (linearThreadIdx == 0)
         {
             frame = &(pb.getPreviousFrame(*frame, isValid));
         }
         isParticle = true;
-        acc.syncBlockThreads();
+        alpaka::block::sync::syncBlockThreads(acc);
     }
 }
 };

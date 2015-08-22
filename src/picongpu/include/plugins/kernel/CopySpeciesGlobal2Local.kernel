@@ -79,7 +79,7 @@ ALPAKA_FN_ACC void operator()(
 
     const int linearThreadIdx = threadIndex.x();
 
-    acc.syncBlockThreads(); /*wait that all shared memory is initialized*/
+    alpaka::block::sync::syncBlockThreads(acc); /*wait that all shared memory is initialized*/
 
     const DataSpace<simDim> superCellsCount(cellDesc.getGridSuperCells() - cellDesc.getGuardingSuperCells()*2);
     if (linearThreadIdx == 0)
@@ -92,7 +92,7 @@ ALPAKA_FN_ACC void operator()(
     destFramePtr[linearThreadIdx] = NULL;
     linearSuperCellIds[linearThreadIdx] = -1;
 
-    acc.syncBlockThreads();
+    alpaka::block::sync::syncBlockThreads(acc);
 
     const int globalParticleId = hdf5ParticleOffset + linearThreadIdx;
     const bool hasValidParticle = globalParticleId < maxParticles;
@@ -110,7 +110,7 @@ ALPAKA_FN_ACC void operator()(
         DataSpace<simDim> inSuperCell(globalCellIdx - superCellIdx * SuperCellSize::toRT());
         lCellIdx = DataSpaceOperations<simDim>::template map<SuperCellSize>(inSuperCell);
     }
-    acc.syncBlockThreads();
+    alpaka::block::sync::syncBlockThreads(acc);
 
     int masterIdx = linearThreadIdx - 1;
 
@@ -139,7 +139,7 @@ ALPAKA_FN_ACC void operator()(
                 superCellIdx + cellDesc.getGuardingSuperCells());
         }
     }
-    acc.syncBlockThreads();
+    alpaka::block::sync::syncBlockThreads(acc);
 
     if (hasValidParticle)
     {

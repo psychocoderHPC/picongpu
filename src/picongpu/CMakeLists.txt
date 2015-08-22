@@ -282,7 +282,7 @@ LIST(INSERT _PIC_INCLUDE_DIRECTORIES_PRIVATE 0 ${_PIC_EXTENSION_INCLUDE_DIR})
 #-------------------------------------------------------------------------------
 # PARAM (overwrite) defines
 #-------------------------------------------------------------------------------
-# TODO: Use the internal list that can be used with target commands! (Remove all -D from all configuration files!)
+# TODO: Use the internal list that can be used with target commands instead of ADD_DEFINITIONS! (Remove all -D from all configuration files!)
 IF(PARAM_OVERWRITES)
     FOREACH(param ${PARAM_OVERWRITES})
        ADD_DEFINITIONS(${param})

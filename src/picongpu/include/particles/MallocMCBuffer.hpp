@@ -38,12 +38,12 @@ namespace picongpu
             AlpakaDev,
             char,
             alpaka::dim::DimInt<1u>,
-            std::size_t>;
+            AlpakaSize>;
         using BufWrapperDev = alpaka::mem::buf::BufPlainPtrWrapper<
             AlpakaDev,
             char,
             alpaka::dim::DimInt<1u>,
-            std::size_t>;
+            AlpakaSize>;
 
     public:
         MallocMCBuffer();
@@ -60,7 +60,7 @@ namespace picongpu
             return std::string("MallocMCBuffer");
         }
 
-        int64_t getOffset()
+        std::ptrdiff_t getOffset()
         {
             return hostBufferOffset;
         }
@@ -70,7 +70,7 @@ namespace picongpu
     private:
         std::unique_ptr<BufHost> upBufHost;
         std::unique_ptr<BufWrapperDev> upBufWrapperDev;
-        int64_t hostBufferOffset;
+        std::ptrdiff_t hostBufferOffset;
         mallocMC::HeapInfo deviceHeapInfo;
 
     };

@@ -87,7 +87,7 @@ ALPAKA_FN_ACC void operator()(
     auto isFrameValid(alpaka::block::shared::allocVar<bool>(acc));
     auto mustShift(alpaka::block::shared::allocVar<bool>(acc));
 
-    acc.syncBlockThreads(); /*wait that all shared memory is initialised*/
+    alpaka::block::sync::syncBlockThreads(acc); /*wait that all shared memory is initialised*/
 
     DataSpace<Dim> const superCellIdx(mapper.getSuperCellIndex(DataSpace<Dim > (blockIdx)));
 
@@ -103,7 +103,7 @@ ALPAKA_FN_ACC void operator()(
         }
     }
 
-    acc.syncBlockThreads();
+    alpaka::block::sync::syncBlockThreads(acc);
     if (!mustShift || isFrameValid == false) return;
 
     //!\todo: find a way without so many flags
@@ -129,7 +129,7 @@ ALPAKA_FN_ACC void operator()(
             destFrames[threadIdx.x()] = NULL;
 
     }
-    acc.syncBlockThreads();
+    alpaka::block::sync::syncBlockThreads(acc);
 
     do
     {
@@ -145,14 +145,14 @@ ALPAKA_FN_ACC void operator()(
             (*frame)[threadIdx.x()][multiMask_] = 0; //delete particle, later we copy this particle without multiMask
             if (destParticleIdx >= TileSize) anyDestFrameFull = true;
         }
-        acc.syncBlockThreads();
+        alpaka::block::sync::syncBlockThreads(acc);
         if (threadIdx.x() < Exchanges &&
             destFramesCounter[threadIdx.x()] > 0 &&
             destFrames[threadIdx.x()] == NULL)
         {
             destFrames[threadIdx.x()] = &(pb.getEmptyFrame());
         }
-        acc.syncBlockThreads();
+        alpaka::block::sync::syncBlockThreads(acc);
         if (anyDestFrameFull) /*we must do two flushes, after the first we hang on a new empty frame*/
         {
             if (direction >= 0 && destParticleIdx < TileSize)
@@ -164,7 +164,7 @@ ALPAKA_FN_ACC void operator()(
                 assign(parDest, parSrc);
 
             }
-            acc.syncBlockThreads();
+            alpaka::block::sync::syncBlockThreads(acc);
             if (threadIdx.x() < Exchanges)
             {
                 //append all full frames to destination
@@ -194,7 +194,7 @@ ALPAKA_FN_ACC void operator()(
                 }
                 anyDestFrameFull = false;
             }
-            acc.syncBlockThreads();
+            alpaka::block::sync::syncBlockThreads(acc);
             if (direction >= 0 && destParticleIdx >= TileSize)
             {
                 destParticleIdx -= TileSize;
@@ -224,12 +224,12 @@ ALPAKA_FN_ACC void operator()(
             }
         }
 
-        acc.syncBlockThreads();
+        alpaka::block::sync::syncBlockThreads(acc);
         if (threadIdx.x() == 0)
         {
             frame = &(pb.getNextFrame(*frame, isFrameValid));
         }
-        acc.syncBlockThreads();
+        alpaka::block::sync::syncBlockThreads(acc);
 
 
     }
@@ -292,7 +292,7 @@ ALPAKA_FN_ACC void operator()(
 
     auto srcGap(alpaka::block::shared::allocVar<int>(acc));
 
-    acc.syncBlockThreads(); /*wait that all shared memory is initialised*/
+    alpaka::block::sync::syncBlockThreads(acc); /*wait that all shared memory is initialised*/
 
     if (threadIdx.x() == 0)
     {
@@ -301,7 +301,7 @@ ALPAKA_FN_ACC void operator()(
         counterParticles = 0;
         srcGap = 0;
     }
-    acc.syncBlockThreads();
+    alpaka::block::sync::syncBlockThreads(acc);
 
 
     if (isValid)
@@ -312,14 +312,14 @@ ALPAKA_FN_ACC void operator()(
         {
             alpaka::atomic::atomicOp<alpaka::atomic::op::Add>(acc, &counterParticles, 1);
         }
-        acc.syncBlockThreads();
+        alpaka::block::sync::syncBlockThreads(acc);
 
         if (threadIdx.x() < counterParticles && isParticle == false)
         {
             const int localGapIdx = alpaka::atomic::atomicOp<alpaka::atomic::op::Add>(acc, &counterGaps, 1);
             gapIndices_sh[localGapIdx] = threadIdx.x();
         }
-        acc.syncBlockThreads();
+        alpaka::block::sync::syncBlockThreads(acc);
         if (threadIdx.x() >= counterParticles && isParticle)
         {
             //any particle search a gap
@@ -374,7 +374,7 @@ ALPAKA_FN_ACC void operator()(
     auto counterGaps(alpaka::block::shared::allocVar<int>(acc));
     auto counterParticles(alpaka::block::shared::allocVar<int>(acc));
 
-    acc.syncBlockThreads(); /*wait that all shared memory is initialised*/
+    alpaka::block::sync::syncBlockThreads(acc); /*wait that all shared memory is initialised*/
 
     if (threadIdx.x() == 0)
     {
@@ -383,7 +383,7 @@ ALPAKA_FN_ACC void operator()(
         lastFrame = &(pb.getLastFrame(DataSpace<Dim > (superCellIdx), isValid));
         isValid = isValid && tmpValid;
     }
-    acc.syncBlockThreads();
+    alpaka::block::sync::syncBlockThreads(acc);
 
     while (isValid)
     {
@@ -397,14 +397,14 @@ ALPAKA_FN_ACC void operator()(
         }
         int localGapIdx = INV_LOC_IDX; //later we cann call localGapIdx < X because X<INV_LOC_IDX
 
-        acc.syncBlockThreads();
+        alpaka::block::sync::syncBlockThreads(acc);
 
         // find gaps
         if ((*firstFrame)[threadIdx.x()][multiMask_] == 0)
         {
             localGapIdx = alpaka::atomic::atomicOp<alpaka::atomic::op::Add>(acc, &counterGaps, 1);
         }
-        acc.syncBlockThreads();
+        alpaka::block::sync::syncBlockThreads(acc);
 
         if (counterGaps == 0)
         {
@@ -412,7 +412,7 @@ ALPAKA_FN_ACC void operator()(
             {
                 firstFrame = &(pb.getNextFrame(*firstFrame, isValid));
             }
-            acc.syncBlockThreads(); //wait control thread search new frame
+            alpaka::block::sync::syncBlockThreads(acc); //wait control thread search new frame
             continue; //check next frame
         }
 
@@ -422,7 +422,7 @@ ALPAKA_FN_ACC void operator()(
             int localParticleIdx = alpaka::atomic::atomicOp<alpaka::atomic::op::Add>(acc, &counterParticles, 1);
             particleIndices_sh[localParticleIdx] = threadIdx.x();
         }
-        acc.syncBlockThreads();
+        alpaka::block::sync::syncBlockThreads(acc);
         if (localGapIdx < counterParticles)
         {
             const int parIdx = particleIndices_sh[localGapIdx];
@@ -436,7 +436,7 @@ ALPAKA_FN_ACC void operator()(
             assign(parDest, parSrc);
             parSrc[multiMask_] = 0;
         }
-        acc.syncBlockThreads();
+        alpaka::block::sync::syncBlockThreads(acc);
         if (threadIdx.x() == 0)
         {
             bool isFrameValid = false;
@@ -461,7 +461,7 @@ ALPAKA_FN_ACC void operator()(
             }
             isValid = isFrameValid;
         }
-        acc.syncBlockThreads();
+        alpaka::block::sync::syncBlockThreads(acc);
     }
 }
 };
@@ -497,28 +497,28 @@ ALPAKA_FN_ACC void operator()(
     auto frame(alpaka::block::shared::allocVar<FrameType *>(acc));
     auto isValid(alpaka::block::shared::allocVar<bool>(acc));
 
-    acc.syncBlockThreads(); /*wait that all shared memory is initialized*/
+    alpaka::block::sync::syncBlockThreads(acc); /*wait that all shared memory is initialized*/
 
     if (linearThreadIdx == 0)
     {
         frame = &(pb.getLastFrame(superCellIdx, isValid));
     }
 
-    acc.syncBlockThreads();
+    alpaka::block::sync::syncBlockThreads(acc);
 
     while (isValid)
     {
         auto particle((*frame)[linearThreadIdx]);
         particle[multiMask_] = 0; //delete particle
 
-        acc.syncBlockThreads();
+        alpaka::block::sync::syncBlockThreads(acc);
 
         if (linearThreadIdx == 0)
         {
             //always remove the last frame
             isValid = getPreviousFrameAndRemoveLastFrame(frame, pb, superCellIdx);
         }
-        acc.syncBlockThreads();
+        alpaka::block::sync::syncBlockThreads(acc);
     }
 
     if (linearThreadIdx == 0)
@@ -562,7 +562,7 @@ ALPAKA_FN_ACC void operator()(
     auto hasMemory(alpaka::block::shared::allocVar<bool>(acc));
     auto tmpBorder(alpaka::block::shared::allocVar<TileDataBox<BORDER>>(acc));
 
-    acc.syncBlockThreads(); /*wait that all shared memory is initialised*/
+    alpaka::block::sync::syncBlockThreads(acc); /*wait that all shared memory is initialised*/
 
     if (threadIdx.x() == 0)
     {
@@ -570,19 +570,19 @@ ALPAKA_FN_ACC void operator()(
         frame = &(pb.getLastFrame(superCellIdx, isValid));
     }
     //\todo: eventuell ist es schneller, parallelen und seriellen Code zu trennen
-    acc.syncBlockThreads();
+    alpaka::block::sync::syncBlockThreads(acc);
     while (isValid && hasMemory)
     {
         lcellId_t bashIdx = INV_LOC_IDX;
         if (threadIdx.x() == 0)
             numBashedParticles = 0;
-        acc.syncBlockThreads();
+        alpaka::block::sync::syncBlockThreads(acc);
 
         if ((*frame)[threadIdx.x()][multiMask_] == 1)
         {
             bashIdx = alpaka::atomic::atomicOp<alpaka::atomic::op::Add>(acc, &numBashedParticles, 1u);
         }
-        acc.syncBlockThreads();
+        alpaka::block::sync::syncBlockThreads(acc);
 
         if (numBashedParticles > 0)
         {
@@ -599,7 +599,7 @@ ALPAKA_FN_ACC void operator()(
                 if (tmpBorder.getSize() < numBashedParticles)
                     hasMemory = false;
             }
-            acc.syncBlockThreads();
+            alpaka::block::sync::syncBlockThreads(acc);
 
             if (bashIdx != INV_LOC_IDX && bashIdx < tmpBorder.getSize())
             {
@@ -608,7 +608,7 @@ ALPAKA_FN_ACC void operator()(
                 assign(parDest, parSrc);
                 parSrc[multiMask_] = 0;
             }
-            acc.syncBlockThreads();
+            alpaka::block::sync::syncBlockThreads(acc);
 
             if (threadIdx.x() == 0 && hasMemory)
             {
@@ -624,7 +624,7 @@ ALPAKA_FN_ACC void operator()(
                 isValid=getPreviousFrameAndRemoveLastFrame(frame,pb,superCellIdx);
             }
         }
-        acc.syncBlockThreads();
+        alpaka::block::sync::syncBlockThreads(acc);
     }
     if (threadIdx.x() == 0)
         pb.getSuperCell(superCellIdx).setSizeLastFrame(0);
@@ -658,7 +658,7 @@ ALPAKA_FN_ACC void operator()(
     auto elementCount(alpaka::block::shared::allocVar<int>(acc));
     auto tmpBorder(alpaka::block::shared::allocVar<TileDataBox<BORDER>>(acc));
 
-    acc.syncBlockThreads(); /*wait that all shared memory is initialised*/
+    alpaka::block::sync::syncBlockThreads(acc); /*wait that all shared memory is initialised*/
 
     DataSpace<Mapping::Dim - 1> superCell;
 
@@ -671,7 +671,7 @@ ALPAKA_FN_ACC void operator()(
             frame = &(pb.getEmptyFrame());
         }
     }
-    acc.syncBlockThreads();
+    alpaka::block::sync::syncBlockThreads(acc);
     if (threadIdx.x() < elementCount)
     {
         auto parDestFull(((*frame)[threadIdx.x()]));
@@ -684,7 +684,7 @@ ALPAKA_FN_ACC void operator()(
     /* This synchronize fixes kernel crashes in special cases,
      * I can't tell why.
      */
-    acc.syncBlockThreads();
+    alpaka::block::sync::syncBlockThreads(acc);
     if ((threadIdx.x() == 0) && (elementCount > 0))
     {
         // compute the super cell position in target frame to insert into

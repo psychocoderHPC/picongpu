@@ -47,7 +47,7 @@ namespace PMacc
             AlpakaDev,
             TYPE,
             alpaka::dim::DimInt<DIM>,
-            std::size_t>;
+            AlpakaSize>;
 
     protected:
         /**

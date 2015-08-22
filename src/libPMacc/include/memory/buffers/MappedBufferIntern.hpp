@@ -47,12 +47,12 @@ public:
         AlpakaDev,
         TYPE,
         alpaka::dim::DimInt<DIM>,
-        std::size_t>;
+        AlpakaSize>;
     using DataBufDev = alpaka::mem::buf::BufPlainPtrWrapper<
         AlpakaDev,
         std::uint32_t,
         alpaka::dim::DimInt<DIM>,
-        std::size_t>;
+        AlpakaSize>;
 
     using DataBoxType = typename DeviceBuffer<TYPE, DIM>::DataBoxType;
 
@@ -217,7 +217,7 @@ private:
 
         log<ggLog::MEMORY>("Create mapped device %1%D data: %2% MiB") % DIM % (getDataSpace().productOfComponents() * sizeof(TYPE) / 1024 / 1024 );
 
-        DataBufHost buf(alpaka::mem::buf::alloc<TYPE, std::size_t>(
+        DataBufHost buf(alpaka::mem::buf::alloc<TYPE, AlpakaSize>(
             alpaka::dev::cpu::getDev(),
             getDataSpace()));
 

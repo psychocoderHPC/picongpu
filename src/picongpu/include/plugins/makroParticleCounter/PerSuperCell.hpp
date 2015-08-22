@@ -82,7 +82,7 @@ ALPAKA_FN_ACC void operator()(
             counterBox(counterCell) = counterValue;
         }
     }
-    acc.syncBlockThreads();
+    alpaka::block::sync::syncBlockThreads(acc);
     if (!isValid)
         return; //end kernel if we have no frames
 
@@ -94,13 +94,13 @@ ALPAKA_FN_ACC void operator()(
         {
             alpaka::atomic::atomicOp<alpaka::atomic::op::Add>(acc, &counterValue, static_cast<uint64_cu> (1LU));
         }
-        acc.syncBlockThreads();
+        alpaka::block::sync::syncBlockThreads(acc);
         if (linearThreadIdx == 0)
         {
             frame = &(parBox.getPreviousFrame(*frame, isValid));
         }
         isParticle = true;
-        acc.syncBlockThreads();
+        alpaka::block::sync::syncBlockThreads(acc);
     }
 
     if (linearThreadIdx == 0)

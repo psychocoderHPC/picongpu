@@ -88,7 +88,7 @@ ALPAKA_FN_ACC void operator()(
      */
     float_X * const shBin(acc.template getBlockSharedExternMem<float_X>()); /* size must be numBins+2 because we have <min and >max */
 
-    acc.syncBlockThreads(); /*wait that all shared memory is initialised*/
+    alpaka::block::sync::syncBlockThreads(acc); /*wait that all shared memory is initialised*/
 
     int realNumBins = numBins + 2;
 
@@ -111,7 +111,7 @@ ALPAKA_FN_ACC void operator()(
         shBin[i] = float_X(0.);
     }
 
-    acc.syncBlockThreads();
+    alpaka::block::sync::syncBlockThreads(acc);
     if (!isValid)
         return; /* end kernel if we have no frames */
 
@@ -185,21 +185,21 @@ ALPAKA_FN_ACC void operator()(
                 alpaka::atomic::atomicOp<alpaka::atomic::op::Add>(acc, &(shBin[binNumber]), normedWeighting);
             }
         }
-        acc.syncBlockThreads();
+        alpaka::block::sync::syncBlockThreads(acc);
         if (linearThreadIdx == 0)
         {
             frame = &(pb.getPreviousFrame(*frame, isValid));
             particlesInSuperCell = PMacc::math::CT::volume<Block>::type::value;
         }
-        acc.syncBlockThreads();
+        alpaka::block::sync::syncBlockThreads(acc);
     }
 
-    acc.syncBlockThreads();
+    alpaka::block::sync::syncBlockThreads(acc);
     for (int i = linearThreadIdx; i < realNumBins; i += threads)
     {
         alpaka::atomic::atomicOp<alpaka::atomic::op::Add>(acc, &(gBins[i]), float_64(shBin[i]));
     }
-    acc.syncBlockThreads();
+    alpaka::block::sync::syncBlockThreads(acc);
 }
 };
 

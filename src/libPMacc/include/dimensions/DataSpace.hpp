@@ -69,9 +69,9 @@ namespace PMacc
          * @param The vector to copy.
          */
         template<
-            typename TVal>
+            typename TSize>
         HDINLINE DataSpace(
-            alpaka::Vec<alpaka::dim::DimInt<DIM>, TVal> const & vec)
+            alpaka::Vec<alpaka::dim::DimInt<DIM>, TSize> const & vec)
         {
             for (uint32_t i = 0; i < DIM; ++i)
             {
@@ -82,10 +82,10 @@ namespace PMacc
 
         template<
             typename TDim,
-            typename TVal,
+            typename TSize,
             typename = typename std::enable_if<(TDim::value == DIM)>::type>
         HDINLINE DataSpace(
-            alpaka::Vec<TDim, TVal> const & vec)
+            alpaka::Vec<TDim, TSize> const & vec)
         {
             for (uint32_t i(0); i < DIM; ++i)
             {

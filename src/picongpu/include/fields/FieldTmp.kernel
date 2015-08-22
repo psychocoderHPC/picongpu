@@ -73,14 +73,14 @@ namespace picongpu
         auto particlesInSuperCell(alpaka::block::shared::allocVar<lcellId_t>(acc));
 
         /* wait until all shared memory is initialised */
-        acc.syncBlockThreads();
+        alpaka::block::sync::syncBlockThreads(acc);
 
         if( linearThreadIdx == 0 )
         {
             frame = &( boxPar.getLastFrame( block, isValid ) );
             particlesInSuperCell = boxPar.getSuperCell( block ).getSizeLastFrame( );
         }
-        acc.syncBlockThreads();
+        alpaka::block::sync::syncBlockThreads(acc);
 
         if( !isValid )
             return; //end kernel if we have no frames
@@ -91,27 +91,27 @@ namespace picongpu
         ThreadCollective<BlockDescription_> collective( linearThreadIdx );
         collective( set, cachedVal );
 
-        acc.syncBlockThreads();
+        alpaka::block::sync::syncBlockThreads(acc);
         while( isValid )
         {
             if( linearThreadIdx < particlesInSuperCell )
             {
                 frameSolver( *frame, linearThreadIdx, SuperCellSize::toRT(), cachedVal );
             }
-            acc.syncBlockThreads();
+            alpaka::block::sync::syncBlockThreads(acc);
             if( linearThreadIdx == 0 )
             {
                 frame = &( boxPar.getPreviousFrame( *frame, isValid ) );
                 particlesInSuperCell = PMacc::math::CT::volume<SuperCellSize>::type::value;
             }
-            acc.syncBlockThreads();
+            alpaka::block::sync::syncBlockThreads(acc);
         }
 
         nvidia::functors::Add add;
         const DataSpace<simDim> blockCell = block * MappingDesc::SuperCellSize::toRT( );
         PMACC_AUTO( fieldTmpBlock, fieldTmp.shift( blockCell ) );
         collective( add, fieldTmpBlock, cachedVal );
-        acc.syncBlockThreads();
+        alpaka::block::sync::syncBlockThreads(acc);
     }
     };
 

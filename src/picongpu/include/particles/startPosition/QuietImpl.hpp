@@ -49,7 +49,9 @@ struct QuietImpl
     {
     }
 
-    DINLINE void init(const DataSpace<simDim>& totalCellOffset)
+    DINLINE void init(
+        PMacc::AlpakaAcc<alpaka::dim::DimInt<simDim>> const & acc,
+        const DataSpace<simDim>& totalCellOffset)
     {
 
     }

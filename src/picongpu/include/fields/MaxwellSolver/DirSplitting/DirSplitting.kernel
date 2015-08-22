@@ -39,26 +39,38 @@ struct DirSplittingKernel
     PMACC_ALIGN(totalLength,int);
     DirSplittingKernel(int totalLength) : totalLength(totalLength) {}
 
-    template<typename CursorE, typename CursorB >
-    DINLINE void propagate(CursorE cursorE, CursorB cursorB) const
+    template<
+        typename T_Acc,
+        typename CursorE,
+        typename CursorB>
+    DINLINE void propagate(
+        T_Acc acc,
+        CursorE globalE,
+        CursorB globalB) const
     {
         float_X a_plus = (*cursorB(-1, 0, 0)).z() + (*cursorE(-1, 0, 0)).y();
         float_X a_minus = (*cursorB(1, 0, 0)).z() - (*cursorE(1, 0, 0)).y();
         float_X a_prime_plus = (*cursorB(-1, 0, 0)).y() - (*cursorE(-1, 0, 0)).z();
         float_X a_prime_minus = (*cursorB(1, 0, 0)).y() + (*cursorE(1, 0, 0)).z();
 
-        acc.syncBlockThreads();
+        alpaka::block::sync::syncBlockThreads(acc);
 
         (*cursorB).z() = float_X(0.5) * (a_plus + a_minus);
         (*cursorE).y() = float_X(0.5) * (a_plus - a_minus);
         (*cursorB).y() = float_X(0.5) * (a_prime_plus + a_prime_minus);
         (*cursorE).z() = float_X(0.5) * (a_prime_minus - a_prime_plus);
 
-        acc.syncBlockThreads();
+        alpaka::block::sync::syncBlockThreads(acc);
     }
 
-    template<typename CursorE, typename CursorB >
-    DINLINE void operator()(CursorE globalE, CursorB globalB) const
+    template<
+        typename T_Acc,
+        typename CursorE,
+        typename CursorB>
+    DINLINE void operator()(
+        T_Acc acc,
+        CursorE globalE,
+        CursorB globalB) const
     {
         DataSpace<simDim> const threadIndex(alpaka::idx::getIdx<alpaka::Block, alpaka::Threads>(acc));
 
@@ -84,7 +96,7 @@ struct DirSplittingKernel
         {
             foreach(CacheE::Zone(), cacheE.origin(), globalE(-1 + x_offset, 0, 0), _1 = _2);
             foreach(CacheB::Zone(), cacheB.origin(), globalB(-1 + x_offset, 0, 0), _1 = _2);
-            acc.syncBlockThreads();
+            alpaka::block::sync::syncBlockThreads(acc);
 
             BOOST_AUTO(cursorE, cacheE.origin()(1, 0, 0)(threadPos_x, threadIndex.y, threadIndex.z()));
             BOOST_AUTO(cursorB, cacheB.origin()(1, 0, 0)(threadPos_x, threadIndex.y, threadIndex.z()));
@@ -100,13 +112,13 @@ struct DirSplittingKernel
                 *cursorB(-1,0,0) = fieldB_old;
             }
 
-            propagate(cursorE, cursorB);
+            propagate(acc, cursorE, cursorB);
 
             typedef zone::CT::SphericZone<BlockDim> BlockZone;
             foreach(BlockZone(), cacheE.origin()(1, 0, 0), globalE(x_offset, 0, 0), _2 = _1);
             foreach(BlockZone(), cacheB.origin()(1, 0, 0), globalB(x_offset, 0, 0), _2 = _1);
 
-            acc.syncBlockThreads();
+            alpaka::block::sync::syncBlockThreads(acc);
 
             threadPos_x = BlockDim::x::value - 1 - threadPos_x;
         }

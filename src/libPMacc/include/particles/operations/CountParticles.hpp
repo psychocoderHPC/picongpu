@@ -61,7 +61,7 @@ ALPAKA_FN_ACC void operator()(
     auto particlesInSuperCell(alpaka::block::shared::allocVar<lcellId_t>(acc));
 
 
-    acc.syncBlockThreads(); /*wait that all shared memory is initialized*/
+    alpaka::block::sync::syncBlockThreads(acc); /*wait that all shared memory is initialized*/
 
     typedef typename Mapping::SuperCellSize SuperCellSize;
 
@@ -74,7 +74,7 @@ ALPAKA_FN_ACC void operator()(
         particlesInSuperCell = pb.getSuperCell(superCellIdx).getSizeLastFrame();
         counter = 0;
     }
-    acc.syncBlockThreads();
+    alpaka::block::sync::syncBlockThreads(acc);
     if (!isValid)
         return; //end kernel if we have no frames
     filter.setSuperCellPosition((superCellIdx - mapper.getGuardingSuperCells()) * mapper.getSuperCellSize());
@@ -85,16 +85,16 @@ ALPAKA_FN_ACC void operator()(
             if (filter(*frame, linearThreadIdx))
                 alpaka::atomic::atomicOp<alpaka::atomic::op::Add>(acc, &counter, 1);
         }
-        acc.syncBlockThreads();
+        alpaka::block::sync::syncBlockThreads(acc);
         if (linearThreadIdx == 0)
         {
             frame = &(pb.getPreviousFrame(*frame, isValid));
             particlesInSuperCell = math::CT::volume<SuperCellSize>::type::value;
         }
-        acc.syncBlockThreads();
+        alpaka::block::sync::syncBlockThreads(acc);
     }
 
-    acc.syncBlockThreads();
+    alpaka::block::sync::syncBlockThreads(acc);
     if (linearThreadIdx == 0)
     {
         alpaka::atomic::atomicOp<alpaka::atomic::op::Add>(acc, gCounter, (uint64_cu) counter);

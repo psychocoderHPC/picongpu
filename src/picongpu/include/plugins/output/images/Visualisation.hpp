@@ -303,7 +303,7 @@ ALPAKA_FN_ACC void operator()(
 
     auto frame(alpaka::block::shared::allocVar<FRAME *>(acc));
     auto isValid(alpaka::block::shared::allocVar<bool>(acc));
-    acc.syncBlockThreads(); /*wait that all shared memory is initialised*/
+    alpaka::block::sync::syncBlockThreads(acc); /*wait that all shared memory is initialised*/
     bool isImageThread = false;
 
     const DataSpace<DIM2> localCell(threadIndex[transpose.x()], threadIndex[transpose.y()]);
@@ -316,7 +316,7 @@ ALPAKA_FN_ACC void operator()(
 
     if (localId == 0)
         isValid = false;
-    acc.syncBlockThreads();
+    alpaka::block::sync::syncBlockThreads(acc);
 
     //\todo: guard size should not be set to (fixed) 1 here
     const DataSpace<simDim> realCell(blockOffset + threadIndex); //delete guard from cell idx
@@ -330,7 +330,7 @@ ALPAKA_FN_ACC void operator()(
         alpaka::atomic::atomicOp<alpaka::atomic::op::Exch>(acc, (int*) &isValid, 1); /*WAW Error in cuda-memcheck racecheck*/
         isImageThread = true;
     }
-    acc.syncBlockThreads();
+    alpaka::block::sync::syncBlockThreads(acc);
 
     if (!isValid)
         return;
@@ -344,7 +344,7 @@ ALPAKA_FN_ACC void operator()(
     // counter is always DIM2
     typedef DataBox < PitchedBox< float_X, DIM2 > > SharedMem;
     float_X * const shBlock(acc.template getBlockSharedExternMem<float_X>());
-    acc.syncBlockThreads(); /*wait that all shared memory is initialised*/
+    alpaka::block::sync::syncBlockThreads(acc); /*wait that all shared memory is initialised*/
 
     SharedMem counter(PitchedBox<float_X, DIM2 > ((float_X*) shBlock,
                                                   DataSpace<DIM2 > (),
@@ -360,7 +360,7 @@ ALPAKA_FN_ACC void operator()(
     {
         frame = &(pb.getFirstFrame(block, isValid));
     }
-    acc.syncBlockThreads();
+    alpaka::block::sync::syncBlockThreads(acc);
 
     while (isValid) //move over all Frames
     {
@@ -379,13 +379,13 @@ ALPAKA_FN_ACC void operator()(
                 alpaka::atomic::atomicOp<alpaka::atomic::op::Add>(acc, &(counter(reducedCell)), particle[weighting_] / particles::TYPICAL_NUM_PARTICLES_PER_MACROPARTICLE);
             }
         }
-        acc.syncBlockThreads();
+        alpaka::block::sync::syncBlockThreads(acc);
 
         if (localId == 0)
         {
             frame = &(pb.getNextFrame(*frame, isValid));
         }
-        acc.syncBlockThreads();
+        alpaka::block::sync::syncBlockThreads(acc);
     }
 
 

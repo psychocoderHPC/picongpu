@@ -44,7 +44,7 @@ namespace PMacc
             kernelDeleteParticles,
             alpaka::dim::DimInt<MappingDesc::Dim>,
             mapper.getGridDim(),
-            TileSize)(
+            static_cast<AlpakaSize>(TileSize))(
                 particlesBuffer->getDeviceParticleBox(),
                 mapper);
     }
@@ -61,7 +61,7 @@ namespace PMacc
             kernelDeleteParticles,
             alpaka::dim::DimInt<MappingDesc::Dim>,
             mapper.getGridDim(),
-            TileSize)(
+            static_cast<AlpakaSize>(TileSize))(
                 particlesBuffer->getDeviceParticleBox(),
                 mapper);
     }
@@ -88,7 +88,7 @@ namespace PMacc
                 kernelBashParticles,
                 alpaka::dim::DimInt<MappingDesc::Dim>,
                 mapper.getGridDim(),
-                TileSize)(
+                static_cast<AlpakaSize>(TileSize))(
                     particlesBuffer->getDeviceParticleBox(),
                     particlesBuffer->getSendExchangeStack(exchangeType).getDeviceExchangePushDataBox(),
                     mapper);
@@ -111,8 +111,8 @@ namespace PMacc
                 __cudaKernel(
                     kernelInsertParticles,
                     alpaka::dim::DimInt<1>,
-                    grid,
-                    TileSize)(
+                    static_cast<AlpakaSize>(grid),
+                    static_cast<AlpakaSize>(TileSize))(
                         particlesBuffer->getDeviceParticleBox(),
                         particlesBuffer->getReceiveExchangeStack(exchangeType).getDeviceExchangePopDataBox(),
                         mapper);

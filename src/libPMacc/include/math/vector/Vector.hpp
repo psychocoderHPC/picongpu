@@ -982,7 +982,7 @@ namespace alpaka
             struct SizeType<
                 PMacc::math::Vector<T_Type, T_dim, T_Accessor, T_Navigator, T_Storage>>
             {
-                using type = std::size_t;
+                using type = typename PMacc::math::Vector<T_Type, T_dim, T_Accessor, T_Navigator, T_Storage>::type;
             };
         }
     }

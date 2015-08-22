@@ -44,7 +44,7 @@ public:
         AlpakaDev,
         TYPE,
         alpaka::dim::DimInt<DIM>,
-        std::size_t>;
+        AlpakaSize>;
 
     using DataBoxType = typename DeviceBuffer<TYPE, DIM>::DataBoxType;
 
@@ -56,7 +56,7 @@ public:
         HostBuffer<TYPE, DIM>(dataSpace),
         m_upDataBufHost(
             new DataBufHost(
-                alpaka::mem::buf::alloc<TYPE, std::size_t>(
+                alpaka::mem::buf::alloc<TYPE, AlpakaSize>(
                     Environment<>::get().DeviceManager().getDevice(),
                     dataSpace))),
         m_dataViewHost(

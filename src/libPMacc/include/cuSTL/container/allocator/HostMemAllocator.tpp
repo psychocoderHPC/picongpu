@@ -35,7 +35,7 @@ HostMemAllocator<Type, T_dim>::allocate(const math::Size_t<T_dim>& size)
 
 #ifndef __CUDA_ARCH__
     m_upBuf.reset(new MemBuf(
-        alpaka::mem::buf::alloc<Type, std::size_t>(
+        alpaka::mem::buf::alloc<Type, AlpakaSize>(
             alpaka::dev::cpu::getDev(),
             size)));
 

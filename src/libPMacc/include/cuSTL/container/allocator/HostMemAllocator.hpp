@@ -41,7 +41,7 @@ struct HostMemAllocator
         alpaka::dev::DevCpu,
         Type,
         alpaka::dim::DimInt<T_dim>,
-        std::size_t>;
+        AlpakaSize>;
 
     typedef Type type;
     static const int dim = T_dim;

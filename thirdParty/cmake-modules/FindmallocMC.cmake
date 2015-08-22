@@ -59,7 +59,7 @@ cmake_minimum_required(VERSION 2.8.12.2)
 
 # dependencies ################################################################
 #
-option(MAMC_CUDA_ENABLE "Enable CUDA allocator policies requiring CUDA compiler support." OFF)
+option(MAMC_CUDA_ENABLE "Enable CUDA allocator policies requiring CUDA compiler support." ON)
 if(MAMC_CUDA_ENABLE)
     find_package(CUDA 5.0 REQUIRED)
     if(CUDA_FOUND)

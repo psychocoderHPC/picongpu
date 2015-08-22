@@ -46,7 +46,7 @@ public:
         AlpakaDev,
         TYPE,
         alpaka::dim::DimInt<DIM>,
-        std::size_t>;
+        AlpakaSize>;
 
     typedef typename DeviceBuffer<TYPE, DIM>::DataBoxType DataBoxType;
 
@@ -241,9 +241,9 @@ private:
 
         log<ggLog::MEMORY>("Create device %1%D data: %2% MiB") % DIM % (this->getDataSpace().productOfComponents() * sizeof(TYPE) / 1024 / 1024 );
 
-        return alpaka::mem::buf::alloc<TYPE, std::size_t>(
+        return alpaka::mem::buf::alloc<TYPE, AlpakaSize>(
             Environment<>::get().DeviceManager().getDevice(),
-            algorithms::precisionCast::precisionCast<std::size_t>(this->getDataSpace())
+            this->getDataSpace()
             );
     }
 
@@ -257,28 +257,38 @@ private:
 
         // \HACK \TODO \FIXME: This allocates the memory twice. One time (possibly with padding) and a second time without padding and deletes the first buffer.
         DataBufDev buf(
-            alpaka::mem::buf::alloc<TYPE, std::size_t>(
+            alpaka::mem::buf::alloc<TYPE, AlpakaSize>(
                 Environment<>::get().DeviceManager().getDevice(),
-                algorithms::precisionCast::precisionCast<std::size_t>(this->getDataSpace())
+                this->getDataSpace()
             ));
 
         using MemBufFake = alpaka::mem::buf::Buf<
             AlpakaDev,
             TYPE,
             alpaka::dim::DimInt<1u>,
-            std::size_t>;
+            AlpakaSize>;
         MemBufFake fakeBuf(
-            alpaka::mem::buf::alloc<TYPE, std::size_t>(
+            alpaka::mem::buf::alloc<TYPE, AlpakaSize>(
                 Environment<>::get().DeviceManager().getDevice(),
-                static_cast<std::size_t>(this->getDataSpace().productOfComponents())));
+                static_cast<AlpakaSize>(this->getDataSpace().productOfComponents())));
 
         // Swap the pointers of our buffers.
-        TYPE * tmp(const_cast<TYPE *>(buf.m_spBufCpuImpl->m_pMem));
-        const_cast<TYPE *>(buf.m_spBufCpuImpl->m_pMem) = const_cast<TYPE *>(fakeBuf.m_spBufCpuImpl->m_pMem);
-        const_cast<TYPE *>(fakeBuf.m_spBufCpuImpl->m_pMem) = tmp;
+#if defined(ALPAKA_ACC_GPU_CUDA_ENABLED) && defined(__CUDACC__) && !defined(PMACC_ACC_CPU)
+        buf.m_spMem.swap(fakeBuf.m_spMem);
+#else
+        TYPE ** bp (const_cast<TYPE **>(&buf.m_spBufCpuImpl->m_pMem));
+        TYPE ** fbp (const_cast<TYPE **>(&fakeBuf.m_spBufCpuImpl->m_pMem));
+        TYPE * const tmp(*bp);
+        *bp = *fbp;
+        *fbp = tmp;
+#endif
 
         // Reset the pitch of the original buffer to the correct pitch of the fake buffer.
-        *const_cast<std::size_t *>(&buf.m_spBufCpuImpl->m_pitchBytes) = this->getDataSpace()[0u] * sizeof(TYPE);
+#if defined(ALPAKA_ACC_GPU_CUDA_ENABLED) && defined(__CUDACC__) && !defined(PMACC_ACC_CPU)
+        buf.m_pitchBytes = this->getDataSpace()[0u] * sizeof(TYPE);
+#else
+        *const_cast<AlpakaSize *>(&buf.m_spBufCpuImpl->m_pitchBytes) = this->getDataSpace()[0u] * sizeof(TYPE);
+#endif
 
         return buf;
     }
@@ -288,9 +298,9 @@ private:
         __startOperation(ITask::TASK_HOST);
         m_upSizeOnDevice.reset(
             new typename PMacc::DeviceBuffer<TYPE, DIM>::SizeBufDev(
-                alpaka::mem::buf::alloc<std::size_t, std::size_t>(
+                alpaka::mem::buf::alloc<std::size_t, AlpakaSize>(
                     Environment<>::get().DeviceManager().getDevice(),
-                    static_cast<std::size_t>(1u))));
+                    static_cast<AlpakaSize>(1u))));
     }
 
 private:
