@@ -52,7 +52,6 @@ namespace PMacc
         virtual ~TaskCopyHostToDeviceBase()
         {
             notify(this->myId, COPYHOST2DEVICE, NULL);
-            //std::cout<<"destructor TaskH2D"<<std::endl;
         }
 
         bool executeIntern()
@@ -66,16 +65,16 @@ namespace PMacc
 
         virtual void init()
         {
-         //   __startAtomicTransaction(__getTransactionEvent());
             size_t current_size = host->getCurrentSize();
+
             DataSpace<DIM> hostCurrentSize = host->getCurrentDataSpace(current_size);
+            device->setCurrentSize(current_size);
             if (host->is1D() && device->is1D())
                 fastCopy(host->getPointer(), device->getPointer(), hostCurrentSize.productOfComponents());
             else
                 copy(hostCurrentSize);
-            device->setCurrentSize(current_size);
+
             this->activate();
-         //   __setTransactionEvent(__endTransaction());
         }
 
         std::string toString()
@@ -95,7 +94,6 @@ namespace PMacc
                                        size * sizeof (TYPE),
                                        cudaMemcpyHostToDevice,
                                        this->getCudaStream()));
-            // std::cout<<"-----------fast H2D"<<std::endl;;
         }
 
 

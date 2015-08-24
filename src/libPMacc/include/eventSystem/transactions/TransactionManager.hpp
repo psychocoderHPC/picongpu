@@ -55,13 +55,6 @@ public:
     void startTransaction(EventTask serialEvent = EventTask());
 
     /**
-     * Adds a new atomic transaction to the stack.
-     *
-     * @param serialEvent initial base event for new transaction
-     */
-    void startAtomicTransaction(EventTask serialEvent = EventTask());
-
-    /**
      * Removes the top-most transaction from the stack.
      *
      * @return the base event of the removed transaction
@@ -98,6 +91,8 @@ private:
     friend class Environment<DIM1>;
     friend class Environment<DIM2>;
     friend class Environment<DIM3>;
+    friend class Manager;
+    friend class EventNotify;
 
     TransactionManager();
 

@@ -60,7 +60,7 @@ namespace PMacc
             for (int i = 1; i < Exchanges; ++i)
             {
                 /* Start new transaction */
-                __startAtomicTransaction(serialEvent);
+                __startTransaction(serialEvent);
 
                 /* Handle particles */
                 if (parBase.getParticlesBuffer().hasReceiveExchange(i))
@@ -87,7 +87,7 @@ namespace PMacc
                     break;
                 case CallFillGaps:
                     state = WaitForFillGaps;
-                    __startTransaction();
+                    __startTransaction(__getTransactionEvent());
 
                     parBase.fillBorderGaps();
 

@@ -283,6 +283,7 @@ public:
         EventTask returnEvent = framesExchanges->asyncSend(serialEvent, ex, framesExchangesGPUEvent) +
             exchangeMemoryIndexer->asyncSend(serialEvent, ex, exchangeMemoryIndexerGPUEvent);
         gpuFree = framesExchangesGPUEvent + exchangeMemoryIndexerGPUEvent;
+        //gpuFree = returnEvent;
         return returnEvent;
     }
 

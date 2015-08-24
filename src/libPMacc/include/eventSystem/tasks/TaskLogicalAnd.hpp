@@ -77,34 +77,45 @@ namespace PMacc
             if (task1 == eventId)
             {
                 task1 = 0;
-                /* \todo: there is a bug in this part of code
-                 * ITask* task = Environment<>::get().Manager().getITaskIfNotFinished(task2);
+
+                ITask* task = Environment<>::get().Manager().getITaskIfNotFinished(task2);
                 if (task != NULL)
                 {
                     ITask::TaskType type = task->getTaskType();
-                    if (type == ITask::TASK_CUDA && this->getTaskType() != ITask::TASK_CUDA)
+                    if (type == ITask::TASK_CUDA )
                     {
-                        this->setTaskType(task->getTaskType());
-                        this->setCudaEvent(static_cast<StreamTask*> (task)->getCudaEvent());
+                        //*(static_cast<StreamTask*> (this))=*(static_cast<StreamTask*> (task));
+                        this->stream = static_cast<StreamTask*> (task)->getEventStream();
+                        this->setTaskType(ITask::TASK_CUDA);
+                        this->cudaEvent=static_cast<StreamTask*> (task)->getCudaEvent();
+                        this->hasCudaEvent=true;
+
                     }
-                }*/
-            } else if (task2 == eventId)
+                }
+
+            }
+            else if (task2 == eventId)
             {
                 task2 = 0;
-               /* if (task1 != 0)
+
+                ITask* task = Environment<>::get().Manager().getITaskIfNotFinished(task1);
+                if (task != NULL)
                 {
-                    ITask* task = Environment<>::get().Manager().getITaskIfNotFinished(task1);
-                    if (task != NULL)
+                    ITask::TaskType type = task->getTaskType();
+                    if (type == ITask::TASK_CUDA )
                     {
-                        ITask::TaskType type = task->getTaskType();
-                        if (type == ITask::TASK_CUDA && this->getTaskType() != ITask::TASK_CUDA)
-                        {
-                            this->setTaskType(task->getTaskType());
-                            this->setCudaEvent(static_cast<StreamTask*> (task)->getCudaEvent());
-                        }
+                       // *(static_cast<StreamTask*> (this))=*(static_cast<StreamTask*> (task));
+                        //this->setTaskType(ITask::TASK_CUDA);
+                        this->stream = static_cast<StreamTask*> (task)->getEventStream();
+                        this->setTaskType(ITask::TASK_CUDA);
+                        this->cudaEvent=static_cast<StreamTask*> (task)->getCudaEvent();
+                        this->hasCudaEvent=true;
+
                     }
-                }*/
-            } else
+                }
+
+            }
+            else
                 std::runtime_error("task id not known");
 
             if(executeIntern())
@@ -115,7 +126,11 @@ namespace PMacc
 
         std::string toString()
         {
-            return "TaskLogicalAnd";
+            return std::string("TaskLogicalAnd (") +
+                EventTask(task1).toString() +
+                std::string(" - ") +
+                EventTask(task2).toString() +
+                std::string(" )");
         }
 
     private:
@@ -127,18 +142,21 @@ namespace PMacc
             if (s1->getTaskType() == ITask::TASK_CUDA && s2->getTaskType() == ITask::TASK_CUDA)
             {
                 this->setTaskType(ITask::TASK_CUDA);
+
                 this->setEventStream(static_cast<StreamTask*> (s2)->getEventStream());
-                this->getEventStream()->waitOn(static_cast<StreamTask*> (s1)->getCudaEvent());
+                if(static_cast<StreamTask*> (s1)->getEventStream() != static_cast<StreamTask*> (s2)->getEventStream())
+                    this->getEventStream()->waitOn(static_cast<StreamTask*> (s1)->getCudaEvent());
                 this->activate();
-            } else if (s1->getTaskType() == ITask::TASK_MPI && s2->getTaskType() == ITask::TASK_CUDA)
+            }
+            else if (s1->getTaskType() == ITask::TASK_MPI && s2->getTaskType() == ITask::TASK_CUDA)
             {
                 this->setTaskType(ITask::TASK_MPI);
-                this->setEventStream(static_cast<StreamTask*> (s2)->getEventStream());
-            } else if (s2->getTaskType() == ITask::TASK_MPI && s1->getTaskType() == ITask::TASK_CUDA)
+            }
+            else if (s2->getTaskType() == ITask::TASK_MPI && s1->getTaskType() == ITask::TASK_CUDA)
             {
                 this->setTaskType(ITask::TASK_MPI);
-                this->setEventStream(static_cast<StreamTask*> (s1)->getEventStream());
-            } else if (s1->getTaskType() == ITask::TASK_MPI && s2->getTaskType() == ITask::TASK_MPI)
+            }
+            else if (s1->getTaskType() == ITask::TASK_MPI && s2->getTaskType() == ITask::TASK_MPI)
             {
                 this->setTaskType(ITask::TASK_MPI);
             }
