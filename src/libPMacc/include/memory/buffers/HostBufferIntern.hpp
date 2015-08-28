@@ -58,10 +58,13 @@ public:
             new DataBufHost(
                 alpaka::mem::buf::alloc<TYPE, AlpakaSize>(
                     Environment<>::get().DeviceManager().getDevice(),
-                    dataSpace))),
+                    PMacc::algorithms::precisionCast::precisionCast<AlpakaSize>(dataSpace))
+                )),
         m_dataViewHost(
             alpaka::mem::view::createView<typename PMacc::HostBuffer<TYPE, DIM>::DataViewHost>(
-                *m_upDataBufHost.get()))
+                *m_upDataBufHost.get()
+            )
+        )
     {
         reset(false);
     }
@@ -72,8 +75,10 @@ public:
         m_dataViewHost(
             alpaka::mem::view::createView<typename PMacc::HostBuffer<TYPE, DIM>::DataViewHost>(
                 source.getMemBufView(),
-                dataSpace,
-                offset))
+                PMacc::algorithms::precisionCast::precisionCast<AlpakaSize>(dataSpace),
+                PMacc::algorithms::precisionCast::precisionCast<AlpakaSize>(offset)
+            )
+        )
     {
         reset(true);
     }
