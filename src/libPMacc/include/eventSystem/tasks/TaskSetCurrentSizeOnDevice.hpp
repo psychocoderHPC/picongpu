@@ -95,9 +95,9 @@ private:
     void setCurrentSize()
     {
         kernelSetValueOnDeviceMemory kernel;
-        alpaka::workdiv::WorkDivMembers<alpaka::dim::DimInt<1u>, AlpakaSize> workDiv(
-            static_cast<AlpakaSize>(1u),
-            static_cast<AlpakaSize>(1u));
+        alpaka::workdiv::WorkDivMembers<alpaka::dim::DimInt<1u>, AlpakaIdxSize> workDiv(
+            static_cast<AlpakaIdxSize>(1u),
+            static_cast<AlpakaIdxSize>(1u));
         auto const exec(
             alpaka::exec::create<AlpakaAcc<alpaka::dim::DimInt<1u>>>(
                 workDiv,

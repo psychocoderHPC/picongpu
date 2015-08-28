@@ -75,8 +75,10 @@ public:
         m_dataViewDev(
             alpaka::mem::view::createView<typename PMacc::DeviceBuffer<TYPE, DIM>::DataViewDev>(
                 source.getMemBufView(),
-                this->getDataSpace(),
-                offset))
+                PMacc::algorithms::precisionCast::precisionCast<AlpakaSize>(this->getDataSpace()),
+                PMacc::algorithms::precisionCast::precisionCast<AlpakaSize>(offset)
+            )
+        )
     {
         if(_sizeOnDevice)
         {
@@ -103,7 +105,8 @@ public:
                 stream,
                 m_dataViewDev,
                 0,
-                this->getDataSpace());
+                this->getDataSpace()
+            );
             alpaka::wait::wait(stream);
         }
     }
@@ -116,7 +119,9 @@ public:
                 getBasePointer(),
                 getOffset(),
                 this->getDataSpace(),
-                getPitch()));
+                getPitch()
+            )
+        );
     }
 
     TYPE* getBasePointer()
@@ -243,7 +248,7 @@ private:
 
         return alpaka::mem::buf::alloc<TYPE, AlpakaSize>(
             Environment<>::get().DeviceManager().getDevice(),
-            this->getDataSpace()
+            PMacc::algorithms::precisionCast::precisionCast<AlpakaSize>(this->getDataSpace())
             );
     }
 
@@ -259,7 +264,7 @@ private:
         DataBufDev buf(
             alpaka::mem::buf::alloc<TYPE, AlpakaSize>(
                 Environment<>::get().DeviceManager().getDevice(),
-                this->getDataSpace()
+                PMacc::algorithms::precisionCast::precisionCast<AlpakaSize>(this->getDataSpace())
             ));
 
         using MemBufFake = alpaka::mem::buf::Buf<

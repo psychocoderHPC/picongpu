@@ -41,19 +41,21 @@
 
 namespace PMacc
 {
-    using AlpakaSize = int;
+    using AlpakaSize = size_t;
+    using AlpakaIdxSize = int;
+
 #ifdef PMACC_ACC_CPU
     using AlpakaDev = alpaka::dev::DevCpu;
     using AlpakaStream = alpaka::stream::StreamCpuAsync;
     template<
         typename TDim>
-    using AlpakaAcc = alpaka::acc::AccCpuOmp2Blocks<TDim, AlpakaSize>;
+    using AlpakaAcc = alpaka::acc::AccCpuOmp2Blocks<TDim, AlpakaIdxSize>;
 #else
     using AlpakaDev = alpaka::dev::DevCudaRt;
     using AlpakaStream = alpaka::stream::StreamCudaRtAsync;
     template<
         typename TDim>
-    using AlpakaAcc = alpaka::acc::AccGpuCudaRt<TDim, AlpakaSize>;
+    using AlpakaAcc = alpaka::acc::AccGpuCudaRt<TDim, AlpakaIdxSize>;
 #endif
 
 namespace bmpl = boost::mpl;
