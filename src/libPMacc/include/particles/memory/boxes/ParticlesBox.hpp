@@ -85,7 +85,7 @@ public:
         const int maxTries = 13; //magic number is not performance critical
         for (int numTries = 0; numTries < maxTries; ++numTries)
         {
-            tmp = (FrameType*) new FrameType; //mallocMC::malloc(sizeof (FrameType));
+            tmp = (FrameType*) mallocMC::malloc(sizeof (FrameType));
             if (tmp != NULL)
             {
                 /* disable all particles since we can not assume that newly allocated memory contains zeros */

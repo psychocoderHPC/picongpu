@@ -75,7 +75,7 @@ using AllocatorHostNew = mallocMC::Allocator<
     mallocMC::DistributionPolicies::Noop,
     mallocMC::OOMPolicies::ReturnNull,
     mallocMC::ReservePoolPolicies::NoOp,
-    mallocMC::AlignmentPolicies::Noop
+    mallocMC::AlignmentPolicies::Shrink<>
     >;
 
 //use AllocatorHostNew to replace malloc/free

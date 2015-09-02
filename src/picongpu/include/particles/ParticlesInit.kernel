@@ -189,7 +189,6 @@ ALPAKA_FN_ACC void operator()(
         if (linearThreadIdx == 0 && finished == 0)
         {
             frame = &(pb.getEmptyFrame());
-            std::cout<<"ptr "<<frame<<std::endl;
             pb.setAsLastFrame(acc, *frame, superCellIdx);
         }
     }

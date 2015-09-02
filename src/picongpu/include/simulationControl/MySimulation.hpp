@@ -281,9 +281,9 @@ public:
         createSpeciesMemory(forward(particleStorage), cellDescription);
 
         size_t freeGpuMem(0);
-        Environment<>::get().EnvMemoryInfo().setReservedMemory(totalFreeGpuMemory);
         Environment<>::get().EnvMemoryInfo().getMemoryInfo(&freeGpuMem);
-      
+        freeGpuMem -= totalFreeGpuMemory;
+
         if( Environment<>::get().EnvMemoryInfo().isSharedMemoryPool() )
         {
             freeGpuMem /= 2;
