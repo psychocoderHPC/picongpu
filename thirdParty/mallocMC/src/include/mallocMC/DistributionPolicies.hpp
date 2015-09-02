@@ -32,7 +32,8 @@
 #include "distributionPolicies/Noop.hpp"
 #include "distributionPolicies/Noop_impl.hpp"
 
-#if MAMC_CUDA_ENABLED
+#if defined(MAMC_CUDA_ENABLED) && defined(__CUDACC__)
+
 
 #include "distributionPolicies/XMallocSIMD.hpp"
 #include "distributionPolicies/XMallocSIMD_impl.hpp"

@@ -49,7 +49,7 @@ namespace PMacc
     using AlpakaStream = alpaka::stream::StreamCpuAsync;
     template<
         typename TDim>
-    using AlpakaAcc = alpaka::acc::AccCpuOmp2Blocks<TDim, AlpakaIdxSize>;
+    using AlpakaAcc = alpaka::acc::AccCpuOmp2Threads<TDim, AlpakaIdxSize>;
 #else
     using AlpakaDev = alpaka::dev::DevCudaRt;
     using AlpakaStream = alpaka::stream::StreamCudaRtAsync;

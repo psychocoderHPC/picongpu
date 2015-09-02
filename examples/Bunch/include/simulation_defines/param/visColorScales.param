@@ -17,12 +17,10 @@
  * along with PIConGPU.
  * If not, see <http://www.gnu.org/licenses/>.
  */
- 
+
 
 
 #pragma once
-
-#include "basicOperations.hpp"
 
 namespace picongpu
 {
@@ -37,7 +35,7 @@ namespace picongpu
                 return;
             }
         }
-        
+
         namespace gray
         {
             HDINLINE void addRGB( float3_X& img,
@@ -52,7 +50,7 @@ namespace picongpu
                       + myChannel * value * opacity;
             }
         }
-        
+
         namespace grayInv
         {
             HDINLINE void addRGB( float3_X& img,
@@ -67,7 +65,7 @@ namespace picongpu
                       + myChannel * (float_X(1.0) - value ) * opacity;
             }
         }
-        
+
         namespace red
         {
             HDINLINE void addRGB( float3_X& img,
@@ -82,7 +80,7 @@ namespace picongpu
                       + myChannel * value * opacity;
             }
         }
-        
+
         namespace green
         {
             HDINLINE void addRGB( float3_X& img,
@@ -97,7 +95,7 @@ namespace picongpu
                       + myChannel * value * opacity;
             }
         }
-        
+
         namespace blue
         {
             HDINLINE void addRGB( float3_X& img,

@@ -32,7 +32,8 @@
 #include "reservePoolPolicies/NoOp.hpp"
 #include "reservePoolPolicies/NoOp_impl.hpp"
 
-#if MAMC_CUDA_ENABLED
+#if defined(MAMC_CUDA_ENABLED) && defined(__CUDACC__)
+
 
 #include "reservePoolPolicies/SimpleCudaMalloc.hpp"
 #include "reservePoolPolicies/SimpleCudaMalloc_impl.hpp"

@@ -96,7 +96,7 @@ namespace picongpu
         {
             if( linearThreadIdx < particlesInSuperCell )
             {
-                frameSolver( *frame, linearThreadIdx, SuperCellSize::toRT(), cachedVal );
+                frameSolver( acc, *frame, linearThreadIdx, SuperCellSize::toRT(), cachedVal );
             }
             alpaka::block::sync::syncBlockThreads(acc);
             if( linearThreadIdx == 0 )

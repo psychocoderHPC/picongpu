@@ -69,11 +69,11 @@ using namespace boost::filesystem;
             /* restart file found - fix output file created at restart */
             if( outFile.is_open() )
                 outFile.close();
-
+            /*
             copy_file( src,
                        dst,
                        copy_option::overwrite_if_exists );
-
+             */
             outFile.open( filename.c_str(), std::ofstream::out | std::ostream::app );
             if( !outFile )
             {
@@ -106,9 +106,11 @@ using namespace boost::filesystem;
         path dst( checkpointDirectory + std::string("/") + filename +
         std::string(".") + sStep.str() );
 
-        copy_file( src,
+      /* boost C++11 bug https://svn.boost.org/trac/boost/ticket/6124
+       * copy_file( src,
                    dst,
                    copy_option::overwrite_if_exists );
+       * */
     }
 
 } /* namespace picongpu */

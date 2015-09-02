@@ -45,7 +45,7 @@ struct TemperatureImpl : private T_ValueFunctor
 
     typedef T_ValueFunctor ValueFunctor;
 
-    HINLINE TemperatureImpl(uint32_t currentStep) : isInitialized(false)
+    HINLINE TemperatureImpl(uint32_t currentStep) : isInitialized(false), gen(0)
     {
         typedef typename SpeciesType::FrameType FrameType;
 
@@ -59,10 +59,11 @@ struct TemperatureImpl : private T_ValueFunctor
     }
 
     template<
+        typename T_Acc,
         typename T_Particle1,
         typename T_Particle2>
     DINLINE void operator()(
-        PMacc::AlpakaAcc<alpaka::dim::DimInt<simDim>> const & acc,
+        T_Acc const & acc,
         const DataSpace<simDim>& localCellIdx,
         T_Particle1& particle,
         T_Particle2&,

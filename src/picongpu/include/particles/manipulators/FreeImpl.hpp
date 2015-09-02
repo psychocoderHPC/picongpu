@@ -48,8 +48,8 @@ struct FreeImpl
 
     }
 
-    template<typename T_Particle1, typename T_Particle2>
-    DINLINE void operator()(const DataSpace<simDim>&,
+    template<typename T_Acc, typename T_Particle1, typename T_Particle2>
+    DINLINE void operator()(const T_Acc&, const DataSpace<simDim>&,
                             T_Particle1& particleSpecies1, T_Particle2& particleSpecies2,
                             const bool isParticle1, const bool isParticle2)
     {

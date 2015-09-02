@@ -60,7 +60,7 @@ struct EvalAssignmentFunctionOfDirection
 {
 
     HDINLINE void
-    operator()(float_X& result, const floatD_X& pos)
+    operator()(float_X& result, const floatD_X& pos) const
     {
         typedef T_GridPointVec GridPointVec;
         typedef T_ShapeComponent ShapeComponent;
@@ -106,7 +106,7 @@ struct AssignChargeToCell
         T_Acc const & acc,
         T_Cursor& cursor,
         const floatD_X& pos,
-        const float_X flux)
+        const float_X flux) const
     {
         typedef T_GridPointVec GridPointVec;
         typedef T_Shape Shape;
@@ -178,9 +178,9 @@ struct ZigZag
     struct AssignOneDirection
     {
 
-        template<typename T_Cursor>
+        template<typename T_Acc, typename T_Cursor>
         HDINLINE void
-        operator()(T_Cursor cursor, floatD_X pos, const float3_X& flux)
+        operator()(T_Acc const & acc, T_Cursor cursor, floatD_X pos, const float3_X& flux) const
         {
             typedef T_CurrentComponent CurrentComponent;
             const uint32_t dir = CurrentComponent::value;
@@ -219,7 +219,7 @@ struct ZigZag
             /* calculate the current for every cell (grid point)*/
             typedef typename AllCombinations<Size>::type CombiTypes;
             ForEach<CombiTypes, AssignChargeToCell<bmpl::_1, ParticleShape, CurrentComponent > > callAssignChargeToCell;
-            callAssignChargeToCell(forward(cursor), pos, flux[dir]);
+            callAssignChargeToCell(acc,forward(cursor), pos, flux[dir]);
         }
 
     };
@@ -234,11 +234,11 @@ struct ZigZag
      */
     template<typename T_Acc, typename DataBoxJ, typename PosType, typename VelType, typename ChargeType >
     DINLINE void operator()(
-        T_Acc const &,
+        T_Acc const & acc,
         DataBoxJ dataBoxJ,
         const PosType pos1,
         const VelType velocity,
-        const ChargeType charge, const float_X deltaTime)
+        const ChargeType charge, const float_X deltaTime) const
     {
 
         floatD_X deltaPos;
@@ -310,7 +310,7 @@ struct ZigZag
 
             /* calculate x,y,z component of the current*/
             ForEach<Components, AssignOneDirection<bmpl::_1> > callAssignOneDirection;
-            callAssignOneDirection(forward(cursorJ), inCellPos, flux);
+            callAssignOneDirection(acc, forward(cursorJ), inCellPos, flux);
         }
     }
 

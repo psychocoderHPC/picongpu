@@ -73,7 +73,7 @@ public:
     EventStream* getEventStream(ITask::TaskType operation);
 
 private:
-    std::unique_ptr<EventTask> baseEvent;
+    EventTask baseEvent;
     EventStream* eventStream;
     bool isAtomic;
 

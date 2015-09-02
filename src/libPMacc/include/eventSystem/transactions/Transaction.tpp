@@ -19,7 +19,7 @@
  * and the GNU Lesser General Public License along with libPMacc.
  * If not, see <http://www.gnu.org/licenses/>.
  */
- 
+
 #include "eventSystem/transactions/Transaction.hpp"
 
 #include "eventSystem/streams/StreamController.hpp"
@@ -29,7 +29,7 @@
 namespace PMacc
 {
 Transaction::Transaction( EventTask const & event, bool isAtomic ) :
-    baseEvent(new EventTask(event)),
+    baseEvent(event),
     eventStream(Environment<>::get().StreamController().getNextStream()),
     isAtomic(isAtomic)
 {
@@ -50,19 +50,19 @@ inline EventTask Transaction::setTransactionEvent( const EventTask& event )
         }
     }
 
-    (*baseEvent.get()) += event;
-    return *baseEvent.get();
+    baseEvent += event;
+    return baseEvent;
 }
 
 inline EventTask Transaction::getTransactionEvent( )
 {
-    return *baseEvent.get();
+    return baseEvent;
 }
 
 void Transaction::operation( ITask::TaskType )
 {
     if ( isAtomic == false )
-        baseEvent->waitForFinished( );
+        baseEvent.waitForFinished( );
 }
 
 EventStream* Transaction::getEventStream( ITask::TaskType )

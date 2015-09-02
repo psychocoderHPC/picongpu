@@ -62,7 +62,7 @@ ALPAKA_FN_ACC void operator()(
     T_Acc const & acc,
     ParticlesBox<MYFRAME, simDim> const & myBox,
     ParticlesBox<OTHERFRAME, simDim> const & otherBox,
-    T_ManipulateFunctor const & manipulateFunctor,
+    T_ManipulateFunctor manipulateFunctor,
     Mapping const & mapper) const
 {
     using namespace PMacc::particles::operations;
@@ -100,7 +100,7 @@ ALPAKA_FN_ACC void operator()(
         const DataSpace<simDim> localCellIdx = block
             + DataSpaceOperations<simDim>::map<SuperCellSize>(threadIndex.x())
             - mapper.getGuardingSuperCells() * SuperCellSize::toRT();
-        manipulateFunctor(localCellIdx,
+        manipulateFunctor( acc, localCellIdx,
                           parDest, parSrc,
                           true, parSrc[multiMask_] == 1);
 
@@ -130,7 +130,7 @@ template<
 ALPAKA_FN_ACC void operator()(
     T_Acc const & acc,
     T_ParBox const & pb,
-    T_ParicleFunctor const & particleFunctor,
+    T_ParicleFunctor particleFunctor,
     Mapping const & mapper) const
 {
     typedef typename Mapping::SuperCellSize SuperCellSize;
@@ -169,7 +169,7 @@ ALPAKA_FN_ACC void operator()(
     while (isValid)
     {
         PMACC_AUTO(particle, ((*frame)[linearThreadIdx]));
-        particleFunctor(localCellIdx, particle, particle, isParticle, isParticle);
+        particleFunctor( acc, localCellIdx, particle, particle, isParticle, isParticle);
 
         alpaka::block::sync::syncBlockThreads(acc);
         if (linearThreadIdx == 0)
@@ -198,7 +198,7 @@ ALPAKA_FN_ACC void operator()(
     ParBox const & pb,
     EBox const & fieldE,
     BBox const & fieldB,
-    FrameSolver const & frameSolver,
+    FrameSolver frameSolver,
     Mapping const & mapper) const
 {
     /* definitions for domain variables, like indices of blocks and threads

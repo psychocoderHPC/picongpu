@@ -70,59 +70,6 @@ namespace PMacc
 namespace algorithms
 {
 
-//########################### definitions for preprocessor #####################
-/** create operator() for EmptyFunctor
- *
- * template<typename T0, ... , typename TN>
- * HDINLINE void operator()(const T0, ..., const TN ) const {}
- *
- * All operator are empty and do nothing.
- * The operator parameters are plain type-only (without a name) to support
- * compiler flags like -Wextras (with -Wunused-params)
- */
-#define PMACC_FOREACH_OPERATOR_NO_USAGE(Z, N, PMACC_PP_CONST)                  \
-    PMACC_NO_NVCC_HDWARNING                                                    \
-    /* if N != 0 we add `template<` */                                         \
-    BOOST_PP_IF(BOOST_PP_NOT_EQUAL(N,0),template<,BOOST_PP_EMPTY())            \
-    /*      <typename T0, ... , typename TN     > */                           \
-    BOOST_PP_ENUM_PARAMS(N, typename T)                                        \
-    /*  if N != 0 we add ```>``` */                                            \
-    BOOST_PP_IF(BOOST_PP_NOT_EQUAL(N,0),>,BOOST_PP_EMPTY())                    \
-    HDINLINE void                                                              \
-    /*        ( const T0, ... , cont TN         ) */                           \
-    operator()( BOOST_PP_ENUM_PARAMS(N, const T)) PMACC_PP_CONST               \
-    {                                                                          \
-    }/*end of operator()*/
-
-
-/** makro creates getForwardedValue(tn) */
-#define PMACC_GET_FORWARDED_VALUE(_, n, value_name) getForwardedValue( value_name##n )
-
-/** create operator() for ForEach
- *
- * template<typename T0, ... , typename TN>
- * HDINLINE void operator()(const T0 t0, ..., const TN tN) const {}
- */
-#define PMACC_FOREACH_OPERATOR(Z, N, PMACC_PP_CONST)                           \
-    PMACC_NO_NVCC_HDWARNING                                                    \
-    /* if N != 0 we add `template<` */                                         \
-    BOOST_PP_IF(BOOST_PP_NOT_EQUAL(N,0),template<,BOOST_PP_EMPTY())            \
-    /* typename T0, ... , typename TN      */                                  \
-    BOOST_PP_ENUM_PARAMS(N, typename T)                                        \
-    /*  if N != 0 we add ```>``` */                                            \
-    BOOST_PP_IF(BOOST_PP_NOT_EQUAL(N,0),>,BOOST_PP_EMPTY())                    \
-    HDINLINE void                                                              \
-    /*        ( const T0& t0, ... , const TN& tN           ) */                \
-    operator()( BOOST_PP_ENUM_BINARY_PARAMS(N, const T, &t)) PMACC_PP_CONST    \
-    {                                                                          \
-        /*       (getForwardedValue(t0), ..., getForwardedValue(tn) ) */       \
-        Functor()(BOOST_PP_ENUM(N,PMACC_GET_FORWARDED_VALUE, t));              \
-        /*        (t0, ..., tn               ) */                              \
-        NextCall()(BOOST_PP_ENUM_PARAMS(N, t));                                \
-    } /*end of operator()*/
-
-//########################### end preprocessor definitions #####################
-
 namespace forEach
 {
 namespace detail
@@ -143,17 +90,23 @@ struct CallFunctorOfIterator
     typedef typename boost::mpl::deref<itBegin>::type Functor;
     typedef CallFunctorOfIterator< nextIt, itEnd> NextCall;
 
-    /* N=PMACC_MAX_FUNCTOR_OPERATOR_PARAMS
-     * template<typename T0, ... , typename TN>
-     * create operator()(const T0 t0,...,const TN tN) const {} */
-    BOOST_PP_REPEAT_FROM_TO(0, BOOST_PP_INC(PMACC_MAX_FUNCTOR_OPERATOR_PARAMS),
-                            PMACC_FOREACH_OPERATOR, const)
+    PMACC_NO_NVCC_HDWARNING
+    template<typename... T_Types>
+    HDINLINE void
+    operator()( const T_Types & ... ts) const
+    {
+        Functor()(getForwardedValue(ts) ...);
+        NextCall()(ts ...);
+    }
 
-    /* N=PMACC_MAX_FUNCTOR_OPERATOR_PARAMS
-     * template<typename T0, ... , typename TN>
-     * create operator()(const T0 t0,...,const TN tN) {} */
-    BOOST_PP_REPEAT_FROM_TO(0, BOOST_PP_INC(PMACC_MAX_FUNCTOR_OPERATOR_PARAMS),
-                            PMACC_FOREACH_OPERATOR, BOOST_PP_EMPTY())
+    PMACC_NO_NVCC_HDWARNING
+    template<typename... T_Types>
+    HDINLINE void
+    operator()( const T_Types & ... ts)
+    {
+        Functor()(getForwardedValue(ts) ...);
+        NextCall()(ts ...);
+    }
 };
 
 /** Recursion end of ForEach */
@@ -162,20 +115,21 @@ typename itBegin,
 typename itEnd>
 struct CallFunctorOfIterator<itBegin, itEnd, true>
 {
-    /* N=PMACC_MAX_FUNCTOR_OPERATOR_PARAMS
-     * create:
-     * template<typename T0, ... , TN>
-     * void operator()(const T0 ,...,const TN) const {} */
-    BOOST_PP_REPEAT_FROM_TO(0, BOOST_PP_INC(PMACC_MAX_FUNCTOR_OPERATOR_PARAMS),
-                            PMACC_FOREACH_OPERATOR_NO_USAGE, const)
+    PMACC_NO_NVCC_HDWARNING
+    template<typename... T_Types>
+    HDINLINE void
+    operator()( const T_Types & ... ) const
+    {
 
+    }
 
-    /* N=PMACC_MAX_FUNCTOR_OPERATOR_PARAMS
-     * create:
-     * template<typename T0, ... , TN>
-     * void operator()(const T0 ,...,const TN) {} */
-    BOOST_PP_REPEAT_FROM_TO(0, BOOST_PP_INC(PMACC_MAX_FUNCTOR_OPERATOR_PARAMS),
-                            PMACC_FOREACH_OPERATOR_NO_USAGE, BOOST_PP_EMPTY())
+    PMACC_NO_NVCC_HDWARNING
+    template<typename... T_Types>
+    HDINLINE void
+    operator()( const T_Types & ... )
+    {
+
+    }
 };
 
 } // namespace detail
@@ -223,24 +177,26 @@ struct ForEach
     /* this functor does nothing */
     typedef detail::CallFunctorOfIterator< end, end > Functor;
 
-    /* N=PMACC_MAX_FUNCTOR_OPERATOR_PARAMS
-     * template<typename T0, ... , typename TN>
-     * create operator()(const T0 t0,...,const TN tN) const {}*/
-    BOOST_PP_REPEAT_FROM_TO(0, BOOST_PP_INC(PMACC_MAX_FUNCTOR_OPERATOR_PARAMS),
-                            PMACC_FOREACH_OPERATOR, const)
 
+    PMACC_NO_NVCC_HDWARNING
+    template<typename... T_Types>
+    HDINLINE void
+    operator()( const T_Types & ... ts) const
+    {
+        Functor()(getForwardedValue(ts) ...);
+        NextCall()(ts ...);
+    }
 
-    /* N=PMACC_MAX_FUNCTOR_OPERATOR_PARAMS
-     * template<typename T0, ... , typename TN>
-     * create operator()(const T0 t0,...,const TN tN) {}*/
-    BOOST_PP_REPEAT_FROM_TO(0, BOOST_PP_INC(PMACC_MAX_FUNCTOR_OPERATOR_PARAMS),
-                            PMACC_FOREACH_OPERATOR, BOOST_PP_EMPTY())
+    PMACC_NO_NVCC_HDWARNING
+    template<typename... T_Types>
+    HDINLINE void
+    operator()( const T_Types & ... ts)
+    {
+        Functor()(getForwardedValue(ts) ...);
+        NextCall()(ts ...);
+    }
 };
 
-/* delete all preprocessor defines to avoid conflicts in other files */
-#undef PMACC_FOREACH_OPERATOR
-#undef PMACC_FOREACH_OPERATOR_NO_USAGE
-#undef PMACC_GET_FORWARDED_VALUE
 
 } // namespace forEach
 } // namespace algorithms
