@@ -39,12 +39,14 @@ namespace PMacc
         KernelDeleteParticles kernelDeleteParticles;
 
         ExchangeMapping<GUARD, MappingDesc> mapper(this->cellDescription, exchangeType);
+        DataSpace<Dim> blockSize(DataSpace<Dim>::create(1));
+        blockSize.x() = static_cast<AlpakaIdxSize>(TileSize);
 
         __cudaKernel(
             kernelDeleteParticles,
             alpaka::dim::DimInt<MappingDesc::Dim>,
             mapper.getGridDim(),
-            static_cast<AlpakaIdxSize>(TileSize))(
+            blockSize)(
                 particlesBuffer->getDeviceParticleBox(),
                 mapper);
     }
@@ -56,12 +58,14 @@ namespace PMacc
         KernelDeleteParticles kernelDeleteParticles;
 
         AreaMapping<T_area, MappingDesc> mapper(this->cellDescription);
+        DataSpace<Dim> blockSize(DataSpace<Dim>::create(1));
+        blockSize.x() = static_cast<AlpakaIdxSize>(TileSize);
 
         __cudaKernel(
             kernelDeleteParticles,
             alpaka::dim::DimInt<MappingDesc::Dim>,
             mapper.getGridDim(),
-            static_cast<AlpakaIdxSize>(TileSize))(
+            blockSize)(
                 particlesBuffer->getDeviceParticleBox(),
                 mapper);
     }
@@ -81,6 +85,8 @@ namespace PMacc
             KernelBashParticles kernelBashParticles;
 
             ExchangeMapping<GUARD, MappingDesc> mapper(this->cellDescription, exchangeType);
+            DataSpace<Dim> blockSize(DataSpace<Dim>::create(1));
+            blockSize.x() = static_cast<AlpakaIdxSize>(TileSize);
 
             particlesBuffer->getSendExchangeStack(exchangeType).setCurrentSize(0);
 
@@ -88,7 +94,7 @@ namespace PMacc
                 kernelBashParticles,
                 alpaka::dim::DimInt<MappingDesc::Dim>,
                 mapper.getGridDim(),
-                static_cast<AlpakaIdxSize>(TileSize))(
+                blockSize)(
                     particlesBuffer->getDeviceParticleBox(),
                     particlesBuffer->getSendExchangeStack(exchangeType).getDeviceExchangePushDataBox(),
                     mapper);
@@ -106,7 +112,6 @@ namespace PMacc
             {
                 KernelInsertParticles kernelInsertParticles;
 
-                // std::cout<<"insert = "<<grid.x()<<std::endl;
                 ExchangeMapping<GUARD, MappingDesc> mapper(this->cellDescription, exchangeType);
                 __cudaKernel(
                     kernelInsertParticles,

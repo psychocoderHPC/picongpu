@@ -475,7 +475,7 @@ ALPAKA_FN_ACC void operator()(
 
     DataSpace<1> const blockSize(alpaka::workdiv::getWorkDiv<alpaka::Block, alpaka::Threads>(acc));
     DataSpace<1> const blockIndex(alpaka::workdiv::getWorkDiv<alpaka::Grid, alpaka::Blocks>(acc));
-    DataSpace<simDim> const threadIndex(alpaka::idx::getIdx<alpaka::Block, alpaka::Threads>(acc));
+    DataSpace<1> const threadIndex(alpaka::idx::getIdx<alpaka::Block, alpaka::Threads>(acc));
 
     uint32_t tid = blockIndex.x() * blockSize.x() + threadIndex.x();
     if (tid >= n) return;
@@ -494,7 +494,7 @@ template<
 ALPAKA_FN_ACC void operator()(
     T_Acc const & acc,
     Mem const & mem,
-    uint32_t const & n) const
+    Type const & n) const
 {
     static_assert(
         alpaka::dim::Dim<T_Acc>::value == 1,
@@ -502,7 +502,7 @@ ALPAKA_FN_ACC void operator()(
 
     DataSpace<1> const blockSize(alpaka::workdiv::getWorkDiv<alpaka::Block, alpaka::Threads>(acc));
     DataSpace<1> const blockIndex(alpaka::workdiv::getWorkDiv<alpaka::Grid, alpaka::Blocks>(acc));
-    DataSpace<simDim> const threadIndex(alpaka::idx::getIdx<alpaka::Block, alpaka::Threads>(acc));
+    DataSpace<1> const threadIndex(alpaka::idx::getIdx<alpaka::Block, alpaka::Threads>(acc));
 
     uint32_t tid = blockIndex.x() * blockSize.x() + threadIndex.x();
     if (tid >= n) return;
@@ -665,8 +665,8 @@ public:
         __cudaKernel(
             kernelDivideAnyCell,
             alpaka::dim::DimInt<1>,
-            ceil((double) elements / 256),
-            256)(
+            AlpakaIdxSize(ceil((double) elements / 256)),
+            AlpakaIdxSize(256))(
                 d1access,
                 elements,
                 max);
@@ -677,14 +677,19 @@ public:
         __cudaKernel(
             kernelChannelsToRGB,
             alpaka::dim::DimInt<1>,
-            ceil((double) elements / 256),
-            256)(
+            AlpakaIdxSize(ceil((double) elements / 256)),
+            AlpakaIdxSize(256))(
                 d1access,
                 elements);
 
         // add density color channel
-        DataSpace<simDim> blockSize(MappingDesc::SuperCellSize::toRT());
-        DataSpace<DIM2> blockSize2D(blockSize[transpose.x()], blockSize[transpose.y()]);
+        DataSpace<simDim> simBlockSize(MappingDesc::SuperCellSize::toRT());
+
+        /** ATTENTION in the old version this was used for the shared memory definition
+         *  now it used defined over the thread count! This result in to much shared mem usage but
+         *  no out of memory access
+         */
+        DataSpace<DIM2> blockSize2D(simBlockSize[transpose.x()], simBlockSize[transpose.y()]);
 
         //create image particles
         KernelPaintParticles3D kernelPaintParticles3D;

@@ -67,7 +67,9 @@ public:
 
     void waitOn(const CudaEvent& ev)
     {
-        if(getCudaStream() != ev.getCudaStream())
+        if(ev.getCudaStream()
+                          !=
+           getCudaStream())
         {
             alpaka::wait::wait(stream, *ev);
         }

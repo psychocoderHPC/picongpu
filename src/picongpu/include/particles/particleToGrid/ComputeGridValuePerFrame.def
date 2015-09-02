@@ -79,7 +79,7 @@ public:
         T_Acc const & acc,
         FrameType& frame, const int localIdx,
         const TVecSuperCell superCell,
-        BoxTmp& tmpBox);
+        BoxTmp& tmpBox) const;
 };
 
 /** Predefined Calculations for \see fieldOutput.param

@@ -44,7 +44,7 @@
 
 #include "mallocMC_prefixes.hpp"
 
-#if MAMC_CUDA_ENABLED
+#if defined(MAMC_CUDA_ENABLED) && defined(__CUDACC__)
 
 namespace CUDA
 {
@@ -112,7 +112,7 @@ namespace CUDA
     if (__active == __local_id)
 
 
-namespace mallocMC 
+namespace mallocMC
 {
   typedef unsigned int uint32_richtig_huebsch;
 

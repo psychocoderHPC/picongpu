@@ -23,24 +23,27 @@
   LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
   OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
   THE SOFTWARE.
-*/
+ */
 
 #pragma once
 
 #include <boost/cstdint.hpp>
 #include <boost/mpl/bool.hpp>
+#include <iostream>
 
 #include "HostNew.hpp"
 
-namespace mallocMC{
-namespace CreationPolicies{
+namespace mallocMC
+{
+namespace CreationPolicies
+{
 
-  class HostNew
-  {
+class HostNew
+{
     typedef boost::uint32_t uint32;
     typedef boost::uint8_t uint8;
 
-    public:
+public:
     typedef boost::mpl::bool_<false> providesAvailableSlots;
 
     void* create(uint32 bytes)
@@ -50,28 +53,40 @@ namespace CreationPolicies{
 
     void destroy(void* mem)
     {
-      delete reinterpret_cast<uint8*>(mem);
+        delete[] reinterpret_cast<uint8*> (mem);
     }
 
-    bool isOOM(void* p, size_t s){
-      return s && (p == NULL);
-    }
-
-    template < typename T>
-    static void* initHeap(const T& obj, void* pool, size_t memsize){
-      return const_cast<void *>(reinterpret_cast<void const *>(&obj));
+    bool isOOM( void* p, size_t s )
+    {
+        return s && (p == NULL);
     }
 
     template < typename T>
-    static void finalizeHeap(const T& obj, void* pool){
-      return;
+    static void* initHeap( const T& obj, void* pool, size_t memsize )
+    {
+
+        try
+        {
+            return const_cast<void *> (reinterpret_cast<void const *> (&obj));
+        }
+        catch ( std::bad_alloc& exc )
+        {
+            std::cout << "error:" << exc.what( ) << std::endl;
+        };
     }
 
-    static std::string classname(){
-      return "HostNew";
+    template < typename T>
+    static void finalizeHeap( const T& obj, void* pool )
+    {
+        return;
     }
 
-  };
+    static std::string classname( )
+    {
+        return "HostNew";
+    }
+
+};
 
 } //namespace CreationPolicies
 } //namespace mallocMC

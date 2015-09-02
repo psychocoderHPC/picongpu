@@ -231,7 +231,8 @@ template< typename T_SrcParticleDescription,
           typename T_ManipulateFunctor>
 void Particles<T_ParticleDescription>::deviceCloneFrom( Particles< T_SrcParticleDescription> &src, T_ManipulateFunctor& functor )
 {
-    DataSpace<simDim> block( PMacc::math::CT::volume<SuperCellSize>::type::value );
+    DataSpace<simDim> block( DataSpace<simDim>::create(1) );
+    block.x() = PMacc::math::CT::volume<SuperCellSize>::type::value;
 
     log<picLog::SIMULATION_STATE > ( "clone species %1%" ) % FrameType::getName( );
 

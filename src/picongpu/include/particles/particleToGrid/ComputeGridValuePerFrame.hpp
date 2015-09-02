@@ -100,7 +100,7 @@ ComputeGridValuePerFrame<T_ParticleShape, calcType>::operator()(
     FrameType& frame,
     const int localIdx,
     const TVecSuperCell superCell,
-    BoxTmp& tmpBox)
+    BoxTmp& tmpBox) const
 {
 
     PMACC_AUTO(particle, frame[localIdx]);

@@ -43,7 +43,7 @@ struct RandomImpl
     typedef T_SpeciesType SpeciesType;
     typedef typename MakeIdentifier<SpeciesType>::type SpeciesName;
 
-    HINLINE RandomImpl(uint32_t currentStep)
+    HINLINE RandomImpl(uint32_t currentStep): gen(0)
     {
         typedef typename SpeciesType::FrameType FrameType;
 

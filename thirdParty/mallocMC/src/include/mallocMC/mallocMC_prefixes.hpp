@@ -29,7 +29,11 @@
 
 #pragma once
 
-#if MAMC_CUDA_ENABLED
+#pragma once
+
+
+#if defined(__CUDACC__)
+
     #define MAMC_HOST __host__
     #define MAMC_ACCELERATOR __device__
 #else

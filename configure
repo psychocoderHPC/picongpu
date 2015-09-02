@@ -51,7 +51,7 @@ eval set -- "$OPTS"
 while true ; do
     case "$1" in
         -a|--arch)
-            cuda_arch="-DCUDA_ARCH=$2"
+            cuda_arch="-DALPAKA_CUDA_ARCH=$2"
             shift
             ;;
         -i|--install)

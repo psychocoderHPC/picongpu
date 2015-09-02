@@ -254,6 +254,9 @@ public:
         /* line wise thread blocks*/
         gridSize.x() = static_cast<typename DataSpace<dim>::type>(std::ceil(static_cast<double>(gridSize.x()) / 256.0));
 
+        DataSpace<dim> blockSize(DataSpace<dim>::create(1));
+        blockSize.x()=256;
+
         m_spMemBufValueHost.reset(
             new MemBufValueHost(
                 alpaka::mem::buf::alloc<ValueType, AlpakaSize>(
@@ -270,7 +273,7 @@ public:
         kernelSetValue kernel;
         alpaka::workdiv::WorkDivMembers<alpaka::dim::DimInt<dim>, AlpakaIdxSize> workDiv(
             gridSize,
-            static_cast<AlpakaIdxSize>(256u));
+            blockSize);
         auto const exec(
             alpaka::exec::create<AlpakaAcc<alpaka::dim::DimInt<dim>>>(
                 workDiv,

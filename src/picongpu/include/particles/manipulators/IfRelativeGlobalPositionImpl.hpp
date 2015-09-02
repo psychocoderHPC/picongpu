@@ -45,8 +45,8 @@ struct IfRelativeGlobalPositionImpl : private T_Functor
         localDomainOffset = subGrid.getLocalDomain().offset;
     }
 
-    template<typename T_Particle1, typename T_Particle2>
-    DINLINE void operator()(const DataSpace<simDim>& localCellIdx,
+    template<typename T_Acc, typename T_Particle1, typename T_Particle2>
+    DINLINE void operator()(const T_Acc& acc, const DataSpace<simDim>& localCellIdx,
                             T_Particle1& particle1, T_Particle2& particle2,
                             const bool isParticle1, const bool isParticle2)
     {
@@ -63,7 +63,7 @@ struct IfRelativeGlobalPositionImpl : private T_Functor
         const bool particleInRange1 = isParticle1 && inRange;
         const bool particleInRange2 = isParticle2 && inRange;
 
-        Functor::operator()(localCellIdx,
+        Functor::operator()(acc, localCellIdx,
                             particle1, particle2,
                             particleInRange1, particleInRange2);
 

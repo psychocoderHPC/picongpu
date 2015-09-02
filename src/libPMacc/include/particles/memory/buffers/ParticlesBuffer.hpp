@@ -147,8 +147,8 @@ public:
     superCellSize(superCellSize), gridSize(layout), framesExchanges(NULL)
     {
 
-        exchangeMemoryIndexer = new GridBuffer<PopPushType, DIM1 > (DataSpace<DIM1 > (0));
-        framesExchanges = new GridBuffer< ParticleType, DIM1, ParticleTypeBorder > (DataSpace<DIM1 > (0));
+        exchangeMemoryIndexer = new GridBuffer<PopPushType, DIM1 > (DataSpace<DIM1 > (1));
+        framesExchanges = new GridBuffer< ParticleType, DIM1, ParticleTypeBorder > (DataSpace<DIM1 > (1));
 
         //std::cout << "size: " << sizeof (ParticleType) << " " << sizeof (ParticleTypeBorder) << std::endl;
         DataSpace<DIM> superCellsCount = gridSize / superCellSize;

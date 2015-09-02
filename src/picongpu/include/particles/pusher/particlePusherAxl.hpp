@@ -49,7 +49,7 @@ namespace picongpu
                 z = 2
             };
 
-            HDINLINE float_X levichivita( const unsigned int i, const unsigned int j, const unsigned int k )
+            HDINLINE float_X levichivita( const unsigned int i, const unsigned int j, const unsigned int k ) const
             {
                 if( i == j || j == k || i == k ) return float_X(0.0);
 

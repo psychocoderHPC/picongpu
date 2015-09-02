@@ -29,7 +29,7 @@
 
 #pragma once
 
-#if MAMC_CUDA_ENABLED
+#if defined(MAMC_CUDA_ENABLED) && defined(__CUDACC__)
 
 #include "creationPolicies/Scatter.hpp"
 #include "creationPolicies/Scatter_impl.hpp"

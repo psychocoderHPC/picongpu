@@ -29,7 +29,6 @@
  * @author Heiko Burau, Rene Widera, Wolfgang Hoenig, Felix Schmitt, Axel Huebl, Michael Bussmann, Guido Juckeland, Benjamin Worpitz
  */
 
-
 // includes heap configuration, all available policies, etc.
 #include "mallocMC/mallocMC.hpp"
 
@@ -48,7 +47,11 @@ struct ScatterConfig
     typedef boost::mpl::bool_<true> resetfreedpages;
 };
 
-#if defined(ALPAKA_ACC_GPU_CUDA_ENABLED) && defined(__CUDACC__) && !defined(PMACC_ACC_CPU)
+#if !defined(__CUDACC__)
+    #define PMACC_ACC_CPU
+#endif
+
+#if defined(ALPAKA_ACC_GPU_CUDA_ENABLED) && defined(__CUDACC__)
 
 // Define a new allocator and call it ScatterAllocator
 // which resembles the behavior of ScatterAlloc
@@ -72,7 +75,7 @@ using AllocatorHostNew = mallocMC::Allocator<
     mallocMC::DistributionPolicies::Noop,
     mallocMC::OOMPolicies::ReturnNull,
     mallocMC::ReservePoolPolicies::NoOp,
-    mallocMC::AlignmentPolicies::Shrink<>
+    mallocMC::AlignmentPolicies::Noop
     >;
 
 //use AllocatorHostNew to replace malloc/free
@@ -97,7 +100,10 @@ using namespace picongpu;
  */
 int main(int argc, char **argv)
 {
-    MPI_CHECK(MPI_Init(&argc, &argv));
+    int prov;
+    MPI_CHECK(MPI_Init_thread(&argc, &argv,MPI_THREAD_FUNNELED,&prov));
+    std::cout<<"openmpi "<<prov<<"=="<<MPI_THREAD_FUNNELED<<std::endl;
+
 
     picongpu::simulation_starter::SimStarter sim;
     ArgsParser::ArgsErrorCode parserCode = sim.parseConfigs(argc, argv);

@@ -116,17 +116,15 @@ private:
      * @tparam T_TupleVector vector of type PMacc::math::CT::vector<dataType,plugin>
      *                       with two components
      */
-    template<
-        typename T_TupleVector>
+    template<typename T_TupleVector>
     struct ApplyDataToPlugin :
-        bmpl::apply1<
-            typename PMacc::math::CT::At_c<T_TupleVector, 1>::type,
-            typename PMacc::math::CT::At_c<T_TupleVector, 0>::type>
-    {};
+    bmpl::apply1<typename PMacc::math::CT::At<T_TupleVector, bmpl::int_<1> >::type,
+    typename PMacc::math::CT::At<T_TupleVector, bmpl::int_<0> >::type >
+    {
+    };
 
     /* define stand alone plugins*/
-    using StandalonePlugins =
-        bmpl::vector<
+    typedef bmpl::vector<
             EnergyFields,
             SumCurrents
 #if(SIMDIM==DIM3)
@@ -141,37 +139,28 @@ private:
 #if (ENABLE_HDF5 == 1)
           , hdf5::HDF5Writer
 #endif
-        >;
+    > StandAlonePlugins;
+
 
     /* define field plugins */
-    using UnspecializedFieldPlugins =
-        bmpl::vector<
-            /*SliceFieldPrinterMulti<bmpl::_1>*/
-        >;
+    typedef bmpl::vector<
+     /*SliceFieldPrinterMulti<bmpl::_1>*/
+    > UnspecializedFieldPlugins;
 
-    using AllFields =
-        bmpl::vector<
-            FieldB,
-            FieldE,
-            FieldJ
-        >;
+    typedef bmpl::vector< FieldB, FieldE, FieldJ> AllFields;
 
-    using CombinedUnspecializedFieldPlugins =
-        AllCombinations<
-            bmpl::vector<AllFields,UnspecializedFieldPlugins>
-        >::type;
+    typedef AllCombinations<
+      bmpl::vector<AllFields, UnspecializedFieldPlugins>
+    >::type CombinedUnspecializedFieldPlugins;
 
-    using FieldPlugins =
-        bmpl::transform<
+    typedef bmpl::transform<
             CombinedUnspecializedFieldPlugins,
             ApplyDataToPlugin<bmpl::_1>
-        >::type;
-
+    >::type FieldPlugins;
 
 
     /* define species plugins */
-    using UnspecializedSpeciesPlugins =
-        bmpl::vector<
+    typedef bmpl::vector <
             CountParticles<bmpl::_1>,
             EnergyParticles<bmpl::_1>,
             BinEnergyParticles<bmpl::_1>,
@@ -189,27 +178,24 @@ private:
           , PerSuperCell<bmpl::_1>
           , PhaseSpaceMulti<particles::shapes::Counter::ChargeAssignment, bmpl::_1>
 #endif
-        >;
+    > UnspecializedSpeciesPlugins;
 
-    using CombinedUnspecializedSpeciesPlugins =
-        AllCombinations<
-            bmpl::vector<VectorAllSpecies,UnspecializedSpeciesPlugins>
-        >::type;
+    typedef AllCombinations<
+        bmpl::vector<VectorAllSpecies, UnspecializedSpeciesPlugins>
+    >::type CombinedUnspecializedSpeciesPlugins;
 
-    using SpeciesPlugins =
-        bmpl::transform<
+    typedef bmpl::transform<
             CombinedUnspecializedSpeciesPlugins,
             ApplyDataToPlugin<bmpl::_1>
-        >::type;
+    >::type SpeciesPlugins;
 
 
     /* create sequence with all plugins*/
-    using AllPlugins =
-        MakeSeq<
-            StandalonePlugins,
+    typedef MakeSeq<
+        StandAlonePlugins,
             FieldPlugins,
             SpeciesPlugins
-        >::type;
+    >::type AllPlugins;
 
     /**
      * Initialises the controller by adding all user plugins to its internal list.
