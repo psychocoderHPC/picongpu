@@ -28,6 +28,7 @@
 #include "particles/memory/dataTypes/SuperCell.hpp"
 #include "memory/boxes/PitchedBox.hpp"
 #include "particles/memory/dataTypes/Pointer.hpp"
+#include <cstdio>
 
 namespace PMacc
 {
@@ -81,11 +82,12 @@ public:
      */
     DINLINE FRAME &getEmptyFrame() const
     {
+
         FrameType* tmp = NULL;
         const int maxTries = 13; //magic number is not performance critical
-        for (int numTries = 0; numTries < maxTries; ++numTries)
+       // for (int numTries = 0; numTries < maxTries; ++numTries)
         {
-            tmp = (FrameType*) mallocMC::malloc(sizeof (FrameType));
+            tmp = (FrameType*) malloc(sizeof(FrameType)); //mallocMC::malloc(sizeof (FrameType));
             if (tmp != NULL)
             {
                 /* disable all particles since we can not assume that newly allocated memory contains zeros */
@@ -95,14 +97,15 @@ public:
                 /* takes care that changed values are visible to all threads inside this block*/
                 __threadfence_block();
 #endif
-                break;
+               // break;
             }
             else
             {
-                printf("%s: mallocMC out of memory (try %i of %i)\n",
+           /*     printf("%s: mallocMC out of memory (try %i of %i)\n",
                        (numTries+1)==maxTries?"WARNING":"ERROR",
                        numTries+1,
                        maxTries);
+            */
             }
         }
 

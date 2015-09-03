@@ -58,7 +58,8 @@ namespace PMacc
     using AlpakaDev = alpaka::dev::DevCudaRt;
     using AlpakaStream = alpaka::stream::StreamCudaRtAsync;
     template<
-        typename TDim>
+        typename TDim
+    >
     using AlpakaAcc = alpaka::acc::AccGpuCudaRt<TDim, AlpakaIdxSize>;
 #endif
 

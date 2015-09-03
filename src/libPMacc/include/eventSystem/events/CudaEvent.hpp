@@ -123,6 +123,7 @@ public:
     AlpakaStream & getCudaStream() const
     {
         assert(isRecorded);
+        assert(m_pStream);
         return *m_pStream;
     }
 

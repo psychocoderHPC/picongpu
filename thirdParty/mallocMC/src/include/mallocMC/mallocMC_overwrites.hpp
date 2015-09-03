@@ -41,21 +41,22 @@
  * global functions that use this type internally. This should be done after
  * defining a new many core memory allocator with a typedef.
  */
-#define MALLOCMC_GLOBAL_FUNCTIONS(MALLOCMC_USER_DEFINED_TYPENAME)                \
-namespace mallocMC{                                                             \
-  typedef MALLOCMC_USER_DEFINED_TYPENAME mallocMCType;                           \
+#define MALLOCMC_GLOBAL_FUNCTIONS(MALLOCMC_USER_DEFINED_TYPENAME)              \
+namespace mallocMC{                                                            \
+  typedef MALLOCMC_USER_DEFINED_TYPENAME mallocMCType;                         \
                                                                                \
-MAMC_ACCELERATOR mallocMCType mallocMCGlobalObject;                               \
+MAMC_ACCELERATOR mallocMCType mallocMCGlobalObject;                            \
+_Pragma("omp threadprivate(mallocMCGlobalObject)")                             \
                                                                                \
-MAMC_HOST void* initHeap(                                                       \
+MAMC_HOST void* initHeap(                                                      \
     size_t heapsize = 8U*1024U*1024U,                                          \
-    mallocMCType &p = mallocMCGlobalObject                                       \
+    mallocMCType &p = mallocMCGlobalObject                                     \
     )                                                                          \
 {                                                                              \
     return p.initHeap(heapsize);                                               \
 }                                                                              \
-MAMC_HOST void finalizeHeap(                                                    \
-    mallocMCType &p = mallocMCGlobalObject                                       \
+MAMC_HOST void finalizeHeap(                                                   \
+    mallocMCType &p = mallocMCGlobalObject                                     \
     )                                                                          \
 {                                                                              \
     p.finalizeHeap();                                                          \
