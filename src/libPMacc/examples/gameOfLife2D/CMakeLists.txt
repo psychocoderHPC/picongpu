@@ -185,7 +185,7 @@ ADD_DEFINITIONS(
 INCLUDE_DIRECTORIES(
     ${_GOL_INCLUDE_DIRECTORIES_PRIVATE})
 
-IF(ALPAKA_GPU_CUDA_ENABLE)
+IF(ALPAKA_ACC_GPU_CUDA_ENABLE)
     # Force the main.cpp file to be recognized as header and not be compiled so there wont be a second entry point.
     SET_SOURCE_FILES_PROPERTIES(
         "${CMAKE_CURRENT_LIST_DIR}/src/main.cpp"

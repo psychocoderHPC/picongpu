@@ -19,8 +19,6 @@
  * If not, see <http://www.gnu.org/licenses/>.
  */
 
-#define ALPAKA_DEBUG ALPAKA_DEBUG_FULL
-
 #include "types.hpp"
 #include <iostream>
 

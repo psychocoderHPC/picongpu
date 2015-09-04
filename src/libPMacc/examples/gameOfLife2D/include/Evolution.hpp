@@ -179,23 +179,14 @@ namespace gol
                 // Map the 2D index to an 1D index.
                 uint32_t const gridCellIdxC1d(PMacc::DataSpaceOperations<DIM2>::map(gridExtentC, gridCellIdxC));
 
-                /*std::cout << "blockIdx: " << blockIdx.toString() << std::endl;
-                std::cout << "gridSuperCellIdxSC: " << gridSuperCellIdxSC.toString() << std::endl;
-                std::cout << "gridSuperCellIdxC: " << gridSuperCellIdxC.toString() << std::endl;
-                std::cout << "superCellCellIdxC: " << superCellCellIdxC.toString() << std::endl;
-                std::cout << "gridCellIdxC: " << gridCellIdxC.toString() << std::endl;
-                std::cout << "gridExtentC: " << gridExtentC.toString() << std::endl;
-                std::cout << "gridCellIdxC1d: " << gridCellIdxC1d << std::endl;*/
-
                 //----------
                 // Generate random data.
 
-                auto const gen(alpaka::rand::generator::createDefault(acc, seed, gridCellIdxC1d));
+                auto gen(alpaka::rand::generator::createDefault(acc, seed, gridCellIdxC1d));
                 auto const dist(alpaka::rand::distribution::createUniformReal<float>(acc));
-                auto ufRng(std::bind(dist, gen));
 
                 // Write 1 (alive) if uniform random number 0 <= rng < 1 is smaller than 'fraction'.
-                buffWrite(gridCellIdxC) = (ufRng() <= fraction) ? 1u : 0u;
+                buffWrite(gridCellIdxC) = (dist(gen) <= fraction) ? 1u : 0u;
             }
         };
     }
