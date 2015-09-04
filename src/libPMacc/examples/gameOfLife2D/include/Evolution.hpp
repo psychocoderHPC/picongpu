@@ -183,7 +183,7 @@ namespace gol
                 // Generate random data.
 
                 auto gen(alpaka::rand::generator::createDefault(acc, seed, gridCellIdxC1d));
-                auto const dist(alpaka::rand::distribution::createUniformReal<float>(acc));
+                auto dist(alpaka::rand::distribution::createUniformReal<float>(acc));
 
                 // Write 1 (alive) if uniform random number 0 <= rng < 1 is smaller than 'fraction'.
                 buffWrite(gridCellIdxC) = (dist(gen) <= fraction) ? 1u : 0u;
