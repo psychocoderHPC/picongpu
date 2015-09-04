@@ -44,6 +44,10 @@ namespace PMacc
     using AlpakaSize = size_t;
     using AlpakaIdxSize = int;
 
+#if !defined(__CUDACC__)
+    #define PMACC_ACC_CPU
+#endif
+
 #ifdef PMACC_ACC_CPU
     using AlpakaDev = alpaka::dev::DevCpu;
     using AlpakaStream = alpaka::stream::StreamCpuAsync;

@@ -32,6 +32,8 @@
 // includes heap configuration, all available policies, etc.
 #include "mallocMC/mallocMC.hpp"
 
+#if defined(ALPAKA_ACC_GPU_CUDA_ENABLED) && defined(__CUDACC__)
+
 // configure the CreationPolicy "Scatter"
 struct ScatterConfig
 {
@@ -46,13 +48,6 @@ struct ScatterConfig
        frame sizes were used*/
     typedef boost::mpl::bool_<true> resetfreedpages;
 };
-
-#if !defined(__CUDACC__)
-    #define PMACC_ACC_CPU
-#endif
-
-#if defined(ALPAKA_ACC_GPU_CUDA_ENABLED) && defined(__CUDACC__)
-
 // Define a new allocator and call it ScatterAllocator
 // which resembles the behavior of ScatterAlloc
 using ScatterAllocator = mallocMC::Allocator<
