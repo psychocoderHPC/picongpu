@@ -319,7 +319,7 @@ append_recursive_files_add_to_src_group_param_unitless_loader("${_PIC_EXTENSION_
 append_recursive_files_add_to_src_group_param_unitless_loader("${CMAKE_CURRENT_LIST_DIR}/../../examples" "${CMAKE_CURRENT_LIST_DIR}/../../" _PIC_FILES)
 
 # Declare them as header files.
-# Without this '.def' files would not show up in the MSVC projects.
+# Without this setting the '.def' files would not show up in the MSVC projects.
 SET_SOURCE_FILES_PROPERTIES(
     ${_PIC_FILES}
     PROPERTIES HEADER_FILE_ONLY TRUE)
