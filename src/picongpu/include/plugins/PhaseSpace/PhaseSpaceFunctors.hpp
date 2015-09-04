@@ -177,8 +177,9 @@ namespace picongpu
                 using namespace lambda;
                 DECLARE_PLACEHOLDERS();
                 forEachThreadInBlock( dBufferInBlock.zone(),
+                                      _1 = float_PS(0.0),
                                       dBufferInBlock.origin(),
-                                      _1 = float_PS(0.0) );
+                );
             }
             alpaka::block::sync::syncBlockThreads(acc);
 
@@ -196,12 +197,13 @@ namespace picongpu
             /* add to global dBuffer */
             forEachThreadInBlock( /* area to work on */
                                   dBufferInBlock.zone(),
+                                 /* functor */
+                                  FunctorAtomicAdd<float_PS>(),
                                   /* data below - cursors will be shifted and
                                    * dereferenced */
                                   curOriginPhaseSpace(0, indexBlockOffset[r_dir]),
-                                  dBufferInBlock.origin(),
-                                  /* functor */
-                                  FunctorAtomicAdd<float_PS>() );
+                                  dBufferInBlock.origin()
+            );
         }
     };
 

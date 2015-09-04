@@ -179,11 +179,15 @@ public:
 
     DataViewDev const & getMemBufView() const
     {
+        __startOperation(ITask::TASK_HOST);
+        __startOperation(ITask::TASK_CUDA);
         return m_dataViewDev;
     }
 
     DataViewDev & getMemBufView()
     {
+        __startOperation(ITask::TASK_HOST);
+        __startOperation(ITask::TASK_CUDA);
         return m_dataViewDev;
     }
 

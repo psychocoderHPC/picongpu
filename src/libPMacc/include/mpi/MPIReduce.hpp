@@ -52,6 +52,7 @@ struct MPIReduce
     {
         if (isMPICommInitialized)
         {
+            /* exception inside the destructor are forbidden */
             MPI_CHECK_NOEXCEPT(MPI_Comm_free(&comm));
         }
     }

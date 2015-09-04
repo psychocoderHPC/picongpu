@@ -85,9 +85,9 @@ public:
 
         FrameType* tmp = NULL;
         const int maxTries = 13; //magic number is not performance critical
-       // for (int numTries = 0; numTries < maxTries; ++numTries)
+        for (int numTries = 0; numTries < maxTries; ++numTries)
         {
-            tmp = (FrameType*) malloc(sizeof(FrameType)); //mallocMC::malloc(sizeof (FrameType));
+            tmp = (FrameType*) mallocMC::malloc(sizeof (FrameType));
             if (tmp != NULL)
             {
                 /* disable all particles since we can not assume that newly allocated memory contains zeros */
@@ -101,11 +101,11 @@ public:
             }
             else
             {
-           /*     printf("%s: mallocMC out of memory (try %i of %i)\n",
+                printf("%s: mallocMC out of memory (try %i of %i)\n",
                        (numTries+1)==maxTries?"WARNING":"ERROR",
                        numTries+1,
                        maxTries);
-            */
+
             }
         }
 

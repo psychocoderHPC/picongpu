@@ -82,6 +82,7 @@ public:
     {
         //\\todo: this make problems because we send bytes and not combined types
         int recv_data_count;
+        /* exception inside the destructor are forbidden */
         MPI_CHECK_NOEXCEPT(MPI_Get_count(&(this->status), MPI_CHAR, &recv_data_count));
 
 

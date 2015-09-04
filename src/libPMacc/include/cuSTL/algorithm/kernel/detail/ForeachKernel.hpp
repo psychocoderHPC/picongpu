@@ -57,7 +57,7 @@ namespace detail
                     alpaka::idx::getIdx<alpaka::Grid, alpaka::Blocks>(acc),
                     alpaka::idx::getIdx<alpaka::Block, alpaka::Threads>(acc)));
 
-            functor(std::forward<TC>(c[cellIndex])...);
+            functor(c[cellIndex]...);
         }
     };
 

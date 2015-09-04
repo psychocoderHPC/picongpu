@@ -71,20 +71,19 @@ namespace PMacc
 
         virtual void init()
         {
-           // __startAtomicTransaction( __getTransactionEvent());
             size_t current_size = device->getCurrentSize();
             host->setCurrentSize(current_size);
             DataSpace<DIM> devCurrentSize = device->getCurrentDataSpace(current_size);
-            /*if (host->is1D() && device->is1D())
-                fastCopy();
-            else*/
-                copy(devCurrentSize);
+            // \FIXME: alpaka currently does not support copies of ND-Data as 1D.
+            alpaka::mem::view::copy(
+                this->getEventStream()->getCudaStream(),
+                this->host->getMemBufView(),
+                this->device->getMemBufView(),
+                devCurrentSize);
 
-            this->activate();
-           // __setTransactionEvent(__endTransaction());
+            this->activate();;
         }
 
-    protected:
         void copy(DataSpace<DIM> &devCurrentSize)
         {
             //std::cout << "dev2host: " << this->getEventStream()->getCudaStream() << std::endl;
@@ -95,16 +94,6 @@ namespace PMacc
                 devCurrentSize);
         }
 
-        // \FIXME: alpaka currently does not support copies of ND-Data as 1D.
-        /*void fastCopy()
-        {
-            alpaka::mem::view::copy(
-                this->getEventStream()->getCudaStream(),
-                this->host->getMemBufView(),
-                this->device->getMemBufView(),
-                devCurrentSize.productOfComponents());
-            //std::cout<<"-----------fast D2H"<<std::endl;;
-        }*/
 
         HostBuffer<TYPE, DIM> *host;
         DeviceBuffer<TYPE, DIM> *device;

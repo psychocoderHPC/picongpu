@@ -48,9 +48,11 @@ namespace PMacc
     #define PMACC_ACC_CPU
 #endif
 
+    using AlpakaHost = alpaka::dev::DevCpu;
 #ifdef PMACC_ACC_CPU
     using AlpakaDev = alpaka::dev::DevCpu;
-    using AlpakaStream = alpaka::stream::StreamCpuAsync;
+    //using AlpakaStream = alpaka::stream::StreamCpuAsync;
+    using AlpakaStream = alpaka::stream::StreamCpuSync;
     template<
         typename TDim>
     using AlpakaAcc = alpaka::acc::AccCpuOmp2Threads<TDim, AlpakaIdxSize>;

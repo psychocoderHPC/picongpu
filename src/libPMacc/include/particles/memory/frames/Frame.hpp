@@ -94,13 +94,15 @@ public InheritLinearly<
     typedef pmacc::Particle<ThisType> ParticleType;
 
     /** access the Nth particle*/
-    HDINLINE ParticleType operator[](const uint32_t idx)
+    template<typename T_idx>
+    HDINLINE ParticleType operator[](const T_idx idx)
     {
         return ParticleType(*this, idx);
     }
 
     /** access the Nth particle*/
-    HDINLINE const ParticleType operator[](const uint32_t idx) const
+    template<typename T_idx>
+    HDINLINE const ParticleType operator[](const T_idx idx) const
     {
         return ParticleType(*const_cast<ThisType *>(this), idx);
     }

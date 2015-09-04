@@ -101,9 +101,9 @@ public:
         const TSpace gridKernelIdx(alpaka::idx::getIdx<alpaka::Grid, alpaka::Threads>(acc));
 
         // Early out to prevent out of bounds access.
-        for(uint32_t i(0); i<alpaka::dim::Dim<T_Acc>::value; ++i)
+        for(uint32_t d(0); d<alpaka::dim::Dim<T_Acc>::value; ++d)
         {
-            if(gridKernelIdx[i] >= size[i])
+            if(gridKernelIdx[d] >= size[d])
             {
                 return;
             }
@@ -230,7 +230,7 @@ public:
     static const uint32_t dim = T_dim;
 
     using MemBufValueHost = alpaka::mem::buf::Buf<
-        AlpakaDev,
+        AlpakaHost,
         ValueType,
         alpaka::dim::DimInt<1u>,
         AlpakaSize>;
@@ -260,7 +260,7 @@ public:
         m_spMemBufValueHost.reset(
             new MemBufValueHost(
                 alpaka::mem::buf::alloc<ValueType, AlpakaSize>(
-                    Environment<>::get().DeviceManager().getDevice(),
+                    alpaka::dev::cpu::getDev(),
                     static_cast<AlpakaSize>(1u))));
         *alpaka::mem::view::getPtrNative(*m_spMemBufValueHost.get()) = this->value; // copy value to new place
 

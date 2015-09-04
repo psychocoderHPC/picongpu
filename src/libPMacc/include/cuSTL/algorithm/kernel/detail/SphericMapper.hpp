@@ -55,23 +55,23 @@ struct SphericMapper<1, BlockSize>
 {
     static const int dim = 1;
 
-    DataSpace<1> gridDim(const math::Size_t<1>& size) const
+    DataSpace<dim> gridDim(const math::Size_t<dim>& size) const
     {
         return DataSpace<1>(size.x() / BlockSize::x::value);
     }
 
     HDINLINE
-    math::Int<1> operator()(const math::Int<1>& _blockIdx,
-                              const math::Int<1>& _threadIdx) const
+    math::Int<dim> operator()(const math::Int<dim>& _blockIdx,
+                              const math::Int<dim>& _threadIdx) const
     {
         return _blockIdx.x() * BlockSize::x::value + _threadIdx.x();
     }
 
     HDINLINE
-    math::Int<1> operator()(const alpaka::Vec3<std::size_t>& _blockIdx, const alpaka::Vec3<std::size_t>& _threadIdx = alpaka::Vec3<std::size_t>(0,0,0)) const
+    math::Int<dim> operator()(const alpaka::Vec1<std::size_t>& _blockIdx, const alpaka::Vec1<std::size_t>& _threadIdx = alpaka::Vec1<std::size_t>(0)) const
     {
-        return operator()(math::Int<1>(_blockIdx[0]),
-                          math::Int<1>(_threadIdx[0]));
+        return operator()(math::Int<dim>(_blockIdx[0]),
+                          math::Int<dim>(_threadIdx[0]));
     }
 };
 
@@ -80,25 +80,25 @@ struct SphericMapper<2, BlockSize>
 {
     static const int dim = 2;
 
-    DataSpace<2> gridDim(const math::Size_t<2>& size) const
+    DataSpace<dim> gridDim(const math::Size_t<dim>& size) const
     {
-        return DataSpace<2>(size.x() / BlockSize::x::value,
-                    size.y() / BlockSize::y::value);
+        return DataSpace<dim>(size.x() / BlockSize::x::value,
+                              size.y() / BlockSize::y::value);
     }
 
     HDINLINE
-    math::Int<2> operator()(const math::Int<2>& _blockIdx,
-                              const math::Int<2>& _threadIdx) const
+    math::Int<dim> operator()(const math::Int<dim>& _blockIdx,
+                              const math::Int<dim>& _threadIdx) const
     {
-        return math::Int<2>( _blockIdx.x() * BlockSize::x::value + _threadIdx.x(),
-                             _blockIdx.y() * BlockSize::y::value + _threadIdx.y() );
+        return math::Int<dim>( _blockIdx.x() * BlockSize::x::value + _threadIdx.x(),
+                               _blockIdx.y() * BlockSize::y::value + _threadIdx.y() );
     }
 
     HDINLINE
-    math::Int<2> operator()(const alpaka::Vec3<std::size_t>& _blockIdx, const alpaka::Vec3<std::size_t>& _threadIdx = alpaka::Vec3<std::size_t>(0,0,0)) const
+    math::Int<dim> operator()(const alpaka::Vec2<std::size_t>& _blockIdx, const alpaka::Vec2<std::size_t>& _threadIdx = alpaka::Vec2<std::size_t>(0,0)) const
     {
-        return operator()(math::Int<2>(_blockIdx[0], _blockIdx[1]),
-                          math::Int<2>(_threadIdx[0], _threadIdx[1]));
+        return operator()(math::Int<dim>(_blockIdx[0], _blockIdx[1]),
+                          math::Int<dim>(_threadIdx[0], _threadIdx[1]));
     }
 };
 
@@ -107,25 +107,25 @@ struct SphericMapper<3, BlockSize>
 {
     static const int dim = 3;
 
-    DataSpace<3> gridDim(const math::Size_t<3>& size) const
+    DataSpace<dim> gridDim(const math::Size_t<dim>& size) const
     {
-        return DataSpace<1>(size.x() / BlockSize::x::value,
-                    size.y() / BlockSize::y::value,
-                    size.z() / BlockSize::z::value);
+        return DataSpace<dim>(size.x() / BlockSize::x::value,
+                            size.y() / BlockSize::y::value,
+                            size.z() / BlockSize::z::value);
     }
 
     HDINLINE
-    math::Int<3> operator()(const math::Int<3>& _blockIdx,
-                             const math::Int<3>& _threadIdx) const
+    math::Int<dim> operator()(const math::Int<dim>& _blockIdx,
+                             const math::Int<dim>& _threadIdx) const
     {
-        return math::Int<3>( _blockIdx * (math::Int<3>)BlockSize().toRT() + _threadIdx );
+        return math::Int<dim>( _blockIdx * (math::Int<dim>)BlockSize().toRT() + _threadIdx );
     }
 
     HDINLINE
-    math::Int<3> operator()(const alpaka::Vec3<std::size_t>& _blockIdx, const alpaka::Vec3<std::size_t>& _threadIdx = alpaka::Vec3<std::size_t>(0,0,0)) const
+    math::Int<dim> operator()(const alpaka::Vec3<std::size_t>& _blockIdx, const alpaka::Vec3<std::size_t>& _threadIdx = alpaka::Vec3<std::size_t>(0,0,0)) const
     {
-        return operator()(math::Int<3>(_blockIdx[0], _blockIdx[1], _blockIdx[2]),
-                          math::Int<3>(_threadIdx[0], _threadIdx[1], _threadIdx[2]));
+        return operator()(math::Int<dim>(_blockIdx[0], _blockIdx[1], _blockIdx[2]),
+                          math::Int<dim>(_threadIdx[0], _threadIdx[1], _threadIdx[2]));
     }
 };
 

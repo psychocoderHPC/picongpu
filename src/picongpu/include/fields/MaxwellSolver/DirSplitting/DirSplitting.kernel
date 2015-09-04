@@ -94,8 +94,8 @@ struct DirSplittingKernel
         algorithm::cudaBlock::Foreach<BlockDim> foreach;
         for (int x_offset = 0; x_offset < this->totalLength; x_offset += BlockDim::x::value)
         {
-            foreach(CacheE::Zone(), cacheE.origin(), globalE(-1 + x_offset, 0, 0), _1 = _2);
-            foreach(CacheB::Zone(), cacheB.origin(), globalB(-1 + x_offset, 0, 0), _1 = _2);
+            foreach(CacheE::Zone(), _1 = _2, cacheE.origin(), globalE(-1 + x_offset, 0, 0));
+            foreach(CacheB::Zone(), _1 = _2, cacheB.origin(), globalB(-1 + x_offset, 0, 0));
             alpaka::block::sync::syncBlockThreads(acc);
 
             BOOST_AUTO(cursorE, cacheE.origin()(1, 0, 0)(threadPos_x, threadIndex.y, threadIndex.z()));
@@ -115,8 +115,8 @@ struct DirSplittingKernel
             propagate(acc, cursorE, cursorB);
 
             typedef zone::CT::SphericZone<BlockDim> BlockZone;
-            foreach(BlockZone(), cacheE.origin()(1, 0, 0), globalE(x_offset, 0, 0), _2 = _1);
-            foreach(BlockZone(), cacheB.origin()(1, 0, 0), globalB(x_offset, 0, 0), _2 = _1);
+            foreach(BlockZone(), _2 = _1, cacheE.origin()(1, 0, 0), globalE(x_offset, 0, 0));
+            foreach(BlockZone(), _2 = _1, cacheB.origin()(1, 0, 0), globalB(x_offset, 0, 0));
 
             alpaka::block::sync::syncBlockThreads(acc);
 

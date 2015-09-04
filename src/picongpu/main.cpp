@@ -64,6 +64,7 @@ MALLOCMC_SET_ALLOCATOR_TYPE( ScatterAllocator );
 
 #else
 
+
 // Define a new allocator and call it ScatterAllocator
 // which resembles the behavior of ScatterAlloc
 using AllocatorHostNew = mallocMC::Allocator<

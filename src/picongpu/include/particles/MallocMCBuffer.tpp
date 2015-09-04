@@ -59,7 +59,7 @@ void MallocMCBuffer::synchronize( )
         upBufHost.reset(
             new BufHost(
                 alpaka::mem::buf::alloc<char, AlpakaSize>(
-                    Environment<>::get().DeviceManager().getDevice(),
+                    alpaka::dev::cpu::getDev(),
                     static_cast<AlpakaSize>(deviceHeapInfo.size))));
 
 #if defined(ALPAKA_ACC_GPU_CUDA_ENABLED) && defined(__CUDACC__)

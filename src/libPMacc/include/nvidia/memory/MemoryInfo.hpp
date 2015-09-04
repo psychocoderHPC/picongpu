@@ -57,7 +57,6 @@ public:
                 alpaka::dev::getFreeMemBytes(
                     *device.get()));
 
-            freeInternal= (freeInternal * 3) / 4;
             if (reservedMem > freeInternal)
                 freeInternal = 0;
             else
@@ -93,7 +92,6 @@ public:
 
         /* alloc 90%, since allocating 100% is a bit risky on a SoC-like device */
         size_t allocSth = size_t( 0.9 * double(freeAtStart) );
-        std::cout<<"try to allocate "<<allocSth<<" "<<allocSth/1024/1024<<std::endl;
         uint8_t* c = new uint8_t[allocSth];
         memset(c, 0, allocSth);
 

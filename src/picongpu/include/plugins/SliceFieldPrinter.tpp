@@ -147,9 +147,9 @@ void SliceFieldPrinter<Field>::printSlice(const TField& field, int nAxis, float 
     /* convert data to higher precision and to SI units */
     SliceFieldPrinterHelper::ConversionFunctor<Field> cf;
     algorithm::kernel::Foreach<vec::CT::UInt32<4,4,1> >()(
-      dBuffer_SI->zone(), dBuffer_SI->origin(),
-      cursor::tools::slice(field.originCustomAxes(twistedAxesVec)(0,0,localPlane)),
-      cf );
+      dBuffer_SI->zone(),cf, dBuffer_SI->origin(),
+      cursor::tools::slice(field.originCustomAxes(twistedAxesVec)(0,0,localPlane))
+    );
 #endif
 #if(SIMDIM==DIM2)
     vec::UInt32<2> twistedAxesVec((nAxis+1)%2, nAxis);
@@ -157,9 +157,9 @@ void SliceFieldPrinter<Field>::printSlice(const TField& field, int nAxis, float 
     /* convert data to higher precision and to SI units */
     SliceFieldPrinterHelper::ConversionFunctor<Field> cf;
     algorithm::kernel::Foreach<vec::CT::UInt32<16,1,1> >()(
-      dBuffer_SI->zone(), dBuffer_SI->origin(),
+      dBuffer_SI->zone(), cf, dBuffer_SI->origin(),
       cursor::tools::slice(field.originCustomAxes(twistedAxesVec)(0,localPlane)),
-      cf );
+    );
 #endif
 
     /* copy selected plane from device to host */

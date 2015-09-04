@@ -45,7 +45,7 @@ namespace PMacc
     {
     public:
         using MemBufSizeHost = alpaka::mem::buf::Buf<
-            AlpakaDev,
+            AlpakaHost,
             std::size_t,
             alpaka::dim::DimInt<1u>,
             AlpakaSize>;
@@ -64,7 +64,7 @@ namespace PMacc
                 data1D(bData1d),
                 current_size_buf(
                     alpaka::mem::buf::alloc<std::size_t, AlpakaSize>(
-                        Environment<>::get().DeviceManager().getDevice(),
+                        alpaka::dev::cpu::getDev(),
                         static_cast<AlpakaSize>(1u)))
         {
             *alpaka::mem::view::getPtrNative(current_size_buf) = dataSpace.productOfComponents();
