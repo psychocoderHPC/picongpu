@@ -44,7 +44,7 @@ namespace PMacc
     using AlpakaSize = size_t;
     using AlpakaIdxSize = int;
 
-#if !defined(__CUDACC__)
+#if !(defined(ALPAKA_ACC_GPU_CUDA_ENABLED) && defined(__CUDACC__))
     #define PMACC_ACC_CPU
 #endif
 
