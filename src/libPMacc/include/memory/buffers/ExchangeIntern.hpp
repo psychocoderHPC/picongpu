@@ -208,7 +208,7 @@ namespace PMacc
 
         virtual bool hasDeviceDoubleBuffer()
         {
-            return deviceDoubleBuffer != NULL;
+            return deviceDoubleBuffer !=  nullptr;
         }
 
         virtual DeviceBuffer<TYPE, DIM>& getDeviceDoubleBuffer()

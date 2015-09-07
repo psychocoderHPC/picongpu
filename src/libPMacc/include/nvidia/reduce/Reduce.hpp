@@ -47,12 +47,12 @@ namespace PMacc
                     typename Functor,
                     typename Functor2>
                 ALPAKA_FN_ACC void operator()(
-                    T_Acc const & acc,
-                    Src const & src,
-                    uint32_t const & src_count,
-                    Dest const & dest,
-                    Functor const & func,
-                    Functor2 const & func2) const
+                    const T_Acc& acc,
+                    const Src& src,
+                    const uint32_t& src_count,
+                    const Dest& dest,
+                    const Functor& func,
+                    const Functor2& func2) const
                 {
                     static_assert(
                         alpaka::dim::Dim<T_Acc>::value == 1,

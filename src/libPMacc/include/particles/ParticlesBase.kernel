@@ -534,10 +534,10 @@ template<
     typename BORDER,
     typename Mapping>
 ALPAKA_FN_ACC void operator()(
-    T_Acc const & acc,
-    ParticlesBox<FRAME, Mapping::Dim> const & pb,
+    const T_Acc& acc,
+    const ParticlesBox<FRAME, Mapping::Dim>& pb,
     ExchangePushDataBox<vint_t, BORDER, Mapping::Dim - 1> border,
-    Mapping const & mapper) const
+    const Mapping& mapper) const
 {
     static_assert(
         alpaka::dim::Dim<T_Acc>::value == Mapping::Dim,
@@ -639,13 +639,12 @@ template<
     typename BORDER,
     typename Mapping>
 ALPAKA_FN_ACC void operator()(
-    T_Acc const & acc,
-    ParticlesBox<FRAME, Mapping::Dim> const & pb,
+    const T_Acc& acc,
+    const ParticlesBox<FRAME, Mapping::Dim>& pb,
     ExchangePopDataBox<vint_t, BORDER, Mapping::Dim-1> border,
-    Mapping const & mapper) const
+    const Mapping& mapper) const
 {
     using namespace particles::operations;
-
     enum
     {
         TileSize = math::CT::volume<typename Mapping::SuperCellSize>::type::value,

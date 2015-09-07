@@ -82,6 +82,9 @@ public:
     /** Returns true if the memory pool is shared by host and device */
     bool isSharedMemoryPool()
     {
+#ifdef PMACC_ACC_CPU
+        return true;
+#else
         size_t freeInternal = 0;
         size_t freeAtStart = 0;
 
@@ -101,6 +104,7 @@ public:
             return true;
 
         return false;
+#endif
     }
 
     void setReservedMemory(size_t reservedMem)

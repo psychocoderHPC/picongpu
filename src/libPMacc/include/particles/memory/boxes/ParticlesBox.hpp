@@ -28,6 +28,7 @@
 #include "particles/memory/dataTypes/SuperCell.hpp"
 #include "memory/boxes/PitchedBox.hpp"
 #include "particles/memory/dataTypes/Pointer.hpp"
+#include <cstdio>
 
 namespace PMacc
 {
@@ -81,6 +82,7 @@ public:
      */
     DINLINE FRAME &getEmptyFrame() const
     {
+
         FrameType* tmp = NULL;
         const int maxTries = 13; //magic number is not performance critical
         for (int numTries = 0; numTries < maxTries; ++numTries)
@@ -95,7 +97,7 @@ public:
                 /* takes care that changed values are visible to all threads inside this block*/
                 __threadfence_block();
 #endif
-                break;
+               // break;
             }
             else
             {
@@ -103,6 +105,7 @@ public:
                        (numTries+1)==maxTries?"WARNING":"ERROR",
                        numTries+1,
                        maxTries);
+
             }
         }
 

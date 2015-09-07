@@ -68,7 +68,7 @@ struct DeviceMemAssigner
         assert(blockSize.productOfComponents() <= 1024);
 
         algorithm::kernel::RT::Foreach foreach(blockDim);
-        foreach(myZone, cursor, lambda::_1 = value);
+        foreach(myZone, lambda::_1 = value, cursor);
     }
 };
 

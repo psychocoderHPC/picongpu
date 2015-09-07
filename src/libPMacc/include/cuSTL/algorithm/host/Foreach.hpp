@@ -88,9 +88,9 @@ struct Foreach
         typename Functor,
         typename... TCs>
     void operator()(
-        Zone const & p_zone,
-        Functor const & functor,
-        TCs && ... cs)
+        const Zone& p_zone,
+        const Functor& functor,
+        TCs&& ... cs)
     {
         forEachShifted(
             p_zone,
@@ -107,9 +107,9 @@ private:
         typename Functor,
         typename... TShiftedCs>
     void forEachShifted(
-        Zone const & p_zone,
-        Functor const & functor,
-        TShiftedCs && ... shiftedCs)
+        const Zone& p_zone,
+        const Functor& functor,
+        TShiftedCs&& ... shiftedCs)
     {
         typename lambda::result_of::make_Functor<Functor>::type fun =
             lambda::make_Functor(functor);
@@ -123,7 +123,7 @@ private:
                 {
                     math::Int<Zone::dim> cellIndex =
                         math::Int<3u>(x, y, z).shrink<Zone::dim>();
-                    fun(std::forward<TShiftedCs>(shiftedCs)...);
+                    fun(shiftedCs[cellIndex] ...);
                 }
             }
         }

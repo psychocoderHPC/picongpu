@@ -88,9 +88,10 @@ private:
 
         algorithm::kernel::ForeachBlock<BlockDim> foreach;
         foreach(zone::SphericZone<3>(PMacc::math::Size_t<3>(BlockDim::x::value, gridSizeTwisted.y(), gridSizeTwisted.z())),
+                DirSplittingKernel<BlockDim>((int)gridSizeTwisted.x()),
                 cursor::make_NestedCursor(twistVectorFieldAxes<OrientationTwist>(cursorE)),
                 cursor::make_NestedCursor(twistVectorFieldAxes<OrientationTwist>(cursorB)),
-                DirSplittingKernel<BlockDim>((int)gridSizeTwisted.x()));
+                );
     }
 public:
     DirSplitting(MappingDesc) {}

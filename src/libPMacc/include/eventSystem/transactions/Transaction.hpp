@@ -42,7 +42,7 @@ public:
      *
      * @param event initial EventTask for base event
      */
-    Transaction(EventTask const & event, bool isAtomic = false);
+    Transaction(const EventTask& event, bool isAtomic = false);
 
     /**
      * Adds event to the base event of this transaction.

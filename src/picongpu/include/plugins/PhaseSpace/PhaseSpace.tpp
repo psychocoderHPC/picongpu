@@ -180,9 +180,9 @@ namespace picongpu
 
         forEachSuperCell( /* area to work on */
                           zoneCoreBorder,
+                          functorBlock,
                           /* data below - passed to functor operator() */
                           cursor::make_MultiIndexCursor<simDim>(),
-                          functorBlock
                         );
     }
 

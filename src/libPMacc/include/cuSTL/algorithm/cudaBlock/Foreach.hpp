@@ -46,7 +46,7 @@ namespace cudaBlock
     /*      <             , typename C0, ..., typename C(N-1)  ,              > */ \
     template<typename Zone, BOOST_PP_ENUM_PARAMS(N, typename C), typename Functor> \
     /*                     (      C0 c0, ..., C(N-1) c(N-1)           ,       ) */ \
-    DINLINE void operator()(Zone, BOOST_PP_ENUM_BINARY_PARAMS(N, C, c), const Functor& functor) \
+    DINLINE void operator()(Zone,const Functor& functor, BOOST_PP_ENUM_BINARY_PARAMS(N, C, c)) \
     {                                                                              \
         BOOST_AUTO(functor_, lambda::make_Functor(functor));                       \
         const int dataVolume = math::CT::volume<typename Zone::Size>::type::value; \

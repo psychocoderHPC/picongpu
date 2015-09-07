@@ -57,7 +57,7 @@ namespace kernel
                          /* typename C0, typename C1, ... */                                                \
     template<typename Zone, BOOST_PP_ENUM_PARAMS(N, typename C), typename Functor>                          \
                                     /* C0 c0, C1 c1, ... */                                                 \
-    void operator()(const Zone& p_zone, BOOST_PP_ENUM_BINARY_PARAMS(N, C, c), const Functor& functor)        \
+    void operator()(const Zone& p_zone, const Functor& functor, BOOST_PP_ENUM_BINARY_PARAMS(N, C, c))       \
     {                                                                                                       \
         /* C0 c0_shifted = c0(p_zone.offset); */                                                             \
         /* C1 c1_shifted = c1(p_zone.offset); */                                                             \
@@ -66,8 +66,8 @@ namespace kernel
                                                                                                             \
         detail::SphericMapper<Zone::dim, BlockDim> mapper;                                                  \
         using namespace PMacc;                                                                              \
-        detail::kernelForeach kernel; \
-        __cudaKernel(kernel, alpaka::dim::DimInt<3u>, mapper.gridDim(p_zone.size), BlockDim::toRT())                       \
+        detail::kernelForeach kernel;                                                                       \
+        __cudaKernel(kernel, alpaka::dim::DimInt<3u>, mapper.gridDim(p_zone.size), BlockDim::toRT())        \
                   /* c0_shifted, c1_shifted, ... */                                                         \
             (mapper, lambda::make_Functor(functor), BOOST_PP_ENUM(N, SHIFTED_CURSOR, _));                   \
     }

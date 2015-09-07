@@ -28,7 +28,7 @@
 
 namespace PMacc
 {
-Transaction::Transaction( EventTask const & event, bool isAtomic ) :
+Transaction::Transaction(const EventTask& event, bool isAtomic ) :
     baseEvent(event),
     eventStream(Environment<>::get().StreamController().getNextStream()),
     isAtomic(isAtomic)

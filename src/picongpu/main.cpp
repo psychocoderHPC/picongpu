@@ -48,6 +48,7 @@ struct ScatterConfig
        frame sizes were used*/
     typedef boost::mpl::bool_<true> resetfreedpages;
 };
+
 // Define a new allocator and call it ScatterAllocator
 // which resembles the behavior of ScatterAlloc
 using ScatterAllocator = mallocMC::Allocator<
@@ -63,6 +64,7 @@ MALLOCMC_SET_ALLOCATOR_TYPE( ScatterAllocator );
 
 #else
 
+
 // Define a new allocator and call it ScatterAllocator
 // which resembles the behavior of ScatterAlloc
 using AllocatorHostNew = mallocMC::Allocator<
@@ -70,7 +72,7 @@ using AllocatorHostNew = mallocMC::Allocator<
     mallocMC::DistributionPolicies::Noop,
     mallocMC::OOMPolicies::ReturnNull,
     mallocMC::ReservePoolPolicies::NoOp,
-    mallocMC::AlignmentPolicies::Shrink<>
+    mallocMC::AlignmentPolicies::Noop
     >;
 
 //use AllocatorHostNew to replace malloc/free

@@ -60,10 +60,10 @@ namespace detail
                         /* typename C0, typename C1, ... */                                                 \
 template<typename Mapper, BOOST_PP_ENUM_PARAMS(N, typename C), typename Functor>                            \
                                                 /* C0 c0, C1 c1, ... */                                     \
-__global__ void kernelForeachBlock(Mapper mapper, BOOST_PP_ENUM_BINARY_PARAMS(N, C, c), Functor functor)    \
+__global__ void kernelForeachBlock(Mapper mapper,Functor functor, BOOST_PP_ENUM_BINARY_PARAMS(N, C, c))     \
 {                                                                                                           \
-    DataSpace<Mapper::dim> const blockIndex(alpaka::idx::getIdx<alpaka::Grid, alpaka::Blocks>(acc));          \
-    math::Int<Mapper::dim> cellIndex(mapper(blockIndex));                                                     \
+    DataSpace<Mapper::dim> const blockIndex(alpaka::idx::getIdx<alpaka::Grid, alpaka::Blocks>(acc));        \
+    math::Int<Mapper::dim> cellIndex(mapper(blockIndex));                                                   \
          /* c0[cellIndex], c1[cellIndex], ... */                                                            \
     functor(BOOST_PP_ENUM(N, SHIFTACCESS_CURSOR, _));                                                       \
 }
@@ -82,7 +82,7 @@ BOOST_PP_REPEAT_FROM_TO(1, BOOST_PP_INC(FOREACH_KERNEL_MAX_PARAMS), KERNEL_FOREA
                          /* typename C0, typename C1, ... */                                                \
     template<typename Zone, BOOST_PP_ENUM_PARAMS(N, typename C), typename Functor>                          \
                                      /* C0 c0, C1 c1, ... */                                                \
-    void operator()(const Zone& p_zone, BOOST_PP_ENUM_BINARY_PARAMS(N, C, c), const Functor& functor)        \
+    void operator()(const Zone& p_zone,const Functor& functor, BOOST_PP_ENUM_BINARY_PARAMS(N, C, c))        \
     {                                                                                                       \
         /* C0 c0_shifted = c0(p_zone.offset); */                                                             \
         /* C1 c1_shifted = c1(p_zone.offset); */                                                             \
@@ -91,10 +91,10 @@ BOOST_PP_REPEAT_FROM_TO(1, BOOST_PP_INC(FOREACH_KERNEL_MAX_PARAMS), KERNEL_FOREA
                                                                                                             \
         detail::SphericMapper<Zone::dim, BlockDim> mapper;                                                  \
         using namespace PMacc;                                                                              \
-        detail::kernelForeachBlock kernel; \
-        __cudaKernel(kernel, alpaka::dim::DimInt<3u>, mapper.gridDim(p_zone.size), ThreadBlock::toRT())                  \
+        detail::kernelForeachBlock kernel;                                                                  \
+        __cudaKernel(kernel, alpaka::dim::DimInt<3u>, mapper.gridDim(p_zone.size), ThreadBlock::toRT())     \
                     /* c0_shifted, c1_shifted, ... */                                                       \
-            (mapper, BOOST_PP_ENUM(N, SHIFTED_CURSOR, _), lambda::make_Functor(functor));                   \
+            (mapper, lambda::make_Functor(functor),BOOST_PP_ENUM(N, SHIFTED_CURSOR, _));                    \
     }
 
 /** Special foreach algorithm that calls a cuda kernel

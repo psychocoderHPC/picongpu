@@ -35,7 +35,7 @@ namespace picongpu
     class MallocMCBuffer : public ISimulationData
     {
         using BufHost = alpaka::mem::buf::Buf<
-            AlpakaDev,
+            AlpakaHost,
             char,
             alpaka::dim::DimInt<1u>,
             AlpakaSize>;
