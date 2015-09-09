@@ -50,7 +50,11 @@ class Simulation
 {
 private:
     // Arbitrarily chosen SuperCellSize!
+#if ALPAKA_ACC_GPU_CUDA_ENABLE
+    using MappingDesc = PMacc::MappingDescription<DIM2, PMacc::math::CT::Int<16, 16>>;
+#else
     using MappingDesc = PMacc::MappingDescription<DIM2, PMacc::math::CT::Int<1, 1>>;
+#endif
 
 public:
     //-----------------------------------------------------------------------------
