@@ -231,7 +231,7 @@ public:
 
     size_t getPitch() const
     {
-        return alpaka::mem::view::getPitchBytes<0u>(m_dataViewDev);
+        return alpaka::mem::view::getPitchBytes<DIM-1>(m_dataViewDev);
     }
 
     void setValue(const TYPE& value)
