@@ -43,7 +43,7 @@ class DeviceBufferIntern : public DeviceBuffer<TYPE, DIM>
 {
 public:
     using DataBufDev = alpaka::mem::buf::Buf<
-        AlpakaDev,
+        AlpakaAccDev,
         TYPE,
         alpaka::dim::DimInt<DIM>,
         AlpakaSize>;
@@ -100,7 +100,7 @@ public:
         __startOperation(ITask::TASK_CUDA);
         if (!preserveData)
         {
-            AlpakaStream stream(Environment<>::get().DeviceManager().getDevice());
+            AlpakaAccStream stream(Environment<>::get().DeviceManager().getAccDevice());
             alpaka::mem::view::set(
                 stream,
                 m_dataViewDev,
@@ -249,7 +249,7 @@ private:
         log<ggLog::MEMORY>("Create device %1%D data: %2% MiB") % DIM % (this->getDataSpace().productOfComponents() * sizeof(TYPE) / 1024 / 1024 );
 
         return alpaka::mem::buf::alloc<TYPE, AlpakaSize>(
-            Environment<>::get().DeviceManager().getDevice(),
+            Environment<>::get().DeviceManager().getAccDevice(),
             PMacc::algorithms::precisionCast::precisionCast<AlpakaSize>(this->getDataSpace())
             );
     }
@@ -265,18 +265,18 @@ private:
         // \HACK \TODO \FIXME: This allocates the memory twice. One time (possibly with padding) and a second time without padding and deletes the first buffer.
         DataBufDev buf(
             alpaka::mem::buf::alloc<TYPE, AlpakaSize>(
-                Environment<>::get().DeviceManager().getDevice(),
+                Environment<>::get().DeviceManager().getAccDevice(),
                 PMacc::algorithms::precisionCast::precisionCast<AlpakaSize>(this->getDataSpace())
             ));
 
         using MemBufFake = alpaka::mem::buf::Buf<
-            AlpakaDev,
+            AlpakaAccDev,
             TYPE,
             alpaka::dim::DimInt<1u>,
             AlpakaSize>;
         MemBufFake fakeBuf(
             alpaka::mem::buf::alloc<TYPE, AlpakaSize>(
-                Environment<>::get().DeviceManager().getDevice(),
+                Environment<>::get().DeviceManager().getAccDevice(),
                 static_cast<AlpakaSize>(this->getDataSpace().productOfComponents())));
 
         // Swap the pointers of our buffers.
@@ -306,7 +306,7 @@ private:
         m_upSizeOnDevice.reset(
             new typename PMacc::DeviceBuffer<TYPE, DIM>::SizeBufDev(
                 alpaka::mem::buf::alloc<std::size_t, AlpakaSize>(
-                    Environment<>::get().DeviceManager().getDevice(),
+                    Environment<>::get().DeviceManager().getAccDevice(),
                     static_cast<AlpakaSize>(1u))));
     }
 

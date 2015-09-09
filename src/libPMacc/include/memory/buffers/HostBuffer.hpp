@@ -44,7 +44,7 @@ namespace PMacc
     {
     protected:
         using DataViewHost = alpaka::mem::view::View<
-            AlpakaHost,
+            AlpakaHostDev,
             TYPE,
             alpaka::dim::DimInt<DIM>,
             AlpakaSize>;

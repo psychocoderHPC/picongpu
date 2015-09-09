@@ -44,12 +44,12 @@ class MappedBufferIntern : public DeviceBuffer<TYPE, DIM>
 {
 public:
     using DataBufHost = alpaka::mem::buf::Buf<
-        AlpakaDev,
+        AlpakaAccDev,
         TYPE,
         alpaka::dim::DimInt<DIM>,
         AlpakaSize>;
     using DataBufDev = alpaka::mem::buf::BufPlainPtrWrapper<
-        AlpakaDev,
+        AlpakaAccDev,
         std::uint32_t,
         alpaka::dim::DimInt<DIM>,
         AlpakaSize>;
@@ -60,8 +60,8 @@ public:
         DeviceBuffer<TYPE, DIM>(dataSpace),
         m_dataBufHost(createData()),
         m_dataBufDev(
-                alpaka::mem::getPtrDev(m_dataBufHost, Environment<>::get().DeviceManager().getDevice()),
-                Environment<>::get().DeviceManager().getDevice(),
+                alpaka::mem::getPtrDev(m_dataBufHost, Environment<>::get().DeviceManager().getAccDevice()),
+                Environment<>::get().DeviceManager().getAccDevice(),
                 dataSpace),
         m_dataViewDev(alpaka::mem::view::createView<DataViewDev>(m_dataBufDev))
     {
@@ -76,7 +76,7 @@ public:
         __startOperation(ITask::TASK_CUDA);
         __startOperation(ITask::TASK_HOST);
 
-        alpaka::mem::buf::unmap(buf, Environment<>::get().DeviceManager().getDevice());
+        alpaka::mem::buf::unmap(buf, Environment<>::get().DeviceManager().getAccDevice());
     }
 
     /*! Get unchanged device pointer of memory
@@ -85,7 +85,7 @@ public:
     TYPE* getBasePointer()
     {
         __startOperation(ITask::TASK_HOST);
-        return alpaka::mem::getPtrDev(m_dataBufHost, Environment<>::get().DeviceManager().getDevice());
+        return alpaka::mem::getPtrDev(m_dataBufHost, Environment<>::get().DeviceManager().getAccDevice());
     }
 
     /*! Get device pointer of memory
@@ -115,7 +115,7 @@ public:
         this->setCurrentSize(this->getDataSpace().productOfComponents());
         if (!preserveData)
         {
-            AlpakaStream stream(Environment<>::get().DeviceManager().getDevice());
+            AlpakaAccStream stream(Environment<>::get().DeviceManager().getAccDevice());
             alpaka::mem::view::set(
                 stream,
                 m_dataBufHost,
@@ -222,12 +222,12 @@ private:
         log<ggLog::MEMORY>("Create mapped device %1%D data: %2% MiB") % DIM % (getDataSpace().productOfComponents() * sizeof(TYPE) / 1024 / 1024 );
 
         DataBufHost buf(alpaka::mem::buf::alloc<TYPE, AlpakaSize>(
-            alpaka::dev::cpu::getDev(),
+            Environment<>::get().DeviceManager().getHostDevice(),
             getDataSpace()));
 
         alpaka::mem::buf::map(
             buf,
-            Environment<>::get().DeviceManager().getDevice());
+            Environment<>::get().DeviceManager().getAccDevice());
 
         return buf;
     }

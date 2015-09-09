@@ -36,7 +36,7 @@ MallocMCBuffer::MallocMCBuffer( ) :
     upBufWrapperDev.reset(
         new BufWrapperDev(
             reinterpret_cast<char *>(deviceHeapInfo.p),
-            Environment<>::get().DeviceManager().getDevice(),
+            Environment<>::get().DeviceManager().getAccDevice(),
             static_cast<AlpakaSize>(deviceHeapInfo.size)));
 
     Environment<>::get().DataConnector().registerData( *this);
@@ -59,7 +59,7 @@ void MallocMCBuffer::synchronize( )
         upBufHost.reset(
             new BufHost(
                 alpaka::mem::buf::alloc<char, AlpakaSize>(
-                    alpaka::dev::cpu::getDev(),
+                    Environment<>::get().DeviceManager().getHostDevice(),
                     static_cast<AlpakaSize>(deviceHeapInfo.size))));
 
 #if defined(ALPAKA_ACC_GPU_CUDA_ENABLED) && defined(__CUDACC__)
@@ -75,7 +75,7 @@ void MallocMCBuffer::synchronize( )
     __startOperation(ITask::TASK_CUDA);
     __startOperation(ITask::TASK_HOST);
 
-    AlpakaStream stream(Environment<>::get().DeviceManager().getDevice());
+    AlpakaAccStream stream(Environment<>::get().DeviceManager().getAccDevice());
     alpaka::mem::view::copy(
         stream,
         *upBufHost.get(),

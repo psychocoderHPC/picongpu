@@ -85,7 +85,7 @@ public:
         Environment<>::get().PluginConnector().restartPlugins(restartStep, restartDirectory);
         __getTransactionEvent().waitForFinished();
 
-        alpaka::wait::wait(PMacc::Environment<>::get().DeviceManager().getDevice());
+        alpaka::wait::wait(PMacc::Environment<>::get().DeviceManager().getAccDevice());
 
         GridController<simDim> &gc = Environment<simDim>::get().GridController();
         /* can be spared for better scalings, but guarantees the user

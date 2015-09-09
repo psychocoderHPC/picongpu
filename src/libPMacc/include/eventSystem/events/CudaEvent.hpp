@@ -51,7 +51,7 @@ public:
      */
     CudaEvent(CudaEvent const & other) :
         m_event(
-            new alpaka::event::Event<AlpakaStream>(*other.m_event.get())),
+            new alpaka::event::Event<AlpakaAccStream>(*other.m_event.get())),
         m_pStream(other.m_pStream),
         isRecorded(other.isRecorded)
     {}
@@ -77,10 +77,10 @@ public:
      * - internal memory is allocated
      * - event must be destroyed with @see destroy
      */
-    static CudaEvent create(AlpakaDev const & dev)
+    static CudaEvent create(AlpakaAccDev const & dev)
     {
         CudaEvent ev;
-        ev.m_event.reset(new alpaka::event::Event<AlpakaStream>(dev));
+        ev.m_event.reset(new alpaka::event::Event<AlpakaAccStream>(dev));
         return ev;
     }
 
@@ -98,7 +98,7 @@ public:
      *
      * @return native cuda event
      */
-    alpaka::event::Event<AlpakaStream> & operator*() const
+    alpaka::event::Event<AlpakaAccStream> & operator*() const
     {
         assert(m_event);
         return *m_event.get();
@@ -120,7 +120,7 @@ public:
      *
      * @return native cuda stream
      */
-    AlpakaStream & getCudaStream() const
+    AlpakaAccStream & getCudaStream() const
     {
         assert(isRecorded);
         assert(m_pStream);
@@ -132,7 +132,7 @@ public:
      *
      * @param stream native cuda stream
      */
-    void recordEvent(AlpakaStream & stream)
+    void recordEvent(AlpakaAccStream & stream)
     {
         /* disallow double recording */
         assert(isRecorded==false);
@@ -142,8 +142,8 @@ public:
     }
 
 private:
-    std::unique_ptr<alpaka::event::Event<AlpakaStream>> m_event;
-    AlpakaStream * m_pStream;
+    std::unique_ptr<alpaka::event::Event<AlpakaAccStream>> m_event;
+    AlpakaAccStream * m_pStream;
     /* state if event is recorded */
     bool isRecorded;
 };

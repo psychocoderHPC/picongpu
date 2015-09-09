@@ -55,9 +55,9 @@
  */
 #define PMACC_ACTIVATE_KERNEL()\
     ::alpaka::stream::enqueue(taskKernel->getEventStream()->getCudaStream(), exec);\
-    PMACC_KERNEL_CATCH(::alpaka::wait::wait(::PMacc::Environment<>::get().DeviceManager().getDevice()), "__cudaKernel: crash after kernel call");\
+    PMACC_KERNEL_CATCH(::alpaka::wait::wait(::PMacc::Environment<>::get().DeviceManager().getAccDevice()), "__cudaKernel: crash after kernel call");\
     taskKernel->activateChecks();\
-    PMACC_KERNEL_CATCH(::alpaka::wait::wait(::PMacc::Environment<>::get().DeviceManager().getDevice()), "__cudaKernel: crash after kernel activation");\
+    PMACC_KERNEL_CATCH(::alpaka::wait::wait(::PMacc::Environment<>::get().DeviceManager().getAccDevice()), "__cudaKernel: crash after kernel activation");\
 
 /**
  * Appends kernel arguments to the executor invocation and activates the kernel task.
@@ -84,7 +84,7 @@
  */
 #define __cudaKernel(KERNEL, DIM, ...)\
     {\
-        PMACC_KERNEL_CATCH(::alpaka::wait::wait(::PMacc::Environment<>::get().DeviceManager().getDevice()), "__cudaKernel: crash before kernel call");\
+        PMACC_KERNEL_CATCH(::alpaka::wait::wait(::PMacc::Environment<>::get().DeviceManager().getAccDevice()), "__cudaKernel: crash before kernel call");\
         ::PMacc::TaskKernel * const taskKernel(::PMacc::Environment<>::get().Factory().createTaskKernel(#KERNEL));\
         auto const exec(::alpaka::exec::create<::PMacc::AlpakaAcc<DIM>>(::alpaka::workdiv::WorkDivMembers<DIM, ::PMacc::AlpakaIdxSize>(__VA_ARGS__), KERNEL\
         PMACC_KERNEL_PARAMS

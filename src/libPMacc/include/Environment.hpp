@@ -34,7 +34,10 @@ namespace PMacc
     public:
         void init(std::size_t uiIdx)
         {
-            auto const uiNumDevices(alpaka::dev::DevMan<AlpakaDev>::getDevCount());
+            m_hostDev.reset(
+                new AlpakaHostDev(alpaka::dev::cpu::getDev()));
+
+            auto const uiNumDevices(alpaka::dev::DevMan<AlpakaAccDev>::getDevCount());
 
             // Beginning from the device given by the index, try if they are usable.
             for(std::size_t iDeviceOffset(0); iDeviceOffset < uiNumDevices; ++iDeviceOffset)
@@ -43,8 +46,8 @@ namespace PMacc
 
                 try
                 {
-                    m_Dev.reset(
-                        new AlpakaDev(alpaka::dev::DevMan<AlpakaDev>::getDevByIdx(iDevice)));
+                    m_accDev.reset(
+                        new AlpakaAccDev(alpaka::dev::DevMan<AlpakaAccDev>::getDevByIdx(iDevice)));
                     return;
                 }
                 catch(...)
@@ -57,14 +60,24 @@ namespace PMacc
             throw std::runtime_error(ssErr.str());
         }
 
-        AlpakaDev const & getDevice() const
+        AlpakaAccDev const & getAccDevice() const
         {
-            return *m_Dev.get();
+            return *m_accDev.get();
         }
 
-        AlpakaDev & getDevice()
+        AlpakaAccDev & getAccDevice()
         {
-            return *m_Dev.get();
+            return *m_accDev.get();
+        }
+
+        AlpakaHostDev const & getHostDevice() const
+        {
+            return *m_hostDev.get();
+        }
+
+        AlpakaHostDev & getHostDevice()
+        {
+            return *m_hostDev.get();
         }
 
         static DeviceManager& getInstance()
@@ -74,7 +87,8 @@ namespace PMacc
         }
 
     private:
-        std::unique_ptr<AlpakaDev> m_Dev;
+        std::unique_ptr<AlpakaAccDev> m_accDev;
+        std::unique_ptr<AlpakaHostDev> m_hostDev;
     };
 }
 
@@ -182,9 +196,9 @@ public:
 
         PMacc::DeviceManager::getInstance().init(static_cast<std::size_t>(PMacc::GridController<DIM>::getInstance().getHostRank()));
 
-        PMacc::StreamController::getInstance().activate(PMacc::DeviceManager::getInstance().getDevice());
+        PMacc::StreamController::getInstance().activate(PMacc::DeviceManager::getInstance().getAccDevice());
 
-        nvidia::memory::MemoryInfo::getInstance().activate(PMacc::DeviceManager::getInstance().getDevice());
+        nvidia::memory::MemoryInfo::getInstance().activate(PMacc::DeviceManager::getInstance().getAccDevice());
 
         PMacc::TransactionManager::getInstance();
 

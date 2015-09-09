@@ -42,7 +42,7 @@ public:
      * Constructor.
      * Creates the cudaStream_t object.
      */
-    EventStream(alpaka::dev::Dev<AlpakaDev> dev) :
+    EventStream(alpaka::dev::Dev<AlpakaAccDev> dev) :
         stream(dev)
     {}
 
@@ -60,7 +60,7 @@ public:
      * Returns the cudaStream_t object associated with this EventStream.
      * @return the internal cuda stream object
      */
-    AlpakaStream & getCudaStream()
+    AlpakaAccStream & getCudaStream()
     {
         return stream;
     }
@@ -74,7 +74,7 @@ public:
     }
 
 private:
-    AlpakaStream stream;
+    AlpakaAccStream stream;
 };
 
 }

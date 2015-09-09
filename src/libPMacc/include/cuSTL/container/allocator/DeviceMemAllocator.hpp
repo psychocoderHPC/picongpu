@@ -37,7 +37,7 @@ template<typename Type, int T_dim>
 struct DeviceMemAllocator
 {
     using MemBuf = alpaka::mem::buf::Buf<
-        AlpakaDev,
+        AlpakaAccDev,
         Type,
         alpaka::dim::DimInt<T_dim>,
         AlpakaSize>;

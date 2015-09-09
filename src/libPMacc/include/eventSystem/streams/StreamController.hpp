@@ -89,9 +89,9 @@ namespace PMacc
          *
          * If StreamController is not activated getNextStream() will crash on its first call
          */
-        void activate(AlpakaDev const & dev)
+        void activate(AlpakaAccDev const & dev)
         {
-            device.reset(new AlpakaDev(dev));
+            device.reset(new AlpakaAccDev(dev));
             addStreams(1);
             isActivated=true;
         }
@@ -129,7 +129,7 @@ namespace PMacc
             return instance;
         }
 
-        std::unique_ptr<AlpakaDev> device;
+        std::unique_ptr<AlpakaAccDev> device;
         std::vector<std::unique_ptr<EventStream>> streams;
         size_t currentStreamIndex;
         bool isActivated;

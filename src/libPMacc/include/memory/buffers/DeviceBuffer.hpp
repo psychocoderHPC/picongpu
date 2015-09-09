@@ -51,13 +51,13 @@ namespace PMacc
     {
     protected:
         using SizeBufDev = alpaka::mem::buf::Buf<
-            AlpakaDev,
+            AlpakaAccDev,
             std::size_t,
             alpaka::dim::DimInt<1u>,
             AlpakaSize>;
 
         using DataViewDev = alpaka::mem::view::View<
-            AlpakaDev,
+            AlpakaAccDev,
             TYPE,
             alpaka::dim::DimInt<DIM>,
             AlpakaSize>;

@@ -41,7 +41,7 @@ class HostBufferIntern : public HostBuffer<TYPE, DIM>
 {
 public:
     using DataBufHost = alpaka::mem::buf::Buf<
-        AlpakaHost,
+        AlpakaHostDev,
         TYPE,
         alpaka::dim::DimInt<DIM>,
         AlpakaSize>;
@@ -57,7 +57,7 @@ public:
         m_upDataBufHost(
             new DataBufHost(
                 alpaka::mem::buf::alloc<TYPE, AlpakaSize>(
-                    alpaka::dev::cpu::getDev(),
+                    Environment<>::get().DeviceManager().getHostDevice(),
                     PMacc::algorithms::precisionCast::precisionCast<AlpakaSize>(dataSpace))
                 )),
         m_dataViewHost(

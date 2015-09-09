@@ -112,13 +112,13 @@ public:
         this->reservedMem = reservedMem;
     }
 
-    void activate(AlpakaDev const & dev)
+    void activate(AlpakaAccDev const & dev)
     {
-        device.reset(new AlpakaDev(dev));
+        device.reset(new AlpakaAccDev(dev));
     }
 
 protected:
-    std::unique_ptr<AlpakaDev> device;
+    std::unique_ptr<AlpakaAccDev> device;
     size_t reservedMem;
 
 private:

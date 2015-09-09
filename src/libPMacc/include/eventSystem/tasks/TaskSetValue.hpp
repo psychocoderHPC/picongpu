@@ -230,7 +230,7 @@ public:
     static const uint32_t dim = T_dim;
 
     using MemBufValueHost = alpaka::mem::buf::Buf<
-        AlpakaHost,
+        AlpakaHostDev,
         ValueType,
         alpaka::dim::DimInt<1u>,
         AlpakaSize>;
@@ -260,7 +260,7 @@ public:
         m_spMemBufValueHost.reset(
             new MemBufValueHost(
                 alpaka::mem::buf::alloc<ValueType, AlpakaSize>(
-                    alpaka::dev::cpu::getDev(),
+                    Environment<>::get().DeviceManager().getHostDevice(),
                     static_cast<AlpakaSize>(1u))));
         *alpaka::mem::view::getPtrNative(*m_spMemBufValueHost.get()) = this->value; // copy value to new place
 
