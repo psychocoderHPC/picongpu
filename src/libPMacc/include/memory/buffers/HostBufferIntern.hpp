@@ -137,7 +137,7 @@ public:
             getPointer(),
             DataSpace<DIM>(),
             this->getDataSpace(),
-            alpaka::mem::view::getPitchBytes<0u>(m_dataViewHost)));
+            alpaka::mem::view::getPitchBytes<DIM-1>(m_dataViewHost)));
     }
 
     typename PMacc::HostBuffer<TYPE, DIM>::DataViewHost const & getMemBufView() const

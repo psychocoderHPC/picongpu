@@ -193,7 +193,7 @@ public:
 
     size_t getPitch() const
     {
-        return alpaka::mem::view::getPitchBytes<0u, size_t>(m_dataBufHost);
+        return alpaka::mem::view::getPitchBytes<DIM-1, size_t>(m_dataBufHost);
     }
 
     void copyFrom(HostBuffer<TYPE, DIM>& other)
