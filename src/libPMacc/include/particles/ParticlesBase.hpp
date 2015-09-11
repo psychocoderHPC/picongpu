@@ -101,12 +101,12 @@ protected:
             __cudaKernel(kernelShiftParticles)
                 (mapper.getGridDim(), TileSize)
                 (pBox, mapper);
-            __cudaKernel(kernelFillGaps)
+           /* __cudaKernel(kernelFillGaps)
                 (mapper.getGridDim(), TileSize)
                 (pBox, mapper);
-            __cudaKernel(kernelFillGapsLastFrame)
+           __cudaKernel(kernelFillGapsLastFrame)
                 (mapper.getGridDim(), TileSize)
-                (pBox, mapper);
+                (pBox, mapper);*/
         }
         while (mapper.next());
 
@@ -126,9 +126,9 @@ protected:
             (mapper.getGridDim(), TileSize)
             (particlesBuffer->getDeviceParticleBox(), mapper);
 
-        __cudaKernel(kernelFillGapsLastFrame)
+       /* __cudaKernel(kernelFillGapsLastFrame)
             (mapper.getGridDim(), TileSize)
-            (particlesBuffer->getDeviceParticleBox(), mapper);
+            (particlesBuffer->getDeviceParticleBox(), mapper);*/
     }
 
 
