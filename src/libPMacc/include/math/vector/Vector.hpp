@@ -845,7 +845,7 @@ namespace alpaka
         namespace traits
         {
             //#############################################################################
-            //! The DataSpace dimension get trait specialization.
+            //! The Vector dimension get trait specialization.
             //#############################################################################
             template<
                 typename T_Type,
@@ -860,12 +860,32 @@ namespace alpaka
             };
         }
     }
+    namespace elem
+    {
+        namespace traits
+        {
+            //#############################################################################
+            //! The Vector size type trait specialization.
+            //#############################################################################
+            template<
+                typename T_Type,
+                int T_dim,
+                typename T_Accessor,
+                typename T_Navigator,
+                template<typename, int> class T_Storage>
+            struct ElemType<
+                PMacc::math::Vector<T_Type, T_dim, T_Accessor, T_Navigator, T_Storage>>
+            {
+                using type = T_Type;
+            };
+        }
+    }
     namespace extent
     {
         namespace traits
         {
             //#############################################################################
-            //! The DataSpace extent get trait specialization.
+            //! The Vector extent get trait specialization.
             //#############################################################################
             template<
                 typename T_Idx,
@@ -887,7 +907,7 @@ namespace alpaka
                 }
             };
             //#############################################################################
-            //! The DataSpace extent set trait specialization.
+            //! The Vector extent set trait specialization.
             //#############################################################################
             template<
                 typename T_Idx,
@@ -982,7 +1002,7 @@ namespace alpaka
             struct SizeType<
                 PMacc::math::Vector<T_Type, T_dim, T_Accessor, T_Navigator, T_Storage>>
             {
-                using type = typename PMacc::math::Vector<T_Type, T_dim, T_Accessor, T_Navigator, T_Storage>::type;
+                using type = std::size_t;
             };
         }
     }

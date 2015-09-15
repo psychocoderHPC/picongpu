@@ -68,7 +68,7 @@ struct SphericMapper<1, BlockSize>
     }
 
     HDINLINE
-    math::Int<dim> operator()(const alpaka::Vec1<std::size_t>& _blockIdx, const alpaka::Vec1<std::size_t>& _threadIdx = alpaka::Vec1<std::size_t>(0)) const
+    math::Int<dim> operator()(const alpaka::Vec<alpaka::dim::DimInt<1u>, std::size_t>& _blockIdx, const alpaka::Vec<alpaka::dim::DimInt<1u>, std::size_t>& _threadIdx = alpaka::Vec<alpaka::dim::DimInt<1u>, std::size_t>(0)) const
     {
         return operator()(math::Int<dim>(_blockIdx[0]),
                           math::Int<dim>(_threadIdx[0]));
@@ -94,8 +94,10 @@ struct SphericMapper<2, BlockSize>
                                _blockIdx.y() * BlockSize::y::value + _threadIdx.y() );
     }
 
+    template<
+        typename TSize>
     HDINLINE
-    math::Int<dim> operator()(const alpaka::Vec2<std::size_t>& _blockIdx, const alpaka::Vec2<std::size_t>& _threadIdx = alpaka::Vec2<std::size_t>(0,0)) const
+    math::Int<dim> operator()(const alpaka::Vec<alpaka::dim::DimInt<2u>, std::size_t>& _blockIdx, const alpaka::Vec<alpaka::dim::DimInt<2u>, std::size_t>& _threadIdx = alpaka::Vec<alpaka::dim::DimInt<2u>, std::size_t>(0,0)) const
     {
         return operator()(math::Int<dim>(_blockIdx[0], _blockIdx[1]),
                           math::Int<dim>(_threadIdx[0], _threadIdx[1]));
@@ -121,8 +123,10 @@ struct SphericMapper<3, BlockSize>
         return math::Int<dim>( _blockIdx * (math::Int<dim>)BlockSize().toRT() + _threadIdx );
     }
 
+    template<
+        typename TSize>
     HDINLINE
-    math::Int<dim> operator()(const alpaka::Vec3<std::size_t>& _blockIdx, const alpaka::Vec3<std::size_t>& _threadIdx = alpaka::Vec3<std::size_t>(0,0,0)) const
+    math::Int<dim> operator()(const alpaka::Vec<alpaka::dim::DimInt<3u>, std::size_t>& _blockIdx, const alpaka::Vec<alpaka::dim::DimInt<3u>, std::size_t>& _threadIdx = alpaka::Vec<alpaka::dim::DimInt<3u>, std::size_t>(0,0,0)) const
     {
         return operator()(math::Int<dim>(_blockIdx[0], _blockIdx[1], _blockIdx[2]),
                           math::Int<dim>(_threadIdx[0], _threadIdx[1], _threadIdx[2]));

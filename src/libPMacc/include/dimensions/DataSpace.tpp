@@ -102,6 +102,22 @@ namespace alpaka
             };
         }
     }
+    namespace elem
+    {
+        namespace traits
+        {
+            //#############################################################################
+            //! The DataSpace size type trait specialization.
+            //#############################################################################
+            template<
+                unsigned DIM>
+            struct ElemType<
+                PMacc::DataSpace<DIM>>
+            {
+                using type = int;
+            };
+        }
+    }
     namespace extent
     {
         namespace traits
@@ -152,7 +168,7 @@ namespace alpaka
         namespace traits
         {
             //#############################################################################
-            //! The Vec<DIM> offset get trait specialization.
+            //! The DataSpace offset get trait specialization.
             //#############################################################################
             template<
                 typename T_Idx,
@@ -170,7 +186,7 @@ namespace alpaka
                 }
             };
             //#############################################################################
-            //! The Vec<DIM> offset set trait specialization.
+            //! The DataSpace offset set trait specialization.
             //#############################################################################
             template<
                 typename T_Idx,
@@ -197,7 +213,7 @@ namespace alpaka
         namespace traits
         {
             //#############################################################################
-            //! The Vector size type trait specialization.
+            //! The DataSpace size type trait specialization.
             //#############################################################################
             template<
                 unsigned DIM>

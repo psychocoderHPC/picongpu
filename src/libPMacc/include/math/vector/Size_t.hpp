@@ -78,7 +78,7 @@ namespace alpaka
         namespace traits
         {
             //#############################################################################
-            //! The DataSpace dimension get trait specialization.
+            //! The Size_t dimension get trait specialization.
             //#############################################################################
             template<
                 int dim>
@@ -89,12 +89,28 @@ namespace alpaka
             };
         }
     }
+    namespace elem
+    {
+        namespace traits
+        {
+            //#############################################################################
+            //! The Size_t size type trait specialization.
+            //#############################################################################
+            template<
+                int dim>
+            struct ElemType<
+                PMacc::math::Size_t<dim>>
+            {
+                using type = std::size_t;
+            };
+        }
+    }
     namespace extent
     {
         namespace traits
         {
             //#############################################################################
-            //! The DataSpace extent get trait specialization.
+            //! The Size_t extent get trait specialization.
             //#############################################################################
             template<
                 typename T_Idx,
@@ -112,7 +128,7 @@ namespace alpaka
                 }
             };
             //#############################################################################
-            //! The DataSpace extent set trait specialization.
+            //! The Size_t extent set trait specialization.
             //#############################################################################
             template<
                 typename T_Idx,
@@ -139,7 +155,7 @@ namespace alpaka
         namespace traits
         {
             //#############################################################################
-            //! The Vector offset get trait specialization.
+            //! The Size_t offset get trait specialization.
             //#############################################################################
             template<
                 typename T_Idx,
@@ -157,7 +173,7 @@ namespace alpaka
                 }
             };
             //#############################################################################
-            //! The Vector offset set trait specialization.
+            //! The Size_t offset set trait specialization.
             //#############################################################################
             template<
                 typename T_Idx,
@@ -184,7 +200,7 @@ namespace alpaka
         namespace traits
         {
             //#############################################################################
-            //! The Vector size type trait specialization.
+            //! The Size_t size type trait specialization.
             //#############################################################################
             template<
                 int dim>

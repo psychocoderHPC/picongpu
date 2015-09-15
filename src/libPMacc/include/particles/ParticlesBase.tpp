@@ -115,7 +115,7 @@ namespace PMacc
                 ExchangeMapping<GUARD, MappingDesc> mapper(this->cellDescription, exchangeType);
                 __cudaKernel(
                     kernelInsertParticles,
-                    alpaka::dim::DimInt<1>,
+                    alpaka::dim::DimInt<1u>,
                     static_cast<AlpakaIdxSize>(grid),
                     static_cast<AlpakaIdxSize>(TileSize))(
                         particlesBuffer->getDeviceParticleBox(),

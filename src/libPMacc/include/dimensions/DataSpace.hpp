@@ -69,18 +69,6 @@ namespace PMacc
          * @param The vector to copy.
          */
         template<
-            typename TSize>
-        HDINLINE DataSpace(
-            alpaka::Vec<alpaka::dim::DimInt<DIM>, TSize> const & vec)
-        {
-            for (uint32_t i = 0; i < DIM; ++i)
-            {
-                // alpaka vectors are z,y,x.
-                (*this)[i] = vec[(DIM-1)-i];
-            }
-        }
-
-        template<
             typename TDim,
             typename TSize,
             typename = typename std::enable_if<(TDim::value == DIM)>::type>
