@@ -190,21 +190,17 @@ IF(ALPAKA_ACC_GPU_CUDA_ENABLE)
     SET_SOURCE_FILES_PROPERTIES(
         "${CMAKE_CURRENT_LIST_DIR}/src/main.cpp"
         PROPERTIES HEADER_FILE_ONLY TRUE)
-    CMAKE_POLICY(SET CMP0023 OLD)   # CUDA_ADD_EXECUTABLE calls TARGET_LINK_LIBRARIES without keywords.
-    CUDA_ADD_EXECUTABLE(
-        "gameOfLife"
-        ${_GOL_FILES_HEADER}
-        ${_GOL_FILES_SOURCE})
 ELSE()
     # Force the main.cu file to be recognized as header and not be compiled so there wont be a second entry point.
     SET_SOURCE_FILES_PROPERTIES(
         "${CMAKE_CURRENT_LIST_DIR}/src/main.cu"
         PROPERTIES HEADER_FILE_ONLY TRUE)
-    ADD_EXECUTABLE(
-        "gameOfLife"
-        ${_GOL_FILES_HEADER}
-        ${_GOL_FILES_SOURCE})
 ENDIF()
+
+ALPAKA_ADD_EXECUTABLE(
+    "gameOfLife"
+    ${_GOL_FILES_HEADER}
+    ${_GOL_FILES_SOURCE})
 
 TARGET_LINK_LIBRARIES(
     "gameOfLife"
