@@ -34,30 +34,31 @@ namespace PMacc
 inline StreamTask::StreamTask( ) :
 ITask( ),
 stream( NULL ),
-cudaEvent( ),
-alwaysFinished( false )
+alwaysFinished( false ),
+hasCudaEvent(false)
 {
     this->setTaskType( TASK_CUDA );
 }
 
 inline CudaEvent StreamTask::getCudaEvent( ) const
 {
-    assert(cudaEvent);
-    return *cudaEvent.get();
+    assert(hasCudaEvent);
+    return cudaEvent;
 }
 
 inline void StreamTask::setCudaEvent(const CudaEvent& cudaEvent )
 {
-    this->cudaEvent.reset(new CudaEvent(cudaEvent));
+    this->hasCudaEvent = true;
+    this->cudaEvent = cudaEvent;
 }
 
 inline bool StreamTask::isFinished( )
 {
     if ( alwaysFinished )
         return true;
-    if(cudaEvent)
+    if(hasCudaEvent)
     {
-        if ( cudaEvent->isFinished( ) )
+        if ( cudaEvent.isFinished( ) )
         {
             alwaysFinished = true;
             return true;
@@ -83,8 +84,9 @@ inline void StreamTask::setEventStream( EventStream* newStream )
 
 inline void StreamTask::activate( )
 {
-    cudaEvent.reset(new CudaEvent(Environment<>::get().Manager().getEventPool().getNextEvent()));
-    cudaEvent->recordEvent(this->stream->getCudaStream());
+    cudaEvent = Environment<>::get().Manager().getEventPool().getNextEvent();
+    cudaEvent.recordEvent(&(getEventStream()->getCudaStream()));
+    hasCudaEvent = true;
 }
 
 } //namespace PMacc

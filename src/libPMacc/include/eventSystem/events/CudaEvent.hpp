@@ -41,25 +41,12 @@ public:
      * no data is allocated @see create()
      */
     CudaEvent() :
-        m_event(),
-        m_pStream(),
-        isRecorded(false)
+        m_event(NULL),
+        m_pStream(NULL),
+        isRecorded(false),
+        isValid(false)
     {}
 
-    /**
-     * Copy constructor
-     */
-    CudaEvent(CudaEvent const & other) :
-        m_event(
-            new alpaka::event::Event<AlpakaAccStream>(*other.m_event.get())),
-        m_pStream(other.m_pStream),
-        isRecorded(other.isRecorded)
-    {}
-
-    /**
-     * Move constructor
-     */
-    CudaEvent(CudaEvent && other) = default;
 
     /**
      * Destructor
@@ -80,7 +67,8 @@ public:
     static CudaEvent create(AlpakaAccDev const & dev)
     {
         CudaEvent ev;
-        ev.m_event.reset(new alpaka::event::Event<AlpakaAccStream>(dev));
+        ev.m_event = new alpaka::event::Event<AlpakaAccStream>(dev);
+        ev.isValid = true;
         return ev;
     }
 
@@ -89,8 +77,10 @@ public:
      */
     static void destroy(CudaEvent& ev)
     {
-        alpaka::wait::wait(*ev.m_event.get());
-        ev.m_event.reset();
+        alpaka::wait::wait(*ev.m_event);
+        ev.isValid = false;
+        delete ev.m_event;
+        ev.m_event = NULL;
     }
 
     /**
@@ -98,10 +88,10 @@ public:
      *
      * @return native cuda event
      */
-    alpaka::event::Event<AlpakaAccStream> & operator*() const
+    alpaka::event::Event<AlpakaAccStream> operator*() const
     {
-        assert(m_event);
-        return *m_event.get();
+        assert(isValid);
+        return *m_event;
     }
 
     /**
@@ -111,8 +101,8 @@ public:
      */
     bool isFinished() const
     {
-        assert(m_event);
-        return alpaka::event::test(*m_event.get());
+        assert(isValid);
+        return alpaka::event::test(*m_event);
     }
 
     /**
@@ -120,7 +110,7 @@ public:
      *
      * @return native cuda stream
      */
-    AlpakaAccStream & getCudaStream() const
+    AlpakaAccStream& getCudaStream() const
     {
         assert(isRecorded);
         assert(m_pStream);
@@ -132,19 +122,20 @@ public:
      *
      * @param stream native cuda stream
      */
-    void recordEvent(AlpakaAccStream & stream)
+    void recordEvent( AlpakaAccStream* stream)
     {
         /* disallow double recording */
         assert(isRecorded==false);
         isRecorded = true;
-        m_pStream = &stream;
-        alpaka::stream::enqueue(*m_pStream, *m_event.get());
+        m_pStream = stream;
+        alpaka::stream::enqueue(*m_pStream, *m_event);
     }
 
 private:
-    std::unique_ptr<alpaka::event::Event<AlpakaAccStream>> m_event;
-    AlpakaAccStream * m_pStream;
+    alpaka::event::Event<AlpakaAccStream>* m_event;
+    AlpakaAccStream* m_pStream;
     /* state if event is recorded */
     bool isRecorded;
+    bool isValid;
 };
 }

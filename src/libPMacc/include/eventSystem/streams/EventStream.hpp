@@ -43,7 +43,7 @@ public:
      * Creates the cudaStream_t object.
      */
     EventStream(alpaka::dev::Dev<AlpakaAccDev> dev) :
-        stream(dev)
+        stream(new AlpakaAccStream(dev))
     {}
 
     /**
@@ -53,28 +53,28 @@ public:
     virtual ~EventStream()
     {
         //wait for all kernels in stream to finish
-        alpaka::wait::wait(stream);
+        alpaka::wait::wait(*stream);
     }
 
     /**
      * Returns the cudaStream_t object associated with this EventStream.
      * @return the internal cuda stream object
      */
-    AlpakaAccStream & getCudaStream()
+    AlpakaAccStream& getCudaStream()
     {
-        return stream;
+        return *stream;
     }
 
     void waitOn(const CudaEvent& ev)
     {
         if(getCudaStream() != ev.getCudaStream())
         {
-            alpaka::wait::wait(stream, *ev);
+            alpaka::wait::wait(*stream, *ev);
         }
     }
 
 private:
-    AlpakaAccStream stream;
+    AlpakaAccStream* stream;
 };
 
 }

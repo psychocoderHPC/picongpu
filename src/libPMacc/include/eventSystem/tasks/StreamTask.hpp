@@ -98,8 +98,9 @@ namespace PMacc
 
     private:
         mutable EventStream* stream;
-        std::unique_ptr<CudaEvent> cudaEvent;
+        CudaEvent cudaEvent;
         bool alwaysFinished;
+        bool hasCudaEvent;
     };
 
 } //namespace PMacc

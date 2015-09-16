@@ -145,10 +145,10 @@ public:
         // in units of SuperCells to be used by the kernel to identify itself.
         evo.init(
             MappingDesc(layout.getDataSpace(), 1, 1));
-            
+
         buff1.reset(new PMacc::GridBuffer<std::uint8_t, DIM2>(layout, false));
         buff2.reset(new PMacc::GridBuffer<std::uint8_t, DIM2>(layout, false));
-            
+
         PMacc::DataSpace<DIM2> guardingCells(1, 1);
         for (uint32_t i(1); i < PMacc::traits::NumberOfExchanges<DIM2>::value; ++i)
         {
@@ -161,7 +161,7 @@ public:
             buff1->addExchange(PMacc::GUARD, PMacc::Mask(i), guardingCells, BUFF1);
             buff2->addExchange(PMacc::GUARD, PMacc::Mask(i), guardingCells, BUFF2);
         }
-            
+
         // Both next lines are defined in GatherSlice.hpp:
         // -gather saves the MessageHeader object
         // -Then do an Allgather for the gloabalRanks from GC, sort out
@@ -236,7 +236,7 @@ private:
         evo.run<PMacc::BORDER>(
             read.getDeviceBuffer().getDataBox(),
             write.getDeviceBuffer().getDataBox());
-            
+
         // Copy from device to host for saving. All threads and not only the master have to do this.
         write.deviceToHost();
 
@@ -264,7 +264,7 @@ private:
             writeFullImage(write, sFileNameWithoutExt);
         }
     }
-        
+
     //-----------------------------------------------------------------------------
     //!
     //-----------------------------------------------------------------------------
