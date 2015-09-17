@@ -222,6 +222,11 @@ public:
 
         /* dump 0% output */
         dumpTimes(tSimCalculation, tRound, roundAvg, currentStep);
+        TimeIntervall scalingTimer;
+        MPI_CHECK(MPI_Barrier(Environment<DIM3>::get().GridController().
+                  getCommunicator().getMPIComm()));
+        /* scaling test begin */
+        scalingTimer.toggleStart();
         while (currentStep < runSteps)
         {
             tRound.toggleStart();
@@ -230,6 +235,14 @@ public:
             roundAvg += tRound.getInterval();
 
             currentStep++;
+            if(currentStep%10==0)
+            {
+                scalingTimer.toggleEnd();
+                if(output)
+                {
+                    std::cout<<"STEPTIME "<<currentStep<<" "<<(scalingTimer.getInterval()/1000.)<<" s"<<std::endl;
+                }
+            }
             /*output after a round*/
             dumpTimes(tSimCalculation, tRound, roundAvg, currentStep);
 
@@ -241,6 +254,15 @@ public:
         //simulatation end
         Environment<>::get().Manager().waitForAllTasks();
 
+
+        /* scaling test end */
+        MPI_CHECK(MPI_Barrier(Environment<DIM3>::get().GridController().
+                                      getCommunicator().getMPIComm()));
+        scalingTimer.toggleEnd();
+        if(output)
+        {
+            std::cout<<"RUNTIME "<<runSteps<<" "<<(scalingTimer.getInterval()/1000.)<<" s"<<std::endl;
+        }
         tSimCalculation.toggleEnd();
 
         if (output)
