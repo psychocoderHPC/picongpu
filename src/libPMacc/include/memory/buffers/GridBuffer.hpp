@@ -351,12 +351,12 @@ public:
                     //GridLayout<DIM> memoryLayout(size);
                     maxExchange = std::max(maxExchange, ex + 1u);
                     sendExchanges[ex] = new ExchangeIntern<BORDERTYPE, DIM > (/*memoryLayout*/ dataSpace,
-                                                                              ex, uniqCommunicationTag, sizeOnDeviceSend);
+                                                                              ex, uniqCommunicationTag, sizeOnDeviceSend, true);
 
                     ExchangeType recvex = Mask::getMirroredExchangeType(ex);
                     maxExchange = std::max(maxExchange, recvex + 1u);
                     receiveExchanges[recvex] = new ExchangeIntern<BORDERTYPE, DIM > (/*memoryLayout*/ dataSpace,
-                                                                                     recvex, uniqCommunicationTag, sizeOnDeviceReceive);
+                                                                                     recvex, uniqCommunicationTag, sizeOnDeviceReceive, true);
                 }
             }
         }

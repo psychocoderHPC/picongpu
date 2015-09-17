@@ -27,11 +27,53 @@
 #include "eventSystem/streams/EventStream.hpp"
 #include "eventSystem/tasks/StreamTask.hpp"
 #include "types.h"
+#include "memory/boxes/DataBoxDim1Access.hpp"
 
 #include <cuda_runtime_api.h>
 
 namespace PMacc
 {
+
+    template<typename T>
+    struct GetCoolValue
+    {
+        HDINLINE T operator()(const T& value) const
+        {
+            return value;
+        }
+    };
+
+   /* template<>
+    struct GetCoolValue< PMacc::math::Vector<float,DIM3> >
+    {
+        HDINLINE PMacc::math::Vector<float,DIM3> operator()(const PMacc::math::Vector<float,DIM3>& value)
+        {
+            return PMacc::math::Vector<float,DIM3>::create(1);
+        }
+    };
+    * */
+
+    template <typename T_Dst,typename T_Src,typename T_Space>
+    __global__ void copyData(T_Dst dst, T_Src src,int sizeLinear,T_Space size)
+    {
+        const int threadIndex(threadIdx.x);
+        const int blockIndex(blockIdx.x);
+        const int blockSize(blockDim.x);
+        const uint32_t dim = T_Space::Dim;
+
+        const int id = blockSize * blockIndex + threadIndex;
+
+        if(id >= sizeLinear)
+            return;
+   //     if(id==0)
+     //       printf("sized %i\n",sizeof(typename T_Src::ValueType));
+        DataSpace<dim> idx(DataSpaceOperations<dim>::map(size,id));
+    //    for(int d=0;d<T_Space::Dim;++d)
+     //       if(id[d]>=size[d]) return;
+        //typename T_Src::ValueType tmp=GetCoolValue<typename T_Src::ValueType>()(src(idx));
+        dst(idx) = src(idx);
+        //__threadfence();
+    }
 
     template <class TYPE, unsigned DIM>
     class DeviceBuffer;
@@ -71,7 +113,24 @@ namespace PMacc
             if (source->is1D() && destination->is1D())
                 fastCopy(source->getPointer(), destination->getPointer(), devCurrentSize.productOfComponents());
             else
-                copy(devCurrentSize);
+                //copy(devCurrentSize);
+            {
+                const int size = devCurrentSize.productOfComponents();
+                int blockSize = 256;
+                const int gridSize = ceil(double(size)/double(blockSize));
+
+                if( size < blockSize )
+                    blockSize = size;
+
+
+                //typedef DataBoxDim1Access< typename DeviceBufferIntern<TYPE, DIM3>::DataBoxType>  D1Box;
+                copyData<<<gridSize, blockSize,0, this->getCudaStream()>>>(
+                    this->destination->getDataBox(),
+                    this->source->getDataBox(),
+                    size,devCurrentSize
+                );
+                CUDA_CHECK( cudaGetLastError( ) );
+            }
 
             this->activate();
         }
@@ -166,7 +225,26 @@ namespace PMacc
         virtual void copy(DataSpace<DIM3> &devCurrentSize)
         {
 
-            cudaMemcpy3DParms params;
+
+
+            const int size = devCurrentSize.productOfComponents();
+            int blockSize = 256;
+            const int gridSize = ceil(double(size)/double(blockSize));
+
+            if( size < blockSize )
+                blockSize = size;
+
+
+            //typedef DataBoxDim1Access< typename DeviceBufferIntern<TYPE, DIM3>::DataBoxType>  D1Box;
+            copyData<<<gridSize, blockSize,0, this->getCudaStream()>>>(
+                this->destination->getDataBox(),
+                this->source->getDataBox(),
+                size,devCurrentSize
+            );
+            CUDA_CHECK( cudaGetLastError( ) );
+
+
+       /*                cudaMemcpy3DParms params;
 
             //  assert(this->source->getDataSpace().productOfComponents() <= this->destination->getDataSpace().productOfComponents());
 
@@ -190,7 +268,9 @@ namespace PMacc
                                             devCurrentSize[1],
                                             devCurrentSize[2]);
             params.kind = cudaMemcpyDeviceToDevice;
-            CUDA_CHECK(cudaMemcpy3DAsync(&params, this->getCudaStream()));
+
+            CUDA_CHECK(cudaMemcpy3DAsync(&params, this->getCudaStream()));*/
+
         }
 
     };

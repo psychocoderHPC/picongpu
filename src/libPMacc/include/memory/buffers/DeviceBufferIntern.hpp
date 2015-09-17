@@ -58,7 +58,7 @@ public:
         //create size on device before any use of setCurrentSize
         if (useVectorAsBase)
         {
-            sizeOnDevice = false;
+         //   sizeOnDevice = false;
             createSizeOnDevice(sizeOnDevice);
             createFakeData();
             this->data1D = true;
@@ -67,7 +67,8 @@ public:
         {
             createSizeOnDevice(sizeOnDevice);
             createData();
-            this->data1D = false;
+            if(DIM > DIM1)
+                this->data1D = false;
         }
 
     }
@@ -80,7 +81,8 @@ public:
     useOtherMemory(true)
     {
         createSizeOnDevice(sizeOnDevice);
-        this->data1D = false;
+        if(DIM > DIM1)
+            this->data1D = false;
     }
 
     virtual ~DeviceBufferIntern()
@@ -211,7 +213,7 @@ public:
 
     void copyFrom(HostBuffer<TYPE, DIM>& other)
     {
-        
+
         assert(this->isMyDataSpaceGreaterThan(other.getCurrentDataSpace()));
         Environment<>::get().Factory().createTaskCopyHostToDevice(other, *this);
 

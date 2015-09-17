@@ -82,12 +82,12 @@ namespace PMacc
         }
 
         ExchangeIntern(DataSpace<DIM> exchangeDataSpace, uint32_t exchange,
-                       uint32_t communicationTag, bool sizeOnDevice = false) :
+                       uint32_t communicationTag, bool sizeOnDevice = false, bool explicit1D = false) :
         Exchange<TYPE, DIM>(exchange, communicationTag), deviceDoubleBuffer(NULL)
         {
-            this->deviceBuffer = new DeviceBufferIntern<TYPE, DIM > (exchangeDataSpace, sizeOnDevice);
+            this->deviceBuffer = new DeviceBufferIntern<TYPE, DIM > (exchangeDataSpace, sizeOnDevice, explicit1D);
            //  this->deviceBuffer = new DeviceBufferIntern<TYPE, DIM > (exchangeDataSpace, sizeOnDevice,true);
-            if (DIM > DIM1)
+            if (DIM > DIM1 && explicit1D == false)
             {
                 /*create double buffer on gpu for faster memory transfers*/
                this->deviceDoubleBuffer = new DeviceBufferIntern<TYPE, DIM > (exchangeDataSpace, false, true);

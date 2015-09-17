@@ -60,6 +60,8 @@ public:
     pointer(NULL),ownPointer(false)
     {
         pointer=&(source.getDataBox()(offset));/*fix me, this is a bad way*/
+        if(DIM > DIM1)
+            this->data1D = false;
         reset(true);
     }
 
@@ -104,7 +106,7 @@ public:
         if (!preserveData)
         {
             /* if it is a pointer out of other memory we can not assume that
-             * that the physical memory is contiguous 
+             * that the physical memory is contiguous
              */
             if(ownPointer)
                 memset(pointer, 0, this->getDataSpace().productOfComponents() * sizeof (TYPE));

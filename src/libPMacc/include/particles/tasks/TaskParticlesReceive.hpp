@@ -87,7 +87,7 @@ namespace PMacc
                     break;
                 case CallFillGaps:
                     state = WaitForFillGaps;
-                    __startTransaction(__getTransactionEvent());
+                    __startTransaction();
 
                     parBase.fillBorderGaps();
 
