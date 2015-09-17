@@ -42,16 +42,17 @@ namespace DistributionPolicies{
 
     public:
 
-    MAMC_ACCELERATOR
+    MAMC_ACC
     uint32 collect(uint32 bytes){
       return bytes;
     }
 
-    MAMC_ACCELERATOR
+    MAMC_ACC
     void* distribute(void* allocatedMem){
       return allocatedMem;
     }
 
+    MAMC_HOST
     static std::string classname(){
       return "Noop";
     }

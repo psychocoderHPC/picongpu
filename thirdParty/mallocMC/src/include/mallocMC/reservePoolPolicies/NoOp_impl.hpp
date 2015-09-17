@@ -35,13 +35,16 @@ namespace mallocMC{
 namespace ReservePoolPolicies{
 
   struct NoOp{
+    MAMC_ACC
     static void* setMemPool(size_t memsize){
       return NULL;
     }
 
+    MAMC_ACC
     static void resetMemPool(void *p=NULL){
     }
 
+    MAMC_HOST
     static std::string classname(){
       return "NoOp";
     }

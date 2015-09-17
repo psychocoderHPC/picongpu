@@ -77,8 +77,9 @@ namespace mallocMC{
     template<typename T_ProvidesAvailableSlotsHost>
     struct GetAvailableSlotsIfAvail
     {
+      MAMC_NO_HOST_ACC_WARNING
       template<typename T_Allocator>
-      MAMC_HOST MAMC_ACCELERATOR
+      MAMC_ACC
       static unsigned getAvailableSlots(size_t slotSize, T_Allocator &){
         return 0;
       }
@@ -87,8 +88,9 @@ namespace mallocMC{
     struct GetAvailableSlotsIfAvail<
       boost::mpl::bool_<true> >
     {
+      MAMC_NO_HOST_ACC_WARNING
       template<typename T_Allocator>
-      MAMC_HOST MAMC_ACCELERATOR
+      MAMC_ACC
       static unsigned getAvailableSlots(size_t slotSize, T_Allocator & alloc){
 #ifdef __CUDA_ARCH__
         return alloc.getAvailableSlotsAccelerator(slotSize);
@@ -147,7 +149,8 @@ namespace mallocMC{
       typedef Allocator<CreationPolicy,DistributionPolicy,
               OOMPolicy,ReservePoolPolicy,AlignmentPolicy> MyType;
 
-      MAMC_ACCELERATOR
+      MAMC_NO_HOST_ACC_WARNING
+      MAMC_ACC
       void* alloc(size_t bytes){
         DistributionPolicy distributionPolicy;
 
@@ -164,7 +167,8 @@ namespace mallocMC{
         // }
       }
 
-      MAMC_ACCELERATOR
+      MAMC_NO_HOST_ACC_WARNING
+      MAMC_ACC
       void dealloc(void* p){
         CreationPolicy::destroy(p);
       }
@@ -212,7 +216,8 @@ namespace mallocMC{
 
 
       // polymorphism over the availability of getAvailableSlots
-      MAMC_HOST MAMC_ACCELERATOR
+      MAMC_NO_HOST_ACC_WARNING
+      MAMC_ACC
       unsigned getAvailableSlots(size_t slotSize){
         slotSize = AlignmentPolicy::applyPadding(slotSize);
 

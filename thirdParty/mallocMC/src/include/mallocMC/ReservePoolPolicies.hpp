@@ -34,7 +34,6 @@
 
 #if defined(MAMC_CUDA_ENABLED) && defined(__CUDACC__)
 
-
 #include "reservePoolPolicies/SimpleCudaMalloc.hpp"
 #include "reservePoolPolicies/SimpleCudaMalloc_impl.hpp"
 

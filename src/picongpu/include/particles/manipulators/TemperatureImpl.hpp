@@ -58,6 +58,7 @@ struct TemperatureImpl : private T_ValueFunctor
         localCells = subGrid.getLocalDomain().size;
     }
 
+    PMACC_NO_NVCC_HDWARNING
     template<
         typename T_Acc,
         typename T_Particle1,

@@ -38,11 +38,12 @@ namespace OOMPolicies{
   class ReturnNull
   {
     public:
-      MAMC_ACCELERATOR
+      MAMC_ACC
       static void* handleOOM(void* mem){
         return NULL;
       }
 
+      MAMC_HOST
       static std::string classname(){
         return "ReturnNull";
       }

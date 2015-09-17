@@ -46,41 +46,39 @@ class HostNew
 public:
     typedef boost::mpl::bool_<false> providesAvailableSlots;
 
+    MAMC_HOST
     void* create(uint32 bytes)
     {
       return reinterpret_cast<void*>(new uint8[bytes]);
     }
 
+    MAMC_HOST
     void destroy(void* mem)
     {
         delete[] reinterpret_cast<uint8*> (mem);
     }
 
+    MAMC_HOST
     bool isOOM( void* p, size_t s )
     {
         return s && (p == NULL);
     }
 
     template < typename T>
+    MAMC_HOST
     static void* initHeap( const T& obj, void* pool, size_t memsize )
     {
-
-        try
-        {
-            return const_cast<void *> (reinterpret_cast<void const *> (&obj));
-        }
-        catch ( std::bad_alloc& exc )
-        {
-            std::cout << "error:" << exc.what( ) << std::endl;
-        };
+        return const_cast<void *> (reinterpret_cast<void const *> (&obj));
     }
 
     template < typename T>
+    MAMC_HOST
     static void finalizeHeap( const T& obj, void* pool )
     {
         return;
     }
 
+    MAMC_HOST
     static std::string classname( )
     {
         return "HostNew";

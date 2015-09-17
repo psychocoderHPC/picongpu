@@ -29,14 +29,19 @@
 
 #pragma once
 
-#pragma once
-
-
-#if defined(__CUDACC__)
-
+#if defined(MAMC_CUDA_ENABLED) && defined(__CUDACC__)
     #define MAMC_HOST __host__
-    #define MAMC_ACCELERATOR __device__
+    #define MAMC_ACC __host__ __device__
+    #define MAMC_ACC_CUDA_ONLY __device__
 #else
     #define MAMC_HOST
-    #define MAMC_ACCELERATOR
+    #define MAMC_ACC
+    //#define MAMC_ACC_CUDA_ONLY
+#endif
+
+#if defined(MAMC_CUDA_ENABLED) && defined(__CUDACC__)
+    #define MAMC_NO_HOST_ACC_WARNING\
+        _Pragma("hd_warning_disable")
+#else
+    #define MAMC_NO_HOST_ACC_WARNING
 #endif

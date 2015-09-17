@@ -34,7 +34,6 @@
 
 #if defined(MAMC_CUDA_ENABLED) && defined(__CUDACC__)
 
-
 #include "distributionPolicies/XMallocSIMD.hpp"
 #include "distributionPolicies/XMallocSIMD_impl.hpp"
 

@@ -79,6 +79,7 @@ namespace Shrink2NS{
     BOOST_STATIC_ASSERT(dataAlignment && !(dataAlignment & (dataAlignment-1)) ); 
 
     public:
+    MAMC_HOST
     static boost::tuple<void*,size_t> alignPool(void* memory, size_t memsize){
       PointerEquivalent alignmentstatus = ((PointerEquivalent)memory) & (dataAlignment -1);
       if(alignmentstatus != 0)
@@ -102,8 +103,7 @@ namespace Shrink2NS{
       return boost::make_tuple(memory,memsize);
     }
 
-    MAMC_HOST
-    MAMC_ACCELERATOR
+    MAMC_ACC
     static uint32 applyPadding(uint32 bytes){
       return (bytes + dataAlignment - 1) & ~(dataAlignment-1);
     }

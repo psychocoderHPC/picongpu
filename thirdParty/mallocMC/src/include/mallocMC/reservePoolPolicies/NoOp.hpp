@@ -33,9 +33,7 @@ namespace ReservePoolPolicies{
   /**
    * @brief Does not reserve any memory or set any heap limit.
    *
-   * This ReservePoolPolicy is intended for use with host pools It should be used in
-   * conjunction with a CreationPolicy that actually requires the CUDA-internal
-   * heap to be sized by calls to cudaDeviceSetLimit()
+   * This ReservePoolPolicy is intended for memory allocations without pool.
    */
   struct NoOp;
 

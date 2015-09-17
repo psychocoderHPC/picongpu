@@ -38,7 +38,7 @@ namespace OOMPolicies{
 
   struct BadAllocException
   {
-    MAMC_ACCELERATOR
+    MAMC_ACC
     static void* handleOOM(void* mem){
 #ifdef __CUDACC__
 //#if __CUDA_ARCH__ < 350
@@ -56,6 +56,7 @@ namespace OOMPolicies{
       return mem;
     }
 
+    MAMC_HOST
     static std::string classname(){
       return "BadAllocException";
     }

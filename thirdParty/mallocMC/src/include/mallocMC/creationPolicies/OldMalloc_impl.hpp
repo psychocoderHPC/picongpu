@@ -42,32 +42,38 @@ namespace CreationPolicies{
     public:
     typedef boost::mpl::bool_<false> providesAvailableSlots;
 
-    __device__ void* create(uint32 bytes)
+    MAMC_ACC_CUDA_ONLY
+    void* create(uint32 bytes)
     {
       return ::malloc(static_cast<size_t>(bytes));
     }
 
-    __device__ void destroy(void* mem)
+    MAMC_ACC_CUDA_ONLY
+    void destroy(void* mem)
     {
-      free(mem);
+      ::free(mem);
     }
 
-    __device__ bool isOOM(void* p, size_t s){
+    MAMC_ACC_CUDA_ONLY
+    bool isOOM(void* p, size_t s){
       return s && (p == NULL);
     }
 
     template < typename T>
+    MAMC_HOST
     static void* initHeap(const T& obj, void* pool, size_t memsize){
       T* dAlloc;
       MALLOCMC_CUDA_CHECKED_CALL(cudaGetSymbolAddress((void**)&dAlloc,obj));
       return dAlloc;
     }   
 
+    MAMC_HOST
     template < typename T>
     static void finalizeHeap(const T& obj, void* pool){
       return;
     }
 
+    MAMC_HOST
     static std::string classname(){
       return "OldMalloc";
     }

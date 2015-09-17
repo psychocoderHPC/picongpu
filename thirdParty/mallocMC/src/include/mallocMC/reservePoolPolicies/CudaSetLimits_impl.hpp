@@ -36,15 +36,18 @@ namespace mallocMC{
 namespace ReservePoolPolicies{
 
   struct CudaSetLimits{
+    MAMC_HOST
     static void* setMemPool(size_t memsize){
       cudaDeviceSetLimit(cudaLimitMallocHeapSize, memsize);
       return NULL;
     }
 
+    MAMC_HOST
     static void resetMemPool(void *p=NULL){
       cudaDeviceSetLimit(cudaLimitMallocHeapSize, 8192U);
     }
 
+    MAMC_HOST
     static std::string classname(){
       return "CudaSetLimits";
     }

@@ -77,6 +77,7 @@ struct RandomImpl
      * @param curParticle the number of this particle: [0, totalNumParsPerCell-1]
      * @return float3_X with components between [0.0, 1.0)
      */
+    PMACC_NO_NVCC_HDWARNING
     DINLINE floatD_X operator()(const uint32_t)
     {
         floatD_X result;

@@ -80,6 +80,7 @@ public:
      *
      * @return an empty frame
      */
+    PMACC_NO_NVCC_HDWARNING
     DINLINE FRAME &getEmptyFrame() const
     {
 
@@ -87,7 +88,7 @@ public:
         const int maxTries = 13; //magic number is not performance critical
         for (int numTries = 0; numTries < maxTries; ++numTries)
         {
-            tmp = (FrameType*) mallocMC::malloc(sizeof (FrameType));
+            tmp = (FrameType*) ::mallocMC::malloc(sizeof (FrameType));
             if (tmp != NULL)
             {
                 /* disable all particles since we can not assume that newly allocated memory contains zeros */
@@ -119,7 +120,7 @@ public:
      */
     DINLINE void removeFrame(FRAME &frame) const
     {
-        mallocMC::free((void*) &frame);
+        ::mallocMC::free((void*) &frame);
     }
 
     HDINLINE

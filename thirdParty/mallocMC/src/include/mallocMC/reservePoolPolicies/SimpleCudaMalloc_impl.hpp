@@ -37,16 +37,19 @@ namespace mallocMC{
 namespace ReservePoolPolicies{
 
   struct SimpleCudaMalloc{
+    MAMC_HOST
     static void* setMemPool(size_t memsize){
       void* pool;
       MALLOCMC_CUDA_CHECKED_CALL(cudaMalloc(&pool, memsize));
       return pool;
     }
 
+    MAMC_HOST
     static void resetMemPool(void* p){
       MALLOCMC_CUDA_CHECKED_CALL(cudaFree(p));
     }
 
+    MAMC_HOST
     static std::string classname(){
       return "SimpleCudaMalloc";
     }
