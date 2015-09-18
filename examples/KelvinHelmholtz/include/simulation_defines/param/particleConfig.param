@@ -40,7 +40,9 @@ namespace particles
         {
             /** Count of particles per cell per direction at initial state
              *  unit: none */
-           typedef mCT::shrinkTo<mCT::Int<2, 2, 2>, simDim>::type numParticlesPerDimension;
+           //weak typedef mCT::shrinkTo<mCT::Int<4, 2, 2>, simDim>::type numParticlesPerDimension;
+            //strong
+            typedef mCT::shrinkTo<mCT::Int<2, 2, 2>, simDim>::type numParticlesPerDimension;
         };
 
         /* definition of random particle start*/
