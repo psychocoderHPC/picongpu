@@ -72,7 +72,7 @@ public:
     }
 
     /*Object must init by copy a valid instance*/
-    HDINLINE PitchedBox()
+    HDINLINE constexpr PitchedBox()
     {
     }
 
@@ -125,7 +125,7 @@ public:
     }
 
     /*Object must init by copy a valid instance*/
-    HDINLINE PitchedBox()
+    HDINLINE constexpr PitchedBox()
     {
     }
 
@@ -205,7 +205,7 @@ public:
     }
 
     /*Object must init by copy a valid instance*/
-    HDINLINE PitchedBox()
+    HDINLINE constexpr PitchedBox()
     {
     }
 

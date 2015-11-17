@@ -40,8 +40,8 @@ namespace nvidia
 #if (__CUDA_ARCH__ >= 130)
 DINLINE uint32_t getLaneId()
 {
-    uint32_t id;
-    asm("mov.u32 %0, %laneid;" : "=r" (id));
+    uint32_t id = (blockDim.x*blockDim.y*threadIdx.z+blockDim.x*threadIdx.y+threadIdx.x) / 32;
+    //asm("mov.u32 %0,%laneid;":"=r"(id));
     return id;
 }
 #endif

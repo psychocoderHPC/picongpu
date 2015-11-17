@@ -119,6 +119,8 @@ public InheritLinearly<
         typedef typename boost::result_of< BaseType(Key)>::type type;
     };
 
+    HDINLINE constexpr Frame(){}
+
     /** access the Nth particle*/
     HDINLINE ParticleType operator[](const uint32_t idx)
     {

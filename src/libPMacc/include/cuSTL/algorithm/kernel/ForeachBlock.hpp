@@ -61,7 +61,8 @@ template<typename Mapper, BOOST_PP_ENUM_PARAMS(N, typename C), typename Functor>
                                                 /* C0 c0, C1 c1, ... */                                     \
 __global__ void kernelForeachBlock(Mapper mapper, BOOST_PP_ENUM_BINARY_PARAMS(N, C, c), Functor functor)    \
 {                                                                                                           \
-    math::Int<Mapper::dim> cellIndex(mapper(blockIdx));                                                     \
+    DataSpace<Mapper::dim> blocks(blockIdx); \
+    math::Int<Mapper::dim> cellIndex(mapper( math::Int<Mapper::dim>(blocks)));                                                     \
          /* c0[cellIndex], c1[cellIndex], ... */                                                            \
     functor(BOOST_PP_ENUM(N, SHIFTACCESS_CURSOR, _));                                                       \
 }

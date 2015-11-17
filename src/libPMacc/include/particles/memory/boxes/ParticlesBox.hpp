@@ -96,13 +96,13 @@ public:
                 __threadfence_block( );
                 break;
             }
-            else
+            /*else
             {
                 printf( "%s: mallocMC out of memory (try %i of %i)\n",
                         (numTries + 1) == maxTries ? "WARNING" : "ERROR",
                         numTries + 1,
                         maxTries );
-            }
+            }*/
         }
 
         return FramePtr( tmp );

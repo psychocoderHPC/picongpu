@@ -22,8 +22,8 @@
 
 #pragma once
 
-#include "debug/VerboseLogMakros.hpp"
 #include "types.h"
+#include "debug/VerboseLogMakros.hpp"
 
 #include <boost/format.hpp>
 
@@ -132,6 +132,7 @@ protected:
  * output of example: 4 | printf style stream messages, number example 5
  */
 template <class LogLvl>
+__host__
 verboseLog_detail::VerboseLog<LogLvl>
 log(const char* msg)
 {
@@ -143,6 +144,7 @@ log(const char* msg)
  * log(MYLOGLEVELS::CRITICAL+MYLOGLEVELS::MEMORY,"printf %2% stream %1%, number example %3%.") % "messages" % "style" % 5
  */
 template <class LogLvl>
+__host__
 verboseLog_detail::VerboseLog<LogLvl>
 log(const LogLvl, const char* msg)
 {

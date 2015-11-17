@@ -53,6 +53,8 @@ struct DifferenceToUpper
     {
         BOOST_STATIC_CONSTEXPR uint32_t direction = T_direction;
 
+        HDINLINE GetDifference() {}
+
         /** get difference to lower value
          * @return difference divided by cell size of the given direction
          */
@@ -75,6 +77,8 @@ struct DifferenceToUpper
     struct GetDifference<T_direction, false>
     {
 
+        HDINLINE GetDifference() {}
+        
         /** @return always a zeroed value
          */
         template<class Memory >

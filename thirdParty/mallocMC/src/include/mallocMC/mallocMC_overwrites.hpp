@@ -33,7 +33,9 @@
 #pragma once
 
 #include "mallocMC_prefixes.hpp"
+#ifndef __CUDA_ARCH__
 #include <vector>
+#endif
 
 /** Creates a global object of a many core memory allocator
  *
@@ -41,13 +43,21 @@
  * global functions that use this type internally. This should be done after
  * defining a new many core memory allocator with a typedef.
  */
-#define MALLOCMC_GLOBAL_FUNCTIONS(MALLOCMC_USER_DEFINED_TYPENAME)                \
+#ifdef __CUDA_ARCH__
+#define MALLOCMC_GLOBAL_FUNCTIONS_VAR(MALLOCMC_USER_DEFINED_TYPENAME)                \
+MAMC_ACCELERATOR mallocMCType mallocMCGlobalObject
+#else
+#define MALLOCMC_GLOBAL_FUNCTIONS_VAR(MALLOCMC_USER_DEFINED_TYPENAME)                \
+ mallocMCType mallocMCGlobalObject
+#endif
+
+
+
+#define MALLOCMC_GLOBAL_FUNCTIONS(MALLOCMC_USER_DEFINED_TYPENAME) \
 namespace mallocMC{                                                             \
-  typedef MALLOCMC_USER_DEFINED_TYPENAME mallocMCType;                           \
-                                                                               \
-MAMC_ACCELERATOR mallocMCType mallocMCGlobalObject;                               \
-                                                                               \
-MAMC_HOST void* initHeap(                                                       \
+    typedef MALLOCMC_USER_DEFINED_TYPENAME mallocMCType;                           \
+    MALLOCMC_GLOBAL_FUNCTIONS_VAR(MALLOCMC_USER_DEFINED_TYPENAME); \
+    MAMC_HOST void* initHeap(                                                       \
     size_t heapsize = 8U*1024U*1024U,                                          \
     mallocMCType &p = mallocMCGlobalObject                                       \
     )                                                                          \
@@ -61,7 +71,6 @@ MAMC_HOST void finalizeHeap(                                                    
     p.finalizeHeap();                                                          \
 }                                                                              \
 } /* end namespace mallocMC */
-
 
 /** Provides the easily accessible functions getAvaliableSlots
  *
@@ -93,7 +102,7 @@ bool providesAvailableSlots(){                                                  
  */
 #ifndef __THROW
   #define __THROW
-#endif 
+#endif
 
 /** Create the functions malloc() and free() inside a namespace
  *

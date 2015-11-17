@@ -62,7 +62,7 @@ struct SphericMapper<1, BlockSize>
 
     HDINLINE
     math::Int<1> operator()(const math::Int<1>& _blockIdx,
-                              const math::Int<1>& _threadIdx) const
+                              const math::Int<1>& _threadIdx =  math::Int<1>(0)) const
     {
         return _blockIdx.x() * BlockSize::x::value + _threadIdx.x();
     }
@@ -88,7 +88,7 @@ struct SphericMapper<2, BlockSize>
 
     HDINLINE
     math::Int<2> operator()(const math::Int<2>& _blockIdx,
-                              const math::Int<2>& _threadIdx) const
+                              const math::Int<2>& _threadIdx = math::Int<2>(0,0)) const
     {
         return math::Int<2>( _blockIdx.x() * BlockSize::x::value + _threadIdx.x(),
                              _blockIdx.y() * BlockSize::y::value + _threadIdx.y() );
@@ -116,7 +116,7 @@ struct SphericMapper<3, BlockSize>
 
     HDINLINE
     math::Int<3> operator()(const math::Int<3>& _blockIdx,
-                             const math::Int<3>& _threadIdx) const
+                             const math::Int<3>& _threadIdx = math::Int<3>(0,0,0)) const
     {
         return math::Int<3>( _blockIdx * (math::Int<3>)BlockSize().toRT() + _threadIdx );
     }

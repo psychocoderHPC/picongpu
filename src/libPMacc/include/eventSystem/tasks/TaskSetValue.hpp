@@ -179,7 +179,7 @@ public:
         /* line wise thread blocks*/
         gridSize.x = ceil(double(gridSize.x) / 256.);
 
-        kernelSetValue << <gridSize, 256, 0, this->getCudaStream() >> >
+        kernelSetValue <<<gridSize, 256, 0, this->getCudaStream() >>>
             (this->destination->getDataBox(), this->value, area_size);
 
         this->activate();
@@ -229,7 +229,7 @@ public:
         CUDA_CHECK(cudaMemcpyAsync(
                                    devicePtr, valuePointer_host, sizeof (ValueType),
                                    cudaMemcpyHostToDevice, this->getCudaStream()));
-        kernelSetValue << <gridSize, 256, 0, this->getCudaStream() >> >
+        kernelSetValue <<<gridSize, 256, 0, this->getCudaStream() >>>
             (this->destination->getDataBox(), devicePtr, area_size);
 
         this->activate();

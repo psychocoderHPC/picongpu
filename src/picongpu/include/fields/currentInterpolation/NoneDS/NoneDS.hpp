@@ -117,9 +117,9 @@ namespace detail
             const typename Difference::template GetDifference<1> Dy;
             const typename Difference::template GetDifference<2> Dz;
 
-            const ShiftMeIfYouCan<simDim, 0> sx;
-            const ShiftMeIfYouCan<simDim, 1> sy;
-            const ShiftMeIfYouCan<simDim, 2> sz;
+            ShiftMeIfYouCan<simDim, 0> sx;
+            ShiftMeIfYouCan<simDim, 1> sy;
+            ShiftMeIfYouCan<simDim, 2> sz;
 
             return float3_X(Dy(sx(mem)).z() - Dz(sx(mem)).y(),
                             Dz(sy(mem)).x() - Dx(sy(mem)).z(),

@@ -26,7 +26,7 @@
   THE SOFTWARE.
 */
 
-#pragma once 
+#pragma once
 
 #include "mallocMC_utils.hpp"
 #include "mallocMC_constraints.hpp"
@@ -34,12 +34,12 @@
 
 #include <boost/cstdint.hpp>
 #include <boost/tuple/tuple.hpp>
-#include <boost/mpl/bool.hpp>
-#include <sstream>
 #include <cassert>
-
-#include <boost/mpl/assert.hpp>
+#include <string>
+#include <sstream>
 #include <vector>
+#include <boost/mpl/bool.hpp>
+#include <boost/mpl/assert.hpp>
 
 namespace mallocMC{
 
@@ -120,16 +120,16 @@ namespace mallocMC{
    * @tparam T_ReservePoolPolicy The desired type of a ReservePoolPolicy
    * @tparam T_AlignmentPolicy The desired type of a AlignmentPolicy
    */
-  template < 
-     typename T_CreationPolicy, 
-     typename T_DistributionPolicy, 
-     typename T_OOMPolicy, 
+  template <
+     typename T_CreationPolicy,
+     typename T_DistributionPolicy,
+     typename T_OOMPolicy,
      typename T_ReservePoolPolicy,
      typename T_AlignmentPolicy
        >
-  struct Allocator : 
-    public T_CreationPolicy, 
-    public T_OOMPolicy, 
+  struct Allocator :
+    public T_CreationPolicy,
+    public T_OOMPolicy,
     public T_ReservePoolPolicy,
     public T_AlignmentPolicy,
     public PolicyConstraints<T_CreationPolicy,T_DistributionPolicy,T_OOMPolicy,T_ReservePoolPolicy,T_AlignmentPolicy>
@@ -177,6 +177,7 @@ namespace mallocMC{
 
       MAMC_HOST
       void* initHeap(size_t size){
+          std::cout<<"enter mallocMC init"<<std::endl;
         pool = ReservePoolPolicy::setMemPool(size);
         boost::tie(pool,size) = AlignmentPolicy::alignPool(pool,size);
         void* h = CreationPolicy::initHeap(*this,pool,size);

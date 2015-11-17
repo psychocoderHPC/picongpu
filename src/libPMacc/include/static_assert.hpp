@@ -47,7 +47,7 @@ namespace PMacc
  * @param pmacc_typeInfo a type that is shown in error message
  */
 #define PMACC_STATIC_ASSERT_MSG_DO2(pmacc_cond, pmacc_msg, pmacc_unique_id, pmacc_typeInfo) \
-    BOOST_MPL_ASSERT_MSG(pmacc_cond,PMACC_JOIN(pmacc_msg,PMACC_JOIN(_________,pmacc_unique_id)),(pmacc_typeInfo))
+    //BOOST_MPL_ASSERT_MSG(pmacc_cond,PMACC_JOIN(pmacc_msg,PMACC_JOIN(_________,pmacc_unique_id)),(pmacc_typeInfo))
 
 /*! static assert with error message
  * @param pmacc_cond A condition which return true or false.

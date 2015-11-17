@@ -57,20 +57,29 @@ public:
     {
     }
 
-    HDINLINE VectorDataBox()
+    HDINLINE constexpr VectorDataBox()
     {
     }
 
 
 };
 
+
+struct SizeHolder
+{
+    PMACC_ALIGN(size, size_t);
+
+    HDINLINE constexpr SizeHolder():size(0){}
+
+    HDINLINE SizeHolder(size_t extent):size(extent){}
+};
 /**
  * Specifies a one-dimensional DataBox for more convenient usage.
  *
  * @tparam TYPE type of data represented by the DataBox
  */
 template<class TYPE>
-class TileDataBox : public VectorDataBox<TYPE>
+class TileDataBox : public VectorDataBox<TYPE>, protected SizeHolder
 {
 public:
     typedef VectorDataBox<TYPE> BaseType;
@@ -78,7 +87,7 @@ public:
     HDINLINE TileDataBox(TYPE* pointer,
                          const DataSpace<DIM1> &offset = DataSpace<DIM1>(0),
                          uint32_t size = 0) :
-    BaseType(pointer, offset), size(size)
+    BaseType(pointer, offset), SizeHolder(size)
     {
     }
 
@@ -93,14 +102,7 @@ public:
     }
 
     /*object is not  initialized valid, copy a valid instance to this object to get a valid instance*/
-    HDINLINE TileDataBox()
-    {
-    }
-
-
-protected:
-
-    PMACC_ALIGN(size, size_t);
+    HDINLINE TileDataBox() = default;
 
 };
 

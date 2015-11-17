@@ -37,17 +37,16 @@
 #include <intrin.h>
 #endif
 
-#include <string>
-#include <sstream>
-#include <stdexcept>
-#include <boost/cstdint.hpp>
-
 #include "mallocMC_prefixes.hpp"
-
+#include <boost/cstdint.hpp>
+#ifndef __CUDA_ARCH__
+#include <string>
+#include <stdexcept>
+#include <sstream>
 
 namespace CUDA
 {
-  class error : public std::runtime_error
+  class MallocMCError : public std::runtime_error
   {
   private:
     static std::string genErrorString(cudaError errorValue, const char* file, int line)
@@ -57,17 +56,17 @@ namespace CUDA
       return msg.str();
     }
   public:
-    error(cudaError errorValue, const char* file, int line)
+    MallocMCError(cudaError errorValue, const char* file, int line)
       : runtime_error(genErrorString(errorValue, file, line))
     {
     }
 
-    error(cudaError errorValue)
+    MallocMCError(cudaError errorValue)
       : runtime_error(cudaGetErrorString(errorValue))
     {
     }
 
-    error(const std::string& msg)
+    MallocMCError(const std::string& msg)
       : runtime_error(msg)
     {
     }
@@ -94,10 +93,16 @@ namespace CUDA
       throw CUDA::error(errorValue);
 #endif
   }
+}
+#endif /*end ifndef__CUDA_ARCH__*/
 
+#ifndef __CUDA_ARCH__
 #define MALLOCMC_CUDA_CHECKED_CALL(call) CUDA::checkError(call, __FILE__, __LINE__)
 #define MALLOCMC_CUDA_CHECK_ERROR() CUDA::checkError(__FILE__, __LINE__)
-}
+#else
+#define MALLOCMC_CUDA_CHECKED_CALL(call)
+#define MALLOCMC_CUDA_CHECK_ERROR()
+#endif
 
 
 #define warp_serial                                    \
@@ -111,7 +116,7 @@ namespace CUDA
     if (__active == __local_id)
 
 
-namespace mallocMC 
+namespace mallocMC
 {
 
   template<int PSIZE>
@@ -132,70 +137,80 @@ namespace mallocMC
 
   MAMC_ACCELERATOR inline boost::uint32_t laneid()
   {
-    boost::uint32_t mylaneid;
+    /*boost::uint32_t mylaneid;
     asm("mov.u32 %0, %laneid;" : "=r" (mylaneid));
-    return mylaneid;
+    return mylaneid;*/
+    return 0;
   }
 
   MAMC_ACCELERATOR inline boost::uint32_t warpid()
   {
-    boost::uint32_t mywarpid;
+    /*boost::uint32_t mywarpid;
     asm("mov.u32 %0, %warpid;" : "=r" (mywarpid));
-    return mywarpid;
+    return mywarpid;*/
+    return 0;
   }
   MAMC_ACCELERATOR inline boost::uint32_t nwarpid()
   {
-    boost::uint32_t mynwarpid;
+    /*boost::uint32_t mynwarpid;
     asm("mov.u32 %0, %nwarpid;" : "=r" (mynwarpid));
-    return mynwarpid;
+    return mynwarpid;*/
+      return 0;
   }
 
   MAMC_ACCELERATOR inline boost::uint32_t smid()
   {
-    boost::uint32_t mysmid;
+    /*boost::uint32_t mysmid;
     asm("mov.u32 %0, %smid;" : "=r" (mysmid));
-    return mysmid;
+    return mysmid;*/
+      return 0;
   }
 
   MAMC_ACCELERATOR inline boost::uint32_t nsmid()
   {
-    boost::uint32_t mynsmid;
+    /*boost::uint32_t mynsmid;
     asm("mov.u32 %0, %nsmid;" : "=r" (mynsmid));
-    return mynsmid;
+    return mynsmid;*/
+      return 0;
   }
   MAMC_ACCELERATOR inline boost::uint32_t lanemask()
   {
-    boost::uint32_t lanemask;
+    /*boost::uint32_t lanemask;
     asm("mov.u32 %0, %lanemask_eq;" : "=r" (lanemask));
-    return lanemask;
+    return lanemask;*/
+      return 0;
   }
 
   MAMC_ACCELERATOR inline boost::uint32_t lanemask_le()
   {
-    boost::uint32_t lanemask;
+    /*boost::uint32_t lanemask;
     asm("mov.u32 %0, %lanemask_le;" : "=r" (lanemask));
-    return lanemask;
+    return lanemask;*/
+      return 0;
   }
 
   MAMC_ACCELERATOR inline boost::uint32_t lanemask_lt()
   {
-    boost::uint32_t lanemask;
+    /*boost::uint32_t lanemask;
     asm("mov.u32 %0, %lanemask_lt;" : "=r" (lanemask));
-    return lanemask;
+    return lanemask;*/
+      return 0;
   }
 
   MAMC_ACCELERATOR inline boost::uint32_t lanemask_ge()
   {
-    boost::uint32_t lanemask;
+    /*boost::uint32_t lanemask;
     asm("mov.u32 %0, %lanemask_ge;" : "=r" (lanemask));
-    return lanemask;
+    return lanemask;*/
+      return 0;
   }
 
   MAMC_ACCELERATOR inline boost::uint32_t lanemask_gt()
   {
-    boost::uint32_t lanemask;
+    /*boost::uint32_t lanemask;
     asm("mov.u32 %0, %lanemask_gt;" : "=r" (lanemask));
-    return lanemask;
+    return lanemask;*/
+      return 0;
   }
 
   template<class T>

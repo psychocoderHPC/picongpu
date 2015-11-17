@@ -39,6 +39,7 @@ namespace ReservePoolPolicies{
   struct SimpleCudaMalloc{
     static void* setMemPool(size_t memsize){
       void* pool;
+      std::cout<<"malloc poll size="<<memsize<<std::endl;
       MALLOCMC_CUDA_CHECKED_CALL(cudaMalloc(&pool, memsize));
       return pool;
     }

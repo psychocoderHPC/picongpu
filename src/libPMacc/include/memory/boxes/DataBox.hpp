@@ -59,7 +59,7 @@ namespace PMacc
             {
             }
 
-            HDINLINE Box() : Base()
+            HDINLINE constexpr  Box() : Base()
             {
             }
         };
@@ -86,7 +86,7 @@ namespace PMacc
                 return (Base::operator[](idx.y()))[idx.x()];
             }
 
-            HDINLINE Box(Base base) : Base(base)
+            HDINLINE constexpr  Box(Base base) : Base(base)
             {
             }
 
@@ -122,7 +122,7 @@ namespace PMacc
             {
             }
 
-            HDINLINE Box() : Base()
+            HDINLINE constexpr  Box() : Base()
             {
             }
 
@@ -145,7 +145,7 @@ namespace PMacc
         {
         }
 
-        HDINLINE DataBox() : private_Box::Box<Base::Dim, Base>()
+        HDINLINE  constexpr  DataBox() : private_Box::Box<Base::Dim, Base>()
         {
         }
 

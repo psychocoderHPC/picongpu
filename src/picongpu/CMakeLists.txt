@@ -29,7 +29,8 @@ cmake_minimum_required(VERSION 2.8.12.2)
 # Project 
 ################################################################################
 
-project(PIConGPU)
+project(PIConGPU C CXX)
+
 
 if(CMAKE_INSTALL_PREFIX_INITIALIZED_TO_DEFAULT)
     set(CMAKE_INSTALL_PREFIX "${CMAKE_BINARY_DIR}" CACHE PATH "install prefix" FORCE)
@@ -100,7 +101,7 @@ elseif("${CMAKE_CXX_STANDARD}" STREQUAL "11")
     set(CUDA_NVCC_FLAGS "${CUDA_NVCC_FLAGS}" -std=c++11)
 else()
     # Note: Add support for C++14 once CUDA supports it (maybe 8.0?)
-    set(CMAKE_CXX_STANDARD 98)
+    #set(CMAKE_CXX_STANDARD 98)
 endif()
 
 ################################################################################
@@ -337,8 +338,8 @@ find_path(CUDA_MEMTEST_DIR
         DOC "path to cuda_memtest"
         )
 
-add_subdirectory(${CUDA_MEMTEST_DIR}
-                 "${CMAKE_CURRENT_BINARY_DIR}/build_cuda_memtest")
+#add_subdirectory(${CUDA_MEMTEST_DIR}
+ #                "${CMAKE_CURRENT_BINARY_DIR}/build_cuda_memtest")
 
 
 ################################################################################
@@ -351,8 +352,8 @@ find_path(MPI_INFO_DIR
         DOC "path to mpiInfo"
         )
 
-add_subdirectory(${MPI_INFO_DIR}
-                 "${CMAKE_CURRENT_BINARY_DIR}/build_mpiInfo")
+#add_subdirectory(${MPI_INFO_DIR}
+#                 "${CMAKE_CURRENT_BINARY_DIR}/build_mpiInfo")
 
 
 ################################################################################
@@ -412,6 +413,28 @@ elseif("${CMAKE_CXX_COMPILER_ID}" STREQUAL "PGI")
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Minform=inform")
 endif()
 
+
+set (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} --cuda-path=$ENV{CUDA_ROOT}")
+set (CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} --gcc-toolchain=/opt/pkg/compiler/gnu/gcc/4.9.2/")
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wgnu-static-float-init")
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wstatic-float-init")
+#http://lists.llvm.org/pipermail/cfe-commits/Week-of-Mon-20150223/124058.html
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Xclang -fcuda-allow-host-calls-from-host-device")
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Xclang -fcuda-disable-target-call-checks")
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Xclang -fcuda-target-overloads")
+#set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11")
+set(CMAKE_CXX_STANDARD 11)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
+set(CUDA_HOST_COMPILER "g++" CACHE STRING "" FORCE )
+
+#set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -stdlib=libc++")
+#add_definitions(-DBOOST_NO_CXX11_NOEXCEPT)
+#add_definitions(-DBOOST_NO_CXX11_CONSTEXPR)
+
+
+#add_definitions(-DBOOST_NO_SFINAE)
+
+#set(CUDA_HOST_COMPILER "g++")
 ################################################################################
 # Configure include directories
 ################################################################################
@@ -470,6 +493,8 @@ find_path(PIC_EXTENSION_PATH
 set(PIC_COPY_ON_INSTALL "include/simulation_defines" "submit" CACHE LIST
     "Folder which is copied to installation path during install" )
 
+#include for zconf.h on ubuntu
+include_directories(/usr/include/x86_64-linux-gnu/)
 include_directories(include)
 include_directories(BEFORE ${PIC_EXTENSION_PATH}/include)
 
@@ -479,11 +504,13 @@ include_directories(BEFORE ${PIC_EXTENSION_PATH}/include)
 ################################################################################
 
 file(GLOB CUDASRCFILES "*.cu")
+SET_SOURCE_FILES_PROPERTIES( ${CUDASRCFILES} PROPERTIES LANGUAGE CXX)
+
 file(GLOB SRCFILES "*.cpp")
 
+#list(APPEND CMAKE_CXX_SOURCE_FILE_EXTENSIONS cu)
 
-
-cuda_add_executable(picongpu
+add_executable(picongpu
     ${CUDASRCFILES}
     ${SRCFILES}
     ${SCOREP_SRCFILES}

@@ -49,7 +49,7 @@ public:
      *
      * the default pointer points to invalid memory
      */
-    HDINLINE FramePointer( ) : Base( )
+    HDINLINE constexpr FramePointer( ) : Base( )
     {
     }
 

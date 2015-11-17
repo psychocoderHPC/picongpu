@@ -23,7 +23,7 @@
 
 #pragma once
 
-#include <curand_kernel.h>
+#include "curand_kernel.h"
 #include "types.h"
 
 namespace PMacc

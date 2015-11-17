@@ -28,6 +28,26 @@
  * @author Heiko Burau, Rene Widera, Wolfgang Hoenig, Felix Schmitt, Axel Huebl, Michael Bussmann, Guido Juckeland
  */
 
+#include <cuda_runtime.h>
+
+
+#ifdef __CUDACC__
+#undef __cxa_vec_new2
+#undef __cxa_vec_delete2
+#undef __cxa_vec_delete3 
+#undef __cxa_vec_new3
+#undef __cxa_vec_ctor
+#undef __cxa_vec_cctor
+#undef __cxa_vec_delete2
+#undef __cxa_vec_delete
+#undef __cxa_vec_dtor
+#endif
+#include <boost/program_options.hpp>
+#include <string>
+#include <sstream>
+
+
+
 
 // include the heap with the arguments given in the config
 #include "mallocMC/mallocMC_utils.hpp"

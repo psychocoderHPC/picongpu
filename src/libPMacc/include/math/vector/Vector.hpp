@@ -111,7 +111,7 @@ template<typename T_Type, int T_dim,
 typename T_Accessor = StandardAccessor,
 typename T_Navigator = StandardNavigator,
 template <typename, int> class T_Storage = detail::Vector_components>
-struct Vector : private T_Storage<T_Type, T_dim>, protected T_Accessor, protected T_Navigator
+struct Vector : private T_Storage<T_Type, T_dim> /*, protected T_Accessor, protected T_Navigator*/
 {
     typedef T_Storage<T_Type, T_dim> Storage;
     typedef typename Storage::type type;
@@ -139,8 +139,8 @@ struct Vector : private T_Storage<T_Type, T_dim>, protected T_Accessor, protecte
         typedef const typename F::type& type;
     };
 
-    HDINLINE Vector()
-    {}
+    HDINLINE constexpr Vector() {}
+
 
     HDINLINE
     Vector(const type x)
@@ -239,13 +239,13 @@ struct Vector : private T_Storage<T_Type, T_dim>, protected T_Accessor, protecte
     HDINLINE
     type& operator[](const int idx)
     {
-        return Accessor::operator()(Storage::operator[](Navigator::operator()(idx)));
+        return Storage::operator[](idx); // Accessor::operator()(Storage::operator[](Navigator::operator()(idx)));
     }
 
     HDINLINE
     const type& operator[](const int idx) const
     {
-        return Accessor::operator()(Storage::operator[](Navigator::operator()(idx)));
+        return Storage::operator[](idx); //Accessor::operator()(Storage::operator[](Navigator::operator()(idx)));
     }
 
     HDINLINE type & x()

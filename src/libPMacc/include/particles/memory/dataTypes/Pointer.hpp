@@ -47,9 +47,9 @@ public:
      *
      * the default pointer points to invalid memory
      */
-    HDINLINE Pointer( )
+    HDINLINE constexpr Pointer( ) : ptr(NULL)
     {
-        T_InitMethod()( ptr );
+        //T_InitMethod()( ptr );
     }
 
     HDINLINE Pointer( PtrType const ptrIn ) : ptr( ptrIn )

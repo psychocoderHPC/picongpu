@@ -45,7 +45,7 @@
 
 namespace mallocMC{
 namespace CreationPolicies{
-    
+
 namespace ScatterKernelDetail{
   template <typename T_Allocator>
   __global__ void initKernel(T_Allocator* heap, void* heapmem, size_t memsize){
@@ -78,7 +78,7 @@ namespace ScatterKernelDetail{
       typedef T_Hashing HashingProperties;
       struct  Properties : HeapProperties, HashingProperties{};
       typedef boost::mpl::bool_<true>  providesAvailableSlots;
-      
+
     private:
       typedef boost::uint32_t uint32;
 
@@ -268,7 +268,7 @@ namespace ScatterKernelDetail{
           uint32 old = atomicOr(bitfield, mask);
           if( (old & mask) == 0)
             return spot;
-          // note: __popc(old) == spots should be sufficient, 
+          // note: __popc(old) == spots should be sufficient,
           //but if someone corrupts the memory we end up in an endless loop in here...
           if(__popc(old) >= spots)
             return -1;
@@ -408,7 +408,7 @@ namespace ScatterKernelDetail{
                 {
                   uint32 chunksize = _ptes[ptetry].chunksize;
                   if(chunksize >= bytes && chunksize <= maxchunksize)
-                  {            
+                  {
                     void * res = tryUsePage(ptetry, chunksize);
                     if(res != 0)  return res;
                   }
@@ -512,7 +512,7 @@ namespace ScatterKernelDetail{
         if(oldfilllevel == pagesize / 2 / chunksize)
         {
           uint32 region = page / regionsize;
-          _regions[region] = 0;        
+          _regions[region] = 0;
           uint32 block = region * regionsize * accessblocks / _numpages ;
           if(warpid() + laneid() == 0)
             atomicMin((uint32*)&_firstfreeblock, block);
@@ -651,7 +651,7 @@ namespace ScatterKernelDetail{
         //take care of padding
         //bytes = (bytes + dataAlignment - 1) & ~(dataAlignment-1); // in alignment-policy
         if(bytes < pagesize)
-          //chunck based 
+          //chunck based
           return allocChunked(bytes);
         else
           //allocate a range of pages
@@ -733,7 +733,7 @@ namespace ScatterKernelDetail{
         {
           --numregions;
           numpages = min(numregions*regionsize,numpages);
-          if(linid == 0) printf("c Heap Warning: needed to reduce number of regions to stay within memory limit\n");
+          //if(linid == 0) printf("c Heap Warning: needed to reduce number of regions to stay within memory limit\n");
         }
         //if(linid == 0) printf("Heap info: wasting %d bytes\n",(((POINTEREQUIVALENT)memory) + memsize) - (POINTEREQUIVALENT)(regions + numregions));
 
@@ -763,8 +763,9 @@ namespace ScatterKernelDetail{
           _pagebasedMutex = 0;
           _firstFreePageBased = numpages-1;
 
-          if( (char*) (_page+numpages) > (char*)(memory) + memsize)
+          /*if( (char*) (_page+numpages) > (char*)(memory) + memsize)
             printf("error in heap alloc: numpages too high\n");
+           * */
         }
 
       }
@@ -937,7 +938,7 @@ namespace ScatterKernelDetail{
         unsigned* d_slots;
         cudaMalloc((void**) &d_slots, sizeof(unsigned));
         cudaMemcpy(d_slots, &h_slots, sizeof(unsigned), cudaMemcpyHostToDevice);
-      
+
         ScatterKernelDetail::getAvailableSlotsKernel<<<64,256>>>(heap, slotSize, d_slots);
 
         cudaMemcpy(&h_slots, d_slots, sizeof(unsigned), cudaMemcpyDeviceToHost);

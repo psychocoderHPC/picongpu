@@ -61,13 +61,20 @@ namespace PMacc
          * constructor.
          * Sets size of all dimensions from cuda dim3.
          */
-        HDINLINE DataSpace(dim3 value)
+        HDINLINE DataSpace( dim3 value)
         {
             for (uint32_t i = 0; i < DIM; ++i)
             {
                 (*this)[i] = *(&(value.x) + i);
             }
         }
+
+        HDINLINE DataSpace(const __cuda_builtin_blockIdx_t& value);
+
+        HDINLINE DataSpace(const __cuda_builtin_threadIdx_t& value);
+
+        HDINLINE DataSpace(const __cuda_builtin_blockDim_t& value);
+
 
         /**
          * constructor.
@@ -183,6 +190,69 @@ namespace PMacc
         }
 
     };
+
+    template<>
+    HDINLINE DataSpace<DIM1>::DataSpace(const __cuda_builtin_blockIdx_t& value)
+    {
+        (*this)[0]=value.x;
+    }
+
+    template<>
+    HDINLINE DataSpace<DIM2>::DataSpace(const __cuda_builtin_blockIdx_t& value)
+    {
+        (*this)[0]=value.x;
+        (*this)[1]=value.y;
+    }
+
+    template<>
+    HDINLINE DataSpace<DIM3>::DataSpace(const __cuda_builtin_blockIdx_t& value)
+    {
+        (*this)[0]=value.x;
+        (*this)[1]=value.y;
+        (*this)[2]=value.z;
+    }
+
+    template<>
+    HDINLINE DataSpace<DIM1>::DataSpace(const __cuda_builtin_threadIdx_t& value)
+    {
+        (*this)[0]=value.x;
+    }
+
+    template<>
+    HDINLINE DataSpace<DIM2>::DataSpace(const __cuda_builtin_threadIdx_t& value)
+    {
+        (*this)[0]=value.x;
+        (*this)[1]=value.y;
+    }
+
+    template<>
+    HDINLINE DataSpace<DIM3>::DataSpace(const __cuda_builtin_threadIdx_t& value)
+    {
+        (*this)[0]=value.x;
+        (*this)[1]=value.y;
+        (*this)[2]=value.z;
+    }
+
+    template<>
+    HDINLINE DataSpace<DIM1>::DataSpace(const __cuda_builtin_blockDim_t& value)
+    {
+        (*this)[0]=value.x;
+    }
+
+    template<>
+    HDINLINE DataSpace<DIM2>::DataSpace(const __cuda_builtin_blockDim_t& value)
+    {
+        (*this)[0]=value.x;
+        (*this)[1]=value.y;
+    }
+
+    template<>
+    HDINLINE DataSpace<DIM3>::DataSpace(const __cuda_builtin_blockDim_t& value)
+    {
+        (*this)[0]=value.x;
+        (*this)[1]=value.y;
+        (*this)[2]=value.z;
+    }
 
 } //namespace PMacc
 

@@ -84,7 +84,7 @@ private:
     void setSize()
     {
         kernelSetValueOnDeviceMemory
-            << < 1, 1, 0, this->getCudaStream() >> >
+            <<< 1, 1, 0, this->getCudaStream() >>>
             (destination->getCurrentSizeOnDevicePointer(), size);
 
         activate();
