@@ -84,14 +84,23 @@ namespace particles
  */
 typedef mpl::vector<
     CreateGas<gasProfiles::Homogenous, startPosition::Quiet, PIC_Electrons>,
+    CreateGas<gasProfiles::Homogenous, startPosition::Quiet, PIC_Electrons2>,
     CloneSpecies<PIC_Electrons, PIC_Ions>,
+    CloneSpecies<PIC_Electrons2, PIC_Ions2>,
     Manipulate<manipulators::AssignXDriftPrositiveToLowerQuarterYPosition, PIC_Ions>,
     Manipulate<manipulators::AssignXDriftNegativeToMiddleHalfYPosition, PIC_Ions>,
     Manipulate<manipulators::AssignXDriftPrositiveToUpperQuarterYPosition, PIC_Ions>,
     Manipulate<manipulators::AssignXDriftPrositiveToLowerQuarterYPosition, PIC_Electrons>,
     Manipulate<manipulators::AssignXDriftNegativeToMiddleHalfYPosition, PIC_Electrons>,
     Manipulate<manipulators::AssignXDriftPrositiveToUpperQuarterYPosition, PIC_Electrons>,
-    Manipulate<manipulators::AddTemperature, PIC_Electrons>
+    Manipulate<manipulators::AddTemperature, PIC_Electrons>,
+    Manipulate<manipulators::AssignXDriftPrositiveToLowerQuarterYPosition, PIC_Ions2>,
+    Manipulate<manipulators::AssignXDriftNegativeToMiddleHalfYPosition, PIC_Ions2>,
+    Manipulate<manipulators::AssignXDriftPrositiveToUpperQuarterYPosition, PIC_Ions2>,
+    Manipulate<manipulators::AssignXDriftPrositiveToLowerQuarterYPosition, PIC_Electrons2>,
+    Manipulate<manipulators::AssignXDriftNegativeToMiddleHalfYPosition, PIC_Electrons2>,
+    Manipulate<manipulators::AssignXDriftPrositiveToUpperQuarterYPosition, PIC_Electrons2>,
+    Manipulate<manipulators::AddTemperature, PIC_Electrons2>
 > InitPipeline;
 
 } /* namespace particles */
