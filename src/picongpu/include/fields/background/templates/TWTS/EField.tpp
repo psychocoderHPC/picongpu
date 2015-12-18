@@ -254,84 +254,98 @@ namespace twts
         const float_T t = float_T(time / UNIT_TIME);
 
         /* Calculating shortcuts for speeding up field calculation */
-        const float_T sinPhi = math::sin(phiT);
-        const float_T cosPhi = math::cos(phiT);
-        const float_T sinPhi2 = math::sin(phiT / float_T(2.0));
-        const float_T cosPhi2 = math::cos(phiT / float_T(2.0));
-        const float_T tanPhi2 = math::tan(phiT / float_T(2.0));
+        const float_T sinPhi = pmMath::sin(phiT);
+        const float_T cosPhi = pmMath::cos(phiT);
+        const float_T sinPhi2 = pmMath::sin(phiT / float_T(2.0));
+        const float_T cosPhi2 = pmMath::cos(phiT / float_T(2.0));
+        const float_T tanPhi2 = pmMath::tan(phiT / float_T(2.0));
+
+        const float_T tanPhi2_2 = tanPhi2 * tanPhi2;
+        const float_T sinPhi2_2 = sinPhi2 * sinPhi2;
+        const float_T sinPhi2_4 = sinPhi2_2 * sinPhi2_2;
+
+        const float_T cspeed2 = cspeed * cspeed;
+        const float_T tauG2 = tauG * tauG;
+        const float_T wy2 = wy * wy;
+        const float_T om02 = om0 * om0;
+
+        const float_T x2 = x * x;
+        const float_T y2 = y * y;
+        const float_T z2 = z * z;
+        const float_T t2 = t * t;
 
         /* The "helpVar" variables decrease the nesting level of the evaluated expressions and
          * thus help with formal code verification through manual code inspection.
          */
         const complex_T helpVar1 = complex_T(0,1)*rho0 - y*cosPhi - z*sinPhi;
-        const complex_T helpVar2 = complex_T(0,-1)*cspeed*om0*tauG*tauG
+        const complex_T helpVar2 = complex_T(0,-1)*cspeed*om0*tauG2
                                     - y*cosPhi / cosPhi2 / cosPhi2*tanPhi2
-                                    - float_T(2.0)*z*tanPhi2*tanPhi2;
+                                    - float_T(2.0)*z*tanPhi2_2;
         const complex_T helpVar3 = complex_T(0,1)*rho0 - y*cosPhi - z*sinPhi;
 
         const complex_T helpVar4 = (
-            -(cspeed*cspeed*k*om0*tauG*tauG*wy*wy*x*x)
-            - float_T(2.0)*cspeed*cspeed*om0*t*t*wy*wy*rho0
-            + complex_T(0,2)*cspeed*cspeed*om0*om0*t*tauG*tauG*wy*wy*rho0
-            - float_T(2.0)*cspeed*cspeed*om0*tauG*tauG*y*y*rho0
-            + float_T(4.0)*cspeed*om0*t*wy*wy*z*rho0
-            - complex_T(0,2)*cspeed*om0*om0*tauG*tauG*wy*wy*z*rho0
-            - float_T(2.0)*om0*wy*wy*z*z*rho0
-            - complex_T(0,8)*om0*wy*wy*y*(cspeed*t - z)*z*sinPhi2*sinPhi2
+            -(cspeed2*k*om0*tauG2*wy2*x2)
+            - float_T(2.0)*cspeed2*om0*t2*wy2*rho0
+            + complex_T(0,2)*cspeed2*om02*t*tauG2*wy2*rho0
+            - float_T(2.0)*cspeed2*om0*tauG2*y2*rho0
+            + float_T(4.0)*cspeed*om0*t*wy2*z*rho0
+            - complex_T(0,2)*cspeed*om02*tauG2*wy2*z*rho0
+            - float_T(2.0)*om0*wy2*z2*rho0
+            - complex_T(0,8)*om0*wy2*y*(cspeed*t - z)*z*sinPhi2_2
             + complex_T(0,8) / sinPhi*(
-                    +float_T(2.0)*z*z*(cspeed*om0*t*wy*wy+complex_T(0,1)*cspeed*y*y-om0*wy*wy*z)
+                    +float_T(2.0)*z2*(cspeed*om0*t*wy2+complex_T(0,1)*cspeed*y2-om0*wy2*z)
                     + y*(
-                        + cspeed*k*wy*wy*x*x
-                        - complex_T(0,2)*cspeed*om0*t*wy*wy*rho0
-                        + float_T(2.0)*cspeed*y*y*rho0
-                        + complex_T(0,2)*om0*wy*wy*z*rho0
-                    )*math::tan(float_T(PI / 2.0)-phiT)/sinPhi
-                )*sinPhi2*sinPhi2*sinPhi2*sinPhi2
-            - complex_T(0,2)*cspeed*cspeed*om0*t*t*wy*wy*z*sinPhi
-            - float_T(2.0)*cspeed*cspeed*om0*om0*t*tauG*tauG*wy*wy*z*sinPhi
-            - complex_T(0,2)*cspeed*cspeed*om0*tauG*tauG*y*y*z*sinPhi
-            + complex_T(0,4)*cspeed*om0*t*wy*wy*z*z*sinPhi
-            + float_T(2.0)*cspeed*om0*om0*tauG*tauG*wy*wy*z*z*sinPhi
-            - complex_T(0,2)*om0*wy*wy*z*z*z*sinPhi
-            - float_T(4.0)*cspeed*om0*t*wy*wy*y*rho0*tanPhi2
-            + float_T(4.0)*om0*wy*wy*y*z*rho0*tanPhi2
-            + complex_T(0,2)*y*y*(
-                 + cspeed*om0*t*wy*wy + complex_T(0,1)*cspeed*y*y - om0*wy*wy*z
+                        + cspeed*k*wy2*x2
+                        - complex_T(0,2)*cspeed*om0*t*wy2*rho0
+                        + float_T(2.0)*cspeed*y2*rho0
+                        + complex_T(0,2)*om0*wy2*z*rho0
+                    )*pmMath::tan(float_T(PI / 2.0)-phiT)/sinPhi
+                )*sinPhi2_4
+            - complex_T(0,2)*cspeed2*om0*t2*wy2*z*sinPhi
+            - float_T(2.0)*cspeed2*om02*t*tauG2*wy2*z*sinPhi
+            - complex_T(0,2)*cspeed2*om0*tauG2*y2*z*sinPhi
+            + complex_T(0,4)*cspeed*om0*t*wy2*z2*sinPhi
+            + float_T(2.0)*cspeed*om02*tauG2*wy2*z2*sinPhi
+            - complex_T(0,2)*om0*wy2*z2*z*sinPhi
+            - float_T(4.0)*cspeed*om0*t*wy2*y*rho0*tanPhi2
+            + float_T(4.0)*om0*wy2*y*z*rho0*tanPhi2
+            + complex_T(0,2)*y2*(
+                 + cspeed*om0*t*wy2 + complex_T(0,1)*cspeed*y2 - om0*wy2*z
                  )*cosPhi*cosPhi / cosPhi2 / cosPhi2*tanPhi2
-            + complex_T(0,2)*cspeed*k*wy*wy*x*x*z*tanPhi2*tanPhi2
-            - float_T(2.0)*om0*wy*wy*y*y*rho0*tanPhi2*tanPhi2
-            + float_T(4.0)*cspeed*om0*t*wy*wy*z*rho0*tanPhi2*tanPhi2
-            + complex_T(0,4)*cspeed*y*y*z*rho0*tanPhi2*tanPhi2
-            - float_T(4.0)*om0*wy*wy*z*z*rho0*tanPhi2*tanPhi2
-            - complex_T(0,2)*om0*wy*wy*y*y*z*sinPhi*tanPhi2*tanPhi2
+            + complex_T(0,2)*cspeed*k*wy2*x2*z*tanPhi2_2
+            - float_T(2.0)*om0*wy2*y2*rho0*tanPhi2_2
+            + float_T(4.0)*cspeed*om0*t*wy2*z*rho0*tanPhi2_2
+            + complex_T(0,4)*cspeed*y2*z*rho0*tanPhi2_2
+            - float_T(4.0)*om0*wy2*z2*rho0*tanPhi2_2
+            - complex_T(0,2)*om0*wy2*y2*z*sinPhi*tanPhi2_2
             - float_T(2.0)*y*cosPhi*(
                 + om0*(
-                    + cspeed*cspeed*(
-                          complex_T(0,1)*t*t*wy*wy
-                        + om0*t*tauG*tauG*wy*wy
-                        + complex_T(0,1)*tauG*tauG*y*y
+                    + cspeed2*(
+                          complex_T(0,1)*t2*wy2
+                        + om0*t*tauG2*wy2
+                        + complex_T(0,1)*tauG2*y2
                         )
                     - cspeed*(complex_T(0,2)*t
-                    + om0*tauG*tauG)*wy*wy*z
-                    + complex_T(0,1)*wy*wy*z*z
+                    + om0*tauG2)*wy2*z
+                    + complex_T(0,1)*wy2*z2
                     )
-                + complex_T(0,2)*om0*wy*wy*y*(cspeed*t - z)*tanPhi2
-                + complex_T(0,1)*tanPhi2*tanPhi2*(
-                      complex_T(0,-4)*cspeed*y*y*z
-                    + om0*wy*wy*(y*y - float_T(4.0)*(cspeed*t - z)*z)
+                + complex_T(0,2)*om0*wy2*y*(cspeed*t - z)*tanPhi2
+                + complex_T(0,1)*tanPhi2_2*(
+                      complex_T(0,-4)*cspeed*y2*z
+                    + om0*wy2*(y2 - float_T(4.0)*(cspeed*t - z)*z)
                 )
             )
         /* The "round-trip" conversion in the line below fixes a gross accuracy bug
          * in floating-point arithmetics, when float_T is set to float_X.
          */
-        ) * complex_T( float_64(1.0) / complex_64(float_T(2.0)*cspeed*wy*wy*helpVar1*helpVar2) );
+        ) * complex_T( float_64(1.0) / complex_64(float_T(2.0)*cspeed*wy2*helpVar1*helpVar2) );
 
-        const complex_T helpVar5 = cspeed*om0*tauG*tauG
-            - complex_T(0,8)*y*math::tan( float_T(PI / 2)-phiT )
-                                / sinPhi / sinPhi*sinPhi2*sinPhi2*sinPhi2*sinPhi2
-            - complex_T(0,2)*z*tanPhi2*tanPhi2;
-        const complex_T result = (math::exp(helpVar4)*tauG
-            *math::sqrt((cspeed*om0*rho0) / helpVar3)) / math::sqrt(helpVar5);
+        const complex_T helpVar5 = cspeed*om0*tauG2
+            - complex_T(0,8)*y*pmMath::tan( float_T(PI / 2)-phiT )
+                                / sinPhi / sinPhi*sinPhi2_4
+            - complex_T(0,2)*z*tanPhi2_2;
+        const complex_T result = (pmMath::exp(helpVar4)*tauG
+            *pmMath::sqrt((cspeed*om0*rho0) / helpVar3)) / pmMath::sqrt(helpVar5);
         return result.get_real();
     }
 
@@ -352,3 +366,4 @@ namespace twts
 } /* namespace twts */
 } /* namespace templates */
 } /* namespace picongpu */
+
