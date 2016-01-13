@@ -347,16 +347,21 @@ namespace twts
          * (i.e. from a finite coordinate range) only. All these quantities have to be calculated
          * in double precision.
          */
-        const float_64 timeDiv = float_64(2.0) * wavelength_SI / SI::SPEED_OF_LIGHT_SI
-            * pmMath::floor( time / ( float_64(2.0) * wavelength_SI / SI::SPEED_OF_LIGHT_SI ) );
         const float_64 tanAlpha = ( float_64(1.0) - beta_0 * pmMath::cos(phi) )
-                                    / ( beta_0 * pmMath::sin(phi) );
-        const float_T timeMod = float_T( time - timeDiv );
-        const float_T yMod = float_T( pos.y() + ( timeDiv*SI::SPEED_OF_LIGHT_SI / tanAlpha ) );
+                                    / ( beta_0 * pmMath::sin(phi) );                            
+        const float_64 tanFocalLine = pmMath::tan( PI / float_64(2.0) - phi );
+        const float_64 deltaT = wavelength_SI / SI::SPEED_OF_LIGHT_SI
+                                 * ( float_64(1.0) + tanAlpha / tanFocalLine);
+        const float_64 deltaY = wavelength_SI / tanFocalLine;
+        const float_64 deltaZ = -wavelength_SI;
+        const float_64 numberOfPeriods = pmMath::floor( time / deltaT );
+        const float_T timeMod = float_T( time - numberOfPeriods * deltaT );
+        const float_T yMod = float_T( pos.y() + numberOfPeriods * deltaY );
+        const float_T zMod = float_T( pos.z() + numberOfPeriods * deltaZ );
 
         const float_T x = float_T(phiPositive * pos.x() / UNIT_LENGTH);
         const float_T y = float_T(phiPositive * yMod / UNIT_LENGTH);
-        const float_T z = float_T(pos.z() / UNIT_LENGTH);
+        const float_T z = float_T(zMod / UNIT_LENGTH);
         const float_T t = float_T(timeMod / UNIT_TIME);
 
         /* Calculating shortcuts for speeding up field calculation */
@@ -494,16 +499,21 @@ namespace twts
          * (i.e. from a finite coordinate range) only. All these quantities have to be calculated
          * in double precision.
          */
-        const float_64 timeDiv = float_64(2.0) * wavelength_SI / SI::SPEED_OF_LIGHT_SI
-            * pmMath::floor( time / ( float_64(2.0) * wavelength_SI / SI::SPEED_OF_LIGHT_SI ) );
         const float_64 tanAlpha = ( float_64(1.0) - beta_0 * pmMath::cos(phi) )
-                                    / ( beta_0 * pmMath::sin(phi) );
-        const float_T timeMod = float_T( time - timeDiv );
-        const float_T yMod = float_T( pos.y() + ( timeDiv*SI::SPEED_OF_LIGHT_SI / tanAlpha ) );
+                                    / ( beta_0 * pmMath::sin(phi) );                            
+        const float_64 tanFocalLine = pmMath::tan( PI / float_64(2.0) - phi );
+        const float_64 deltaT = wavelength_SI / SI::SPEED_OF_LIGHT_SI
+                                 * ( float_64(1.0) + tanAlpha / tanFocalLine);
+        const float_64 deltaY = wavelength_SI / tanFocalLine;
+        const float_64 deltaZ = -wavelength_SI;
+        const float_64 numberOfPeriods = pmMath::floor( time / deltaT );
+        const float_T timeMod = float_T( time - numberOfPeriods * deltaT );
+        const float_T yMod = float_T( pos.y() + numberOfPeriods * deltaY );
+        const float_T zMod = float_T( pos.z() + numberOfPeriods * deltaZ );
 
         const float_T x = float_T(phiPositive * pos.x() / UNIT_LENGTH);
         const float_T y = float_T(phiPositive * yMod / UNIT_LENGTH);
-        const float_T z = float_T(pos.z() / UNIT_LENGTH);
+        const float_T z = float_T(zMod / UNIT_LENGTH);
         const float_T t = float_T(timeMod / UNIT_TIME);
 
         /* Calculating shortcuts for speeding up field calculation */
@@ -569,7 +579,7 @@ namespace twts
         const complex_T helpVar9 = cspeed * om0 * tauG2
             - complex_T(0,1) * y * cosPhi * secPhi2_2 * tanPhi2 - complex_T(0,2) * z * tanPhi2_2;
 
-        const complex_T result = (
+        const complex_T result = float_T(phiPositive) * (
             complex_T(0,2) * pmMath::exp(helpVar8) * tauG * tanPhi2
                 * (cspeed*t - z + y * tanPhi2 ) * pmMath::sqrt( om0 * rho0 / helpVar7 )
             )
