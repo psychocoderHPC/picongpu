@@ -1319,11 +1319,10 @@ class IsaacVisualization
                     MPI_Gather( message_buffer, ISAAC_MAX_RECEIVE, MPI_CHAR, NULL, 0,  MPI_CHAR, master, mpi_world);
             }
 
-            #ifdef ISAAC_THREADING
-                pthread_create(&visualizationThread,NULL,visualizationFunction,image);
-            #else
-                visualizationFunction(image);
-            #endif
+            json_decref( myself->json_root );
+            myself->recreateJSON();
+            myself->metaNr++;
+
             return metadata;
         }
         ~IsaacVisualization()
@@ -1530,151 +1529,6 @@ class IsaacVisualization
             ISAAC_STOP_TIME_MEASUREMENT( myself->copy_time, +=, copy, myself->getTicksUs() )
         }
 
-        static void* visualizationFunction(void* dummy)
-        {
-            IceTImage* image = (IceTImage*)dummy;
-            //Message sending
-            if (myself->rank == myself->master)
-            {
-                json_object_set_new( myself->json_root, "type", json_string( "period" ) );
-                json_object_set_new( myself->json_root, "meta nr", json_integer( myself->metaNr ) );
-
-                json_t *matrix;
-                if ( myself->send_projection )
-                {
-                    json_object_set_new( myself->json_root, "projection", matrix = json_array() );
-                    ISAAC_JSON_ADD_MATRIX(matrix,myself->projection,16 * TController::pass_count)
-                }
-                if ( myself->send_look_at )
-                {
-                    json_object_set_new( myself->json_root, "position", matrix = json_array() );
-                    ISAAC_JSON_ADD_MATRIX(matrix,myself->look_at,3)
-                }
-                if ( myself->send_rotation )
-                {
-                    json_object_set_new( myself->json_root, "rotation", matrix = json_array() );
-                    ISAAC_JSON_ADD_MATRIX(matrix, myself->rotation,9)
-                }
-                if ( myself->send_distance )
-                    json_object_set_new( myself->json_root, "distance", json_real( myself->distance ) );
-                if ( myself->send_transfer )
-                {
-                    json_object_set_new( myself->json_root, "transfer array", matrix = json_array() );
-                    for (size_t i = 0; i < boost::mpl::size< TSourceList >::type::value; i++)
-                    {
-                        json_t* transfer = json_array();
-                        json_array_append_new( matrix, transfer );
-                        for (size_t j = 0; j < TTransfer_size; j++)
-                        {
-                            json_t* color = json_array();
-                            json_array_append_new( transfer, color );
-                            json_array_append_new( color, json_integer( isaac_uint( myself->transfer_h.pointer[i][j].x * isaac_float(255) ) ) );
-                            json_array_append_new( color, json_integer( isaac_uint( myself->transfer_h.pointer[i][j].y * isaac_float(255) ) ) );
-                            json_array_append_new( color, json_integer( isaac_uint( myself->transfer_h.pointer[i][j].z * isaac_float(255) ) ) );
-                            json_array_append_new( color, json_integer( isaac_uint( myself->transfer_h.pointer[i][j].w * isaac_float(255) ) ) );
-                        }
-                    }
-                    json_object_set_new( myself->json_root, "transfer points", matrix = json_array() );
-                    for (size_t i = 0; i < boost::mpl::size< TSourceList >::type::value; i++)
-                    {
-                        json_t* points = json_array();
-                        json_array_append_new( matrix, points );
-                        for(auto it = myself->transfer_h.description[i].begin(); it != myself->transfer_h.description[i].end(); it++)
-                        {
-                            json_t* p = json_object();
-                            json_array_append_new( points, p);
-                            json_object_set_new(p, "value", json_integer( it->first ) );
-                            json_object_set_new(p, "r", json_real( it->second.x ) );
-                            json_object_set_new(p, "g", json_real( it->second.y ) );
-                            json_object_set_new(p, "b", json_real( it->second.z ) );
-                            json_object_set_new(p, "a", json_real( it->second.w ) );
-                        }
-                    }
-                }
-                if ( myself->send_functions )
-                {
-                    json_object_set_new( myself->json_root, "functions", matrix = json_array() );
-                    for (size_t i = 0; i < boost::mpl::size< TSourceList >::type::value; i++)
-                    {
-                        json_t* f = json_object();
-                        json_array_append_new( matrix, f );
-                        json_object_set_new(f, "source", json_string( myself->functions[i].source.c_str() ) );
-                        json_object_set_new(f, "error", json_integer( myself->functions[i].error_code ) );
-                    }
-                }
-                if ( myself->send_weight )
-                {
-                    json_object_set_new( myself->json_root, "weight", matrix = json_array() );
-                    for (size_t i = 0; i < boost::mpl::size< TSourceList >::type::value; i++)
-                        json_array_append_new( matrix, json_real( myself->source_weight.value[i] ) );
-                }
-                if ( myself->send_interpolation )
-                    json_object_set_new( myself->json_root, "interpolation", json_boolean( myself->interpolation ) );
-                if ( myself->send_step )
-                    json_object_set_new( myself->json_root, "step", json_real( myself->step ) );
-                if ( myself->send_iso_surface )
-                    json_object_set_new( myself->json_root, "iso surface", json_boolean( myself->iso_surface ) );
-                if ( myself->send_minmax )
-                {
-                    json_object_set_new( myself->json_root, "minmax", matrix = json_array() );
-                    for (size_t i = 0; i < boost::mpl::size< TSourceList >::type::value; i++)
-                    {
-                        json_t* v = json_object();
-                        json_array_append_new( matrix, v );
-                        json_object_set_new(v, "min", json_real( myself->minmax_array.min[i] ) );
-                        json_object_set_new(v, "max", json_real( myself->minmax_array.max[i] ) );
-                    }
-                }
-                if ( myself->send_background_color )
-                {
-                    json_object_set_new( myself->json_root, "background color", matrix = json_array() );
-                    for (size_t i = 0; i < 3; i++)
-                        json_array_append_new( matrix, json_real( myself->background_color[i] ) );
-                }
-                if ( myself->send_clipping )
-                {
-                    json_object_set_new( myself->json_root, "clipping", matrix = json_array() );
-                    for (size_t i = 0; i < myself->clipping.count; i++)
-                    {
-                        json_t* f = json_object();
-                        json_array_append_new( matrix, f );
-                        json_t* inner = json_array();
-                        json_object_set_new(f, "position", inner );
-                        json_array_append_new( inner, json_real( myself->clipping.elem[i].position.x ) );
-                        json_array_append_new( inner, json_real( myself->clipping.elem[i].position.y ) );
-                        json_array_append_new( inner, json_real( myself->clipping.elem[i].position.z ) );
-                                inner = json_array();
-                        json_object_set_new(f, "normal", inner );
-                        json_array_append_new( inner, json_real( myself->clipping_saved_normals[i].x ) );
-                        json_array_append_new( inner, json_real( myself->clipping_saved_normals[i].y ) );
-                        json_array_append_new( inner, json_real( myself->clipping_saved_normals[i].z ) );
-                    }
-                }
-                myself->controller.sendFeedback( myself->json_root, myself->send_controller );
-                char* buffer = json_dumps( myself->json_root, 0 );
-                myself->communicator->serverSend(buffer);
-                free(buffer);
-            }
-
-            json_decref( myself->json_root );
-            myself->recreateJSON();
-
-            //Sending video
-            ISAAC_START_TIME_MEASUREMENT( video_send, myself->getTicksUs() )
-            if (myself->communicator)
-            {
-                if (image[0].opaque_internals)
-                    myself->communicator->serverSendFrame(myself->compositor.doCompositing(image),myself->compbuffer_size.x,myself->compbuffer_size.y,4);
-                else
-                {
-                    myself->communicator->serverSend(NULL,false,true);
-                }
-            }
-            ISAAC_STOP_TIME_MEASUREMENT( myself->video_send_time, +=, video_send, myself->getTicksUs() )
-
-            myself->metaNr++;
-            return 0;
-        }
         void recreateJSON()
         {
             json_root = json_object();

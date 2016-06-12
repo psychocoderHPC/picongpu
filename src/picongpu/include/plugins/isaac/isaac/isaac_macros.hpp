@@ -102,13 +102,4 @@
     for (isaac_int i = 0; i < count; i++) \
         json_array_append_new( array, json_real( (matrix)[i] ) );
 
-#ifdef ISAAC_THREADING
-    #define ISAAC_WAIT_VISUALIZATION \
-        if (visualizationThread) \
-        { \
-            pthread_join(visualizationThread,NULL); \
-            visualizationThread = 0; \
-        }
-#else
-    #define ISAAC_WAIT_VISUALIZATION {}
-#endif
+#define ISAAC_WAIT_VISUALIZATION {}
