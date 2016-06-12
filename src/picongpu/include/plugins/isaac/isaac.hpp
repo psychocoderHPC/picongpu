@@ -1359,7 +1359,7 @@ class IsaacVisualization
         uint64_t getTicksUs()
         {
             struct timespec ts;
-            if (clock_gettime(CLOCK_MONOTONIC_RAW,&ts) == 0)
+            if (clock_gettime(4,&ts) == 0)
                 return ts.tv_sec*1000000 + ts.tv_nsec/1000;
             return 0;
         }

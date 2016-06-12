@@ -35,6 +35,9 @@ if(CMAKE_INSTALL_PREFIX_INITIALIZED_TO_DEFAULT)
     set(CMAKE_INSTALL_PREFIX "${CMAKE_BINARY_DIR}" CACHE PATH "install prefix" FORCE)
 endif(CMAKE_INSTALL_PREFIX_INITIALIZED_TO_DEFAULT)
 
+set(CMAKE_CXX_STANDARD 11)
+
+
 # set helper pathes to find libraries and packages
 # Add specific hints
 list(APPEND CMAKE_PREFIX_PATH "$ENV{MPI_ROOT}")
@@ -72,6 +75,8 @@ endif()
 ################################################################################
 
 find_package(CUDA 5.0 REQUIRED)
+
+set(CUDA_NVCC_FLAGS ${CUDA_NVCC_FLAGS} "--generate-code arch=compute_35,code=sm_35")
 
 if(CUDA_VERSION VERSION_LESS 5.5)
     message(STATUS "CUDA Toolkit < 5.5 detected. We strongly recommend to still "
@@ -521,7 +526,7 @@ cuda_add_executable(picongpu
     ${SRCFILES}
 )
 
-target_link_libraries(picongpu  ${LIBS} ${CUDA_CUDART_LIBRARY} z m)
+target_link_libraries(picongpu  ${LIBS} ${CUDA_CUDART_LIBRARY} z m )
 
 ################################################################################
 # Install PIConGPU

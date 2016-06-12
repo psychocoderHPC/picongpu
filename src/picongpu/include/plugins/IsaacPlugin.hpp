@@ -34,6 +34,9 @@
 #include <boost/mpl/vector.hpp>
 #include <boost/mpl/transform.hpp>
 
+#include "simulationControl/TimeInterval.hpp"
+
+#define ENABLE_ISAAC_TIMINGS 1
 
 namespace picongpu
 {
@@ -188,6 +191,7 @@ struct SourceInitIterator
 class IsaacPlugin : public ILightweightPlugin
 {
 public:
+    TimeIntervall simTimer;
     typedef boost::mpl::int_< simDim > SimDim;
     static const size_t textureDim = 1024;
     using SourceList = bmpl::transform<boost::fusion::result_of::as_list< Fields_Seq >::type,Transformoperator<bmpl::_1>>::type;
@@ -233,6 +237,15 @@ public:
 
     void notify(uint32_t currentStep)
     {
+#if ( ENABLE_ISAAC_TIMINGS == 1 )
+        Environment<>::get().Manager().waitForAllTasks();
+        TimeIntervall timer; // time is recorded at construction
+        simTimer.toggleEnd();
+        if(Environment<simDim>::get().GridController().getScalarPosition() == 0)
+        {
+            std::cout<<"SIM_STEP "<<(int)currentStep-1<<" "<<(simTimer.getInterval()/1000.)<<" s"<<std::endl;
+        }
+#endif
         //SETTING UP ROTATION
         if (rank == 0)
         {
@@ -338,6 +351,16 @@ public:
             while (pause);
         }
         last_notify = visualization->getTicksUs();
+
+#if ( ENABLE_ISAAC_TIMINGS == 1 )
+        Environment<>::get().Manager().waitForAllTasks();
+        timer.toggleEnd();
+        simTimer.toggleStart();
+        if(Environment<simDim>::get().GridController().getScalarPosition() == 0)
+        {
+            std::cout<<"ISSAC_STEP "<<currentStep<<" "<<(timer.getInterval()/1000.)<<" s"<<std::endl;
+        }
+#endif
     }
 
     void pluginRegisterHelp(po::options_description& desc)
