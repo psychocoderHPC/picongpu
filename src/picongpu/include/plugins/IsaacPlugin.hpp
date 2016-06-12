@@ -194,7 +194,7 @@ public:
     TimeIntervall simTimer;
     typedef boost::mpl::int_< simDim > SimDim;
     static const size_t textureDim = 1024;
-    using SourceList = bmpl::transform<boost::fusion::result_of::as_list< Fields_Seq >::type,Transformoperator<bmpl::_1>>::type;
+    using SourceList = typename bmpl::transform<boost::fusion::result_of::as_list< Fields_Seq >::type,Transformoperator<bmpl::_1>>::type;
     IsaacVisualization
     <
         SimDim,

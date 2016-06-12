@@ -108,7 +108,7 @@ class IsaacCommunicator
 				cinfo.image_width = width;
 				cinfo.image_height = height;
 				cinfo.input_components = depth;
-				cinfo.in_color_space = JCS_EXT_RGBX;
+				cinfo.in_color_space = JCS_CMYK;
 				jpeg_set_defaults(&cinfo);
 				jpeg_set_quality(&cinfo, jpeg_quality, false);
 				jpeg_start_compress(&cinfo, TRUE);

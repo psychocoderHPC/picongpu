@@ -65,7 +65,7 @@ echo 'Running program...'
 cd !TBG_dstPath
 
 export MODULES_NO_OUTPUT=1
-source $SCRATCH/picongpu.profile
+source $SCRATCH/isaac.profile
 unset MODULES_NO_OUTPUT
 
 mkdir simOutput 2> /dev/null
