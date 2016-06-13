@@ -1342,7 +1342,7 @@ class IsaacVisualization
                         json_decref( js );
                     }
                 }
-                else/scratch/daint/widera/params/khi_scaling
+                else
                     MPI_Gather( message_buffer, ISAAC_MAX_RECEIVE, MPI_CHAR, NULL, 0,  MPI_CHAR, master, mpi_world);
             }
 
