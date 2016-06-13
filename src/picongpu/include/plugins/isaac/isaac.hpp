@@ -58,6 +58,20 @@
 namespace isaac
 {
 
+template<typename TController>
+struct ThreadImage
+{
+    ThreadImage() : isFree( true )
+    {}
+
+    IceTImage image[TController::pass_count];
+    /* true if no thread used the image, else false
+     *
+     * If isFree is false we need to wait until the thread is finished
+     */
+    bool isFree;
+};
+
 template <
 #if ISAAC_ALPAKA == 1
     typename THost,
@@ -417,6 +431,7 @@ class IsaacVisualization
             framebuffer_prod(size_t(framebuffer_size.x) * size_t(framebuffer_size.y)),
             sources( sources ),
             scale( scale ),
+            currentImage( 0 ),
             icet_bounding_box( true )
             #if ISAAC_ALPAKA == 1
                 ,framebuffer(alpaka::mem::buf::alloc<uint32_t, size_t>(acc, framebuffer_prod))
@@ -431,6 +446,8 @@ class IsaacVisualization
                 ISAAC_CUDA_CHECK(cudaMalloc((isaac_functor_chain_pointer_N**)&functor_chain_choose_d, sizeof(isaac_functor_chain_pointer_N) * boost::mpl::size< TSourceList >::type::value));
                 ISAAC_CUDA_CHECK(cudaMalloc((minmax_struct**)&local_minmax_array_d, sizeof(minmax_struct) * local_size[0] * local_size[1]));
             #endif
+            for (int i = 0; i < 2; ++i)
+                threadImages[i] = *(new ThreadImage<TController>());
             for (int i = 0; i < 3; i++)
             {
                 global_size_scaled.push_back( isaac_int( (isaac_float)global_size[i] * (isaac_float)scale[i] ) );
@@ -1245,7 +1262,17 @@ class IsaacVisualization
                 }
             }
 
-            IceTImage image[TController::pass_count];
+            currentImage = ( currentImage + 1 ) % 2;
+
+#ifdef ISAAC_THREADING
+            if( threadImages[currentImage].isFree == false )
+            {
+                pthread_join( visualizationThread, NULL);
+            }
+            threadImages[currentImage].isFree = false;
+#endif
+
+            IceTImage* image = threadImages[currentImage].image;
             for (int pass = 0; pass < TController::pass_count; pass++)
                 image[pass].opaque_internals = NULL;
 
@@ -1315,14 +1342,14 @@ class IsaacVisualization
                         json_decref( js );
                     }
                 }
-                else
+                else/scratch/daint/widera/params/khi_scaling
                     MPI_Gather( message_buffer, ISAAC_MAX_RECEIVE, MPI_CHAR, NULL, 0,  MPI_CHAR, master, mpi_world);
             }
 
             #ifdef ISAAC_THREADING
-                pthread_create(&visualizationThread,NULL,visualizationFunction,image);
+                pthread_create(&visualizationThread,NULL,visualizationFunction, (void*)&threadImages[currentImage]);
             #else
-                visualizationFunction(image);
+                visualizationFunction( (void*)&threadImages[currentImage]);
             #endif
             return metadata;
         }
@@ -1530,9 +1557,10 @@ class IsaacVisualization
             ISAAC_STOP_TIME_MEASUREMENT( myself->copy_time, +=, copy, myself->getTicksUs() )
         }
 
-        static void* visualizationFunction(void* dummy)
+        static void* visualizationFunction(void* data)
         {
-            IceTImage* image = (IceTImage*)dummy;
+            ThreadImage<TController>& threadImage = *((ThreadImage<TController>*)data);
+            IceTImage* image = threadImage.image;
             //Message sending
             if (myself->rank == myself->master)
             {
@@ -1673,6 +1701,7 @@ class IsaacVisualization
             ISAAC_STOP_TIME_MEASUREMENT( myself->video_send_time, +=, video_send, myself->getTicksUs() )
 
             myself->metaNr++;
+            threadImage.isFree = true;
             return 0;
         }
         void recreateJSON()
@@ -1796,6 +1825,8 @@ class IsaacVisualization
         isaac_float3 clipping_saved_normals[ISAAC_MAX_CLIPPING];
         TController controller;
         TCompositor compositor;
+        uint32_t currentImage;
+        ThreadImage<TController> threadImages[2];
 };
 
 #if ISAAC_ALPAKA == 1
