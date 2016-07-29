@@ -24,7 +24,9 @@
 
 #include "None/NoSolver.hpp"
 #include "Yee/YeeSolver.hpp"
+#if (SIMDIM==DIM2)
+#include "DirSplitting/DirSplitting.hpp"
+#endif
 #if (SIMDIM==3)
 #include "Lehe/LeheSolver.hpp"
-#include "DirSplitting/DirSplitting.hpp"
 #endif

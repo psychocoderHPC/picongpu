@@ -21,6 +21,7 @@
 #pragma once
 
 #include "simulation_defines.hpp"
+#include "math/Vector.hpp"
 
 namespace picongpu
 {
@@ -31,20 +32,21 @@ class DirSplitting;
 
 namespace traits
 {
+    namespace mCT = PMacc::math::CT;
 
-template<>
-struct GetMargin<picongpu::dirSplitting::DirSplitting, picongpu::FIELD_B>
-{
-    typedef PMacc::math::CT::Int < 1, 1, 1 > LowerMargin;
-    typedef PMacc::math::CT::Int < 1, 1, 1 > UpperMargin;
-};
+    template<>
+    struct GetMargin<picongpu::dirSplitting::DirSplitting, picongpu::FIELD_B>
+    {
+        typedef mCT::shrinkTo<mCT::Int< 1, 1, 1 >, simDim>::type LowerMargin;
+        typedef mCT::shrinkTo<mCT::Int< 1, 1, 1 >, simDim>::type UpperMargin;
+    };
 
-template<>
-struct GetMargin<picongpu::dirSplitting::DirSplitting, picongpu::FIELD_E>
-{
-    typedef PMacc::math::CT::Int < 1, 1, 1 > LowerMargin;
-    typedef PMacc::math::CT::Int < 1, 1, 1 > UpperMargin;
-};
+    template<>
+    struct GetMargin<picongpu::dirSplitting::DirSplitting, picongpu::FIELD_E>
+    {
+        typedef mCT::shrinkTo<mCT::Int< 1, 1, 1 >, simDim>::type LowerMargin;
+        typedef mCT::shrinkTo<mCT::Int< 1, 1, 1 >, simDim>::type UpperMargin;
+    };
 
 } //namespace traits
 
