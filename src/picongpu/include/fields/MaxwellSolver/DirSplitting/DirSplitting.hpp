@@ -74,39 +74,39 @@ struct ConditionCheck<DirSplitting, T_Dummy>
 namespace result_of
 {
 
-template<typename T_FieldAxis, typename T_ComponentAxis, typename T_Cursor>
+template<typename T_SpaceTwist, typename T_ComponentTwist, typename T_Cursor>
 struct twistVectorForDirSplitting
 {
-    typedef PMacc::cursor::Cursor<PMacc::cursor::TwistAxesAccessor<T_Cursor, T_ComponentAxis>,
-                   PMacc::cursor::CT::TwistAxesNavigator<T_FieldAxis>,
+    typedef PMacc::cursor::Cursor<PMacc::cursor::TwistAxesAccessor<T_Cursor, T_ComponentTwist>,
+                   PMacc::cursor::CT::TwistAxesNavigator<T_SpaceTwist>,
                    T_Cursor> type;
 };
 
 } // result_of
 
-template<typename T_FieldAxis, typename T_ComponentAxis, typename T_Cursor>
+template<typename T_SpaceTwist, typename T_ComponentTwist, typename T_Cursor>
 HDINLINE
-typename result_of::twistVectorForDirSplitting<T_FieldAxis, T_ComponentAxis, T_Cursor>::type
+typename result_of::twistVectorForDirSplitting<T_SpaceTwist, T_ComponentTwist, T_Cursor>::type
 twistVectorForDirSplitting(const T_Cursor& cursor)
 {
-    return typename result_of::twistVectorForDirSplitting<T_FieldAxis, T_ComponentAxis, T_Cursor>::type(
-        PMacc::cursor::TwistAxesAccessor<T_Cursor, T_ComponentAxis>(),
-        PMacc::cursor::CT::TwistAxesNavigator<T_FieldAxis>(),
+    return typename result_of::twistVectorForDirSplitting<T_SpaceTwist, T_ComponentTwist, T_Cursor>::type(
+        PMacc::cursor::TwistAxesAccessor<T_Cursor, T_ComponentTwist>(),
+        PMacc::cursor::CT::TwistAxesNavigator<T_SpaceTwist>(),
         cursor);
 }
 
 class DirSplitting : private ConditionCheck<fieldSolver::FieldSolver>
 {
 private:
-    template<typename OrientationTwist,typename CursorE, typename CursorB, typename GridSize>
+    template<typename SpaceTwist, typename OrientationTwist,typename CursorE, typename CursorB, typename GridSize>
     void propagate(CursorE cursorE, CursorB cursorB, GridSize gridSize) const
     {
         using namespace cursor::tools;
         using namespace PMacc::math;
 
-        typedef typename CT::shrinkTo<OrientationTwist,simDim>::type ComponentTwist;
+        typedef typename CT::shrinkTo<SpaceTwist,simDim>::type SpaceTwistSimDim;
         PMACC_AUTO(gridSizeTwisted, twistComponents<
-            ComponentTwist
+            SpaceTwistSimDim
         >(gridSize));
 
         /* twist components of the supercell */
@@ -115,19 +115,19 @@ private:
         typedef typename PMacc::math::CT::AssignIfInRange<
             ZeroVector,
             bmpl::integral_c<int,0>,
-            typename PMacc::math::CT::At<SuperCellSize,typename OrientationTwist::x>::type
+            typename PMacc::math::CT::At<SuperCellSize,typename SpaceTwist::x>::type
         >::type VectorWith_X;
 
         typedef typename PMacc::math::CT::AssignIfInRange<
             VectorWith_X,
             bmpl::integral_c<int,1>,
-            typename PMacc::math::CT::At<SuperCellSize,typename OrientationTwist::y>::type
+            typename PMacc::math::CT::At<SuperCellSize,typename SpaceTwist::y>::type
         >::type VectorWith_XY;
 
         typedef typename PMacc::math::CT::AssignIfInRange<
             VectorWith_XY,
             bmpl::integral_c<int,2>,
-            typename PMacc::math::CT::At<SuperCellSize,typename OrientationTwist::z>::type
+            typename PMacc::math::CT::At<SuperCellSize,typename SpaceTwist::z>::type
         >::type BlockDim;
 
 
@@ -136,8 +136,8 @@ private:
 
         algorithm::kernel::ForeachBlock<BlockDim> foreach;
         foreach(zone::SphericZone<simDim>(zoneSize),
-                cursor::make_NestedCursor(twistVectorForDirSplitting<ComponentTwist, OrientationTwist>(cursorE)),
-                cursor::make_NestedCursor(twistVectorForDirSplitting<ComponentTwist, OrientationTwist>(cursorB)),
+                cursor::make_NestedCursor(twistVectorForDirSplitting<SpaceTwistSimDim, OrientationTwist>(cursorE)),
+                cursor::make_NestedCursor(twistVectorForDirSplitting<SpaceTwistSimDim, OrientationTwist>(cursorB)),
                 DirSplittingKernel<BlockDim>((int)gridSizeTwisted.x()));
     }
 public:
@@ -172,7 +172,8 @@ public:
         __setTransactionEvent(fieldB.asyncCommunication(__getTransactionEvent()));
 
         typedef PMacc::math::CT::Int<0,1,2> Orientation_X;
-        propagate<Orientation_X>(
+        typedef PMacc::math::CT::Int<0,1,2> Space_X;
+        propagate<Space_X,Orientation_X>(
                   fieldE_coreBorder.origin(),
                   fieldB_coreBorder.origin(),
                   gridSize);
@@ -180,8 +181,9 @@ public:
         __setTransactionEvent(fieldE.asyncCommunication(__getTransactionEvent()));
         __setTransactionEvent(fieldB.asyncCommunication(__getTransactionEvent()));
 
-        typedef PMacc::math::CT::Int<1,0,2> Orientation_Y;
-        propagate<Orientation_Y>(
+        typedef PMacc::math::CT::Int<1,2,0> Orientation_Y;
+        typedef PMacc::math::CT::Int<1,0,2> Space_Y;
+        propagate<Space_Y,Orientation_Y>(
                   fieldE_coreBorder.origin(),
                   fieldB_coreBorder.origin(),
                   gridSize);
