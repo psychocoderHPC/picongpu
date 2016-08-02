@@ -194,6 +194,7 @@ public:
 #if (SIMDIM==DIM3)
         //! \todo: currently 3D: check this code if someone enable 3D
         typedef PMacc::math::CT::Int<2,0,1> Orientation_Z;
+        typedef PMacc::math::CT::Int<2,0,1> Space_Y;
         propagate<Orientation_Z>(
                   fieldE_coreBorder.origin(),
                   fieldB_coreBorder.origin(),
