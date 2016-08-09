@@ -51,7 +51,7 @@ def set_colorbar(cb):
     for t in cb.ax.get_yticklabels():
         t.set_fontsize(16)
 
-def plotError(h5file, slice_pos=[0.5, 0.5, 0.5]):
+def plotError(h5file):
     """
     read field data from hdf5 files
     compute div(E) - rho/epsilon_0
@@ -61,9 +61,7 @@ def plotError(h5file, slice_pos=[0.5, 0.5, 0.5]):
     h5file: file name 
         file name to hdf5 data set from PIConGPU
             
-    slice_pos: list of floats
-        list of 3 floats to define slice position [0, 1]
-        Default=[0.5, 0.5, 0.5]
+
     """
     # load hdf5 file
     f = h5py.File(h5file, "r")
@@ -77,9 +75,9 @@ def plotError(h5file, slice_pos=[0.5, 0.5, 0.5]):
     EPS0 = f["/data/{}".format(timestep)].attrs["eps0"]
     CELL_WIDTH = f["/data/{}".format(timestep)].attrs["cell_width"]
     CELL_HEIGHT = f["/data/{}".format(timestep)].attrs["cell_height"]
-    CELL_DEPTH = f["/data/{}".format(timestep)].attrs["cell_depth"]
-    CELL_VOLUME = CELL_WIDTH * CELL_HEIGHT * CELL_DEPTH
-
+    # CELL_DEPTH = f["/data/{}".format(timestep)].attrs["cell_depth"]
+    CELL_VOLUME = CELL_WIDTH * CELL_HEIGHT
+    is2D = True
     # load electric field
     Ex = np.array(f["/data/{}/fields/E/x".format(timestep)])
     Ey = np.array(f["/data/{}/fields/E/y".format(timestep)])
@@ -97,16 +95,41 @@ def plotError(h5file, slice_pos=[0.5, 0.5, 0.5]):
             # add charge density to total charge density
             charge += species_Density
 
+    if not is2D:
+        CELL_DEPTH = f["/data/{}".format(timestep)].attrs["cell_depth"]
+        CELL_VOLUME = CELL_WIDTH * CELL_HEIGHT * CELL_DEPTH
+    else:
+        CELL_VOLUME = CELL_WIDTH * CELL_HEIGHT
+
     # close hdf5 file
     f.close()
 
-    # compute divergence of electric field according to Yee scheme
-    div = ((Ex[1:, 1:, 1:] - Ex[1:, 1:, :-1])/CELL_WIDTH + 
-           (Ey[1:, 1:, 1:] - Ey[1:, :-1, 1:])/CELL_HEIGHT + 
-           (Ez[1:, 1:, 1:] - Ez[:-1, 1:, 1:])/CELL_DEPTH)
+    if is2D:
 
-    # compute difference between electric field divergence and charge density
-    diff = (div  - charge[1:, 1:, 1:]/EPS0)
+        Exm = (Ex[1:, :] + Ex[:-1,:])/2.0
+        Eym = (Ey[:, 1:] + Ey[:,:-1])/2.0
+        Exm2 = Exm[:,1:]
+        Eym2 = Eym[1:, :]
+        #print( Exm2.shape)
+        #print( Eym2.shape)
+        
+        # compute divergence of electric field according to Yee scheme
+        div = ((Exm2[1:, 1:] - Exm2[1:, :-1])/CELL_WIDTH +
+               (Eym2[1:, 1:] - Eym2[:-1, 1:])/CELL_HEIGHT)
+        #div = ((Ex[1:, 1:] - Ex[1:, :-1])/CELL_WIDTH +
+        #       (Ey[1:, 1:] - Ey[:-1, 1:])/CELL_HEIGHT)
+
+        # compute difference between electric field divergence and charge density
+        diff = (div*EPS0  - charge[2:, 2:])
+
+    else:
+        # compute divergence of electric field according to Yee scheme
+        div = ((Ex[1:, 1:, 1:] - Ex[1:, 1:, :-1])/CELL_WIDTH +
+               (Ey[1:, 1:, 1:] - Ey[1:, :-1, 1:])/CELL_HEIGHT +
+               (Ez[1:, 1:, 1:] - Ez[:-1, 1:, 1:])/CELL_DEPTH)
+
+        # compute difference between electric field divergence and charge density
+        diff = (div*EPS0  - charge[1:, 1:, 1:])
 
     limit = np.amax(np.abs(diff))
 
@@ -114,9 +137,9 @@ def plotError(h5file, slice_pos=[0.5, 0.5, 0.5]):
     plt.figure(figsize=(14, 5))
 
     plt.subplot(131)
-    slice_cell_z = np.int(np.floor((diff.shape[0]-1)*slice_pos[0]))
-    plt.title("slice in z at {}".format(slice_cell_z), fontsize=20)    
-    plt.imshow(diff[slice_cell_z, :, :], 
+    # slice_cell_z = np.int(np.floor((diff.shape[0]-1)*slice_pos[0]))
+    # plt.title("slice in z at {}".format(slice_cell_z), fontsize=20)    
+    plt.imshow(diff[ :, :], 
                vmin=-limit, vmax=+limit,
                aspect='auto',
                cmap=plt.cm.bwr)
@@ -130,9 +153,9 @@ def plotError(h5file, slice_pos=[0.5, 0.5, 0.5]):
                  )
     
     plt.subplot(132)
-    slice_cell_y = np.int(np.floor((diff.shape[1]-1)*slice_pos[1]))
-    plt.title("slice in y at {}".format(slice_cell_y), fontsize=20)    
-    plt.imshow(diff[:, slice_cell_y, :], 
+    # slice_cell_y = np.int(np.floor((diff.shape[1]-1)*slice_pos[1]))
+    # plt.title("slice in y at {}".format(slice_cell_y), fontsize=20)    
+    plt.imshow(diff[:, :], 
                vmin=-limit, vmax=+limit,
                aspect='auto',
                cmap=plt.cm.bwr)
@@ -147,9 +170,9 @@ def plotError(h5file, slice_pos=[0.5, 0.5, 0.5]):
 
     
     plt.subplot(133)
-    slice_cell_x = np.int(np.floor((diff.shape[2]-1)*slice_pos[2]))
-    plt.title("slice in x at {}".format(slice_cell_x), fontsize=20)
-    plt.imshow(diff[:, :, slice_cell_x], 
+    # slice_cell_x = np.int(np.floor((diff.shape[2]-1)*slice_pos[2]))
+    # plt.title("slice in x at {}".format(slice_cell_x), fontsize=20)
+    plt.imshow(diff[:, :], 
                vmin=-limit, vmax=+limit,
                aspect='auto',
                cmap=plt.cm.bwr)
@@ -204,13 +227,13 @@ if __name__ == "__main__":
 
     args = parser.parse_args()
 
-    slice_pos = np.clip([args.z_split,
-                         args.y_split,
-                         args.x_split], 
-                        0, 1)
+    # slice_pos = np.clip([args.z_split,
+    #                      args.y_split,
+    #                      args.x_split], 
+    #                     0, 1)
 
     if os.path.isfile(args.h5file_name):
-        plotError(args.h5file_name, slice_pos=slice_pos)
-    else:
-        print("ERROR: {} is not a file".format(args.h5file_name))
+        plotError(args.h5file_name)
+    # else:
+    #     print("ERROR: {} is not a file".format(args.h5file_name))
 

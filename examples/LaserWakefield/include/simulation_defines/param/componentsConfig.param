@@ -52,7 +52,7 @@ namespace laserProfile = laserGaussianBeam;
  *    (need more shared memory per GPU and is slow)
  */
 #ifndef PARAM_FIELDSOLVER
-#define PARAM_FIELDSOLVER fieldSolverYee
+#define PARAM_FIELDSOLVER fieldSolverDirSplitting
 #endif
 namespace fieldSolver = PARAM_FIELDSOLVER;
 

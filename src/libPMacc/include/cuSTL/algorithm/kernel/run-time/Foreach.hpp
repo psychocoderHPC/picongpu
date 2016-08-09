@@ -113,7 +113,7 @@ math::Size_t<DIM3> getBestCudaBlockDim(const math::Size_t<dim> gridDim)
 }
 
 #ifndef FOREACH_KERNEL_MAX_PARAMS
-#define FOREACH_KERNEL_MAX_PARAMS 4
+#define FOREACH_KERNEL_MAX_PARAMS 7
 #endif
 
 #define SHIFT_CURSOR_ZONE(Z, N, _) C ## N c ## N ## _shifted = c ## N (p_zone.offset);

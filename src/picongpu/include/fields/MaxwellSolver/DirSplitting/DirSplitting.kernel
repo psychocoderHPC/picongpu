@@ -31,7 +31,7 @@
 namespace picongpu
 {
 
-template<typename BlockDim>
+template<typename BlockDim, typename JSpaceTwist>
 struct DirSplittingKernel
 {
     typedef void result_type;
@@ -56,16 +56,30 @@ struct DirSplittingKernel
     PMACC_ALIGN(totalLength,int);
     DirSplittingKernel(int totalLength) : totalLength(totalLength) {}
 
-    template<typename CursorE, typename CursorB >
-    DINLINE void propagate(CursorE cursorE, CursorB cursorB) const
+    template<typename CursorE, typename CursorB, typename CursorJ, typename RCursorE, typename RCursorB >
+    DINLINE void propagate(CursorE cursorE, CursorB cursorB, CursorJ cursorJ, RCursorE r_cursorE, RCursorB r_cursorB) const
     {
+        typedef typename PMacc::math::CT::AssignIfInRange<
+            ZeroVector,
+            bmpl::integral_c<int,JSpaceTwist::y::value>,
+            bmpl::integral_c<int,1>
+        >::type jYDir;
+
+        typedef typename PMacc::math::CT::AssignIfInRange<
+            ZeroVector,
+            bmpl::integral_c<int,JSpaceTwist::z::value>,
+            bmpl::integral_c<int,1>
+        >::type jZDir;
+
+        const float_X deltaT = DELTA_T;
+        const float_X constJE = (float_X(0.5)  / EPS0) * deltaT;
 
         const PMACC_AUTO(minus,Minus::toRT());
         const PMACC_AUTO(plus,Plus::toRT());
-        float a_plus = (*cursorB(minus)).z() + (*cursorE(minus)).y();
-        float a_minus = (*cursorB(plus)).z() - (*cursorE(plus)).y();
-        float a_prime_plus = (*cursorB(minus)).y() - (*cursorE(minus)).z();
-        float a_prime_minus = (*cursorB(plus)).y() + (*cursorE(plus)).z();
+        float a_plus = (*cursorB(minus)).z() + (*cursorE(minus)).y() - ( (*cursorJ).y() + ( *cursorJ(jYDir::toRT()) ).y() ) * constJE;
+        float a_minus = (*cursorB(plus)).z() - (*cursorE(plus)).y() + ( (*cursorJ(plus)).y() + ( *cursorJ(plus + jYDir::toRT()) ).y() ) * constJE;
+        float a_prime_plus = (*cursorB(minus)).y() - (*cursorE(minus)).z() + ( (*cursorJ).z() + ( *cursorJ(jZDir::toRT())).z() ) * constJE;
+        float a_prime_minus = (*cursorB(plus)).y() + (*cursorE(plus)).z() - ( (*cursorJ(plus)).z() + (*cursorJ(plus + jZDir::toRT()) ).z() ) * constJE;
 
         __syncthreads();
 
@@ -77,8 +91,8 @@ struct DirSplittingKernel
         __syncthreads();
     }
 
-    template<typename CursorE, typename CursorB >
-    DINLINE void operator()(CursorE globalE, CursorB globalB) const
+    template<typename CursorE, typename CursorB, typename CursorJ >
+    DINLINE void operator()(CursorE globalE, CursorB globalB,CursorJ globalJ, CursorE old_globalE, CursorB old_globalB) const
     {
 
         typedef typename PMacc::math::CT::Assign<
@@ -141,7 +155,7 @@ struct DirSplittingKernel
                 *cursorB(minus) = fieldB_old;
             }
 
-            propagate(cursorE, cursorB);
+            propagate(cursorE, cursorB, globalJ(globalShift+cursorShift),globalE(globalShift+cursorShift),globalB(globalShift+cursorShift));
 
             DataSpace<simDim> globalShiftTmp;
             globalShiftTmp.x() = x_offset;
