@@ -58,7 +58,7 @@ BOOST_CONSTEXPR_OR_CONST float_X preChannel2_opacity = 1.0;
 BOOST_CONSTEXPR_OR_CONST float_X preChannel3_opacity = 1.0;
 
 // specify color scales for each channel
-namespace preParticleDensCol = colorScales::grayInv;
+namespace preParticleDensCol = colorScales::red;
 namespace preChannel1Col = colorScales::green;
 namespace preChannel2Col = colorScales::none;
 namespace preChannel3Col = colorScales::none;

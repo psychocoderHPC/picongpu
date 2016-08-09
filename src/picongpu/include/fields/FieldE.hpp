@@ -89,6 +89,8 @@ namespace picongpu
         DataBoxType getHostDataBox();
 
         GridBuffer<ValueType,simDim>& getGridBuffer();
+        GridBuffer<ValueType, simDim> &getGridBuffer2();
+        void sync( );
 
         GridLayout<simDim> getGridLayout();
 
@@ -106,6 +108,7 @@ namespace picongpu
 
 
         GridBuffer<ValueType,simDim> *fieldE;
+        GridBuffer<ValueType,simDim> *fieldE2;
 
         FieldB *fieldB;
 

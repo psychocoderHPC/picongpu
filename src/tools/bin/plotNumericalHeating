@@ -181,7 +181,7 @@ else:
 
 if not args.boolDiff:
     # plot energy evolution
-    plt.plot(Times[0][:time_limit], 
+    plt.plot(Times[0][:time_limit]*1.411, 
              (Energies[0][:time_limit]-startEnergy[0])*norm, 
              color="green", lw=3, label=args.label1)
     if numDir == 2:
@@ -215,7 +215,7 @@ if not args.boolDiff:
 else:
     # plot difference in energy evolution
     if numDir == 2:
-        plt.plot(Times[0][:time_limit], 
+        plt.plot(Times[0][:time_limit] * 1.411, 
                  (Energies[0][:time_limit]-Energies[1][:time_limit])*norm, 
                  color="red", lw=3)
     else:

@@ -517,7 +517,9 @@ public:
         if(bmpl::size<VectorSpeciesWithCurrentSolver>::type::value > 0)
         {
             EventTask eRecvCurrent = fieldJ->asyncCommunication(__getTransactionEvent());
+            __setTransactionEvent(eRecvCurrent);
 
+#if 0
             const DataSpace<simDim> currentRecvLower( GetMargin<fieldSolver::CurrentInterpolation>::LowerMargin( ).toRT( ) );
             const DataSpace<simDim> currentRecvUpper( GetMargin<fieldSolver::CurrentInterpolation>::UpperMargin( ).toRT( ) );
 
@@ -541,6 +543,7 @@ public:
                 __setTransactionEvent(eRecvCurrent);
                 fieldJ->addCurrentToEMF<CORE + BORDER>(*myCurrentInterpolation);
             }
+#endif
         }
 #endif
 

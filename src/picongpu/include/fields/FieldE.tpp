@@ -61,6 +61,7 @@ SimulationFieldHelper<MappingDesc>( cellDescription ),
 fieldB( NULL )
 {
     fieldE = new GridBuffer<ValueType, simDim > ( cellDescription.getGridLayout( ) );
+    fieldE2 = new GridBuffer<ValueType, simDim > ( cellDescription.getGridLayout( ) );
     typedef typename PMacc::particles::traits::FilterByFlag
     <
         VectorAllSpecies,
@@ -89,9 +90,9 @@ fieldB( NULL )
         GetMargin<fieldSolver::FieldSolver, FIELD_E>::UpperMargin
         >::type UpperMarginInterpolationAndSolver;
 
-    /* Calculate upper and lower margin for pusher 
-       (currently all pusher use the interpolation of the species)  
-       and find maximum margin 
+    /* Calculate upper and lower margin for pusher
+       (currently all pusher use the interpolation of the species)
+       and find maximum margin
     */
     typedef typename PMacc::particles::traits::FilterByFlag
     <
@@ -131,6 +132,7 @@ fieldB( NULL )
 FieldE::~FieldE( )
 {
     __delete(fieldE);
+    __delete(fieldE2);
 }
 
 SimulationDataId FieldE::getUniqueId()
@@ -174,6 +176,22 @@ FieldE::DataBoxType FieldE::getHostDataBox( )
 GridBuffer<FieldE::ValueType, simDim> &FieldE::getGridBuffer( )
 {
     return *fieldE;
+}
+
+GridBuffer<FieldE::ValueType, simDim> &FieldE::getGridBuffer2( )
+{
+
+    return *fieldE2;
+}
+
+void FieldE::sync( )
+{
+    __setTransactionEvent(
+        Environment<>::get( ).Factory( ).createTaskCopyDeviceToDevice(
+            fieldE->getDeviceBuffer( ),
+            fieldE2->getDeviceBuffer( ),
+            NULL )
+        );
 }
 
 GridLayout< simDim> FieldE::getGridLayout( )
