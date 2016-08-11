@@ -144,53 +144,9 @@ private:
                 DirSplittingKernel<BlockDim,JSpaceTwist>((int)gridSizeTwisted.x()));
     }
 
-    template<typename SpaceTwist, typename OrientationTwist,typename JSpaceTwist,typename CursorE, typename CursorB, typename CursorJ, typename GridSize>
-    void propagateZ(CursorE cursorE, CursorB cursorB,CursorJ cursorJ,CursorE old_cursorE, CursorB old_cursorB, GridSize gridSize) const
-    {
-        using namespace cursor::tools;
-        using namespace PMacc::math;
-
-        typedef typename CT::shrinkTo<SpaceTwist,simDim>::type SpaceTwistSimDim;
-        PMACC_AUTO(gridSizeTwisted, twistComponents<
-            SpaceTwistSimDim
-        >(gridSize));
-
-        /* twist components of the supercell */
-        typedef typename PMacc::math::CT::make_Vector<simDim,bmpl::integral_c<int,0> >::type ZeroVector;
-
-        typedef typename PMacc::math::CT::AssignIfInRange<
-            ZeroVector,
-            bmpl::integral_c<int,0>,
-            typename PMacc::math::CT::At<SuperCellSize,typename SpaceTwist::x>::type
-        >::type VectorWith_X;
-
-        typedef typename PMacc::math::CT::AssignIfInRange<
-            VectorWith_X,
-            bmpl::integral_c<int,1>,
-            typename PMacc::math::CT::At<SuperCellSize,typename SpaceTwist::y>::type
-        >::type VectorWith_XY;
-
-        typedef typename PMacc::math::CT::AssignIfInRange<
-            VectorWith_XY,
-            bmpl::integral_c<int,2>,
-            typename PMacc::math::CT::At<SuperCellSize,typename SpaceTwist::z>::type
-        >::type BlockDim;
 
 
-        PMacc::math::Size_t<simDim> zoneSize(gridSizeTwisted);
-        //zoneSize.x()=BlockDim::x::value;
-
-        algorithm::kernel::ForeachBlock<BlockDim> foreach;
-        foreach(zone::SphericZone<simDim>(zoneSize),
-                cursor::make_NestedCursor(twistVectorForDirSplitting<SpaceTwistSimDim, OrientationTwist>(cursorE)),
-                cursor::make_NestedCursor(twistVectorForDirSplitting<SpaceTwistSimDim, OrientationTwist>(cursorB)),
-                cursor::make_NestedCursor(twistVectorForDirSplitting<SpaceTwistSimDim, OrientationTwist>(cursorJ)),
-                cursor::make_NestedCursor(twistVectorForDirSplitting<SpaceTwistSimDim, OrientationTwist>(old_cursorE)),
-                cursor::make_NestedCursor(twistVectorForDirSplitting<SpaceTwistSimDim, OrientationTwist>(old_cursorB)),
-                DirSplittingKernelZ<BlockDim,JSpaceTwist>((int)gridSizeTwisted.x()));
-    }
-
-        template<typename SpaceTwist, typename OrientationTwist,typename JSpaceTwist,typename CursorE, typename CursorB, typename CursorJ, typename GridSize>
+    template<typename SpaceTwist, typename OrientationTwist,int dir,typename CursorE, typename CursorB, typename CursorJ, typename GridSize>
     void propagateX(CursorE cursorE, CursorB cursorB,CursorJ cursorJ,CursorE old_cursorE, CursorB old_cursorB, GridSize gridSize) const
     {
         using namespace cursor::tools;
@@ -233,7 +189,7 @@ private:
                 cursor::make_NestedCursor(twistVectorForDirSplitting<SpaceTwistSimDim, OrientationTwist>(cursorJ)),
                 cursor::make_NestedCursor(twistVectorForDirSplitting<SpaceTwistSimDim, OrientationTwist>(old_cursorE)),
                 cursor::make_NestedCursor(twistVectorForDirSplitting<SpaceTwistSimDim, OrientationTwist>(old_cursorB)),
-                DirSplittingKernelX<BlockDim,JSpaceTwist>((int)gridSizeTwisted.x()));
+                DirSplittingKernelX<BlockDim,dir>((int)gridSizeTwisted.x()));
     }
 public:
     DirSplitting(MappingDesc) {}
@@ -301,16 +257,7 @@ public:
                   old_fieldE_coreBorder.origin(),
                   old_fieldB_coreBorder.origin(),
                   gridSize);
-        typedef PMacc::math::CT::Int<0,1,2> Orientation_XJ;
-        typedef PMacc::math::CT::Int<0,1,2> Space_XJ;
-        typedef PMacc::math::CT::Int<0,2,1> JDir_XJ;
-        propagateX<Space_XJ,Orientation_XJ, JDir_XJ>(
-                  fieldE_coreBorder.origin(),
-                  fieldB_coreBorder.origin(),
-                  fieldJ_coreBorder.origin(),
-                  old_fieldE_coreBorder.origin(),
-                  old_fieldB_coreBorder.origin(),
-                  gridSize);
+
 
 
 
@@ -329,39 +276,39 @@ public:
                   old_fieldB_coreBorder.origin(),
                   gridSize);
 
-        typedef PMacc::math::CT::Int<1,2,0> Orientation_YJ;
-        typedef PMacc::math::CT::Int<1,0,2> Space_YJ;
-        typedef PMacc::math::CT::Int<0,1,2> JDir_YJ;
-        propagateX<Space_YJ,Orientation_YJ, JDir_YJ>(
-                  fieldE_coreBorder.origin(),
-                  fieldB_coreBorder.origin(),
-                  fieldJ_coreBorder.origin(),
-                  old_fieldE_coreBorder.origin(),
-                  old_fieldB_coreBorder.origin(),
-                  gridSize);
-
 
         __setTransactionEvent(fieldE.asyncCommunication(__getTransactionEvent()));
         __setTransactionEvent(fieldB.asyncCommunication(__getTransactionEvent()));
 //#if 0
                 //! \todo: currently 3D: check this code if someone enable 3D
+        typedef PMacc::math::CT::Int<0,1,2> Orientation_XJ;
+        typedef PMacc::math::CT::Int<0,1,2> Space_XJ;
 
-                //! \todo: currently 3D: check this code if someone enable 3D
-
-
-        //! \todo: currently 3D: check this code if someone enable 3D
-#if 0
-        typedef PMacc::math::CT::Int<1,0,2> Orientation_Z;
-        typedef PMacc::math::CT::Int<1,0,2> Space_Z;
-        typedef PMacc::math::CT::Int<1,0,2> JDir_Z;
-        propagateZ<Space_Z,Orientation_Z, JDir_Z>(
+        propagateX<Space_XJ,Orientation_XJ, 0>(
                   fieldE_coreBorder.origin(),
                   fieldB_coreBorder.origin(),
                   fieldJ_coreBorder.origin(),
                   old_fieldE_coreBorder.origin(),
                   old_fieldB_coreBorder.origin(),
                   gridSize);
-#endif
+
+        propagateX<Space_XJ,Orientation_XJ, 1>(
+                  fieldE_coreBorder.origin(),
+                  fieldB_coreBorder.origin(),
+                  fieldJ_coreBorder.origin(),
+                  old_fieldE_coreBorder.origin(),
+                  old_fieldB_coreBorder.origin(),
+                  gridSize);
+
+        propagateX<Space_XJ,Orientation_XJ, 2>(
+                  fieldE_coreBorder.origin(),
+                  fieldB_coreBorder.origin(),
+                  fieldJ_coreBorder.origin(),
+                  old_fieldE_coreBorder.origin(),
+                  old_fieldB_coreBorder.origin(),
+                  gridSize);
+
+
         __setTransactionEvent(fieldE.asyncCommunication(__getTransactionEvent()));
         __setTransactionEvent(fieldB.asyncCommunication(__getTransactionEvent()));
 //#endif
