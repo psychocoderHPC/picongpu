@@ -136,19 +136,19 @@ def deviation_charge_conservation(h5file):
 
     if is2D:
 
-        Exm = (Ex[1:, :] + Ex[:-1,:])/2.0
-        Eym = (Ey[:, 1:] + Ey[:,:-1])/2.0
-        Exm2 = Exm[:,1:]
-        Eym2 = Eym[1:,:]
+        #Exm = (Ex[1:, :] + Ex[:-1,:])/2.0
+        #Eym = (Ey[:, 1:] + Ey[:,:-1])/2.0
+        #Exm2 = Exm[:,1:]
+        #Eym2 = Eym[1:,:]
         #print( Exm2.shape)
         #print( Eym2.shape)
         
         # compute divergence of electric field according to Yee scheme
-        div = ((Exm2[1:, 1:] - Exm2[1:, :-1])/CELL_WIDTH +
-               (Eym2[1:, 1:] - Eym2[:-1, 1:])/CELL_HEIGHT)
+        div = ((Ex[1:, 1:] - Ex[1:, :-1])/CELL_WIDTH +
+               (Ey[1:, 1:] - Ey[:-1, 1:])/CELL_HEIGHT)
 
         # compute difference between electric field divergence and charge density
-        diff = (div*EPS0  - charge[2:, 2:])
+        diff = (div*EPS0  - charge[1:, 1:])
 
     else:
         # compute divergence of electric field according to Yee scheme

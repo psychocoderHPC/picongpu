@@ -76,10 +76,10 @@ struct DirSplittingKernel
 
         const PMACC_AUTO(minus,Minus::toRT());
         const PMACC_AUTO(plus,Plus::toRT());
-        float a_plus = (*cursorB(minus)).z() + (*cursorE(minus)).y() - ( (*cursorJ).y() + ( *cursorJ(jYDir::toRT()) ).y() ) * constJE;
-        float a_minus = (*cursorB(plus)).z() - (*cursorE(plus)).y() + ( (*cursorJ(plus)).y() + ( *cursorJ(plus + jYDir::toRT()) ).y() ) * constJE;
-        float a_prime_plus = (*cursorB(minus)).y() - (*cursorE(minus)).z() + ( (*cursorJ).z() + ( *cursorJ(jZDir::toRT())).z() ) * constJE;
-        float a_prime_minus = (*cursorB(plus)).y() + (*cursorE(plus)).z() - ( (*cursorJ(plus)).z() + (*cursorJ(plus + jZDir::toRT()) ).z() ) * constJE;
+        float a_plus = (*cursorB(minus)).z() + (*cursorE(minus)).y(); /*- ( (*cursorJ).y() + ( *cursorJ(jYDir::toRT()) ).y() ) * constJE;*/
+        float a_minus = (*cursorB(plus)).z() - (*cursorE(plus)).y(); /*+ ( (*cursorJ(plus)).y() + ( *cursorJ(plus + jYDir::toRT()) ).y() ) * constJE;*/
+        float a_prime_plus = (*cursorB(minus)).y() - (*cursorE(minus)).z();/* + ( (*cursorJ).z() + ( *cursorJ(jZDir::toRT())).z() ) * constJE;*/
+        float a_prime_minus = (*cursorB(plus)).y() + (*cursorE(plus)).z(); /*- ( (*cursorJ(plus)).z() + (*cursorJ(plus + jZDir::toRT()) ).z() ) * constJE;*/
 
         __syncthreads();
 
@@ -167,6 +167,236 @@ struct DirSplittingKernel
             __syncthreads();
 
             threadPos_x = BlockDim::x::value - 1 - threadPos_x;
+        }
+    }
+
+};
+
+template<typename BlockDim, typename JSpaceTwist>
+struct DirSplittingKernelZ
+{
+    typedef void result_type;
+
+    typedef typename PMacc::math::CT::make_Vector<
+        simDim,
+        bmpl::integral_c<int,0>
+    >::type ZeroVector;
+
+    typedef typename PMacc::math::CT::Assign<
+        ZeroVector,
+        bmpl::integral_c<int,0>,
+        bmpl::integral_c<int,-1>
+    >::type Minus;
+
+    typedef typename PMacc::math::CT::Assign<
+        ZeroVector,
+        bmpl::integral_c<int,0>,
+        bmpl::integral_c<int,1>
+    >::type Plus;
+
+    PMACC_ALIGN(totalLength,int);
+    DirSplittingKernelZ(int totalLength) : totalLength(totalLength) {}
+
+    template<typename CursorE, typename CursorB, typename CursorJ, typename RCursorE, typename RCursorB >
+    DINLINE void propagate(CursorE cursorE, CursorB cursorB, CursorJ cursorJ, RCursorE r_cursorE, RCursorB r_cursorB) const
+    {
+        typedef typename PMacc::math::CT::AssignIfInRange<
+            ZeroVector,
+            bmpl::integral_c<int,JSpaceTwist::y::value>,
+            bmpl::integral_c<int,1>
+        >::type jYDir;
+
+        typedef typename PMacc::math::CT::AssignIfInRange<
+            ZeroVector,
+            bmpl::integral_c<int,JSpaceTwist::x::value>,
+            bmpl::integral_c<int,1>
+        >::type jZDir;
+
+        const float_X deltaT = DELTA_T;
+        const float_X constJE = (float_X(0.5)  / EPS0) * deltaT;
+
+        const PMACC_AUTO(minus,ZeroVector::toRT());
+        const PMACC_AUTO(plus,ZeroVector::toRT());
+        float a_plus = /*(*cursorB(minus)).x() + (*cursorE(minus)).y()*/ - ( (*cursorJ).y() + ( *cursorJ(jYDir::toRT()) ).y() ) * constJE;
+        float a_minus = /*(*cursorB(plus)).x() - (*cursorE(plus)).y()*/ + ( (*cursorJ(plus)).y() + ( *cursorJ(plus + jYDir::toRT()) ).y() ) * constJE;
+        float a_prime_plus = /*(*cursorB(minus)).y() - (*cursorE(minus)).x()*/ + ( (*cursorJ).x() + ( *cursorJ(jZDir::toRT())).x() ) * constJE;
+        float a_prime_minus = /*(*cursorB(plus)).y() + (*cursorE(plus)).x()*/ - ( (*cursorJ(plus)).x() + (*cursorJ(plus + jZDir::toRT()) ).x() ) * constJE;
+
+        __syncthreads();
+
+        (*cursorB).x() += 0.5f * (a_plus + a_minus);
+        (*cursorE).y() += 0.5f * (a_plus - a_minus);
+        (*cursorB).y() += 0.5f * (a_prime_plus + a_prime_minus);
+        (*cursorE).x() += 0.5f * (a_prime_minus - a_prime_plus);
+
+        __syncthreads();
+    }
+
+    template<typename CursorE, typename CursorB, typename CursorJ >
+    DINLINE void operator()(CursorE globalE, CursorB globalB,CursorJ globalJ, CursorE old_globalE, CursorB old_globalB) const
+    {
+
+        typedef container::CT::SharedBuffer<float3_X, BlockDim, 0 > CacheE;
+        typedef container::CT::SharedBuffer<float3_X, BlockDim, 1 > CacheB;
+        CacheE cacheE;
+        CacheB cacheB;
+
+        using namespace lambda;
+        DECLARE_PLACEHOLDERS();
+
+        float3_X fieldE_old;
+        float3_X fieldB_old;
+        const DataSpace<simDim> threadIndex(threadIdx);
+        int threadPos_x = threadIndex.x();
+
+        algorithm::cudaBlock::Foreach<BlockDim> foreach;
+        //for (int x_offset = 0; x_offset < this->totalLength; x_offset += BlockDim::x::value)
+        {
+            PMACC_AUTO(globalShift,DataSpace<simDim>::create(0));
+            //globalShift.x() = x_offset;
+
+            foreach(CacheE::Zone(), cacheE.origin(), globalE(globalShift), _1 = _2);
+            foreach(CacheB::Zone(), cacheB.origin(), globalB(globalShift), _1 = _2);
+            __syncthreads();
+
+            const PMACC_AUTO(plus,Plus::toRT());
+
+            DataSpace<simDim> cursorShift;
+            //cursorShift.x()+=threadPos_x;
+
+            for(uint32_t d = 0;d < simDim; ++d)
+                cursorShift[d]+=threadIndex[d];
+
+            BOOST_AUTO(cursorE, cacheE.origin()(cursorShift));
+            BOOST_AUTO(cursorB, cacheB.origin()(cursorShift));
+
+            propagate(cursorE, cursorB, globalJ(globalShift+cursorShift),globalE(globalShift+cursorShift),globalB(globalShift+cursorShift));
+
+            DataSpace<simDim> globalShiftTmp;
+            //globalShiftTmp.x() = x_offset;
+
+            typedef zone::CT::SphericZone<BlockDim> BlockZone;
+            foreach(BlockZone(), cacheE.origin(), globalE(globalShiftTmp), _2 = _1);
+            foreach(BlockZone(), cacheB.origin(), globalB(globalShiftTmp), _2 = _1);
+
+            __syncthreads();
+
+            //threadPos_x = BlockDim::x::value - 1 - threadPos_x;
+        }
+    }
+
+};
+
+template<typename BlockDim, typename JSpaceTwist>
+struct DirSplittingKernelX
+{
+    typedef void result_type;
+
+    typedef typename PMacc::math::CT::make_Vector<
+        simDim,
+        bmpl::integral_c<int,0>
+    >::type ZeroVector;
+
+    typedef typename PMacc::math::CT::Assign<
+        ZeroVector,
+        bmpl::integral_c<int,0>,
+        bmpl::integral_c<int,-1>
+    >::type Minus;
+
+    typedef typename PMacc::math::CT::Assign<
+        ZeroVector,
+        bmpl::integral_c<int,0>,
+        bmpl::integral_c<int,1>
+    >::type Plus;
+
+    PMACC_ALIGN(totalLength,int);
+    DirSplittingKernelX(int totalLength) : totalLength(totalLength) {}
+
+    template<typename CursorE, typename CursorB, typename CursorJ, typename RCursorE, typename RCursorB >
+    DINLINE void propagate(CursorE cursorE, CursorB cursorB, CursorJ cursorJ, RCursorE r_cursorE, RCursorB r_cursorB) const
+    {
+        typedef typename PMacc::math::CT::AssignIfInRange<
+            ZeroVector,
+            bmpl::integral_c<int,JSpaceTwist::y::value>,
+            bmpl::integral_c<int,1>
+        >::type jYDir;
+
+        typedef typename PMacc::math::CT::AssignIfInRange<
+            ZeroVector,
+            bmpl::integral_c<int,JSpaceTwist::z::value>,
+            bmpl::integral_c<int,1>
+        >::type jZDir;
+
+        const float_X deltaT = DELTA_T;
+        const float_X constJE = (float_X(0.5)  / EPS0) * deltaT;
+
+        const PMACC_AUTO(minus,Minus::toRT());
+        const PMACC_AUTO(plus,Plus::toRT());
+        float a_plus = /*(*cursorB(minus)).x() + (*cursorE(minus)).y()*/ - ( (*cursorJ).y() + ( *cursorJ(jYDir::toRT()) ).y() ) * constJE;
+        float a_minus = /*(*cursorB(plus)).x() - (*cursorE(plus)).y()*/ + ( (*cursorJ(plus)).y() + ( *cursorJ(plus + jYDir::toRT()) ).y() ) * constJE;
+        float a_prime_plus = /*(*cursorB(minus)).y() - (*cursorE(minus)).x()*/ + ( (*cursorJ).z() + ( *cursorJ(jZDir::toRT())).z() ) * constJE;
+        float a_prime_minus = /*(*cursorB(plus)).y() + (*cursorE(plus)).x()*/ - ( (*cursorJ(plus)).z() + (*cursorJ(plus + jZDir::toRT()) ).z() ) * constJE;
+
+        __syncthreads();
+
+        (*cursorB).z() += 0.5f * (a_plus + a_minus);
+        (*cursorE).y() += 0.5f * (a_plus - a_minus);
+        (*cursorB).y() += 0.5f * (a_prime_plus + a_prime_minus);
+        (*cursorE).z() += 0.5f * (a_prime_minus - a_prime_plus);
+
+        __syncthreads();
+    }
+
+    template<typename CursorE, typename CursorB, typename CursorJ >
+    DINLINE void operator()(CursorE globalE, CursorB globalB,CursorJ globalJ, CursorE old_globalE, CursorB old_globalB) const
+    {
+
+        typedef container::CT::SharedBuffer<float3_X, BlockDim, 0 > CacheE;
+        typedef container::CT::SharedBuffer<float3_X, BlockDim, 1 > CacheB;
+        CacheE cacheE;
+        CacheB cacheB;
+
+        using namespace lambda;
+        DECLARE_PLACEHOLDERS();
+
+        float3_X fieldE_old;
+        float3_X fieldB_old;
+        const DataSpace<simDim> threadIndex(threadIdx);
+        int threadPos_x = threadIndex.x();
+
+        algorithm::cudaBlock::Foreach<BlockDim> foreach;
+        //for (int x_offset = 0; x_offset < this->totalLength; x_offset += BlockDim::x::value)
+        {
+            PMACC_AUTO(globalShift,DataSpace<simDim>::create(0));
+            //globalShift.x() = x_offset;
+
+            foreach(CacheE::Zone(), cacheE.origin(), globalE(globalShift), _1 = _2);
+            foreach(CacheB::Zone(), cacheB.origin(), globalB(globalShift), _1 = _2);
+            __syncthreads();
+
+            const PMACC_AUTO(plus,Plus::toRT());
+
+            DataSpace<simDim> cursorShift;
+            //cursorShift.x()+=threadPos_x;
+
+            for(uint32_t d = 0;d < simDim; ++d)
+                cursorShift[d]+=threadIndex[d];
+
+            BOOST_AUTO(cursorE, cacheE.origin()(cursorShift));
+            BOOST_AUTO(cursorB, cacheB.origin()(cursorShift));
+
+            propagate(cursorE, cursorB, globalJ(globalShift+cursorShift),globalE(globalShift+cursorShift),globalB(globalShift+cursorShift));
+
+            DataSpace<simDim> globalShiftTmp;
+            //globalShiftTmp.x() = x_offset;
+
+            typedef zone::CT::SphericZone<BlockDim> BlockZone;
+            foreach(BlockZone(), cacheE.origin(), globalE(globalShiftTmp), _2 = _1);
+            foreach(BlockZone(), cacheB.origin(), globalB(globalShiftTmp), _2 = _1);
+
+            __syncthreads();
+
+            //threadPos_x = BlockDim::x::value - 1 - threadPos_x;
         }
     }
 
