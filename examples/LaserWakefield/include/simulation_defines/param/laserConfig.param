@@ -40,7 +40,7 @@ namespace picongpu
             // calculate: _A0 = 8.549297e-6 * sqrt( Intensity[W/m^2] ) * wavelength[m] (linearly polarized)
 
             /** unit: none */
-            BOOST_CONSTEXPR_OR_CONST float_64 _A0  = 8.0;
+            BOOST_CONSTEXPR_OR_CONST float_64 _A0  = 8.0 * 2.0;
 
             /** unit: Volt /meter */
             BOOST_CONSTEXPR_OR_CONST float_64 AMPLITUDE_SI = _A0 * UNITCONV_A0_to_Amplitude_SI;

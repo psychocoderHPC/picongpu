@@ -146,6 +146,10 @@ private:
                     (nextVirtualParticlePositionInCells % gpuNumberOfCellsInMoveDirection) <
                     (virtualParticlePositionInCells % gpuNumberOfCellsInMoveDirection);
 
+                if(virtualParticlePassesGPUBorder)
+                {
+                    std::cout<<"end of init"<<endOfInitialGlobalDomain<<" step="<<currentStep<<" firstslidestep="<<firstSlideStep<<std::endl;
+                }
                 if (endOfInitialGlobalDomain && virtualParticlePassesGPUBorder)
                 {
                     incrementSlideCounter(currentStep);
