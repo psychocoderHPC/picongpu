@@ -23,6 +23,12 @@
 #include "simulation_defines.hpp"
 #include "math/Vector.hpp"
 
+/**
+ * 0 == alex version
+ * 1 == sentoku's current deposition
+ */
+#define SENTOKU 0
+
 namespace picongpu
 {
 namespace dirSplitting

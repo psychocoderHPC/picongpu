@@ -20,6 +20,7 @@
 
 #pragma once
 
+#include "DirSplitting.def"
 #include "pmacc_types.hpp"
 #include <math/vector/Float.hpp>
 #include "math/Vector.hpp"
@@ -76,10 +77,26 @@ struct DirSplittingKernel
 
         const PMACC_AUTO(minus,Minus::toRT());
         const PMACC_AUTO(plus,Plus::toRT());
-        float a_plus = (*cursorB(minus)).z() + (*cursorE(minus)).y(); /*- ( (*cursorJ).y() + ( *cursorJ(jYDir::toRT()) ).y() ) * constJE;*/
-        float a_minus = (*cursorB(plus)).z() - (*cursorE(plus)).y(); /*+ ( (*cursorJ(plus)).y() + ( *cursorJ(plus + jYDir::toRT()) ).y() ) * constJE;*/
-        float a_prime_plus = (*cursorB(minus)).y() - (*cursorE(minus)).z();/* + ( (*cursorJ).z() + ( *cursorJ(jZDir::toRT())).z() ) * constJE;*/
-        float a_prime_minus = (*cursorB(plus)).y() + (*cursorE(plus)).z(); /*- ( (*cursorJ(plus)).z() + (*cursorJ(plus + jZDir::toRT()) ).z() ) * constJE;*/
+        float a_plus = (*cursorB(minus)).z() + (*cursorE(minus)).y()
+#if (SENTOKU==0)
+            - ( (*cursorJ).y() + ( *cursorJ(jYDir::toRT()) ).y() ) * constJE
+#endif
+        ;
+        float a_minus = (*cursorB(plus)).z() - (*cursorE(plus)).y()
+#if (SENTOKU==0)
+            + ( (*cursorJ(plus)).y() + ( *cursorJ(plus + jYDir::toRT()) ).y() ) * constJE
+#endif
+        ;
+        float a_prime_plus = (*cursorB(minus)).y() - (*cursorE(minus)).z()
+#if (SENTOKU==0)
+        + ( (*cursorJ).z() + ( *cursorJ(jZDir::toRT())).z() ) * constJE
+#endif
+        ;
+        float a_prime_minus = (*cursorB(plus)).y() + (*cursorE(plus)).z()
+#if (SENTOKU==0)
+        - ( (*cursorJ(plus)).z() + (*cursorJ(plus + jZDir::toRT()) ).z() ) * constJE
+#endif
+        ;
 
         __syncthreads();
 
@@ -194,18 +211,18 @@ struct DirSplittingKernelX
         const float_X constJE = (float_X(0.5)  / EPS0) * deltaT;
 
 
-        float jx1 =  ( (*cursorJ).x() + ( *cursorJ(z) ).x() ) * constJE;
-        float jx2 =  ( (*cursorJ(DS(0,1))).x() + ( *cursorJ(DS(0,1)+z)).x() )  * constJE;
+        float jx1 =  ( (*cursorJ).x() + ( *cursorJ(z) ).x() ) * float_X(0.5) ;
+        float jx2 =  ( (*cursorJ(DS(0,1))).x() + ( *cursorJ(DS(0,1)+z)).x() )  * float_X(0.5) ;
 
-        float mjx1 =  ( (*cursorJ).x() + ( *cursorJ(DS(0,1)) ).x() ) * constJE;
-        float mjx2 =  ( (*cursorJ(z)).x() + ( *cursorJ(z+DS(0,1))).x() )  * constJE;
+        float mjx1 =  ( (*cursorJ).x() + ( *cursorJ(DS(0,1)) ).x() ) * float_X(0.5) ;
+        float mjx2 =  ( (*cursorJ(z)).x() + ( *cursorJ(z+DS(0,1))).x() )  * float_X(0.5) ;
 
         __syncthreads();
 
-        (*cursorE).x() -= 0.5f * (jx1 + jx2);
-        (*cursorB).z() -= 0.5f * (jx2 - jx1);
+        (*cursorE).x() -= constJE * (jx1 + jx2);
+        (*cursorB).z() -= constJE * (jx2 - jx1);
 
-        (*cursorB).y() -= 0.5f * (mjx1 - mjx2);
+        //(*cursorB).y() -= constJE * (mjx1 - mjx2);
 
 
         __syncthreads();
@@ -222,18 +239,18 @@ struct DirSplittingKernelX
         const float_X constJE = (float_X(0.5)  / EPS0) * deltaT;
 
 
-        float jy1 =  ( (*cursorJ).y() + ( *cursorJ(z) ).y() ) * constJE;
-        float jy2 =  ( (*cursorJ(DS(1,0))).y() + ( *cursorJ(DS(1,0)+z)).y() )  * constJE;
+        float jy1 =  ( (*cursorJ).y() + ( *cursorJ(z) ).y() ) * float_X(0.5) ;
+        float jy2 =  ( (*cursorJ(DS(1,0))).y() + ( *cursorJ(DS(1,0)+z)).y() )  * float_X(0.5) ;
 
-        float mjy1 =  ( (*cursorJ).y() + ( *cursorJ(DS(1,0)) ).y() ) * constJE;
-        float mjy2 =  ( (*cursorJ(z)).y() + ( *cursorJ(z+DS(1,0))).y() )  * constJE;
+        float mjy1 =  ( (*cursorJ).y() + ( *cursorJ(DS(1,0)) ).y() ) * float_X(0.5) ;
+        float mjy2 =  ( (*cursorJ(z)).y() + ( *cursorJ(z+DS(1,0))).y() )  * float_X(0.5) ;
 
         __syncthreads();
 
-        (*cursorE).y() -= 0.5f * (jy1 + jy2);
-        (*cursorB).z() -= 0.5f * (jy1 - jy2);
+        (*cursorE).y() -= constJE * (jy1 + jy2);
+        (*cursorB).z() -= constJE * (jy1 - jy2);
 
-        (*cursorB).x() -= 0.5f * (mjy2 - mjy1);
+        //(*cursorB).x() -= constJE * (mjy2 - mjy1);
 
 
         __syncthreads();
@@ -250,18 +267,18 @@ struct DirSplittingKernelX
         const float_X constJE = (float_X(0.5)  / EPS0) * deltaT;
 
 
-        float jz1 =  ( (*cursorJ).z() + ( *cursorJ(DS(0,1)) ).z() ) * constJE;
-        float jz2 =  ( (*cursorJ(DS(1,0))).z() + ( *cursorJ(DS(1,0)+DS(0,1))).z() )  * constJE;
+        float jz1 =  ( (*cursorJ).z() + ( *cursorJ(DS(0,1)) ).z() ) * float_X(0.5);
+        float jz2 =  ( (*cursorJ(DS(1,0))).z() + ( *cursorJ(DS(1,0)+DS(0,1))).z() )  * float_X(0.5);
 
-        float mjz1 =  ( (*cursorJ).z() + ( *cursorJ(DS(1,0)) ).z() ) * constJE;
-        float mjz2 =  ( (*cursorJ(DS(0,1))).z() + ( *cursorJ(DS(0,1)+DS(1,0))).z() )  * constJE;
+        float mjz1 =  ( (*cursorJ).z() + ( *cursorJ(DS(1,0)) ).z() ) * float_X(0.5);
+        float mjz2 =  ( (*cursorJ(DS(0,1))).z() + ( *cursorJ(DS(0,1)+DS(1,0))).z() )  * float_X(0.5);
 
         __syncthreads();
 
-        (*cursorE).z() -= 0.5f * (jz1 + jz2);
-        (*cursorB).y() -= 0.5f * (jz2 - jz1);
+        (*cursorE).z() -= constJE * (jz1 + jz2);
+        (*cursorB).y() -= constJE * (jz2 - jz1);
 
-        (*cursorB).x() -= 0.5f * (mjz1 - mjz2);
+        (*cursorB).x() -= constJE * (mjz1 - mjz2);
 
 
         __syncthreads();
@@ -308,7 +325,7 @@ struct DirSplittingKernelX
                 propagate0(cursorE, cursorB, globalJ(globalShift+cursorShift),globalE(globalShift+cursorShift),globalB(globalShift+cursorShift));
             else if(dir==1)
                 propagate1(cursorE, cursorB, globalJ(globalShift+cursorShift),globalE(globalShift+cursorShift),globalB(globalShift+cursorShift));
-            else
+            else if(dir==2)
                 propagate2(cursorE, cursorB, globalJ(globalShift+cursorShift),globalE(globalShift+cursorShift),globalB(globalShift+cursorShift));
 
             DataSpace<simDim> globalShiftTmp;
