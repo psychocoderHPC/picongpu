@@ -114,13 +114,14 @@ def plotError(h5file):
         #print( Eym2.shape)
         
         # compute divergence of electric field according to Yee scheme
-        div = ((Exm2[1:, 1:] - Exm2[1:, :-1])/CELL_WIDTH +
-               (Eym2[1:, 1:] - Eym2[:-1, 1:])/CELL_HEIGHT)
-        #div = ((Ex[1:, 1:] - Ex[1:, :-1])/CELL_WIDTH +
-        #       (Ey[1:, 1:] - Ey[:-1, 1:])/CELL_HEIGHT)
+        #div = ((Exm2[1:, 1:] - Exm2[1:, :-1])/CELL_WIDTH +
+        #       (Eym2[1:, 1:] - Eym2[:-1, 1:])/CELL_HEIGHT)
+        div = ((Ex[1:, 1:] - Ex[1:, :-1])/CELL_WIDTH +
+               (Ey[1:, 1:] - Ey[:-1, 1:])/CELL_HEIGHT)
 
         # compute difference between electric field divergence and charge density
-        diff = (div*EPS0  - charge[2:, 2:])
+        #diff = (div*EPS0  - charge[2:, 2:])
+        diff = (div*EPS0  - charge[1:, 1:])
 
     else:
         # compute divergence of electric field according to Yee scheme
@@ -142,7 +143,7 @@ def plotError(h5file):
     plt.imshow(diff[ :, :], 
                vmin=-limit, vmax=+limit,
                aspect='auto',
-               cmap=plt.cm.bwr)
+               cmap=plt.cm.bwr, interpolation="nearest")
     plt.xlabel("$x\,[\Delta x]$", fontsize=20)
     plt.ylabel("$y\,[\Delta y]$", fontsize=20)
     plt.xticks(fontsize=16)

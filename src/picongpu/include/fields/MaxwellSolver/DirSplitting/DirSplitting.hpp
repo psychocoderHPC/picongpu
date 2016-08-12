@@ -214,7 +214,8 @@ public:
         __setTransactionEvent(fieldE.asyncCommunication(__getTransactionEvent()));
         __setTransactionEvent(fieldB.asyncCommunication(__getTransactionEvent()));
 
-      /*  __startOperation(ITask::TASK_HOST);
+/*  enable this to fill the double buffer with the same values like the original field
+        __startOperation(ITask::TASK_HOST);
         __startOperation(ITask::TASK_CUDA);
         fieldE.sync();
         fieldB.sync();
@@ -245,6 +246,9 @@ public:
             cartBuffer().view(GuardDim().toRT(),
                               -GuardDim().toRT()));
 
+        typedef PMacc::math::CT::Int<0,1,2> Orientation_XJ;
+        typedef PMacc::math::CT::Int<0,1,2> Space_XJ;
+
         PMacc::math::Size_t<simDim> gridSize = fieldE_coreBorder.size();
 
         typedef PMacc::math::CT::Int<0,1,2> Orientation_X;
@@ -258,10 +262,15 @@ public:
                   old_fieldB_coreBorder.origin(),
                   gridSize);
 
-
-
-
-
+#if (SENTOKU==1)
+        propagateX<Space_XJ,Orientation_XJ, 1>(
+                  fieldE_coreBorder.origin(),
+                  fieldB_coreBorder.origin(),
+                  fieldJ_coreBorder.origin(),
+                  old_fieldE_coreBorder.origin(),
+                  old_fieldB_coreBorder.origin(),
+                  gridSize);
+#endif
         __setTransactionEvent(fieldE.asyncCommunication(__getTransactionEvent()));
         __setTransactionEvent(fieldB.asyncCommunication(__getTransactionEvent()));
 
@@ -275,15 +284,7 @@ public:
                   old_fieldE_coreBorder.origin(),
                   old_fieldB_coreBorder.origin(),
                   gridSize);
-
-
-        __setTransactionEvent(fieldE.asyncCommunication(__getTransactionEvent()));
-        __setTransactionEvent(fieldB.asyncCommunication(__getTransactionEvent()));
-//#if 0
-                //! \todo: currently 3D: check this code if someone enable 3D
-        typedef PMacc::math::CT::Int<0,1,2> Orientation_XJ;
-        typedef PMacc::math::CT::Int<0,1,2> Space_XJ;
-
+#if (SENTOKU==1)
         propagateX<Space_XJ,Orientation_XJ, 0>(
                   fieldE_coreBorder.origin(),
                   fieldB_coreBorder.origin(),
@@ -291,14 +292,11 @@ public:
                   old_fieldE_coreBorder.origin(),
                   old_fieldB_coreBorder.origin(),
                   gridSize);
+#endif
+        __setTransactionEvent(fieldE.asyncCommunication(__getTransactionEvent()));
+        __setTransactionEvent(fieldB.asyncCommunication(__getTransactionEvent()));
 
-        propagateX<Space_XJ,Orientation_XJ, 1>(
-                  fieldE_coreBorder.origin(),
-                  fieldB_coreBorder.origin(),
-                  fieldJ_coreBorder.origin(),
-                  old_fieldE_coreBorder.origin(),
-                  old_fieldB_coreBorder.origin(),
-                  gridSize);
+#if (SENTOKU==1)
 
         propagateX<Space_XJ,Orientation_XJ, 2>(
                   fieldE_coreBorder.origin(),
@@ -311,7 +309,8 @@ public:
 
         __setTransactionEvent(fieldE.asyncCommunication(__getTransactionEvent()));
         __setTransactionEvent(fieldB.asyncCommunication(__getTransactionEvent()));
-//#endif
+#endif
+
 #if (SIMDIM==DIM3)
         //! \todo: currently 3D: check this code if someone enable 3D
         typedef PMacc::math::CT::Int<2,0,1> Orientation_Z;
