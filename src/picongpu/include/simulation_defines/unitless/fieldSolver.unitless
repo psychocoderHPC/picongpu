@@ -59,7 +59,7 @@ namespace fieldSolverYee
 namespace fieldSolverDirSplitting
 {
     typedef picongpu::dirSplitting::DirSplitting FieldSolver;
-    namespace numericalCellType = emfCenteredCell;
+    namespace numericalCellType = yeeCell;
 }
 
 #if(SIMDIM==DIM3)

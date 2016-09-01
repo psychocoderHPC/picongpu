@@ -98,7 +98,7 @@ twistVectorForDirSplitting(const T_Cursor& cursor)
 class DirSplitting : private ConditionCheck<fieldSolver::FieldSolver>
 {
 private:
-    template<typename SpaceTwist, typename OrientationTwist,typename JSpaceTwist,typename CursorE, typename CursorB, typename CursorJ, typename GridSize>
+    template<int usedCase, typename SpaceTwist, typename OrientationTwist,typename JSpaceTwist,typename CursorE, typename CursorB, typename CursorJ, typename GridSize>
     void propagate(CursorE cursorE, CursorB cursorB,CursorJ cursorJ,CursorE old_cursorE, CursorB old_cursorB, GridSize gridSize) const
     {
         using namespace cursor::tools;
@@ -141,7 +141,7 @@ private:
                 cursor::make_NestedCursor(twistVectorForDirSplitting<SpaceTwistSimDim, OrientationTwist>(cursorJ)),
                 cursor::make_NestedCursor(twistVectorForDirSplitting<SpaceTwistSimDim, OrientationTwist>(old_cursorE)),
                 cursor::make_NestedCursor(twistVectorForDirSplitting<SpaceTwistSimDim, OrientationTwist>(old_cursorB)),
-                DirSplittingKernel<BlockDim,JSpaceTwist>((int)gridSizeTwisted.x()));
+                DirSplittingKernel<usedCase, BlockDim,JSpaceTwist>((int)gridSizeTwisted.x()));
     }
 
 
@@ -194,9 +194,9 @@ private:
 public:
     DirSplitting(MappingDesc) {}
 
-    void update_afterCurrent(uint32_t currentStep) const
+    void update_beforeCurrent(uint32_t currentStep ) const
     {
-        typedef SuperCellSize GuardDim;
+           typedef SuperCellSize GuardDim;
 
         DataConnector &dc = Environment<>::get().DataConnector();
 
@@ -246,15 +246,12 @@ public:
             cartBuffer().view(GuardDim().toRT(),
                               -GuardDim().toRT()));
 
-        typedef PMacc::math::CT::Int<0,1,2> Orientation_XJ;
-        typedef PMacc::math::CT::Int<0,1,2> Space_XJ;
-
         PMacc::math::Size_t<simDim> gridSize = fieldE_coreBorder.size();
 
         typedef PMacc::math::CT::Int<0,1,2> Orientation_X;
         typedef PMacc::math::CT::Int<0,1,2> Space_X;
         typedef PMacc::math::CT::Int<0,2,1> JDir_X;
-        propagate<Space_X,Orientation_X,JDir_X>(
+        propagate<1,Space_X,Orientation_X,JDir_X>(
                   fieldE_coreBorder.origin(),
                   fieldB_coreBorder.origin(),
                   fieldJ_coreBorder.origin(),
@@ -262,43 +259,14 @@ public:
                   old_fieldB_coreBorder.origin(),
                   gridSize);
 
-#if (SENTOKU==1)
-        propagateX<Space_XJ,Orientation_XJ, 1>(
-                  fieldE_coreBorder.origin(),
-                  fieldB_coreBorder.origin(),
-                  fieldJ_coreBorder.origin(),
-                  old_fieldE_coreBorder.origin(),
-                  old_fieldB_coreBorder.origin(),
-                  gridSize);
-#endif
+
         __setTransactionEvent(fieldE.asyncCommunication(__getTransactionEvent()));
         __setTransactionEvent(fieldB.asyncCommunication(__getTransactionEvent()));
 
         typedef PMacc::math::CT::Int<1,2,0> Orientation_Y;
         typedef PMacc::math::CT::Int<1,0,2> Space_Y;
         typedef PMacc::math::CT::Int<0,1,2> JDir_Y;
-        propagate<Space_Y,Orientation_Y,JDir_Y>(
-                  fieldE_coreBorder.origin(),
-                  fieldB_coreBorder.origin(),
-                  fieldJ_coreBorder.origin(),
-                  old_fieldE_coreBorder.origin(),
-                  old_fieldB_coreBorder.origin(),
-                  gridSize);
-#if (SENTOKU==1)
-        propagateX<Space_XJ,Orientation_XJ, 0>(
-                  fieldE_coreBorder.origin(),
-                  fieldB_coreBorder.origin(),
-                  fieldJ_coreBorder.origin(),
-                  old_fieldE_coreBorder.origin(),
-                  old_fieldB_coreBorder.origin(),
-                  gridSize);
-#endif
-        __setTransactionEvent(fieldE.asyncCommunication(__getTransactionEvent()));
-        __setTransactionEvent(fieldB.asyncCommunication(__getTransactionEvent()));
-
-#if (SENTOKU==1)
-
-        propagateX<Space_XJ,Orientation_XJ, 2>(
+        propagate<0,Space_Y,Orientation_Y,JDir_Y>(
                   fieldE_coreBorder.origin(),
                   fieldB_coreBorder.origin(),
                   fieldJ_coreBorder.origin(),
@@ -309,14 +277,25 @@ public:
 
         __setTransactionEvent(fieldE.asyncCommunication(__getTransactionEvent()));
         __setTransactionEvent(fieldB.asyncCommunication(__getTransactionEvent()));
-#endif
 
-#if (SIMDIM==DIM3)
-        //! \todo: currently 3D: check this code if someone enable 3D
-        typedef PMacc::math::CT::Int<2,0,1> Orientation_Z;
-        typedef PMacc::math::CT::Int<2,0,1> Space_Z;
-        typedef PMacc::math::CT::Int<0,2,1> JDir_Z;
-        propagate<Space_Z,Orientation_Z,JDir_Z>(
+
+        typedef PMacc::math::CT::Int<1,2,0> Orientation_Y;
+        typedef PMacc::math::CT::Int<1,0,2> Space_Y;
+        typedef PMacc::math::CT::Int<0,1,2> JDir_Y;
+        propagate<4,Space_Y,Orientation_Y,JDir_Y>(
+                  fieldE_coreBorder.origin(),
+                  fieldB_coreBorder.origin(),
+                  fieldJ_coreBorder.origin(),
+                  old_fieldE_coreBorder.origin(),
+                  old_fieldB_coreBorder.origin(),
+                  gridSize);
+        __setTransactionEvent(fieldE.asyncCommunication(__getTransactionEvent()));
+        __setTransactionEvent(fieldB.asyncCommunication(__getTransactionEvent()));
+
+        typedef PMacc::math::CT::Int<0,1,2> Orientation_X;
+        typedef PMacc::math::CT::Int<0,1,2> Space_X;
+        typedef PMacc::math::CT::Int<0,2,1> JDir_X;
+        propagate<2,Space_X,Orientation_X,JDir_X>(
                   fieldE_coreBorder.origin(),
                   fieldB_coreBorder.origin(),
                   fieldJ_coreBorder.origin(),
@@ -324,26 +303,17 @@ public:
                   old_fieldB_coreBorder.origin(),
                   gridSize);
 
+
         __setTransactionEvent(fieldE.asyncCommunication(__getTransactionEvent()));
         __setTransactionEvent(fieldB.asyncCommunication(__getTransactionEvent()));
-#endif
+
     }
 
-    void update_beforeCurrent(uint32_t) const
+    void update_afterCurrent(uint32_t ) const
     {
-    /*    DataConnector &dc = Environment<>::get().DataConnector();
 
-        FieldE& fieldE = dc.getData<FieldE > (FieldE::getName(), true);
-        FieldB& fieldB = dc.getData<FieldB > (FieldB::getName(), true);
 
-        EventTask eRfieldE = fieldE.asyncCommunication(__getTransactionEvent());
-        EventTask eRfieldB = fieldB.asyncCommunication(__getTransactionEvent());
-        __setTransactionEvent(eRfieldE);
-        __setTransactionEvent(eRfieldB);
 
-        dc.releaseData(FieldE::getName());
-        dc.releaseData(FieldB::getName());
-     * */
     }
 
     static PMacc::traits::StringProperty getStringProperties()

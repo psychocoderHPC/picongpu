@@ -133,7 +133,7 @@ struct NoneDS
 {
     BOOST_STATIC_CONSTEXPR uint32_t dim = T_simDim;
 
-    typedef typename PMacc::math::CT::make_Int<dim, 0>::type LowerMargin;
+    typedef typename PMacc::math::CT::make_Int<dim, 1>::type LowerMargin;
     typedef typename PMacc::math::CT::make_Int<dim, 1>::type UpperMargin;
 
     template<typename DataBoxE, typename DataBoxB, typename DataBoxJ>

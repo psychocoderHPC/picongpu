@@ -36,8 +36,8 @@ struct None
 {
     BOOST_STATIC_CONSTEXPR uint32_t dim = T_dim;
 
-    typedef typename PMacc::math::CT::make_Int<dim, 0>::type LowerMargin;
-    typedef typename PMacc::math::CT::make_Int<dim, 0>::type UpperMargin;
+    typedef typename PMacc::math::CT::make_Int<dim, 1>::type LowerMargin;
+    typedef typename PMacc::math::CT::make_Int<dim, 1>::type UpperMargin;
 
     template<typename DataBoxE, typename DataBoxB, typename DataBoxJ>
     HDINLINE void operator()(DataBoxE fieldE,
@@ -46,8 +46,13 @@ struct None
     {
         const DataSpace<dim> self;
 
+        typedef DataSpace<dim> DS;
+
         const float_X deltaT = DELTA_T;
-        fieldE(self) -= fieldJ(self) * (float_X(1.0) / EPS0) * deltaT;
+        fieldE(self).x() -= (fieldJ(self).x() + fieldJ(self+DS(0,1)).x() )* (float_X(0.5) / EPS0) * deltaT;
+        fieldE(self).y() -= (fieldJ(self).y() + fieldJ(self+DS(1,0)).y() )* (float_X(0.5) / EPS0) * deltaT;
+        fieldE(self).z() -= (fieldJ(self).z() + fieldJ(self+DS(1,0)).z() +fieldJ(self+DS(0,1)).z() + fieldJ(self+DS(1,1)).z() )* (float_X(0.25) / EPS0) * deltaT;
+
     }
 
     static PMacc::traits::StringProperty getStringProperties()

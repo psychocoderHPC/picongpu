@@ -32,7 +32,7 @@
 namespace picongpu
 {
 
-template<typename BlockDim, typename JSpaceTwist>
+template<int usedCase, typename BlockDim, typename JSpaceTwist>
 struct DirSplittingKernel
 {
     typedef void result_type;
@@ -54,47 +54,193 @@ struct DirSplittingKernel
         bmpl::integral_c<int,1>
     >::type Plus;
 
+    typedef DataSpace<DIM2> DS;
+
     PMACC_ALIGN(totalLength,int);
     DirSplittingKernel(int totalLength) : totalLength(totalLength) {}
 
+
+    //y propergate
     template<typename CursorE, typename CursorB, typename CursorJ, typename RCursorE, typename RCursorB >
     DINLINE void propagate(CursorE cursorE, CursorB cursorB, CursorJ cursorJ, RCursorE r_cursorE, RCursorB r_cursorB) const
     {
         typedef typename PMacc::math::CT::AssignIfInRange<
             ZeroVector,
             bmpl::integral_c<int,JSpaceTwist::y::value>,
-            bmpl::integral_c<int,1>
+            bmpl::integral_c<int,0>
         >::type jYDir;
 
         typedef typename PMacc::math::CT::AssignIfInRange<
             ZeroVector,
-            bmpl::integral_c<int,JSpaceTwist::z::value>,
-            bmpl::integral_c<int,1>
+            bmpl::integral_c<int,1>,
+            bmpl::integral_c<int,-1>
         >::type jZDir;
 
         const float_X deltaT = DELTA_T;
         const float_X constJE = (float_X(0.5)  / EPS0) * deltaT;
 
         const PMACC_AUTO(minus,Minus::toRT());
-        const PMACC_AUTO(plus,Plus::toRT());
+        const PMACC_AUTO(plus,ZeroVector::toRT());
         float a_plus = (*cursorB(minus)).z() + (*cursorE(minus)).y()
 #if (SENTOKU==0)
-            - ( (*cursorJ).y() + ( *cursorJ(jYDir::toRT()) ).y() ) * constJE
+       //     - ( (*cursorJ).y() + ( *cursorJ(jYDir::toRT()) ).y() ) * constJE
 #endif
         ;
         float a_minus = (*cursorB(plus)).z() - (*cursorE(plus)).y()
 #if (SENTOKU==0)
-            + ( (*cursorJ(plus)).y() + ( *cursorJ(plus + jYDir::toRT()) ).y() ) * constJE
+       //     + ( (*cursorJ(plus)).y() + ( *cursorJ(plus + jYDir::toRT()) ).y() ) * constJE
 #endif
         ;
         float a_prime_plus = (*cursorB(minus)).y() - (*cursorE(minus)).z()
 #if (SENTOKU==0)
-        + ( (*cursorJ).z() + ( *cursorJ(jZDir::toRT())).z() ) * constJE
+      //  + ( (*cursorJ).z() + ( *cursorJ(jZDir::toRT())).z() ) * constJE
 #endif
         ;
         float a_prime_minus = (*cursorB(plus)).y() + (*cursorE(plus)).z()
 #if (SENTOKU==0)
-        - ( (*cursorJ(plus)).z() + (*cursorJ(plus + jZDir::toRT()) ).z() ) * constJE
+      //  - ( (*cursorJ(plus)).z() + (*cursorJ(plus + jZDir::toRT()) ).z() ) * constJE
+#endif
+        ;
+
+        __syncthreads();
+
+        (*cursorB).z() = 0.5f * (a_plus + a_minus);
+        (*cursorE).y() = 0.5f * (a_plus - a_minus);
+        (*cursorB).y() = 0.5f * (a_prime_plus + a_prime_minus);
+        (*cursorE).z() = 0.5f * (a_prime_minus - a_prime_plus);
+
+        __syncthreads();
+    }
+
+        //y propergate
+    template<typename CursorE, typename CursorB, typename CursorJ, typename RCursorE, typename RCursorB >
+    DINLINE void propagate4(CursorE cursorE, CursorB cursorB, CursorJ cursorJ, RCursorE r_cursorE, RCursorB r_cursorB) const
+    {
+        typedef typename PMacc::math::CT::AssignIfInRange<
+            ZeroVector,
+            bmpl::integral_c<int,JSpaceTwist::y::value>,
+            bmpl::integral_c<int,0>
+        >::type jYDir;
+
+        typedef typename PMacc::math::CT::AssignIfInRange<
+            ZeroVector,
+            bmpl::integral_c<int,1>,
+            bmpl::integral_c<int,-1>
+        >::type jZDir;
+
+        const float_X deltaT = DELTA_T;
+        const float_X constJE = (float_X(0.5)  / EPS0) * deltaT;
+
+        const PMACC_AUTO(minus,ZeroVector::toRT());
+        const PMACC_AUTO(plus,Plus::toRT());
+        float a_plus = (*cursorB(minus)).z() + (*cursorE(minus)).y()
+#if (SENTOKU==0)
+       //     - ( (*cursorJ).y() + ( *cursorJ(jYDir::toRT()) ).y() ) * constJE
+#endif
+        ;
+        float a_minus = (*cursorB(plus)).z() - (*cursorE(plus)).y()
+#if (SENTOKU==0)
+       //     + ( (*cursorJ(plus)).y() + ( *cursorJ(plus + jYDir::toRT()) ).y() ) * constJE
+#endif
+        ;
+        float a_prime_plus = (*cursorB(minus)).y() - (*cursorE(minus)).z()
+#if (SENTOKU==0)
+      //  + ( (*cursorJ).z() + ( *cursorJ(jZDir::toRT())).z() ) * constJE
+#endif
+        ;
+        float a_prime_minus = (*cursorB(plus)).y() + (*cursorE(plus)).z()
+#if (SENTOKU==0)
+      //  - ( (*cursorJ(plus)).z() + (*cursorJ(plus + jZDir::toRT()) ).z() ) * constJE
+#endif
+        ;
+
+        __syncthreads();
+
+        (*cursorB).z() = 0.5f * (a_plus + a_minus);
+        (*cursorE).y() = 0.5f * (a_plus - a_minus);
+        (*cursorB).y() = 0.5f * (a_prime_plus + a_prime_minus);
+        (*cursorE).z() = 0.5f * (a_prime_minus - a_prime_plus);
+
+        __syncthreads();
+    }
+
+    //first half
+    template<typename CursorE, typename CursorB, typename CursorJ, typename RCursorE, typename RCursorB >
+    DINLINE void propagate1(CursorE cursorE, CursorB cursorB, CursorJ cursorJ, RCursorE r_cursorE, RCursorB r_cursorB) const
+    {
+
+
+        const float_X deltaT = DELTA_T;
+        const float_X constJE = (float_X(1.0)  / EPS0) * deltaT;
+
+        const PMACC_AUTO(minus,Minus::toRT());
+        const PMACC_AUTO(plus,ZeroVector::toRT());
+        float a_plus = (*cursorB(minus)).z() + (*cursorE(minus)).y()
+#if (SENTOKU==0)
+       //     - ( (*cursorJ).y() + ( *cursorJ).y() ) * float_X(0.75) * float_X(0.5) * constJE
+       //     - ( (*cursorJ(DS(-1,0))).y() + ( *cursorJ(DS(-1,0)) ).y() ) * float_X(0.25) * float_X(0.5) * constJE
+#endif
+        ;
+        float a_minus = (*cursorB(plus)).z() - (*cursorE(plus)).y()
+#if (SENTOKU==0)
+        //    + ( (*cursorJ).y() + ( *cursorJ ).y() ) * float_X(0.75) * float_X(0.5) * constJE
+        //    + ( (*cursorJ(DS(1,0))).y() + ( *cursorJ(DS(1,0)) ).y() ) * float_X(0.25) * float_X(0.5) * constJE
+#endif
+        ;
+        float a_prime_plus = (*cursorB(minus)).y() - (*cursorE(minus)).z()
+#if (SENTOKU==0)
+        //   + ( (*cursorJ).z() + ( *cursorJ(DS(0,1))).z() ) * float_X(0.75) * float_X(0.5) * constJE
+        //   + ( (*cursorJ(DS(-1,0))).z() + ( *cursorJ(DS(-1,1))).z() ) * float_X(0.25) * float_X(0.5) * constJE
+#endif
+        ;
+        float a_prime_minus = (*cursorB(plus)).y() + (*cursorE(plus)).z()
+#if (SENTOKU==0)
+        //   - ( (*cursorJ).z() + ( *cursorJ(DS(0,1))).z() ) * float_X(0.75) * float_X(0.5) * constJE
+        //   - ( (*cursorJ(DS(1,0))).z() + ( *cursorJ(DS(1,1))).z() ) * float_X(0.25) * float_X(0.5) * constJE
+#endif
+        ;
+
+        __syncthreads();
+
+        (*cursorB).z() = 0.5f * (a_plus + a_minus);
+        (*cursorE).y() = 0.5f * (a_plus - a_minus);
+        (*cursorB).y() = 0.5f * (a_prime_plus + a_prime_minus);
+        (*cursorE).z() = 0.5f * (a_prime_minus - a_prime_plus);
+
+        __syncthreads();
+    }
+
+    //second half
+    template<typename CursorE, typename CursorB, typename CursorJ, typename RCursorE, typename RCursorB >
+    DINLINE void propagate2(CursorE cursorE, CursorB cursorB, CursorJ cursorJ, RCursorE r_cursorE, RCursorB r_cursorB) const
+    {
+        const float_X deltaT = DELTA_T;
+        const float_X constJE = (float_X(1.0)  / EPS0) * deltaT;
+
+        const PMACC_AUTO(minus,ZeroVector::toRT());
+        const PMACC_AUTO(plus,Plus::toRT());
+        float a_plus = (*cursorB(minus)).z() + (*cursorE(minus)).y()
+#if (SENTOKU==0)
+       //     - ( (*cursorJ).y() + ( *cursorJ).y() ) * float_X(0.75) * float_X(0.5) * constJE
+       //     - ( (*cursorJ(DS(1,0))).y() + ( *cursorJ(DS(1,0)) ).y() ) * float_X(0.25) * float_X(0.5) * constJE
+#endif
+        ;
+        float a_minus = (*cursorB(plus)).z() - (*cursorE(plus)).y()
+#if (SENTOKU==0)
+        //    + ( (*cursorJ).y() + ( *cursorJ ).y() ) * float_X(0.25) * float_X(0.5) * constJE
+        //    + ( (*cursorJ(DS(1,0))).y() + ( *cursorJ(DS(1,0)) ).y() ) * float_X(0.75) * float_X(0.5) * constJE
+#endif
+        ;
+        float a_prime_plus = (*cursorB(minus)).y() - (*cursorE(minus)).z()
+#if (SENTOKU==0)
+        //   + ( (*cursorJ).z() + ( *cursorJ(DS(0,1))).z() ) * float_X(0.75) * float_X(0.5) * constJE
+        //   + ( (*cursorJ(DS(1,0))).z() + ( *cursorJ(DS(1,1))).z() ) * float_X(0.25) * float_X(0.5) * constJE
+#endif
+        ;
+        float a_prime_minus = (*cursorB(plus)).y() + (*cursorE(plus)).z()
+#if (SENTOKU==0)
+        //   - ( (*cursorJ).z() + ( *cursorJ(DS(0,1))).z() ) * float_X(0.25) * float_X(0.5) * constJE
+        //   - ( (*cursorJ(DS(1,0))).z() + ( *cursorJ(DS(1,1))).z() ) * float_X(0.75) * float_X(0.5) * constJE
 #endif
         ;
 
@@ -172,7 +318,22 @@ struct DirSplittingKernel
                 *cursorB(minus) = fieldB_old;
             }
 
-            propagate(cursorE, cursorB, globalJ(globalShift+cursorShift),globalE(globalShift+cursorShift),globalB(globalShift+cursorShift));
+            if(usedCase==0)
+            {
+                propagate(cursorE, cursorB, globalJ(globalShift+cursorShift),globalE(globalShift+cursorShift),globalB(globalShift+cursorShift));
+            }
+            else if(usedCase==1)
+            {
+                propagate1(cursorE, cursorB, globalJ(globalShift+cursorShift),globalE(globalShift+cursorShift),globalB(globalShift+cursorShift));
+            }
+            else if(usedCase==2)
+            {
+                propagate2(cursorE, cursorB, globalJ(globalShift+cursorShift),globalE(globalShift+cursorShift),globalB(globalShift+cursorShift));
+            }
+            else if(usedCase==4)
+            {
+                propagate4(cursorE, cursorB, globalJ(globalShift+cursorShift),globalE(globalShift+cursorShift),globalB(globalShift+cursorShift));
+            }
 
             DataSpace<simDim> globalShiftTmp;
             globalShiftTmp.x() = x_offset;
