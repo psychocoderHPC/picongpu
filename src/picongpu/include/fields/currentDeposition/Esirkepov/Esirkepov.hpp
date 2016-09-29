@@ -33,12 +33,70 @@ namespace picongpu
 {
 namespace currentSolver
 {
-using namespace PMacc;
+    using namespace PMacc;
+
+    template<bool isEven>
+    struct Calc_Relay
+    {
+       /** calculate virtual point were we split our particle trajectory
+        *
+        * The relay point calculation differs from the paper version in the point
+        * that the trajectory of a particle which does not leave the cell is not splitted.
+        * The relay point for a particle which does not leave the cell is set to the
+        * current position `x_2`
+        *
+        * @param i_1 grid point which is less than x_1 (`i_1=floor(x_1)`)
+        * @param i_2 grid point which is less than x_2 (`i_2=floor(x_2)`)
+        * @param x_1 begin position of the particle trajectory
+        * @param x_2 end position of the particle trajectory
+        * @return relay point for particle trajectory
+        */
+        DINLINE float_X
+        operator()( int& i_1, int& i_2, const float_X x_1, const float_X x_2) const
+        {
+            i_1 = math::floor(x_1);
+            i_2 = math::floor(x_2);
+            /* paper version:
+             *   i_1 == i_2 ? (x_1 + x_2) / float_X(2.0) : ::max(i_1, i_2);
+             */
+            return i_1 == i_2 ? x_2 : ::max(i_1, i_2);
+        }
+    };
+
+    template<>
+    struct Calc_Relay<false>
+    {
+       /** calculate virtual point were we split our particle trajectory
+        *
+        * The relay point calculation differs from the paper version in the point
+        * that the trajectory of a particle which does not leave the cell is not splitted.
+        * The relay point for a particle which does not leave the cell is set to the
+        * current position `x_2`
+        *
+        * @param i_1 grid point which is less than x_1 (`i_1=floor(x_1)`)
+        * @param i_2 grid point which is less than x_2 (`i_2=floor(x_2)`)
+        * @param x_1 begin position of the particle trajectory
+        * @param x_2 end position of the particle trajectory
+        * @return relay point for particle trajectory
+        */
+        DINLINE float_X
+        operator()( int& i_1, int& i_2, const float_X x_1, const float_X x_2) const
+        {
+            i_1 = math::floor(x_1 + float_X(0.5));
+            i_2 = math::floor(x_2 + float_X(0.5));
+
+            /* paper version:
+             *   i_1 == i_2 ? (x_1 + x_2) / float_X(2.0) : ::max(i_1, i_2);
+             */
+            return i_1 == i_2 ? x_2 : float_X(i_1+i_2)/float_X(2.0);
+        }
+    };
+
 
 template<typename T_ParticleShape>
 struct Esirkepov<T_ParticleShape, DIM3>
 {
-    typedef typename T_ParticleShape::ChargeAssignment ParticleAssign;
+    typedef typename T_ParticleShape::ChargeAssignmentOnSupport ParticleAssign;
     BOOST_STATIC_CONSTEXPR int supp = ParticleAssign::support;
 
     BOOST_STATIC_CONSTEXPR int currentLowerMargin = supp / 2 + 1 - (supp + 1) % 2;
@@ -54,10 +112,9 @@ struct Esirkepov<T_ParticleShape, DIM3>
      * For the case were previous position is greater than current position we correct
      * begin and end on runtime and add +1 to begin and end.
      */
-    BOOST_STATIC_CONSTEXPR int begin = -currentLowerMargin;
-    BOOST_STATIC_CONSTEXPR int end = begin + supp + 1;
+    BOOST_STATIC_CONSTEXPR int begin = -currentLowerMargin + 1;
+    BOOST_STATIC_CONSTEXPR int end = begin + supp;
 
-    float_X charge;
 
     /* At the moment Esirkepov only support YeeCell were W is defined at origin (0,0,0)
      *
@@ -65,48 +122,70 @@ struct Esirkepov<T_ParticleShape, DIM3>
      */
     template<typename DataBoxJ, typename PosType, typename VelType, typename ChargeType >
     DINLINE void operator()(DataBoxJ dataBoxJ,
-                            const PosType pos,
+                            const PosType pos1,
                             const VelType velocity,
                             const ChargeType charge,
                             const float_X deltaTime)
     {
-        this->charge = charge;
-        const float3_X deltaPos = float3_X(velocity.x() * deltaTime / cellSize.x(),
-                                           velocity.y() * deltaTime / cellSize.y(),
-                                           velocity.z() * deltaTime / cellSize.z());
-        const PosType oldPos = pos - deltaPos;
-        Line<float3_X> line(oldPos, pos);
-        BOOST_AUTO(cursorJ, dataBoxJ.toCursor());
+        floatD_X deltaPos;
+        for (uint32_t d = 0; d < simDim; ++d)
+            deltaPos[d] = (velocity[d] * deltaTime) / cellSize[d];
 
-        if (supp % 2 == 1)
+        /*note: all positions are normalized to the grid*/
+        floatD_X pos[2];
+        pos[0] = (pos1 - deltaPos);
+        pos[1] = (pos1);
+
+        DataSpace<simDim> I[2];
+        floatD_X relayPoint;
+
+        for (uint32_t d = 0; d < simDim; ++d)
         {
-            /* odd support
-             * shift coordinate system that we always can solve Esirkepov by going
-             * over the grid points [begin,end)
-             */
-
-            /* for any direction
-             * if pos> 0.5
-             * shift curser+1 and new_pos=old_pos-1
-             *
-             * floor(pos*2.0) is equal (pos > 0.5)
-             */
-            float3_X coordinate_shift(
-                                      float_X(math::floor(pos.x() * float_X(2.0))),
-                                      float_X(math::floor(pos.y() * float_X(2.0))),
-                                      float_X(math::floor(pos.z() * float_X(2.0)))
-                                      );
-            cursorJ = cursorJ(
-                              PMacc::math::Int < 3 > (
-                                                      coordinate_shift.x(),
-                                                      coordinate_shift.y(),
-                                                      coordinate_shift.z()
-                                                      ));
-            //same as: pos = pos - coordinate_shift;
-            line.m_pos0 -= (coordinate_shift);
-            line.m_pos1 -= (coordinate_shift);
+            relayPoint[d] = Calc_Relay<supp%2==0>()(I[0][d], I[1][d], pos[0][d], pos[1][d]);
         }
 
+        const float_X currentVolumeDensity = charge / (CELL_VOLUME * DELTA_T);
+
+        floatD_X inCellPosStart;
+        floatD_X inCellPosEnd;
+
+        for (uint32_t d = 0; d < simDim; ++d)
+        {
+            const float_X pos_tmp = pos[0][d];
+            const float_X tmpRelayPoint = relayPoint[d];
+            inCellPosStart[d] = calc_InCellPos(pos_tmp, I[0][d]);
+            inCellPosEnd[d] = calc_InCellPos(tmpRelayPoint, I[0][d]);
+        }
+        calc( dataBoxJ.shift(
+            precisionCast<int>(I[0])).toCursor(),
+            Line<float3_X>( inCellPosStart, inCellPosEnd ),
+            currentVolumeDensity
+        );
+
+        for (uint32_t d = 0; d < simDim; ++d)
+        {
+            const float_X pos_tmp = pos[1][d];
+            const float_X tmpRelayPoint = relayPoint[d];
+            inCellPosStart[d] = calc_InCellPos(pos_tmp, I[1][d]);
+            inCellPosEnd[d] = calc_InCellPos(tmpRelayPoint, I[1][d]);
+        }
+        calc( dataBoxJ.shift(
+            precisionCast<int>(I[1])).toCursor(),
+            Line<float3_X>( inCellPosEnd, inCellPosStart ), /* switched start and end point */
+            currentVolumeDensity
+        );
+
+    }
+
+    /* At the moment Esirkepov only support YeeCell were W is defined at origin (0,0,0)
+     *
+     * \todo: please fix me that we can use CenteredCell
+     */
+    template<typename T_Cursor >
+    DINLINE void calc( const T_Cursor& cursorJ,
+                       const Line<float3_X>& line,
+                       const float_X currentVolumeDensity)
+    {
         /**
          * \brief the following three calls separate the 3D current deposition
          * into three independent 1D calls, each for one direction and current component.
@@ -114,9 +193,10 @@ struct Esirkepov<T_ParticleShape, DIM3>
          * is always specific.
          */
         using namespace cursor::tools;
-        cptCurrent1D(twistVectorFieldAxes<PMacc::math::CT::Int < 1, 2, 0 > >(cursorJ), rotateOrigin < 1, 2, 0 > (line), cellSize.x());
-        cptCurrent1D(twistVectorFieldAxes<PMacc::math::CT::Int < 2, 0, 1 > >(cursorJ), rotateOrigin < 2, 0, 1 > (line), cellSize.y());
-        cptCurrent1D(cursorJ, line, cellSize.z());
+        cptCurrent1D(twistVectorFieldAxes<PMacc::math::CT::Int < 1, 2, 0 > >(cursorJ), rotateOrigin < 1, 2, 0 > (line), cellSize.x()*currentVolumeDensity);
+        cptCurrent1D(twistVectorFieldAxes<PMacc::math::CT::Int < 2, 0, 1 > >(cursorJ), rotateOrigin < 2, 0, 1 > (line), cellSize.y()*currentVolumeDensity);
+        cptCurrent1D(cursorJ, line, cellSize.z()*currentVolumeDensity);
+
     }
 
     /**
@@ -125,53 +205,47 @@ struct Esirkepov<T_ParticleShape, DIM3>
      * \param line trajectory of the particle from to last to the current time step
      * \param cellEdgeLength length of edge of the cell in z-direction
      */
-    template<typename CursorJ >
+    template<typename CursorJ, typename T_Line>
     DINLINE void cptCurrent1D(CursorJ cursorJ,
-                              const Line<float3_X>& line,
-                              const float_X cellEdgeLength)
+                              const T_Line line,
+                              const float_X currentSurfaceDensity)
     {
-        /* Check if particle position in previous step was greater or
-         * smaller than current position.
-         *
-         * If previous position was greater than current position we change our interval
-         * from [begin,end) to [begin+1,end+1).
-         */
-        const int offset_i = line.m_pos0.x() > line.m_pos1.x() ? 1 : 0;
-        const int offset_j = line.m_pos0.y() > line.m_pos1.y() ? 1 : 0;
-        const int offset_k = line.m_pos0.z() > line.m_pos1.z() ? 1 : 0;
 
+        if(line.m_pos0[2] == line.m_pos1[2])
+            return;
         /* pick every cell in the xy-plane that is overlapped by particle's
          * form factor and deposit the current for the cells above and beneath
          * that cell and for the cell itself.
          */
-        for (int i = begin + offset_i; i < end + offset_i; ++i)
+        for (int i = begin ; i < end ; ++i)
         {
-            for (int j = begin + offset_j; j < end + offset_j; ++j)
+            for (int j = begin ; j < end ; ++j)
             {
                 /* This is the implementation of the FORTRAN W(i,j,k,3)/ C style W(i,j,k,2) version from
                  * Esirkepov paper. All coordinates are rotated before thus we can
                  * always use C style W(i,j,k,2).
                  */
                 float_X tmp =
-                    S0(line, i, 0) * S0(line, j, 1) +
-                    float_X(0.5) * DS(line, i, 0) * S0(line, j, 1) +
-                    float_X(0.5) * S0(line, i, 0) * DS(line, j, 1) +
-                    (float_X(1.0) / float_X(3.0)) * DS(line, i, 0) * DS(line, j, 1);
+                    -currentSurfaceDensity * (
+                        S0(line, i, 0) * S0(line, j, 1) +
+                        float_X(0.5) * DS(line, i, 0) * S0(line, j, 1) +
+                        float_X(0.5) * S0(line, i, 0) * DS(line, j, 1) +
+                        (float_X(1.0) / float_X(3.0)) * DS(line, i, 0) * DS(line, j, 1)
+                    );
 
                 float_X accumulated_J = float_X(0.0);
-                for (int k = begin + offset_k; k < end + offset_k; ++k)
+                for (int k = begin ; k < end ; ++k)
                 {
-                    float_X W = DS(line, k, 2) * tmp;
+                    const float_X W = DS(line, k, 2) * tmp;
                     /* We multiply with `cellEdgeLength` due to the fact that the attribute for the
                      * in-cell particle `position` (and it's change in DELTA_T) is normalize to [0,1) */
-                    accumulated_J += -this->charge * (float_X(1.0) / float_X(CELL_VOLUME * DELTA_T)) * W * cellEdgeLength;
+                    accumulated_J += W;
                     /* the branch divergence here still over-compensates for the fewer collisions in the (expensive) atomic adds */
                     if (accumulated_J != float_X(0.0))
                         atomicAddWrapper(&((*cursorJ(i, j, k)).z()), accumulated_J);
                 }
             }
         }
-
     }
 
     /** calculate S0 (see paper)
@@ -200,6 +274,19 @@ struct Esirkepov<T_ParticleShape, DIM3>
     {
         PMacc::traits::StringProperty propList( "name", "Esirkepov" );
         return propList;
+    }
+
+
+    /** get normalized average in cell particle position
+     *
+     * @param x position of the particle
+     * @param i shift of grid
+     * @return in cell position
+     */
+    DINLINE float_X
+    calc_InCellPos(const float_X x, const float_X i) const
+    {
+        return x - i;
     }
 };
 
