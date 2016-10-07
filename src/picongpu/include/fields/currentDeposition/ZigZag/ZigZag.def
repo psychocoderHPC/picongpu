@@ -52,6 +52,8 @@ using namespace PMacc;
 template<typename T_ParticleShape>
 struct ZigZag;
 
+template<typename T_ParticleShape>
+struct ZigZagCIC;
 
 } //namespace currentSolver
 
@@ -66,6 +68,19 @@ struct GetMargin<picongpu::currentSolver::ZigZag<T_ParticleShape > >
 {
 private:
     typedef picongpu::currentSolver::ZigZag<T_ParticleShape> Solver;
+public:
+    typedef typename Solver::LowerMargin LowerMargin;
+    typedef typename Solver::UpperMargin UpperMargin;
+};
+
+/* Get margin of a solver
+ * class must define a LowerMargin and UpperMargin
+ */
+template<typename T_ParticleShape>
+struct GetMargin<picongpu::currentSolver::ZigZagCIC<T_ParticleShape > >
+{
+private:
+    typedef picongpu::currentSolver::ZigZagCIC<T_ParticleShape> Solver;
 public:
     typedef typename Solver::LowerMargin LowerMargin;
     typedef typename Solver::UpperMargin UpperMargin;
