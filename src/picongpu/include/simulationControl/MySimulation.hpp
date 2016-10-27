@@ -334,7 +334,7 @@ public:
 
 
         /* add CUDA streams to the StreamController for concurrent execution */
-        Environment<>::get().StreamController().addStreams(6);
+        Environment<>::get().StreamController().addStreams(2);
     }
 
     virtual uint32_t fillSimulation()

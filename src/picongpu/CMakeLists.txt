@@ -130,7 +130,7 @@ endif()
 # ISAAC
 ################################################################################
 
-find_package(ISAAC 0.1.0 CONFIG)
+#find_package(ISAAC 0.1.0 CONFIG)
 if(ISAAC_FOUND)
     if ( CMAKE_CXX_STANDARD EQUAL 98 )
         message(STATUS "ISAAC found, but needed C++11 not enabled")
