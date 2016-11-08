@@ -86,9 +86,8 @@ namespace PMacc
                     {
                         this->stream = static_cast<StreamTask*>(task)->getEventStream();
                         this->setTaskType(ITask::TASK_CUDA);
-                        this->cudaEvent=static_cast<StreamTask*>(task)->getCudaEvent();
-                        this->hasCudaEvent=true;
-
+                        this->cudaEvent=static_cast<StreamTask*>(task)->getCudaEventHandle();
+                        this->hasCudaEventHandle=true;
                     }
                 }
             }
@@ -104,9 +103,8 @@ namespace PMacc
                     {
                         this->stream = static_cast<StreamTask*>(task)->getEventStream();
                         this->setTaskType(ITask::TASK_CUDA);
-                        this->cudaEvent=static_cast<StreamTask*>(task)->getCudaEvent();
-                        this->hasCudaEvent=true;
-
+                        this->cudaEvent=static_cast<StreamTask*>(task)->getCudaEventHandle();
+                        this->hasCudaEventHandle=true;
                     }
                 }
             }
@@ -139,7 +137,7 @@ namespace PMacc
                 this->setTaskType(ITask::TASK_CUDA);
                 this->setEventStream(static_cast<StreamTask*> (s2)->getEventStream());
                 if(static_cast<StreamTask*> (s1)->getEventStream() != static_cast<StreamTask*> (s2)->getEventStream())
-                    this->getEventStream()->waitOn(static_cast<StreamTask*> (s1)->getCudaEvent());
+                    this->getEventStream()->waitOn(static_cast<StreamTask*> (s1)->getCudaEventHandle());
                 this->activate();
             }
             else if (s1->getTaskType() == ITask::TASK_MPI && s2->getTaskType() == ITask::TASK_CUDA)
