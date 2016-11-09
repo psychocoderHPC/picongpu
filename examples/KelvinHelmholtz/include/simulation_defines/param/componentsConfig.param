@@ -38,7 +38,7 @@ namespace picongpu
      *  - laserPlaneWave        : a plane wave
      *  - laserPolynom          : a polynomial laser envelope
      */
-    namespace laserProfile = laserNone;
+    namespace laserProfile = laserGaussianBeam;
 
     /*! Field Configuration --------------------------------------------------
      *  - fieldSolverYee : standard Yee solver

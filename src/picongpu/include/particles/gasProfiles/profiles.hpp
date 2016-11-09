@@ -28,6 +28,7 @@
 #include "particles/gasProfiles/LinearExponentialImpl.hpp"
 #include "particles/gasProfiles/GaussianCloudImpl.hpp"
 #include "particles/gasProfiles/SphereFlanksImpl.hpp"
+#include "particles/gasProfiles/FromPNGImpl.hpp"
 
 #if (ENABLE_HDF5 == 1)
 #include "particles/gasProfiles/FromHDF5Impl.hpp"

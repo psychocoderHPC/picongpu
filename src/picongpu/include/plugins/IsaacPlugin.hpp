@@ -124,7 +124,7 @@ class TFieldSource< FieldTmpOperation< FrameSolver, ParticleType > >
 
         static std::string getName()
         {
-            return ParticleType::FrameType::getName() + std::string(" ") + FrameSolver().getName();
+            return ParticleType::type0::FrameType::getName() + std::string(" ") + FrameSolver().getName();
         }
 
         void update(bool enabled, void* pointer)
@@ -135,9 +135,13 @@ class TFieldSource< FieldTmpOperation< FrameSolver, ParticleType > >
                 const SubGrid<simDim>& subGrid = Environment< simDim >::get().SubGrid();
                 DataConnector &dc = Environment< simDim >::get().DataConnector();
                 FieldTmp * fieldTmp = &(dc.getData< FieldTmp > (FieldTmp::getName(), true));
-                ParticleType * particles = &(dc.getData< ParticleType > ( ParticleType::FrameType::getName(), true));
+                typedef typename ParticleType::type0 ParticleType0;
+                typedef typename ParticleType::type1 ParticleType1;
+                ParticleType0 * particles = &(dc.getData< ParticleType0 > ( ParticleType0::FrameType::getName(), true));
+                ParticleType1 * particles1 = &(dc.getData< ParticleType1 > ( ParticleType1::FrameType::getName(), true));
                 fieldTmp->getGridBuffer().getDeviceBuffer().setValue( FieldTmp::ValueType(0.0) );
                 fieldTmp->computeValue < CORE + BORDER, FrameSolver > (*particles, *currentStep);
+                fieldTmp->computeValue < CORE + BORDER, FrameSolver > (*particles1, *currentStep);
                 EventTask fieldTmpEvent = fieldTmp->asyncCommunication(__getTransactionEvent());
                 __setTransactionEvent(fieldTmpEvent);
                 __getTransactionEvent().waitForFinished();

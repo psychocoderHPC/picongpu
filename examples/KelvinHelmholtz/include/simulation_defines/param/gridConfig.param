@@ -86,7 +86,7 @@ namespace picongpu
     //! Define the strength of the absorber for any direction
     const float_X ABSORBER_STRENGTH[3][2] = {
         {1.0e-3, 1.0e-3}, /*x direction [negative,positive]*/
-        {1.0e-3, 1.0e-3}, /*y direction [negative,positive]*/
+        {1.0e-2, 1.0e-2}, /*y direction [negative,positive]*/
         {1.0e-3, 1.0e-3}  /*z direction [negative,positive]*/
     }; //unit: none
 

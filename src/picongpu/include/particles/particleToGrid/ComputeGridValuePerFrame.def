@@ -106,6 +106,18 @@ struct CreateChargeDensityOperation
     typedef FieldTmpOperation< ParticleChargeDensity, T_Species > type;
 };
 
+template<typename T_Species>
+struct CreateChargeDensityOperation2
+{
+    typedef typename GetShape<typename T_Species::type0>::type shapeType;
+    typedef ComputeGridValuePerFrame<
+        shapeType,
+        particleToGrid::derivedAttributes::ChargeDensity
+    > ParticleChargeDensity;
+
+    typedef FieldTmpOperation< ParticleChargeDensity, T_Species > type;
+};
+
 /* ParticleCounter */
 template<typename T_Species>
 struct CreateCounterOperation

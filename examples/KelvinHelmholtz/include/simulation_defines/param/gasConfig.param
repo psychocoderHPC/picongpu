@@ -23,6 +23,7 @@
 #pragma once
 
 #include "particles/gasProfiles/profiles.def"
+#include "preprocessor/struct.hpp"
 
 namespace picongpu
 {
@@ -44,8 +45,24 @@ namespace picongpu
 namespace gasProfiles
 {
 
-/* definition of homogenous gas*/
-typedef HomogenousImpl Homogenous;
+
+PMACC_STRUCT(PngElectrons,
+    (PMACC_C_STRING(filename,"e.png"))
+);
+
+
+
+
+/* definition of gas cloud profile*/
+typedef FromPNGImpl<PngElectrons> PNG_e;
+
+PMACC_STRUCT(PngIons,
+    (PMACC_C_STRING(filename,"i.png"))
+    (PMACC_C_VALUE(uint32_t, iteration, 0))
+);
+
+/* definition of gas cloud profile*/
+typedef FromPNGImpl<PngIons> PNG_i;
 
 }//namespace gasProfiles
 
