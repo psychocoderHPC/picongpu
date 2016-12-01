@@ -117,13 +117,15 @@ namespace PMacc
 
         void setCurrentSize(const size_t size)
         {
+            EventTask e1;
             // do host and device setCurrentSize parallel
             EventTask split = __getTransactionEvent();
+#if( PMACC_ENABLE_GPUDIRECT == 0 )
             __startTransaction(split);
             stackIndexer.getHostBuffer().setCurrentSize(size);
             stack.getHostBuffer().setCurrentSize(size);
-            EventTask e1 = __endTransaction();
-
+            e1 = __endTransaction();
+#endif
             __startTransaction(split);
             stackIndexer.getDeviceBuffer().setCurrentSize(size);
             EventTask e2 = __endTransaction();
@@ -156,7 +158,11 @@ namespace PMacc
 
         size_t getMaxParticlesCount()
         {
+#if( PMACC_ENABLE_GPUDIRECT == 0 )
             return stack.getHostBuffer().getDataSpace().productOfComponents();
+#else
+            return stack.getDeviceBuffer().getDataSpace().productOfComponents();
+#endif
         }
 
     private:

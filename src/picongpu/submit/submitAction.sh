@@ -31,5 +31,6 @@ fi
 cp -a $TBG_cfgPath/openib.conf tbg
 cp $TBG_cfgPath/cuda.filter tbg
 cp $TBG_cfgPath/scorep.filter tbg
+cp $TBG_cfgPath/gpu_numa_aware tbg
 cp $0 tbg
 

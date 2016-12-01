@@ -70,7 +70,10 @@ namespace PMacc
                         //bash is finished
                         __startTransaction();
                         lastSize = parBase.getParticlesBuffer().getSendExchangeStack(exchange).getDeviceParticlesCurrentSize();
+                        std::cout<<"Xbash "<<lastSize<<std::endl;
                         lastSendEvent = parBase.getParticlesBuffer().asyncSendParticles(__getTransactionEvent(), exchange);
+                        lastSize = parBase.getParticlesBuffer().getSendExchangeStack(exchange).getDeviceParticlesCurrentSize();
+                        std::cout<<"Xboo "<<lastSize<<std::endl;
                         initDependency = lastSendEvent;
                         __endTransaction();
                         state = WaitForSend;

@@ -31,6 +31,7 @@
 
 #include "eventSystem/tasks/Factory.hpp"
 #include "eventSystem/tasks/TaskReceive.hpp"
+#include "assert.hpp"
 
 #include "pmacc_types.hpp"
 
@@ -49,7 +50,7 @@ namespace PMacc
 
         ExchangeIntern(DeviceBuffer<TYPE, DIM>& source, GridLayout<DIM> memoryLayout, DataSpace<DIM> guardingCells, uint32_t exchange,
                        uint32_t communicationTag, uint32_t area = BORDER, bool sizeOnDevice = false) :
-        Exchange<TYPE, DIM>(exchange, communicationTag), deviceDoubleBuffer(NULL)
+        Exchange<TYPE, DIM>(exchange, communicationTag), deviceDoubleBuffer(NULL), hostBuffer(NULL)
         {
 
             assert(!guardingCells.isOneDimensionGreaterThan(memoryLayout.getGuard()));
@@ -77,13 +78,14 @@ namespace PMacc
                 /*create double buffer on gpu for faster memory transfers*/
                 this->deviceDoubleBuffer = new DeviceBufferIntern<TYPE, DIM > (tmp_size, false, true);
             }
-
+#if( PMACC_ENABLE_GPUDIRECT == 0 )
             this->hostBuffer = new HostBufferIntern<TYPE, DIM > (tmp_size);
+#endif
         }
 
         ExchangeIntern(DataSpace<DIM> exchangeDataSpace, uint32_t exchange,
                        uint32_t communicationTag, bool sizeOnDevice = false) :
-        Exchange<TYPE, DIM>(exchange, communicationTag), deviceDoubleBuffer(NULL)
+        Exchange<TYPE, DIM>(exchange, communicationTag), deviceDoubleBuffer(NULL), hostBuffer(NULL)
         {
             this->deviceBuffer = new DeviceBufferIntern<TYPE, DIM > (exchangeDataSpace, sizeOnDevice);
            //  this->deviceBuffer = new DeviceBufferIntern<TYPE, DIM > (exchangeDataSpace, sizeOnDevice,true);
@@ -92,8 +94,9 @@ namespace PMacc
                 /*create double buffer on gpu for faster memory transfers*/
                this->deviceDoubleBuffer = new DeviceBufferIntern<TYPE, DIM > (exchangeDataSpace, false, true);
             }
-
+#if( PMACC_ENABLE_GPUDIRECT == 0 )
             this->hostBuffer = new HostBufferIntern<TYPE, DIM > (exchangeDataSpace);
+#endif
         }
 
         /**
@@ -198,11 +201,13 @@ namespace PMacc
 
         virtual HostBuffer<TYPE, DIM>& getHostBuffer()
         {
+            PMACC_ASSERT(hostBuffer!=NULL);
             return *hostBuffer;
         }
 
         virtual DeviceBuffer<TYPE, DIM>& getDeviceBuffer()
         {
+            PMACC_ASSERT(deviceBuffer!=NULL);
             return *deviceBuffer;
         }
 
@@ -213,6 +218,7 @@ namespace PMacc
 
         virtual DeviceBuffer<TYPE, DIM>& getDeviceDoubleBuffer()
         {
+            PMACC_ASSERT(deviceDoubleBuffer!=NULL);
             return *deviceDoubleBuffer;
         }
 

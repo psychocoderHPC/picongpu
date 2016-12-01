@@ -69,7 +69,12 @@ namespace PMacc
                         state = InitInsert;
                         //bash is finished
                         __startTransaction();
+#if( PMACC_ENABLE_GPUDIRECT == 0 )
                         lastSize = parBase.getParticlesBuffer().getReceiveExchangeStack(exchange).getHostParticlesCurrentSize();
+#else
+                        lastSize = parBase.getParticlesBuffer().getReceiveExchangeStack(exchange).getDeviceParticlesCurrentSize();
+#endif
+                        std::cout<<"Xrecv "<<lastSize<<std::endl;
                         parBase.insertParticles(exchange);
                         tmpEvent = __endTransaction();
                         initDependency = tmpEvent;

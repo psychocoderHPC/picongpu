@@ -47,11 +47,26 @@ public:
 
     virtual void init()
     {
+        Buffer<TYPE, DIM>* src = NULL;
+
+
+#if( PMACC_ENABLE_GPUDIRECT == 0 )
+        src = &(exchange->getHostBuffer());
+#else
+        if(exchange->hasDeviceDoubleBuffer())
+        {
+            src = &(exchange->getDeviceDoubleBuffer());
+        }
+        else
+        {
+            src = &(exchange->getDeviceBuffer());
+        }
+#endif
         this->request = Environment<DIM>::get().EnvironmentController()
                 .getCommunicator().startSend(
                                              exchange->getExchangeType(),
-                                             (char*) exchange->getHostBuffer().getPointer(),
-                                             exchange->getHostBuffer().getCurrentSize() * sizeof (TYPE),
+                                             (char*) src->getPointer(),
+                                             src->getCurrentSize() * sizeof (TYPE),
                                              exchange->getCommunicationTag());
     }
 

@@ -88,8 +88,12 @@ namespace PMacc
     {
         if (particlesBuffer->hasReceiveExchange(exchangeType))
         {
-
+#if( PMACC_ENABLE_GPUDIRECT == 0 )
             size_t grid(particlesBuffer->getReceiveExchangeStack(exchangeType).getHostCurrentSize());
+#else
+            size_t grid(particlesBuffer->getReceiveExchangeStack(exchangeType).getDeviceCurrentSize());
+#endif
+            std::cout<<"Xinsert "<<particlesBuffer->getReceiveExchangeStack(exchangeType).getDeviceParticlesCurrentSize()<<std::endl;
             if (grid != 0)
             {
                 ExchangeMapping<GUARD, MappingDesc> mapper(this->cellDescription, exchangeType);

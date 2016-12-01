@@ -54,16 +54,26 @@ namespace PMacc
             {
                 Environment<>::get().Factory().createTaskCopyDeviceToDevice(exchange->getDeviceBuffer(),
                                                                             exchange->getDeviceDoubleBuffer()
+#if( PMACC_ENABLE_GPUDIRECT == 1 )
+                                                                            ,this
+#endif
                                                                             );
+#if( PMACC_ENABLE_GPUDIRECT == 0 )
                 Environment<>::get().Factory().createTaskCopyDeviceToHost(exchange->getDeviceDoubleBuffer(),
                                                                           exchange->getHostBuffer(),
                                                                           this);
+#endif
             }
             else
             {
+#if( PMACC_ENABLE_GPUDIRECT == 0 )
                 Environment<>::get().Factory().createTaskCopyDeviceToHost(exchange->getDeviceBuffer(),
                                                                           exchange->getHostBuffer(),
                                                                           this);
+#else
+                __getTransactionEvent().waitForFinished();
+                state = DeviceToHostFinished;
+#endif
             }
 
         }
@@ -98,7 +108,7 @@ namespace PMacc
 
         void event(id_t, EventType type, IEventData*)
         {
-            if (type == COPYDEVICE2HOST)
+            if (type == COPYDEVICE2HOST || type == COPYDEVICE2DEVICE)
             {
                 state = DeviceToHostFinished;
                 executeIntern();

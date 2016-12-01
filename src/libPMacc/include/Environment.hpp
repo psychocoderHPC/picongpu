@@ -161,18 +161,20 @@ public:
     {
     }
 
-private:
-
-    Environment()
-    {
-    }
-
-    Environment(const Environment&);
-
-    Environment& operator=(const Environment&);
-
+    /** select a device
+     *
+     * only the first call select a device, all other calls are ignored
+     *
+     * @param deviceNumber number of the device ( auto select other device if device is busy )
+     */
     void setDevice(int deviceNumber)
     {
+        static bool isDeviceSelected = false;
+
+        /* exit if device is already selected */
+        if( isDeviceSelected )
+            return;
+
         int num_gpus = 0; //number of gpus
         cudaGetDeviceCount(&num_gpus);
         //##ERROR handling
@@ -180,12 +182,12 @@ private:
         {
             throw std::runtime_error("no CUDA capable devices detected");
         }
-        else if (num_gpus < deviceNumber) //check if device can be selected by deviceNumber
+        else if (num_gpus <= deviceNumber) //check if device can be selected by deviceNumber
         {
             std::cerr << "no CUDA device " << deviceNumber << ", only " << num_gpus << " devices found" << std::endl;
-            throw std::runtime_error("CUDA capable devices can't be selected");
+            deviceNumber=0;
+            //throw std::runtime_error("CUDA capable devices can't be selected");
         }
-
 
         int maxTries = num_gpus;
 
@@ -245,7 +247,19 @@ private:
                 CUDA_CHECK(rc); /*error message*/
             }
         }
+
+        isDeviceSelected = true;
     }
+
+    private:
+
+    Environment()
+    {
+    }
+
+    Environment(const Environment&);
+
+    Environment& operator=(const Environment&);
 };
 
 }

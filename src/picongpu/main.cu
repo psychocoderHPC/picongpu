@@ -89,6 +89,10 @@ using namespace picongpu;
  */
 int main(int argc, char **argv)
 {
+#if( PMACC_ENABLE_GPUDIRECT == 1 )
+    std::cout<<"GPUDirect enabled"<<std::endl;
+    //PMacc::Environment<simDim>::get().setDevice(0);
+#endif
     MPI_CHECK(MPI_Init(&argc, &argv));
 
     picongpu::simulation_starter::SimStarter sim;
