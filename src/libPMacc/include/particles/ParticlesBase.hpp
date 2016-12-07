@@ -99,13 +99,7 @@ protected:
         __startTransaction(__getTransactionEvent());
         do
         {
-            PMACC_TYPEKERNEL(kernelShiftParticles)
-                (mapper.getGridDim(), (int)TileSize)
-                (pBox, mapper);
-            PMACC_TYPEKERNEL(kernelFillGaps)
-                (mapper.getGridDim(), (int)TileSize)
-                (pBox, mapper);
-            PMACC_TYPEKERNEL(kernelFillGapsLastFrame)
+            PMACC_TYPEKERNEL(deviceKernel::ShiftParticles)
                 (mapper.getGridDim(), (int)TileSize)
                 (pBox, mapper);
         }
@@ -123,11 +117,7 @@ protected:
     {
         AreaMapping<AREA, MappingDesc> mapper(this->cellDescription);
 
-        PMACC_TYPEKERNEL(kernelFillGaps)
-            (mapper.getGridDim(), (int)TileSize)
-            (particlesBuffer->getDeviceParticleBox(), mapper);
-
-        PMACC_TYPEKERNEL(kernelFillGapsLastFrame)
+        PMACC_TYPEKERNEL(deviceKernel::FillAllGaps)
             (mapper.getGridDim(), (int)TileSize)
             (particlesBuffer->getDeviceParticleBox(), mapper);
     }

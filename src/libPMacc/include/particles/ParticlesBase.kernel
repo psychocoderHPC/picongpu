@@ -618,4 +618,38 @@ struct kernelInsertParticles
 };
 
 
+namespace deviceKernel
+{
+
+    /** fill all gaps and reorder particles in the last frame
+     * 
+     * This kernel removes all gaps in the frames and move all particles in the
+     * last gap to the front of the frame.
+     * 
+     * This kernel join `kernelFillGaps` and `kernelFillGapsLastFrame` to avoid that 
+     * two kernels must be called from the host.
+     */
+    struct FillAllGaps
+    {
+        template<class ParBox, class Mapping>
+        DINLINE void operator()( ParBox pb, Mapping mapper ) const
+        {
+            kernelFillGaps{}( pb, mapper );
+            kernelFillGapsLastFrame{}( pb, mapper );
+        }
+    };
+
+
+    struct ShiftParticles
+    {
+        template<class ParBox, class Mapping>
+        DINLINE void operator()( ParBox pb, Mapping mapper ) const
+        {
+            kernelShiftParticles{}( pb, mapper );
+            FillAllGaps{}( pb, mapper );
+        }
+    };
+
+} // namespace deviceKernel
+
 } //namespace PMacc
