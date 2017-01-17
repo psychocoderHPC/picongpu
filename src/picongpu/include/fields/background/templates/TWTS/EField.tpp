@@ -215,9 +215,9 @@ namespace twts
          * Instead phi is taken positive, but the entire pulse rotated by 180 deg around the
          * z-axis of the coordinate system in this function.
          */
-        const float_T phiReal = float_T( pmMath::abs(phi) );
-        const float_T alphaTilt = pmMath::atan2(float_T(1.0)-float_T(beta_0)*pmMath::cos(phiReal),
-                                                float_T(beta_0)*pmMath::sin(phiReal));
+        const float_T phiReal = float_T( math::abs(phi) );
+        const float_T alphaTilt = math::atan2(float_T(1.0)-float_T(beta_0)*math::cos(phiReal),
+                                                float_T(beta_0)*math::sin(phiReal));
         /* Definition of the laser pulse front tilt angle for the laser field below.
          *
          * For beta0 = 1.0, this is equivalent to our standard definition. Question: Why is the
@@ -253,14 +253,14 @@ namespace twts
          * (i.e. from a finite coordinate range) only. All these quantities have to be calculated
          * in double precision.
          */
-        const float_64 tanAlpha = ( float_64(1.0) - beta_0 * pmMath::cos(phi) )
-                                    / ( beta_0 * pmMath::sin(phi) );                            
-        const float_64 tanFocalLine = pmMath::tan( PI / float_64(2.0) - phi );
+        const float_64 tanAlpha = ( float_64(1.0) - beta_0 * math::cos(phi) )
+                                    / ( beta_0 * math::sin(phi) );
+        const float_64 tanFocalLine = math::tan( PI / float_64(2.0) - phi );
         const float_64 deltaT = wavelength_SI / SI::SPEED_OF_LIGHT_SI
                                  * ( float_64(1.0) + tanAlpha / tanFocalLine);
         const float_64 deltaY = wavelength_SI / tanFocalLine;
         const float_64 deltaZ = -wavelength_SI;
-        const float_64 numberOfPeriods = pmMath::floor( time / deltaT );
+        const float_64 numberOfPeriods = math::floor( time / deltaT );
         const float_T timeMod = float_T( time - numberOfPeriods * deltaT );
         const float_T yMod = float_T( pos.y() + numberOfPeriods * deltaY );
         const float_T zMod = float_T( pos.z() + numberOfPeriods * deltaZ );
@@ -271,12 +271,12 @@ namespace twts
         const float_T t = float_T(timeMod / UNIT_TIME);
 
         /* Calculating shortcuts for speeding up field calculation */
-        const float_T sinPhi = pmMath::sin(phiT);
-        const float_T cosPhi = pmMath::cos(phiT);
-        const float_T cscPhi = float_T(1.0)/pmMath::sin(phiT);
-        const float_T sinPhi2 = pmMath::sin(phiT / float_T(2.0));
-        const float_T sin2Phi = pmMath::sin(phiT * float_T(2.0));
-        const float_T tanPhi2 = pmMath::tan(phiT / float_T(2.0));
+        const float_T sinPhi = math::sin(phiT);
+        const float_T cosPhi = math::cos(phiT);
+        const float_T cscPhi = float_T(1.0)/math::sin(phiT);
+        const float_T sinPhi2 = math::sin(phiT / float_T(2.0));
+        const float_T sin2Phi = math::sin(phiT * float_T(2.0));
+        const float_T tanPhi2 = math::tan(phiT / float_T(2.0));
 
         const float_T sinPhi_2 = sinPhi * sinPhi;
         const float_T sinPhi_3 = sinPhi * sinPhi_2;
@@ -336,12 +336,12 @@ namespace twts
             ) / ( cspeed * helpVar2 * helpVar1 );
 
         const complex_T helpVar4 = cspeed * om0 * tauG2
-            - complex_T(0,8) * y * pmMath::tan( float_T(PI / 2.0) - phiT) * cscPhi * cscPhi * sinPhi2_4
+            - complex_T(0,8) * y * math::tan( float_T(PI / 2.0) - phiT) * cscPhi * cscPhi * sinPhi2_4
             - complex_T(0,2) * z * tanPhi2_2;
 
-        const complex_T result = ( pmMath::exp(helpVar3) * tauG
-        * pmMath::sqrt( cspeed * om0 * rho0 / helpVar2 )
-        ) / pmMath::sqrt(helpVar4);
+        const complex_T result = ( math::exp(helpVar3) * tauG
+        * math::sqrt( cspeed * om0 * rho0 / helpVar2 )
+        ) / math::sqrt(helpVar4);
 
         return result.get_real();
     }
