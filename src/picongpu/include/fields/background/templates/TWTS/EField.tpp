@@ -265,6 +265,32 @@ namespace twts
         const float_T yMod = float_T( pos.y() + numberOfPeriods * deltaY );
         const float_T zMod = float_T( pos.z() + numberOfPeriods * deltaZ );
 
+       /* Find out the envelope factor along the (long) TWTS pulse width (y-axis)
+        * according to a Tukey-window.
+        * This is only correct if the transition region size deltawy = wy * alpha / 2
+        * is very much larger than the characteristic size of diffraction in the simulation.
+        * It is useful to compare the actual TWTS propagation distance (within the simulation volume)
+        * with the corresponding "Rayleigh length" PI * deltawy * deltawy / lambda0.
+        */
+        float_T envelopeWy;
+        const float_T alpha = float_T(0.05);
+        if ( ( -wy / float_T(2.0) <= pos.y() / UNIT_LENGTH ) && ( pos.y() / UNIT_LENGTH < ( alpha - float_T(1.0) ) * wy / float_T(2.0) ) )
+        {
+            envelopeWy = float_T(0.5) * ( float_T(1.0) + math::cos( PI * ( ( float_T(2.0) * float_T( pos.y() / UNIT_LENGTH ) + wy ) / ( alpha * wy ) - float_T(1.0) ) ) );
+        }
+        else if ( ( ( alpha - float_T(1.0) ) * wy / float_T(2.0) <= pos.y() / UNIT_LENGTH ) &&  ( pos.y() / UNIT_LENGTH <= ( float_T(1.0) - alpha ) * wy / float_T(2.0) ) )
+        {
+            envelopeWy = float_T(1.0);
+        }
+        else if ( ( ( float_T(1.0) - alpha ) * wy / float_T(2.0) < pos.y() / UNIT_LENGTH ) && ( pos.y() / UNIT_LENGTH <= wy / float_T(2.0) ) )
+        {
+            envelopeWy = float_T(0.5) * ( float_T(1.0) + math::cos( PI * ( ( float_T(2.0) * float_T( pos.y() / UNIT_LENGTH ) + wy ) / ( alpha * wy ) - float_T(2.0) / alpha + float_T(1.0) ) ) );
+        }
+        else
+	{
+            envelopeWy = float_T(0.0);
+        }
+
         const float_T x = float_T(phiPositive * pos.x() / UNIT_LENGTH);
         const float_T y = float_T(phiPositive * yMod / UNIT_LENGTH);
         const float_T z = float_T(zMod / UNIT_LENGTH);
@@ -343,7 +369,7 @@ namespace twts
         * math::sqrt( cspeed * om0 * rho0 / helpVar2 )
         ) / math::sqrt(helpVar4);
 
-        return result.get_real();
+        return envelopeWy * result.get_real();
     }
 
     /** Calculate the Ey(r,t) field here
