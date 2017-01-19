@@ -52,15 +52,17 @@ namespace picongpu
 
             twtsFieldE1(
                 /* focus_y [m], the distance to the laser focus in y-direction */
-                4.00896e-3, // 9 micrometer more for centering laser in interaction region
+                /* 4.0e-3 + numCellsOfWindowY / 2 * CELL_HEIGHT_SI  */
+                4.00896e-3, // 8.96 micrometer more for centering laser in interaction region
                 /* wavelength [m] */
                 1.035e-6,
                 /* pulselength [s], sigma of std. gauss for intensity (E^2) */
-                120.0e-15 / 2.3548200450309493820231386529194 / 10.0,
+                120.0e-15 / 2.3548200450309493820231386529194,
                 /* w_x [m], cylindrically focused spot size */
                 20.0e-6, // chosen generously high, reduce later
                 /* w_y [m] */
-                1.402933808735897e-3, // corresponds to 8mm interaction distance along y-axis -- 5.88mm is the original design value
+                /* 8.0e-3*sin(10.1 Degree) - numCellsZ*CELL_DEPTH_SI/2/cos(10.1 Degree / 2)  */
+                1.392498426704549e-3, // corresponds to 8mm interaction distance along y-axis -- 5.88mm is the original design value
                 /* interaction angle between TWTS laser propagation vector and the y-axis [rad] */
                 10.1 * (PI/180.),
                 /* propagation speed of overlap [speed of light]. */
