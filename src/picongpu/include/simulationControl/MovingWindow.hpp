@@ -104,6 +104,7 @@ private:
                 cellSizeInMoveDirection;
             /* Is the time step when the virtual particle **passed** the moving window
              * in the current to the next step
+
              * Signed type of firstMoveStep to allow for edge case movePoint = 0.0
              * for a moving window right from the start of the simulation.
              */
