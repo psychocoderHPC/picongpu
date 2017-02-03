@@ -88,7 +88,7 @@ namespace picongpu
         {
             /* example 1: TWTS background pulse */
             /** unit: meter */
-            const float_64 WAVE_LENGTH_SI = 0.8e-6;
+            const float_64 WAVE_LENGTH_SI = 1.035e-6;
 
             /** UNITCONV */
             /* const float_64 UNITCONV_Intens_to_A0 = SI::ELECTRON_CHARGE_SI
@@ -106,7 +106,7 @@ namespace picongpu
             /* const float_64 _A0  = _PEAK_INTENSITY_SI * UNITCONV_Intens_to_A0; */
 
             /** unit: none */
-            const float_64 _A0  = 3.5;
+            const float_64 _A0  = 2.0;
 
             /** unit: Volt /meter */
             /*\todo #738 implement math::vector, native type operations */
@@ -150,17 +150,17 @@ namespace picongpu
                 /* wavelength [m] */
                 1.035e-6,
                 /* pulselength [s], sigma of std. gauss for intensity (E^2) */
-                120.0e-15 / 2.3548200450309493820231386529194 / 10.0,
+                120.0e-15 / 2.3548200450309493820231386529194,
                 /* w_x [m], cylindrically focused spot size */
                 20.0e-6,
                 /* w_y [m] */
-                1.402933808735897e-3,
+                1.392498426704549e-3,
                 /* interaction angle between TWTS laser propagation vector and the y-axis [rad] */
                 10.1 * (PI / 180.),
                 /* propagation speed of overlap [speed of light]. */
                 1.0,
                 /* manual time delay [s] if auto_tdelay is false */
-                4.0e-6 / SI::SPEED_OF_LIGHT_SI,
+                4.0e-3 / SI::SPEED_OF_LIGHT_SI,
                 /* Should PIConGPU automatically choose a suitable time delay? [true / false] */
                 false,
                 /* Polarization of TWTS laser field */
@@ -179,7 +179,7 @@ namespace picongpu
                     const uint32_t currentStep ) const
         {
             /** unit: meter */
-            const float_64 WAVE_LENGTH_SI = 0.8e-6;
+            const float_64 WAVE_LENGTH_SI = 1.035e-6;
 
             /** UNITCONV */
             /* const float_64 UNITCONV_Intens_to_A0 = SI::ELECTRON_CHARGE_SI
@@ -197,7 +197,7 @@ namespace picongpu
             /* const float_64 _A0  = _PEAK_INTENSITY_SI * UNITCONV_Intens_to_A0; */
 
             /** unit: none */
-            const float_64 _A0  = 3.5;
+            const float_64 _A0  = 2.0;
 
             /** unit: Volt /meter */
             const float3_64 invUnitField = float3_64( 1.0 / m_unitField[0],
