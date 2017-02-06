@@ -274,20 +274,22 @@ namespace twts
         */
         float_T envelopeWy;
         const float_T alpha = float_T(0.05);
-        if ( ( -wy / float_T(2.0) <= pos.y() / UNIT_LENGTH ) && ( pos.y() / UNIT_LENGTH < ( alpha - float_T(1.0) ) * wy / float_T(2.0) ) )
+        //const float_T currentEnvelopePos = float_T(time / UNIT_TIME * cspeed); //Physical correct scenario
+        const float_T currentEnvelopePos = float_T(time / UNIT_TIME * cspeed); //Artificially eliminate ponderomotive force from longitudinal envelope
+        if ( ( -wy / float_T(2.0) <= currentEnvelopePos ) && ( currentEnvelopePos < ( alpha - float_T(1.0) ) * wy / float_T(2.0) ) )
         {
-            envelopeWy = float_T(0.5) * ( float_T(1.0) + math::cos( PI * ( ( float_T(2.0) * float_T( pos.y() / UNIT_LENGTH ) + wy ) / ( alpha * wy ) - float_T(1.0) ) ) );
+            envelopeWy = float_T(0.5) * ( float_T(1.0) + math::cos( PI * ( ( float_T(2.0) * currentEnvelopePos + wy ) / ( alpha * wy ) - float_T(1.0) ) ) );
         }
-        else if ( ( ( alpha - float_T(1.0) ) * wy / float_T(2.0) <= pos.y() / UNIT_LENGTH ) &&  ( pos.y() / UNIT_LENGTH <= ( float_T(1.0) - alpha ) * wy / float_T(2.0) ) )
+        else if ( ( ( alpha - float_T(1.0) ) * wy / float_T(2.0) <= currentEnvelopePos ) &&  ( currentEnvelopePos <= ( float_T(1.0) - alpha ) * wy / float_T(2.0) ) )
         {
             envelopeWy = float_T(1.0);
         }
-        else if ( ( ( float_T(1.0) - alpha ) * wy / float_T(2.0) < pos.y() / UNIT_LENGTH ) && ( pos.y() / UNIT_LENGTH <= wy / float_T(2.0) ) )
+        else if ( ( ( float_T(1.0) - alpha ) * wy / float_T(2.0) < currentEnvelopePos ) && ( currentEnvelopePos <= wy / float_T(2.0) ) )
         {
-            envelopeWy = float_T(0.5) * ( float_T(1.0) + math::cos( PI * ( ( float_T(2.0) * float_T( pos.y() / UNIT_LENGTH ) + wy ) / ( alpha * wy ) - float_T(2.0) / alpha + float_T(1.0) ) ) );
+            envelopeWy = float_T(0.5) * ( float_T(1.0) + math::cos( PI * ( ( float_T(2.0) * currentEnvelopePos + wy ) / ( alpha * wy ) - float_T(2.0) / alpha + float_T(1.0) ) ) );
         }
         else
-	{
+        {
             envelopeWy = float_T(0.0);
         }
 
