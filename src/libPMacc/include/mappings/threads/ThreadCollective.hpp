@@ -24,6 +24,7 @@
 #pragma once
 
 #include "mappings/threads/ForEachIdx.hpp"
+#include "mappings/threads/IdxConfig.hpp"
 #include "dimensions/SuperCellDescription.hpp"
 #include "dimensions/DataSpaceOperations.hpp"
 #include "dimensions/DataSpace.hpp"
@@ -69,8 +70,10 @@ public:
     )
     {
         mappings::threads::ForEachIdx<
-            math::CT::volume<FullSuperCellSize>::type::value,
-            workerDim
+            mappings::threads::IdxConfig<
+                math::CT::volume<FullSuperCellSize>::type::value,
+                workerDim
+            >
         >{ m_workerIdx }(
             [&]( uint32_t const linearIdx, uint32_t const )
             {

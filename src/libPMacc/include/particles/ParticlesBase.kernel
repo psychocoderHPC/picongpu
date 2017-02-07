@@ -30,6 +30,7 @@
 #include "particles/memory/boxes/ExchangePopDataBox.hpp"
 #include "memory/CtxArray.hpp"
 #include "mappings/threads/ForEachIdx.hpp"
+#include "mappings/threads/IdxConfig.hpp"
 
 #include "particles/operations/Assign.hpp"
 #include "particles/operations/Deselect.hpp"
@@ -88,8 +89,10 @@ struct KernelShiftParticles
         using namespace mappings::threads;
 
         ForEachIdx<
-            1,
-            numWorker
+            IdxConfig<
+                1,
+                numWorker
+            >
         >{ workerIdx }(
             [&]( uint32_t const, uint32_t const )
             {
@@ -105,25 +108,21 @@ struct KernelShiftParticles
         __syncthreads( );
         if ( !mustShift || !frame.isValid( ) ) return;
 
+        using ExchangeDomCfg = IdxConfig<
+                numExchanges,
+                numWorker
+            >;
 
-        memory::CtxArray< uint32_t, numExchanges, numWorker > lastFrameSizeCtx(0);
+        memory::CtxArray< uint32_t, ExchangeDomCfg > lastFrameSizeCtx(0);
 
-        memory::CtxArray< DataSpace<dim>, numExchanges, numWorker > relativeCtx(
+        memory::CtxArray< DataSpace<dim>, ExchangeDomCfg > relativeCtx(
             workerIdx,
             [&]( uint32_t const linearIdx, uint32_t const ) -> DataSpace<dim>{
                 return superCellIdx + Mask::getRelativeDirections<dim> ( linearIdx + 1);
             }
         );
 
-        ForEachIdx<
-            frameSize,
-            numWorker
-        > forEachParticle( workerIdx );
-
-        ForEachIdx<
-            numExchanges,
-            numWorker
-        > forEachExchange( workerIdx );
+        ForEachIdx< ExchangeDomCfg > forEachExchange( workerIdx );
 
         /* if a partially filled last frame exists for the neighboring supercell,
          * each master thread (one master per direction) will load it
@@ -155,8 +154,15 @@ struct KernelShiftParticles
         /* iterate over the frame list of the current supercell */
         while ( frame.isValid() )
         {
-            memory::CtxArray< lcellId_t, frameSize, numWorker, 1 > destParticleIdxCtx( INV_LOC_IDX );
-            memory::CtxArray< int, frameSize, numWorker, 1 > directionCtx;
+            using FrameDomCfg = IdxConfig<
+                    numExchanges,
+                    numWorker
+                >;
+
+            ForEachIdx< FrameDomCfg > forEachParticle( workerIdx );
+
+            memory::CtxArray< lcellId_t, FrameDomCfg > destParticleIdxCtx( INV_LOC_IDX );
+            memory::CtxArray< int, FrameDomCfg > directionCtx;
 
             forEachParticle(
                 [&]( uint32_t const linearIdx, uint32_t const idx )

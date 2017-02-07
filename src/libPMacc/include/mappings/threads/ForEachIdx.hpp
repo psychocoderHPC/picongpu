@@ -22,8 +22,8 @@
 
 #pragma once
 
+#include "mappings/threads/IdxConfig.hpp"
 #include "pmacc_types.hpp"
-#include <type_traits>
 
 namespace PMacc
 {
@@ -33,20 +33,16 @@ namespace threads
 {
 
     template<
-        uint32_t T_domainDim,
-        uint32_t T_workerDim,
-        uint32_t T_simdDim = 1
+        typename T_IdxConfig
     >
-    struct ForEachIdx
+    struct ForEachIdx : public T_IdxConfig
     {
-        static constexpr uint32_t domainDim = T_domainDim;
-        static constexpr uint32_t workerDim = T_workerDim;
-        static constexpr uint32_t simdDim = T_simdDim;
+        using T_IdxConfig::domainDim;
+        using T_IdxConfig::workerDim;
+        using T_IdxConfig::simdDim;
+        using T_IdxConfig::collectiveOps;
 
         uint32_t const m_workerIdx;
-
-        static constexpr uint32_t numCollectiveIterations =
-            (( domainDim + simdDim * workerDim - 1 ) / ( simdDim * workerDim));
 
         static constexpr bool outerLoopCondition =
             ( domainDim % (simdDim * workerDim) ) == 0 ||
@@ -70,7 +66,7 @@ namespace threads
             T_Args && ... args
         ) const
         {
-            for( uint32_t i = 0; i < numCollectiveIterations; ++i )
+            for( uint32_t i = 0; i < collectiveOps; ++i )
             {
                 const uint32_t beginWorker = i * simdDim;
                 const uint32_t beginIdx = beginWorker * workerDim + simdDim * m_workerIdx;
@@ -107,7 +103,7 @@ namespace threads
             T_Args && ... args
         ) const
         {
-            for( uint32_t i = 0; i < numCollectiveIterations; ++i )
+            for( uint32_t i = 0; i < collectiveOps; ++i )
             {
                 const uint32_t beginWorker = i * simdDim;
                 const uint32_t beginIdx = beginWorker * workerDim + simdDim * m_workerIdx;

@@ -25,6 +25,7 @@
 #include "pmacc_types.hpp"
 #include "memory/Array.hpp"
 #include "mappings/threads/ForEachIdx.hpp"
+#include "mappings/threads/IdxConfig.hpp"
 
 #include <type_traits>
  #include <utility>
@@ -39,20 +40,20 @@ namespace memory
      */
     template<
         typename T_Type,
-        uint32_t T_domainDim,
-        uint32_t T_workerDim,
-        uint32_t T_simdDim = 1
+        typename T_IdxConfig
     >
-    struct CtxArray : public Array<
-        T_Type,
-        (
-            ( T_domainDim + T_simdDim * T_workerDim - 1 ) / ( T_simdDim * T_workerDim)
-        ) * T_simdDim
-    >
+    struct CtxArray :
+        public Array<
+            T_Type,
+            T_IdxConfig::collectiveOps
+        >,
+        T_IdxConfig
     {
-        static constexpr uint32_t domainDim = T_domainDim;
-        static constexpr uint32_t workerDim = T_workerDim;
-        static constexpr uint32_t simdDim = T_simdDim;
+
+        using T_IdxConfig::domainDim;
+        using T_IdxConfig::workerDim;
+        using T_IdxConfig::simdDim;
+        using T_IdxConfig::collectiveOps;
 
         /** default constructor
          *
@@ -88,11 +89,8 @@ namespace memory
         >
         HDINLINE explicit CtxArray( uint32_t const workerIdx, T_Functor const & functor, T_Args const && ... args )
         {
-            mappings::threads::ForEachIdx<
-                domainDim,
-                workerDim,
-                simdDim
-            >{ workerIdx }(
+            mappings::threads::ForEachIdx< T_IdxConfig >
+            { workerIdx }(
                 [&,this]( uint32_t const linearIdx, uint32_t const idx )
                 {
                     (*this)[idx] = functor( linearIdx, idx, std::forward(args) ... );
