@@ -28,6 +28,8 @@
 #include "mappings/kernel/ExchangeMapping.hpp"
 #include "particles/memory/boxes/ExchangePushDataBox.hpp"
 #include "particles/memory/boxes/ExchangePopDataBox.hpp"
+#include "memory/CtxArray.hpp"
+#include "mappings/threads/ForEachIdx.hpp"
 
 #include "particles/operations/Assign.hpp"
 #include "particles/operations/Deselect.hpp"
@@ -50,6 +52,7 @@ getPreviousFrameAndRemoveLastFrame( const typename T_ParticleBox::FramePtr& fram
     return result;
 }
 
+template< uint32_t T_worker >
 struct KernelShiftParticles
 {
     /*! This kernel move particles to the next supercell
@@ -66,6 +69,7 @@ struct KernelShiftParticles
         const uint32_t frameSize = math::CT::volume<typename FrameType::SuperCellSize>::type::value;
         /* number exchanges in 2D=9 and in 3D=27 */
         const uint32_t numExchanges = traits::NumberOfExchanges<dim>::value;
+        constexpr uint32_t numWorker = T_worker;
 
         /* define memory for two times Exchanges
          * index range [0,numExchanges-1] are being referred to as `low frames`
@@ -75,156 +79,198 @@ struct KernelShiftParticles
         //count particles per frame
         PMACC_SMEM( destFramesCounter, memory::Array< int, numExchanges > );
 
-        /* lastFrameSize is only valid for threads with `linearThreadIdx` < numExchanges */
-        uint32_t lastFrameSize = 0;
-
         PMACC_SMEM( frame, FramePtr );
         PMACC_SMEM( mustShift, bool );
 
         DataSpace<dim> superCellIdx = mapper.getSuperCellIndex( DataSpace<dim> (blockIdx) );
-        const uint32_t linearThreadIdx = threadIdx.x;
+        const uint32_t workerIdx = threadIdx.x;
 
-        if ( linearThreadIdx == 0 )
-        {
-            mustShift = pb.getSuperCell( superCellIdx ).mustShift( );
-            if ( mustShift )
+        using namespace mappings::threads;
+
+        ForEachIdx<
+            1,
+            numWorker
+        >{ workerIdx }(
+            [&]( uint32_t const, uint32_t const )
             {
-                pb.getSuperCell( superCellIdx ).setMustShift( false );
-                frame = pb.getFirstFrame( superCellIdx );
+                mustShift = pb.getSuperCell( superCellIdx ).mustShift( );
+                if ( mustShift )
+                {
+                    pb.getSuperCell( superCellIdx ).setMustShift( false );
+                    frame = pb.getFirstFrame( superCellIdx );
+                }
             }
-        }
+        );
 
         __syncthreads( );
         if ( !mustShift || !frame.isValid( ) ) return;
 
-        const DataSpace<dim> relative = superCellIdx + Mask::getRelativeDirections<dim> (linearThreadIdx + 1);
+
+        memory::CtxArray< uint32_t, numExchanges, numWorker > lastFrameSizeCtx(0);
+
+        memory::CtxArray< DataSpace<dim>, numExchanges, numWorker > relativeCtx(
+            workerIdx,
+            [&]( uint32_t const linearIdx, uint32_t const ) -> DataSpace<dim>{
+                return superCellIdx + Mask::getRelativeDirections<dim> ( linearIdx + 1);
+            }
+        );
+
+        ForEachIdx<
+            frameSize,
+            numWorker
+        > forEachParticle( workerIdx );
+
+        ForEachIdx<
+            numExchanges,
+            numWorker
+        > forEachExchange( workerIdx );
 
         /* if a partially filled last frame exists for the neighboring supercell,
          * each master thread (one master per direction) will load it
          */
-        if ( linearThreadIdx < numExchanges )
-        {
-            destFramesCounter[linearThreadIdx] = 0;
-            destFrames[linearThreadIdx] = FramePtr();
-            destFrames[linearThreadIdx + numExchanges] = FramePtr();
-            /* load last frame of neighboring supercell */
-            FramePtr tmpFrame(pb.getLastFrame( relative ));
-
-            if ( tmpFrame.isValid() )
+        forEachExchange(
+            [&]( uint32_t const linearIdx, uint32_t const idx )
             {
-                lastFrameSize = pb.getSuperCell( relative ).getSizeLastFrame( );
-                // do not use the neighbor's last frame if it is full
-                if ( lastFrameSize < frameSize )
+                destFramesCounter[linearIdx] = 0;
+                destFrames[linearIdx] = FramePtr();
+                destFrames[linearIdx + numExchanges] = FramePtr();
+                /* load last frame of neighboring supercell */
+                FramePtr tmpFrame(pb.getLastFrame( relativeCtx[idx] ));
+
+                if ( tmpFrame.isValid() )
                 {
-                    destFrames[linearThreadIdx] = tmpFrame;
-                    destFramesCounter[linearThreadIdx] = lastFrameSize;
+                    lastFrameSizeCtx[idx] = pb.getSuperCell( relativeCtx[idx] ).getSizeLastFrame( );
+                    // do not use the neighbor's last frame if it is full
+                    if ( lastFrameSizeCtx[idx] < frameSize )
+                    {
+                        destFrames[linearIdx] = tmpFrame;
+                        destFramesCounter[linearIdx] = lastFrameSizeCtx[idx];
+                    }
                 }
             }
-        }
+        );
+
         __syncthreads( );
 
         /* iterate over the frame list of the current supercell */
         while ( frame.isValid() )
         {
-            lcellId_t destParticleIdx = INV_LOC_IDX;
+            memory::CtxArray< lcellId_t, frameSize, numWorker, 1 > destParticleIdxCtx( INV_LOC_IDX );
+            memory::CtxArray< int, frameSize, numWorker, 1 > directionCtx;
 
-            /* set to value to of multiMask to a value in range [-2, EXCHANGES - 1]
-             * -2 is no particle
-             * -1 is particle but it is not shifted (stays in supercell)
-             * >=0 particle moves in a certain direction
-             *     (@see ExchangeType in types.h)
-             */
-            int direction = frame[linearThreadIdx][multiMask_] - 2;
-            if ( direction >= 0 )
-            {
-                destParticleIdx = atomicAdd( &(destFramesCounter[direction]), 1 );
-            }
+            forEachParticle(
+                [&]( uint32_t const linearIdx, uint32_t const idx )
+                {
+                    /* set to value to of multiMask to a value in range [-2, EXCHANGES - 1]
+                     * -2 is no particle
+                     * -1 is particle but it is not shifted (stays in supercell)
+                     * >=0 particle moves in a certain direction
+                     *     (@see ExchangeType in types.h)
+                     */
+                    directionCtx[idx] = frame[linearIdx][multiMask_] - 2;
+                    if ( directionCtx[idx] >= 0 )
+                    {
+                        destParticleIdxCtx[idx] = atomicAdd( &(destFramesCounter[ directionCtx[idx] ]), 1 );
+                    }
+                }
+            );
             __syncthreads( );
 
-            /* If the master thread (responsible for a certain direction) did not
-             * obtain a `low frame` from the neighboring super cell before the loop,
-             * it will create one now.
-             *
-             * In case not all particles that are shifted to the neighboring
-             * supercell fit into the `low frame`, a second frame is created to
-             * contain further particles, the `high frame` (default: invalid).
-             */
-            if ( linearThreadIdx < numExchanges )
-            {
-                if ( destFramesCounter[linearThreadIdx] > 0 )
+            forEachExchange(
+                [&]( uint32_t const linearIdx, uint32_t const idx )
                 {
-                    lastFrameSize = destFramesCounter[linearThreadIdx];
-                    /* if we had no `low frame` we load a new empty one */
-                    if ( !destFrames[linearThreadIdx].isValid() )
+                    /* If the master thread (responsible for a certain direction) did not
+                     * obtain a `low frame` from the neighboring super cell before the loop,
+                     * it will create one now.
+                     *
+                     * In case not all particles that are shifted to the neighboring
+                     * supercell fit into the `low frame`, a second frame is created to
+                     * contain further particles, the `high frame` (default: invalid).
+                     */
+                    if ( destFramesCounter[linearIdx] > 0 )
                     {
-                        FramePtr tmpFrame(pb.getEmptyFrame( ));
-                        destFrames[linearThreadIdx] = tmpFrame;
-                        pb.setAsLastFrame( tmpFrame, relative );
-                    }
-                    /* check if a `high frame` is needed */
-                    if ( destFramesCounter[linearThreadIdx] > frameSize )
-                    {
-                            lastFrameSize = destFramesCounter[linearThreadIdx] - frameSize;
+                        lastFrameSizeCtx[idx] = destFramesCounter[linearIdx];
+                        /* if we had no `low frame` we load a new empty one */
+                        if ( !destFrames[linearIdx].isValid() )
+                        {
                             FramePtr tmpFrame(pb.getEmptyFrame( ));
-                            destFrames[linearThreadIdx + numExchanges] = tmpFrame;
-                            pb.setAsLastFrame( tmpFrame, relative );
+                            destFrames[linearIdx] = tmpFrame;
+                            pb.setAsLastFrame( tmpFrame, relativeCtx[idx] );
+                        }
+                        /* check if a `high frame` is needed */
+                        if ( destFramesCounter[linearIdx] > frameSize )
+                        {
+                                lastFrameSizeCtx[idx] = destFramesCounter[linearIdx] - frameSize;
+                                FramePtr tmpFrame(pb.getEmptyFrame( ));
+                                destFrames[linearIdx + numExchanges] = tmpFrame;
+                                pb.setAsLastFrame( tmpFrame, relativeCtx[idx] );
+                        }
                     }
                 }
-            }
+            );
             __syncthreads( );
 
-            /* All threads with a valid index in the neighbor's frame, valid index
-             * range is [0, frameSize * 2-1], will copy their particle to the new
-             * frame.
-             *
-             * The default value for indexes (in the destination frame) is
-             * above this range (INV_LOC_IDX) for all particles that are not shifted.
-             */
-            if ( destParticleIdx < frameSize * 2 )
-            {
-                if ( destParticleIdx >= frameSize )
+            forEachParticle(
+                [&]( uint32_t const linearIdx, uint32_t const idx )
                 {
-                    /* use `high frame` */
-                    direction += numExchanges;
-                    destParticleIdx -= frameSize;
+                    /* All threads with a valid index in the neighbor's frame, valid index
+                     * range is [0, frameSize * 2-1], will copy their particle to the new
+                     * frame.
+                     *
+                     * The default value for indexes (in the destination frame) is
+                     * above this range (INV_LOC_IDX) for all particles that are not shifted.
+                     */
+                    if ( destParticleIdxCtx[idx] < frameSize * 2 )
+                    {
+                        if ( destParticleIdxCtx[idx] >= frameSize )
+                        {
+                            /* use `high frame` */
+                            directionCtx[idx] += numExchanges;
+                            destParticleIdxCtx[idx] -= frameSize;
+                        }
+                        auto dstParticle = destFrames[ directionCtx[idx] ][ destParticleIdxCtx[idx] ];
+                        auto srcParticle = frame[linearIdx];
+                        dstParticle[multiMask_] = 1;
+                        srcParticle[multiMask_] = 0;
+                        auto dstFilteredParticle =
+                                    particles::operations::deselect<multiMask>(dstParticle);
+                        particles::operations::assign( dstFilteredParticle, srcParticle );
+                    }
                 }
-                auto dstParticle = destFrames[direction][destParticleIdx];
-                auto srcParticle = frame[linearThreadIdx];
-                dstParticle[multiMask_] = 1;
-                srcParticle[multiMask_] = 0;
-                auto dstFilteredParticle =
-                            particles::operations::deselect<multiMask>(dstParticle);
-                particles::operations::assign( dstFilteredParticle, srcParticle );
-            }
+            );
             __syncthreads( );
 
-            /* if the `low frame` is now full, each master thread removes it and
-             * uses the `high frame` (is invalid, if still empty) as the next
-             * `low frame` for the following iteration of the loop
-             */
-            if ( linearThreadIdx < numExchanges )
-            {
-                if ( destFramesCounter[linearThreadIdx] >= frameSize )
+            forEachExchange(
+                [&]( uint32_t const linearIdx, uint32_t const )
                 {
-                    destFramesCounter[linearThreadIdx] -= frameSize;
-                    destFrames[linearThreadIdx] = destFrames[linearThreadIdx + numExchanges];
-                    destFrames[linearThreadIdx + numExchanges] = FramePtr();
+                    /* if the `low frame` is now full, each master thread removes it and
+                     * uses the `high frame` (is invalid, if still empty) as the next
+                     * `low frame` for the following iteration of the loop
+                     */
+                    if ( destFramesCounter[linearIdx] >= frameSize )
+                    {
+                        destFramesCounter[linearIdx] -= frameSize;
+                        destFrames[linearIdx] = destFrames[linearIdx + numExchanges];
+                        destFrames[linearIdx + numExchanges] = FramePtr();
+                    }
+                    if ( linearIdx == 0 )
+                    {
+                        frame = pb.getNextFrame( frame );
+                    }
                 }
-                if ( linearThreadIdx == 0 )
-                {
-                    frame = pb.getNextFrame( frame );
-                }
-            }
+            );
             __syncthreads( );
         }
 
-        /* each master thread updates the number of particles in the last frame
-         * of the neighbors supercell
-         */
-        if ( linearThreadIdx < numExchanges )
-        {
-            pb.getSuperCell( relative ).setSizeLastFrame( lastFrameSize );
-        }
+        forEachExchange(
+            [&]( uint32_t const, uint32_t const idx )
+            {
+                /* each master thread updates the number of particles in the last frame
+                 * of the neighbors supercell
+                 */
+                pb.getSuperCell( relativeCtx[idx] ).setSizeLastFrame( lastFrameSizeCtx[idx] );
+            }
+        );
     }
 };
 

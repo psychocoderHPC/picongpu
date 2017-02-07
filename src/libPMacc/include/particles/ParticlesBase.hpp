@@ -102,11 +102,12 @@ protected:
         StrideMapping<AREA, 3, MappingDesc> mapper(this->cellDescription);
         ParticlesBoxType pBox = particlesBuffer->getDeviceParticleBox();
 
+        constexpr uint32_t worker = math::CT::volume<typename FrameType::SuperCellSize>::type::value;
         __startTransaction(__getTransactionEvent());
         do
         {
-            PMACC_KERNEL(KernelShiftParticles{})
-                (mapper.getGridDim(), (int)TileSize)
+            PMACC_KERNEL(KernelShiftParticles< worker >{})
+                (mapper.getGridDim(), worker)
                 (pBox, mapper);
             PMACC_KERNEL(KernelFillGaps{})
                 (mapper.getGridDim(), (int)TileSize)

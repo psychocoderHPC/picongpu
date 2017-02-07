@@ -23,6 +23,7 @@
 
 #pragma once
 
+#include "mappings/threads/ForEachIdx.hpp"
 #include "dimensions/SuperCellDescription.hpp"
 #include "dimensions/DataSpaceOperations.hpp"
 #include "dimensions/DataSpace.hpp"
@@ -31,55 +32,56 @@
 namespace PMacc
 {
 
-template<class BlockArea_, int MaxThreads_ = math::CT::volume<typename BlockArea_::SuperCellSize>::type::value >
+template<
+    typename T_BlockArea,
+    uint32_t T_workerDim = math::CT::volume<typename T_BlockArea::SuperCellSize>::type::value >
 class ThreadCollective
 {
 private:
-    typedef typename BlockArea_::SuperCellSize SuperCellSize;
-    typedef typename BlockArea_::FullSuperCellSize FullSuperCellSize;
-    typedef typename BlockArea_::OffsetOrigin OffsetOrigin;
-    static constexpr int maxThreads = MaxThreads_;
+    using SuperCellSize = typename T_BlockArea::SuperCellSize;
+    using FullSuperCellSize = typename T_BlockArea::FullSuperCellSize;
+    using OffsetOrigin = typename T_BlockArea::OffsetOrigin;
 
-    enum
-    {
-        Dim = BlockArea_::Dim
-    };
+    static constexpr uint32_t workerDim = T_workerDim;
+    static constexpr uint32_t dim = T_BlockArea::Dim;
+
+    const PMACC_ALIGN( m_workerIdx, uint32_t );
 
 public:
 
-    DINLINE ThreadCollective(const int threadIndex) : threadId(threadIndex)
+    DINLINE ThreadCollective( uint32_t const workerIdx ) :
+        m_workerIdx( workerIdx )
     {
     }
 
-    DINLINE ThreadCollective(const DataSpace<Dim> threadIndex) :
-    threadId(DataSpaceOperations<Dim>::template map<SuperCellSize>(threadIndex))
+    DINLINE ThreadCollective( DataSpace< dim > const & workerIdx ) :
+        m_workerIdx( DataSpaceOperations< dim >::template map< SuperCellSize >( workerIdx ) )
     {
     }
 
-    template<class F, class P1, class P2>
-    DINLINE void operator()(F& f, P1& p1, P2& p2)
+    template<
+        typename T_Functor,
+        typename ... T_Args
+    >
+    DINLINE void operator()(
+        T_Functor & functor,
+        T_Args && ... args
+    )
     {
-        for (int i = threadId; i < math::CT::volume<FullSuperCellSize>::type::value; i += maxThreads)
-        {
-            const DataSpace<Dim> pos(DataSpaceOperations<Dim>::template map<FullSuperCellSize > (i) - OffsetOrigin::toRT());
-            f(p1(pos), p2(pos));
-        }
+        mappings::threads::ForEachIdx<
+            math::CT::volume<FullSuperCellSize>::type::value,
+            workerDim
+        >{ m_workerIdx }(
+            [&]( uint32_t const linearIdx, uint32_t const )
+            {
+                DataSpace< dim > const pos(
+                    DataSpaceOperations< dim >::template map< FullSuperCellSize >( linearIdx ) -
+                    OffsetOrigin::toRT( )
+                );
+                functor( args(pos) ... );
+            }
+        );
     }
-
-    template<class F, class P1>
-    DINLINE void operator()(F& f, P1 & p1)
-    {
-        for (int i = threadId; i < math::CT::volume<FullSuperCellSize>::type::value; i += maxThreads)
-        {
-            const DataSpace<Dim> pos(DataSpaceOperations<Dim>::template map<FullSuperCellSize > (i) - OffsetOrigin::toRT());
-            f(p1(pos));
-        }
-    }
-
-
-private:
-    const PMACC_ALIGN(threadId, int);
-
 };
 
 }//namespace
