@@ -109,8 +109,8 @@ protected:
             PMACC_KERNEL(KernelShiftParticles< worker >{})
                 (mapper.getGridDim(), worker)
                 (pBox, mapper);
-            PMACC_KERNEL(KernelFillGaps{})
-                (mapper.getGridDim(), (int)TileSize)
+            PMACC_KERNEL(KernelFillGaps< worker >{})
+                (mapper.getGridDim(), worker)
                 (pBox, mapper);
             PMACC_KERNEL(KernelFillGapsLastFrame< worker >{})
                 (mapper.getGridDim(), worker)
@@ -132,8 +132,8 @@ protected:
 
         constexpr uint32_t worker = math::CT::volume<typename FrameType::SuperCellSize>::type::value;
 
-        PMACC_KERNEL(KernelFillGaps{})
-            (mapper.getGridDim(), (int)TileSize)
+        PMACC_KERNEL(KernelFillGaps< worker >{})
+            (mapper.getGridDim(), worker)
             (particlesBuffer->getDeviceParticleBox(), mapper);
 
         PMACC_KERNEL(KernelFillGapsLastFrame< worker >{})
