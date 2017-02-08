@@ -781,65 +781,103 @@ struct KernelBashParticles
 };
 
 
+template< uint32_t T_worker >
 struct KernelInsertParticles
 {
     template<class ParBox, class BORDER, class Mapping>
-    DINLINE void operator()( ParBox pb,
-                                           ExchangePopDataBox<vint_t, BORDER, Mapping::Dim - 1 > border,
-                                           Mapping mapper ) const
+    DINLINE void operator()(
+        ParBox pb,
+        ExchangePopDataBox<
+            vint_t,
+            BORDER,
+            Mapping::Dim - 1
+        > border,
+        Mapping mapper ) const
     {
 
         using namespace particles::operations;
+        using namespace mappings::threads;
 
-        enum
-        {
-            TileSize = math::CT::volume<typename Mapping::SuperCellSize>::type::value,
-            Dim = Mapping::Dim
-        };
+        constexpr uint32_t dim = Mapping::Dim;
+        constexpr uint32_t frameSize = math::CT::volume<typename Mapping::SuperCellSize>::type::value;
+        constexpr uint32_t numWorker = T_worker;
+
+        uint32_t const workerIdx = threadIdx.x;
 
         typedef typename ParBox::FramePtr FramePtr;
+
         PMACC_SMEM( frame, FramePtr );
         PMACC_SMEM( elementCount, int );
         PMACC_SMEM( tmpBorder, TileDataBox<BORDER> );
 
 
-        DataSpace < Mapping::Dim - 1 > superCell;
+        DataSpace< dim - 1 > superCell;
 
-        if ( threadIdx.x == 0 )
-        {
-            tmpBorder = border.get(blockIdx.x,superCell);
-            elementCount = tmpBorder.getSize( );
-            if ( elementCount > 0 )
+        ForEachIdx<
+            IdxConfig<
+                1,
+                numWorker
+            >
+        > onlyMaster{ workerIdx };
+
+        onlyMaster(
+            [&]( uint32_t const, uint32_t const )
             {
-                frame = pb.getEmptyFrame( );
+                tmpBorder = border.get(blockIdx.x,superCell);
+                elementCount = tmpBorder.getSize( );
+                if ( elementCount > 0 )
+                {
+                    frame = pb.getEmptyFrame( );
+                }
             }
-        }
+        );
+
         __syncthreads( );
-        if ( threadIdx.x < elementCount )
-        {
-            auto parDestFull = (frame[threadIdx.x]);
-            parDestFull[multiMask_] = 1;
-            auto parSrc = ((tmpBorder[threadIdx.x])[0]);
-            /*we know that source has no multiMask*/
-            auto parDest = deselect<multiMask>(parDestFull);
-            assign( parDest, parSrc );
-        }
-        /*if this syncronize fix the kernel crash in spezial cases,
+
+         /* loop over all particles in the frame */
+        ForEachIdx<
+            IdxConfig<
+                frameSize,
+                numWorker
+            >
+        > forEachParticle( workerIdx );
+
+        forEachParticle(
+            [&]( uint32_t const linearIdx, uint32_t const )
+            {
+                if ( linearIdx < elementCount )
+                {
+                    auto parDestFull = (frame[threadIdx.x]);
+                    parDestFull[multiMask_] = 1;
+                    auto parSrc = ((tmpBorder[threadIdx.x])[0]);
+                    /*we know that source has no multiMask*/
+                    auto parDest = deselect<multiMask>(parDestFull);
+                    assign( parDest, parSrc );
+                }
+            }
+        );
+        /* This synchronize fix the kernel crash in special cases,
          * I can't tell why.
          */
         __syncthreads( );
-        if ( (threadIdx.x == 0) && (elementCount > 0) )
-        {
-            // compute the super cell position in target frame to insert into
-            ///\todo: offset == simulation border should be passed to this func instead of being created here
-            DataSpace<Dim> dstSuperCell = DataSpaceOperations < Dim - 1 > ::extend( superCell,
-                                                                                    mapper.getExchangeType( ),
-                                                                                    mapper.getGridSuperCells( ),
-                                                                                    DataSpace<Dim>::create( mapper.getGuardingSuperCells( ) ) );
+        onlyMaster(
+            [&]( uint32_t const, uint32_t const )
+            {
+                if ( elementCount > 0 )
+                {
+                    // compute the super cell position in target frame to insert into
+                    ///\todo: offset == simulation border should be passed to this func instead of being created here
+                    DataSpace< dim > dstSuperCell = DataSpaceOperations < dim - 1 > ::extend(
+                        superCell,
+                        mapper.getExchangeType( ),
+                        mapper.getGridSuperCells( ),
+                        DataSpace< dim >::create( mapper.getGuardingSuperCells( ) )
+                    );
 
-            pb.setAsLastFrame( frame, dstSuperCell );
-        }
-
+                    pb.setAsLastFrame( frame, dstSuperCell );
+                }
+            }
+        );
 
     }
 };

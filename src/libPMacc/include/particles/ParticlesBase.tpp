@@ -96,8 +96,10 @@ namespace PMacc
             if (grid != 0)
             {
                 ExchangeMapping<GUARD, MappingDesc> mapper(this->cellDescription, exchangeType);
-                PMACC_KERNEL(KernelInsertParticles{})
-                        (grid, (int)TileSize)
+                constexpr uint32_t worker = math::CT::volume<typename FrameType::SuperCellSize>::type::value;
+
+                PMACC_KERNEL(KernelInsertParticles< worker >{})
+                        (grid, worker)
                         (particlesBuffer->getDeviceParticleBox(),
                         particlesBuffer->getReceiveExchangeStack(exchangeType).getDeviceExchangePopDataBox(),
                         mapper);
