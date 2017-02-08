@@ -45,7 +45,7 @@ namespace memory
     struct CtxArray :
         public Array<
             T_Type,
-            T_IdxConfig::collectiveOps
+            T_IdxConfig::collectiveOps * T_IdxConfig::simdDim
         >,
         T_IdxConfig
     {

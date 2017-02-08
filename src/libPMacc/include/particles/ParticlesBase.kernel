@@ -155,7 +155,7 @@ struct KernelShiftParticles
         while ( frame.isValid() )
         {
             using ParticleDomCfg = IdxConfig<
-                    numExchanges,
+                    frameSize,
                     numWorker
                 >;
 
