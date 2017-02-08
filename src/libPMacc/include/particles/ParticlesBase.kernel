@@ -437,13 +437,11 @@ struct KernelFillGaps
         PMACC_SMEM( counterParticles, int );
 
 
-        using MasterOnly = IdxConfig<
+        ForEachIdx<
+            IdxConfig<
                 1,
                 numWorker
-            >;
-
-        ForEachIdx<
-            MasterOnly
+            >
         > onlyMaster{ workerIdx };
 
         onlyMaster(
@@ -565,6 +563,7 @@ struct KernelFillGaps
     }
 };
 
+template< uint32_t T_worker >
 struct KernelDeleteParticles
 {
     template< class T_ParticleBox, class Mapping>
@@ -574,50 +573,77 @@ struct KernelDeleteParticles
     ) const
     {
         using namespace particles::operations;
+        using namespace mappings::threads;
 
         typedef T_ParticleBox ParticleBox;
         typedef typename ParticleBox::FrameType FrameType;
         typedef typename ParticleBox::FramePtr FramePtr;
 
-        enum
-        {
-            Dim = Mapping::Dim
-        };
+        constexpr uint32_t dim = Mapping::Dim;
+        constexpr uint32_t frameSize = math::CT::volume< typename Mapping::SuperCellSize >::type::value;
+        constexpr uint32_t numWorker = T_worker;
 
-        DataSpace<Dim> superCellIdx = mapper.getSuperCellIndex( DataSpace<Dim > (blockIdx) );
-        const int linearThreadIdx = threadIdx.x;
+        DataSpace< dim > superCellIdx = mapper.getSuperCellIndex( DataSpace< dim > (blockIdx) );
+        uint32_t const workerIdx = threadIdx.x;
 
         PMACC_SMEM( frame, FramePtr );
 
-        if ( linearThreadIdx == 0 )
-        {
-            frame = pb.getLastFrame( superCellIdx );
-        }
+        ForEachIdx<
+            IdxConfig<
+                1,
+                numWorker
+            >
+        > onlyMaster{ workerIdx };
+
+        onlyMaster(
+            [&]( uint32_t const, uint32_t const )
+            {
+                frame = pb.getLastFrame( superCellIdx );
+            }
+        );
 
         __syncthreads( );
 
         while ( frame.isValid( ) )
         {
+            using ParticleDomCfg = IdxConfig<
+                frameSize,
+                numWorker
+            >;
+            /* loop over all particles in the frame */
+            ForEachIdx< ParticleDomCfg > forEachParticle( workerIdx );
 
-            auto particle = (frame[linearThreadIdx]);
-            particle[multiMask_] = 0; //delete particle
+            forEachParticle(
+                [&]( uint32_t const linearIdx, uint32_t const )
+                {
+                    auto particle = ( frame[ linearIdx ] );
+                    particle[ multiMask_ ] = 0; //delete particle
+                }
+            );
 
             __syncthreads( );
 
-            if ( linearThreadIdx == 0 )
-            {
-                //always remove the last frame
-                frame = getPreviousFrameAndRemoveLastFrame( frame, pb, superCellIdx );
-            }
+            onlyMaster(
+                [&]( uint32_t const, uint32_t const )
+                {
+                    //always remove the last frame
+                    frame = getPreviousFrameAndRemoveLastFrame( frame, pb, superCellIdx );
+                }
+            );
             __syncthreads( );
         }
 
-        if ( linearThreadIdx == 0 )
-            pb.getSuperCell( superCellIdx ).setSizeLastFrame( 0 );
+        onlyMaster(
+            [&]( uint32_t const, uint32_t const )
+            {
+                pb.getSuperCell( superCellIdx ).setSizeLastFrame( 0 );
+            }
+        );
 
     }
 };
 
+template< uint32_t T_worker >
 struct KernelBashParticles
 {
     template< class ParBox, class BORDER, class Mapping>
@@ -627,83 +653,129 @@ struct KernelBashParticles
         Mapping mapper ) const
     {
         using namespace particles::operations;
+        using namespace mappings::threads;
 
-        enum
-        {
-            TileSize = math::CT::volume<typename Mapping::SuperCellSize>::type::value,
-            Dim = Mapping::Dim
-        };
+        constexpr uint32_t dim = Mapping::Dim;
+        constexpr uint32_t frameSize = math::CT::volume<typename Mapping::SuperCellSize>::type::value;
+        constexpr uint32_t numWorker = T_worker;
+
         typedef typename ParBox::FramePtr FramePtr;
 
-        DataSpace<Dim> superCellIdx = mapper.getSuperCellIndex( DataSpace<Dim > (blockIdx) );
+        DataSpace< dim > superCellIdx = mapper.getSuperCellIndex( DataSpace< dim > (blockIdx) );
+        uint32_t const workerIdx = threadIdx.x;
 
         PMACC_SMEM( numBashedParticles, int );
         PMACC_SMEM( frame, FramePtr );
         PMACC_SMEM( hasMemory, bool );
         PMACC_SMEM( tmpBorder, TileDataBox<BORDER> );
 
-        if ( threadIdx.x == 0 )
-        {
-            hasMemory = true;
-            frame = pb.getLastFrame( superCellIdx );
-        }
-        //\todo: eventuell ist es schneller, parallelen und seriellen Code zu trennen
+        ForEachIdx<
+            IdxConfig<
+                1,
+                numWorker
+            >
+        > onlyMaster{ workerIdx };
+
+        onlyMaster(
+            [&]( uint32_t const, uint32_t const )
+            {
+                hasMemory = true;
+                frame = pb.getLastFrame( superCellIdx );
+            }
+        );
+
         __syncthreads( );
+
         while ( frame.isValid( ) && hasMemory )
         {
-            lcellId_t bashIdx = INV_LOC_IDX;
-            if ( threadIdx.x == 0 )
-                numBashedParticles = 0;
+            using ParticleDomCfg = IdxConfig<
+                frameSize,
+                numWorker
+            >;
+
+            memory::CtxArray<
+                lcellId_t,
+                ParticleDomCfg
+            >
+            bashIdxCtx( INV_LOC_IDX );
+
+            onlyMaster(
+                [&]( uint32_t const, uint32_t const )
+                {
+                    numBashedParticles = 0;
+                }
+            );
             __syncthreads( );
 
-            if ( frame[threadIdx.x][multiMask_] == 1 )
-            {
-                bashIdx = nvidia::atomicAllInc( &numBashedParticles );
-            }
+             /* loop over all particles in the frame */
+            ForEachIdx< ParticleDomCfg > forEachParticle( workerIdx );
+
+            forEachParticle(
+                [&]( uint32_t const linearIdx, uint32_t const idx )
+                {
+                    if ( frame[ linearIdx ][ multiMask_ ] == 1 )
+                    {
+                        bashIdxCtx[ idx ] = nvidia::atomicAllInc( &numBashedParticles );
+                    }
+                }
+            );
             __syncthreads( );
 
             if ( numBashedParticles > 0 )
             {
 
-                if ( threadIdx.x == 0 )
-                {
-                    // DataSpaceOperations<DIM2>::reduce computes target position for domainTile and exchangeType
-                    tmpBorder = border.pushN( numBashedParticles,
-                                              DataSpaceOperations<Dim>::reduce(
-                                                                                superCellIdx,
-                                                                                mapper.getExchangeType( ) ) );
-                    if ( tmpBorder.getSize( ) < numBashedParticles )
-                        hasMemory = false;
-                }
+                onlyMaster(
+                    [&]( uint32_t const, uint32_t const )
+                    {
+                        // DataSpaceOperations<DIM2>::reduce computes target position for domainTile and exchangeType
+                        tmpBorder = border.pushN(
+                            numBashedParticles,
+                            DataSpaceOperations< dim >::reduce(
+                                superCellIdx,
+                                mapper.getExchangeType( )
+                            )
+                        );
+                        if ( tmpBorder.getSize( ) < numBashedParticles )
+                            hasMemory = false;
+                    }
+                );
+
                 __syncthreads( );
 
-                if ( bashIdx != INV_LOC_IDX && bashIdx < tmpBorder.getSize( ) )
-                {
-                    auto parDest = tmpBorder[bashIdx][0];
-                    auto parSrc = (frame[threadIdx.x]);
-                    assign( parDest, parSrc );
-                    parSrc[multiMask_] = 0;
-                }
+                forEachParticle(
+                    [&]( uint32_t const linearIdx, uint32_t const idx )
+                    {
+                        if ( bashIdxCtx[ idx ] != INV_LOC_IDX && bashIdxCtx[ idx ] < tmpBorder.getSize( ) )
+                        {
+                            auto parDest = tmpBorder[ bashIdxCtx[ idx ] ][ 0 ];
+                            auto parSrc = ( frame[ linearIdx ] );
+                            assign( parDest, parSrc );
+                            parSrc[ multiMask_ ] = 0;
+                        }
+                    }
+                );
                 __syncthreads( );
+            }
 
-                if ( threadIdx.x == 0 && hasMemory )
+            onlyMaster(
+                [&]( uint32_t const, uint32_t const )
                 {
-                    //always remove the last frame
-                    frame = getPreviousFrameAndRemoveLastFrame( frame, pb, superCellIdx );
+                    /* do not remove the frame if we had not enough memory for
+                     * all particles in the tmpBorder buffer
+                     */
+                    if ( hasMemory )
+                        frame = getPreviousFrameAndRemoveLastFrame( frame, pb, superCellIdx );
                 }
-            }
-            else
-            {
-                //if we had no particles to copy than we are the last and only frame
-                if ( threadIdx.x == 0 )
-                {
-                    frame = getPreviousFrameAndRemoveLastFrame( frame, pb, superCellIdx );
-                }
-            }
+            );
+
             __syncthreads( );
         }
-        if ( threadIdx.x == 0 )
-            pb.getSuperCell( superCellIdx ).setSizeLastFrame( 0 );
+        onlyMaster(
+            [&]( uint32_t const, uint32_t const )
+            {
+                pb.getSuperCell( superCellIdx ).setSizeLastFrame( 0 );
+            }
+        );
 
     }
 };
