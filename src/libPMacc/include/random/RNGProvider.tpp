@@ -40,11 +40,11 @@ namespace random
             operator()(T_RNGBox rngBox, uint32_t seed, const T_Space size) const
             {
                 const uint32_t linearTid = blockIdx.x * blockDim.x + threadIdx.x;
-                if(linearTid >= size.productOfComponents())
-                    return;
-
-                const T_Space cellIdx = DataSpaceOperations<T_Space::dim>::map(size, linearTid);
-                T_RNGMethod().init(rngBox(cellIdx), seed, linearTid);
+                if(linearTid < size.productOfComponents())
+                {
+                    const T_Space cellIdx = DataSpaceOperations<T_Space::dim>::map(size, linearTid);
+                    T_RNGMethod().init(rngBox(cellIdx), seed, linearTid);
+                }
             }
         };
 
@@ -65,7 +65,7 @@ namespace random
     void RNGProvider<T_dim, T_RNGMethod>::init(uint32_t seed)
     {
 
-        const uint32_t blockSize = 256;
+        constexpr uint32_t blockSize = 256;
         const uint32_t gridSize = (m_size.productOfComponents() + blockSize - 1u) / blockSize; // Round up
 
         auto bufferBox = buffer->getDeviceBuffer().getDataBox();
