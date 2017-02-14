@@ -41,16 +41,17 @@
 #include "fields/numericalCellTypes/NumericalCellTypes.hpp"
 
 #include "math/Vector.hpp"
-
-#include <list>
-
 #include "particles/traits/GetInterpolation.hpp"
 #include "particles/traits/FilterByFlag.hpp"
+#include "traits/GetNumWorker.hpp"
 #include "traits/GetMargin.hpp"
 #include "traits/SIBaseUnits.hpp"
 #include "particles/traits/GetMarginPusher.hpp"
 #include <boost/mpl/accumulate.hpp>
 #include "fields/LaserPhysics.hpp"
+
+#include <list>
+
 
 namespace picongpu
 {
@@ -197,7 +198,9 @@ void FieldE::laserManipulation( uint32_t currentStep )
     // use the first superCells in y direction to initialize the laser
     gridBlocks.y() = 1;
 
-    constexpr uint32_t worker = PMacc::math::CT::volume<SuperCellSize>::type::value;
+    constexpr uint32_t worker = PMacc::traits::GetNumWorker<
+        PMacc::math::CT::volume<SuperCellSize>::type::value
+    >::value;
     PMACC_KERNEL( KernelLaserE< worker >{} )
         ( gridBlocks,
           worker )

@@ -28,6 +28,7 @@
 #include "mappings/kernel/AreaMapping.hpp"
 #include "particles/memory/dataTypes/FramePointer.hpp"
 
+#include "traits/GetNumWorker.hpp"
 #include "particles/particleFilter/FilterFactory.hpp"
 #include "particles/particleFilter/PositionFilter.hpp"
 #include "nvidia/atomic.hpp"
@@ -137,7 +138,7 @@ struct KernelCountParticles
         }
 
         __syncthreads();
-        
+
         onlyMaster(
             [&]( uint32_t const, uint32_t const )
             {
@@ -165,13 +166,13 @@ struct CountParticles
     {
         GridBuffer<uint64_cu, DIM1> counter(DataSpace<DIM1>(1));
 
-        auto block = CellDesc::SuperCellSize::toRT();
-
         AreaMapping<AREA, CellDesc> mapper(cellDescription);
-        constexpr uint32_t worker = math::CT::volume<typename CellDesc::SuperCellSize>::type::value;
+        constexpr uint32_t worker = traits::GetNumWorker<
+            math::CT::volume<typename CellDesc::SuperCellSize>::type::value
+        >::value;
 
         PMACC_KERNEL(KernelCountParticles< worker >{})
-            (mapper.getGridDim(), block)
+            (mapper.getGridDim(), worker)
             (buffer.getDeviceParticlesBox(),
              counter.getDeviceBuffer().getBasePointer(),
              filter,

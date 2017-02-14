@@ -24,6 +24,7 @@
 #pragma once
 
 #include "pmacc_types.hpp"
+#include "traits/GetNumWorker.hpp"
 #include "dimensions/DataSpaceOperations.hpp"
 #include "math/Vector.hpp"
 #include "particles/frame_types.hpp"
@@ -287,6 +288,9 @@ HINLINE void splitIntoListOfFrames(
 )
 {
     constexpr uint32_t cellsInSuperCell = PMacc::math::CT::volume<typename T_CellDescription::SuperCellSize>::type::value;
+    constexpr uint32_t worker = PMacc::traits::GetNumWorker<
+                    cellsInSuperCell
+                >::value;
 
     /* counter is used to apply for work, count used frames and count loaded particles
      * [0] -> offset for loading particles
@@ -306,10 +310,10 @@ HINLINE void splitIntoListOfFrames(
         uint32_t currentChunkSize = std::min(leftOverParticles, chunkSize);
         log(logLvl, "load particles on device chunk offset=%1%; chunk size=%2%; left particles %3%") %
             (i * chunkSize) % currentChunkSize % leftOverParticles;
-        PMACC_KERNEL(kernel::SplitIntoListOfFrames< cellsInSuperCell >{})
+        PMACC_KERNEL(kernel::SplitIntoListOfFrames< worker >{})
             (
                algorithms::math::float2int_ru(double(currentChunkSize) / double(cellsInSuperCell)),
-               cellsInSuperCell
+               worker
             )
             (counterBuffer.getDeviceBuffer().getDataBox(),
              destSpecies.getDeviceParticlesBox(), srcFrame,

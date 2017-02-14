@@ -28,6 +28,7 @@
 #include "fields/SimulationFieldHelper.hpp"
 #include "mappings/kernel/ExchangeMapping.hpp"
 
+#include "traits/GetNumWorker.hpp"
 #include "particles/memory/boxes/ParticlesBox.hpp"
 #include "particles/memory/buffers/ParticlesBuffer.hpp"
 
@@ -40,7 +41,9 @@ namespace PMacc
 
         ExchangeMapping<GUARD, MappingDesc> mapper(this->cellDescription, exchangeType);
         auto grid = mapper.getGridDim();
-        constexpr uint32_t worker = math::CT::volume<typename FrameType::SuperCellSize>::type::value;
+        constexpr uint32_t worker = traits::GetNumWorker<
+            math::CT::volume<typename FrameType::SuperCellSize>::type::value
+        >::value;
 
         PMACC_KERNEL(KernelDeleteParticles< worker >{})
                 (grid, worker)
@@ -54,7 +57,9 @@ namespace PMacc
 
         AreaMapping<T_area, MappingDesc> mapper(this->cellDescription);
         auto grid = mapper.getGridDim();
-        constexpr uint32_t worker = math::CT::volume<typename FrameType::SuperCellSize>::type::value;
+        constexpr uint32_t worker = traits::GetNumWorker<
+            math::CT::volume<typename FrameType::SuperCellSize>::type::value
+        >::value;
 
         PMACC_KERNEL(KernelDeleteParticles< worker >{})
                 (grid, worker)
@@ -77,7 +82,9 @@ namespace PMacc
 
             particlesBuffer->getSendExchangeStack(exchangeType).setCurrentSize(0);
             auto grid = mapper.getGridDim();
-            constexpr uint32_t worker = math::CT::volume<typename FrameType::SuperCellSize>::type::value;
+            constexpr uint32_t worker = traits::GetNumWorker<
+                math::CT::volume<typename FrameType::SuperCellSize>::type::value
+            >::value;
 
             PMACC_KERNEL(KernelBashParticles< worker >{})
                     (grid, worker)
@@ -96,7 +103,9 @@ namespace PMacc
             if (grid != 0)
             {
                 ExchangeMapping<GUARD, MappingDesc> mapper(this->cellDescription, exchangeType);
-                constexpr uint32_t worker = math::CT::volume<typename FrameType::SuperCellSize>::type::value;
+                constexpr uint32_t worker = traits::GetNumWorker<
+                    math::CT::volume<typename FrameType::SuperCellSize>::type::value
+                >::value;
 
                 PMACC_KERNEL(KernelInsertParticles< worker >{})
                         (grid, worker)
