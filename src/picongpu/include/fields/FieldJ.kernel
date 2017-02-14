@@ -39,6 +39,7 @@
 #include "algorithms/Set.hpp"
 #include "mappings/threads/ForEachIdx.hpp"
 #include "mappings/threads/IdxConfig.hpp"
+#include "memory/CtxArray.hpp"
 #include "particles/frame_types.hpp"
 
 namespace picongpu
@@ -48,80 +49,144 @@ using namespace PMacc;
 
 typedef FieldJ::DataBoxType J_DataBox;
 
-template< int workerMultiplier, class BlockDescription_, uint32_t AREA >
+template< uint32_t T_worker, class T_BlockDescription, uint32_t AREA >
 struct KernelComputeCurrent
 {
     template<class JBox, class ParBox, class Mapping, class FrameSolver>
     DINLINE void operator()(JBox fieldJ,
                                          ParBox boxPar, FrameSolver frameSolver, Mapping mapper) const
     {
+        using namespace mappings::threads;
+
         typedef typename ParBox::FrameType FrameType;
         typedef typename ParBox::FramePtr FramePtr;
         typedef typename Mapping::SuperCellSize SuperCellSize;
 
-        const uint32_t cellsPerSuperCell = PMacc::math::CT::volume<SuperCellSize>::type::value;
+        constexpr uint32_t cellsPerSuperCell = PMacc::math::CT::volume< SuperCellSize >::type::value;
+        constexpr uint32_t numWorker = T_worker;
+        /* `workerMultiplier > 1` means that we had more worker than cells in a superCell */
+        constexpr uint32_t workerMultiplier = ( numWorker + cellsPerSuperCell - 1 ) / cellsPerSuperCell;
 
-        const DataSpace<simDim> block(mapper.getSuperCellIndex(DataSpace<simDim > (blockIdx)));
-        const DataSpace<simDim > threadIndex(threadIdx);
+        uint32_t const workerIdx = threadIdx.x;
 
-        /* thread id, can be greater than cellsPerSuperCell*/
-        const int linearThreadIdx = DataSpaceOperations<simDim>::template map<SuperCellSize > (threadIndex);
+        using VirtualWorkerDomCfg = IdxConfig<
+            cellsPerSuperCell * workerMultiplier,
+            numWorker
+        >;
 
-        const uint32_t virtualBlockId = linearThreadIdx / cellsPerSuperCell;
-        /* move linearThreadIdx for all threads to [0;cellsPerSuperCell) */
-        const int virtualLinearId = linearThreadIdx - (virtualBlockId * cellsPerSuperCell);
+        memory::CtxArray<
+            uint32_t,
+            VirtualWorkerDomCfg
+        >
+        virtualBlockIdCtx(
+            workerIdx,
+            [&]( uint32_t const linearIdx, uint32_t const )
+            {
+                return ( linearIdx ) / cellsPerSuperCell;
+            }
+        );
 
+        memory::CtxArray<
+            uint32_t,
+            VirtualWorkerDomCfg
+        >
+        virtualLinearIdCtx(
+            workerIdx,
+            [&]( uint32_t const linearIdx, uint32_t const idx )
+            {
+                /* map virtualLinearIdCtx to the range [0;cellsPerSuperCell) */
+                return linearIdx - ( virtualBlockIdCtx[ idx ] * cellsPerSuperCell );
+            }
+        );
 
-        FramePtr frame;
-        lcellId_t particlesInSuperCell = 0;
+        const DataSpace<simDim> block(
+            mapper.getSuperCellIndex(
+                DataSpace< simDim >( blockIdx )
+            )
+        );
 
-        frame = boxPar.getLastFrame(block);
-        if (frame.isValid() && virtualBlockId == 0)
-            particlesInSuperCell = boxPar.getSuperCell(block).getSizeLastFrame();
+        memory::CtxArray<
+            FramePtr,
+            VirtualWorkerDomCfg
+        > frameCtx;
 
-        /* select N-th (N=virtualBlockId) frame from the end of the list*/
-        for (int i = 1; (i <= virtualBlockId) && frame.isValid(); ++i)
-        {
-            particlesInSuperCell = PMacc::math::CT::volume<SuperCellSize>::type::value;
-            frame = boxPar.getPreviousFrame(frame);
-        }
+        memory::CtxArray<
+            lcellId_t,
+            VirtualWorkerDomCfg
+        > particlesInSuperCellCtx( 0 );
+
+        /* loop over all virtual worker */
+        ForEachIdx< VirtualWorkerDomCfg > forEachVirtualWorker( workerIdx );
+
+        forEachVirtualWorker(
+            [&]( uint32_t const, uint32_t const idx )
+            {
+                frameCtx[ idx ] = boxPar.getLastFrame( block );
+                if( frameCtx[ idx ].isValid() && virtualBlockIdCtx[ idx ] == 0 )
+                    particlesInSuperCellCtx[ idx ] = boxPar.getSuperCell( block ).getSizeLastFrame();
+
+                /* select N-th (N=virtualBlockId) frame from the end of the list*/
+                for( int i = 1; ( i <= virtualBlockIdCtx[ idx ] ) && frameCtx[ idx ].isValid(); ++i )
+                {
+                    particlesInSuperCellCtx[ idx ] = cellsPerSuperCell;
+                    frameCtx[ idx ] = boxPar.getPreviousFrame( frameCtx[ idx ] );
+                }
+            }
+        );
 
         /* This memory is used by all virtual blocks*/
-        auto cachedJ = CachedBox::create < 0, typename JBox::ValueType > (BlockDescription_());
+        auto cachedJ = CachedBox::create <
+            0,
+            typename JBox::ValueType
+        >( T_BlockDescription() );
 
-        Set<typename JBox::ValueType > set(float3_X::create(0.0));
-        ThreadCollective<BlockDescription_, cellsPerSuperCell * workerMultiplier> collectiveSet(linearThreadIdx);
-        collectiveSet(set, cachedJ);
+        Set<typename JBox::ValueType > set( float3_X::create( 0.0 ) );
+        ThreadCollective<
+            T_BlockDescription,
+            numWorker
+        > collectiveSet( workerIdx );
+
+        collectiveSet( set, cachedJ );
 
         __syncthreads();
 
-        while (frame.isValid())
-        {
-            /* this test is only importend for the last frame
-             * if frame is not the last one particlesInSuperCell==particles count in supercell
-             */
-            if (virtualLinearId < particlesInSuperCell)
+        forEachVirtualWorker(
+            [&]( uint32_t const, uint32_t const idx )
             {
-                frameSolver(*frame,
-                            virtualLinearId,
-                            cachedJ);
-            }
+                while( frameCtx[ idx ].isValid() )
+                {
+                    /* this test is only important for the last frame
+                     * if frame is not the last one particlesInSuperCell==particles count in superCell
+                     */
+                    if( virtualLinearIdCtx[ idx ] < particlesInSuperCellCtx[ idx ] )
+                    {
+                        frameSolver(
+                            *frameCtx[ idx ],
+                            virtualLinearIdCtx[ idx ],
+                            cachedJ
+                        );
+                    }
 
-            particlesInSuperCell = PMacc::math::CT::volume<SuperCellSize>::type::value;
-            for (int i = 0; (i < workerMultiplier) && frame.isValid(); ++i)
-            {
-                frame = boxPar.getPreviousFrame(frame);
+                    particlesInSuperCellCtx[ idx ] = cellsPerSuperCell;
+                    for( int i = 0; ( i < workerMultiplier ) && frameCtx[ idx ].isValid(); ++i )
+                    {
+                        frameCtx[ idx ] = boxPar.getPreviousFrame( frameCtx[ idx ] );
+                    }
+                }
             }
-        }
+        );
 
-        /* we wait that all threads finish the loop*/
+        /* we wait that all worker finish the loop*/
         __syncthreads();
 
         nvidia::functors::Add add;
-        const DataSpace<simDim> blockCell = block * SuperCellSize::toRT();
-        ThreadCollective<BlockDescription_, cellsPerSuperCell * workerMultiplier> collectiveAdd(linearThreadIdx);
-        auto fieldJBlock = fieldJ.shift(blockCell);
-        collectiveAdd(add, fieldJBlock, cachedJ);
+        DataSpace< simDim > const blockCell = block * SuperCellSize::toRT();
+        ThreadCollective<
+            T_BlockDescription,
+            numWorker
+        > collectiveAdd( workerIdx );
+        auto fieldJBlock = fieldJ.shift( blockCell );
+        collectiveAdd( add, fieldJBlock, cachedJ );
     }
 };
 
