@@ -847,11 +847,11 @@ struct KernelInsertParticles
             {
                 if ( linearIdx < elementCount )
                 {
-                    auto parDestFull = (frame[threadIdx.x]);
-                    parDestFull[multiMask_] = 1;
-                    auto parSrc = ((tmpBorder[threadIdx.x])[0]);
+                    auto parDestFull = ( frame[ linearIdx ] );
+                    parDestFull[ multiMask_ ] = 1;
+                    auto parSrc = ( (tmpBorder[ linearIdx ] )[ 0 ] );
                     /*we know that source has no multiMask*/
-                    auto parDest = deselect<multiMask>(parDestFull);
+                    auto parDest = deselect<multiMask>( parDestFull );
                     assign( parDest, parSrc );
                 }
             }
