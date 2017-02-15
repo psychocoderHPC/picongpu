@@ -43,6 +43,7 @@
 
 #include "traits/GetUniqueTypeId.hpp"
 #include "traits/Resolve.hpp"
+#include "traits/GetNumWorker.hpp"
 #include "particles/traits/GetMarginPusher.hpp"
 
 #include <iostream>
@@ -302,12 +303,21 @@ Particles<
     T_ManipulateFunctor& functor
 )
 {
-    auto block = PMacc::math::CT::volume<SuperCellSize>::type::value;
-
     log<picLog::SIMULATION_STATE > ( "clone species %1%" ) % FrameType::getName( );
     AreaMapping<CORE + BORDER, MappingDesc> mapper(this->cellDescription);
-    PMACC_KERNEL( KernelDeriveParticles{} )
-        (mapper.getGridDim(), block) ( this->getDeviceParticlesBox( ), src.getDeviceParticlesBox( ), functor, mapper );
+    constexpr uint32_t worker = PMacc::traits::GetNumWorker<
+        PMacc::math::CT::volume< SuperCellSize >::type::value
+    >::value;
+
+    PMACC_KERNEL( KernelDeriveParticles< worker >{} )(
+        mapper.getGridDim(),
+        worker
+    )(
+        this->getDeviceParticlesBox( ),
+        src.getDeviceParticlesBox( ),
+        functor,
+        mapper
+    );
     this->fillAllGaps( );
 }
 
@@ -324,16 +334,19 @@ Particles<
     T_Flags
 >::manipulateAllParticles( uint32_t currentStep, T_Functor& functor )
 {
-
-    auto block = MappingDesc::SuperCellSize::toRT( );
-
     AreaMapping<CORE + BORDER, MappingDesc> mapper(this->cellDescription);
-    PMACC_KERNEL( KernelManipulateAllParticles{} )
-        (mapper.getGridDim(), block)
-        ( this->particlesBuffer->getDeviceParticleBox( ),
-          functor,
-          mapper
-        );
+    constexpr uint32_t worker = PMacc::traits::GetNumWorker<
+        PMacc::math::CT::volume< SuperCellSize >::type::value
+    >::value;
+
+    PMACC_KERNEL( KernelManipulateAllParticles< worker >{} )(
+        mapper.getGridDim(),
+        worker
+    )(
+        this->particlesBuffer->getDeviceParticleBox( ),
+        functor,
+        mapper
+    );
 }
 
 } // end namespace

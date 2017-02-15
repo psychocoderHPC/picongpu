@@ -45,6 +45,7 @@
 #include "traits/GetMargin.hpp"
 #include "traits/Resolve.hpp"
 #include "traits/SIBaseUnits.hpp"
+#include "traits/GetNumWorker.hpp"
 
 
 namespace picongpu

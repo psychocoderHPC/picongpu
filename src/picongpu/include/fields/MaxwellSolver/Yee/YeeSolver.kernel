@@ -64,8 +64,8 @@ using namespace PMacc;
             >( T_BlockDescription() );
 
             nvidia::functors::Assign assign;
-            const DataSpace< simDim > block( mapper.getSuperCellIndex( DataSpace<simDim >(blockIdx) ) );
-            const DataSpace< simDim > blockCell = block * MappingDesc::SuperCellSize::toRT();
+            DataSpace< simDim > const block( mapper.getSuperCellIndex( DataSpace<simDim >(blockIdx) ) );
+            DataSpace< simDim > const blockCell = block * MappingDesc::SuperCellSize::toRT();
 
             auto fieldBBlock = fieldB.shift( blockCell );
 
@@ -94,7 +94,7 @@ using namespace PMacc;
                 [&]( uint32_t const linearIdx, uint32_t const )
                 {
                     /* cell index within the superCell */
-                    DataSpace< simDim > cellIdx = DataSpaceOperations< simDim >::template map< SuperCellSize >( linearIdx );
+                    DataSpace< simDim > const cellIdx = DataSpaceOperations< simDim >::template map< SuperCellSize >( linearIdx );
 
                     fieldE( blockCell + cellIdx ) += curl( cachedB.shift( cellIdx ) ) * c2 * dt;
                 }
@@ -134,8 +134,8 @@ using namespace PMacc;
             >( T_BlockDescription() );
 
             nvidia::functors::Assign assign;
-            const DataSpace< simDim > block( mapper.getSuperCellIndex( DataSpace< simDim >( blockIdx ) ) );
-            const DataSpace< simDim > blockCell = block * MappingDesc::SuperCellSize::toRT();
+            DataSpace< simDim > const block( mapper.getSuperCellIndex( DataSpace< simDim >( blockIdx ) ) );
+            DataSpace< simDim > const blockCell = block * MappingDesc::SuperCellSize::toRT();
 
             auto fieldEBlock = fieldE.shift( blockCell );
 
@@ -163,7 +163,7 @@ using namespace PMacc;
                 [&]( uint32_t const linearIdx, uint32_t const )
                 {
                     /* cell index within the superCell */
-                    DataSpace< simDim > cellIdx = DataSpaceOperations< simDim >::template map< SuperCellSize >( linearIdx );
+                    DataSpace< simDim > const cellIdx = DataSpaceOperations< simDim >::template map< SuperCellSize >( linearIdx );
 
                     fieldB( blockCell + cellIdx ) -= curl( cachedE.shift( cellIdx ) ) * float_X( 0.5 ) * dt;
                 }
