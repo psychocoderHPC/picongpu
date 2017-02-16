@@ -150,15 +150,30 @@ struct KernelComputeCurrent
 
         __syncthreads();
 
-        forEachVirtualWorker(
-            [&]( uint32_t const, uint32_t const idx )
-            {
-                while( frameCtx[ idx ].isValid() )
+        while( true )
+        {
+            bool isOneFrameValid = false;
+            forEachVirtualWorker(
+                [&]( uint32_t const, uint32_t const idx )
                 {
+                    isOneFrameValid = isOneFrameValid || frameCtx[ idx ].isValid();
+                }
+            );
+
+            if( !isOneFrameValid )
+                break;
+
+            forEachVirtualWorker(
+                [&]( uint32_t const, uint32_t const idx )
+                {
+
                     /* this test is only important for the last frame
-                     * if frame is not the last one particlesInSuperCell==particles count in superCell
+                     * if frame is not the last one particlesInSuperCell == particles count in superCell
                      */
-                    if( virtualLinearIdCtx[ idx ] < particlesInSuperCellCtx[ idx ] )
+                    if(
+                        frameCtx[ idx ].isValid() &&
+                        virtualLinearIdCtx[ idx ] < particlesInSuperCellCtx[ idx ]
+                    )
                     {
                         frameSolver(
                             *frameCtx[ idx ],
@@ -166,15 +181,23 @@ struct KernelComputeCurrent
                             cachedJ
                         );
                     }
+                }
+            );
 
-                    particlesInSuperCellCtx[ idx ] = cellsPerSuperCell;
-                    for( int i = 0; ( i < workerMultiplier ) && frameCtx[ idx ].isValid(); ++i )
+            forEachVirtualWorker(
+                [&]( uint32_t const, uint32_t const idx )
+                {
+                    if( frameCtx[ idx ].isValid() )
                     {
-                        frameCtx[ idx ] = boxPar.getPreviousFrame( frameCtx[ idx ] );
+                        particlesInSuperCellCtx[ idx ] = cellsPerSuperCell;
+                        for( int i = 0; ( i < workerMultiplier ) && frameCtx[ idx ].isValid(); ++i )
+                        {
+                            frameCtx[ idx ] = boxPar.getPreviousFrame( frameCtx[ idx ] );
+                        }
                     }
                 }
-            }
-        );
+            );
+        }
 
         /* we wait that all worker finish the loop*/
         __syncthreads();
