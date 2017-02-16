@@ -228,11 +228,14 @@ Particles<
         UpperMargin
         > BlockArea;
 
-    auto block = MappingDesc::SuperCellSize::toRT();
-
     AreaMapping<CORE+BORDER,MappingDesc> mapper(this->cellDescription);
-    PMACC_KERNEL( KernelMoveAndMarkParticles<BlockArea>{} )
-        (mapper.getGridDim(), block)
+
+    constexpr uint32_t worker = PMacc::traits::GetNumWorker<
+        PMacc::math::CT::volume< SuperCellSize >::type::value
+    >::value;
+
+    PMACC_KERNEL( KernelMoveAndMarkParticles< worker, BlockArea >{} )
+        (mapper.getGridDim(), worker)
         ( this->getDeviceParticlesBox( ),
           this->fieldE->getDeviceDataBox( ),
           this->fieldB->getDeviceDataBox( ),
@@ -304,7 +307,9 @@ Particles<
 )
 {
     log<picLog::SIMULATION_STATE > ( "clone species %1%" ) % FrameType::getName( );
+
     AreaMapping<CORE + BORDER, MappingDesc> mapper(this->cellDescription);
+
     constexpr uint32_t worker = PMacc::traits::GetNumWorker<
         PMacc::math::CT::volume< SuperCellSize >::type::value
     >::value;
@@ -335,6 +340,7 @@ Particles<
 >::manipulateAllParticles( uint32_t currentStep, T_Functor& functor )
 {
     AreaMapping<CORE + BORDER, MappingDesc> mapper(this->cellDescription);
+
     constexpr uint32_t worker = PMacc::traits::GetNumWorker<
         PMacc::math::CT::volume< SuperCellSize >::type::value
     >::value;
