@@ -271,10 +271,13 @@ Particles<
     DataSpace<simDim> totalGpuCellOffset = subGrid.getLocalDomain( ).offset;
     totalGpuCellOffset.y( ) += numSlides * localCells.y( );
 
-    auto block = MappingDesc::SuperCellSize::toRT( );
+    constexpr uint32_t worker = PMacc::traits::GetNumWorker<
+        PMacc::math::CT::volume< SuperCellSize >::type::value
+    >::value;
+
     AreaMapping<CORE+BORDER,MappingDesc> mapper(this->cellDescription);
-    PMACC_KERNEL( KernelFillGridWithParticles< Particles >{} )
-        (mapper.getGridDim(), block)
+    PMACC_KERNEL( KernelFillGridWithParticles< worker, Particles >{} )
+        (mapper.getGridDim(), worker)
         ( densityFunctor, positionFunctor, totalGpuCellOffset, this->particlesBuffer->getDeviceParticleBox( ), mapper );
 
 

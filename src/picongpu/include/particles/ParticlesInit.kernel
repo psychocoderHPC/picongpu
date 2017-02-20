@@ -34,6 +34,9 @@
 #include "particles/traits/GetDensityRatio.hpp"
 #include "nvidia/atomic.hpp"
 #include "memory/shared/Allocate.hpp"
+#include "memory/CtxArray.hpp"
+#include "mappings/threads/ForEachIdx.hpp"
+#include "mappings/threads/IdxConfig.hpp"
 
 namespace picongpu
 {
@@ -62,7 +65,7 @@ DINLINE float_X calcRealDensity(T_DensityProfile& densityFunctor,
     return value;
 }
 
-template< typename T_Species >
+template< uint32_t T_worker, typename T_Species >
 struct KernelFillGridWithParticles
 {
     template<typename T_DensityProfile, typename T_PositionFunctor, typename ParBox, class Mapping>
@@ -73,118 +76,207 @@ struct KernelFillGridWithParticles
         ParBox pb,
         Mapping mapper) const
     {
+        using namespace mappings::threads;
+
+        constexpr uint32_t frameSize = PMacc::math::CT::volume< SuperCellSize >::type::value;
+        constexpr uint32_t numWorker = T_worker;
+
+        uint32_t const workerIdx = threadIdx.x;
+
         typedef typename ParBox::FramePtr FramePtr;
-        const DataSpace<simDim> superCells(mapper.getGridSuperCells());
+        DataSpace< simDim > const superCells( mapper.getGridSuperCells() );
 
         PMACC_SMEM( frame, FramePtr );
+        PMACC_SMEM( finished, int );
 
-
-        typedef typename Mapping::SuperCellSize SuperCellSize;
-
-        const DataSpace<simDim > threadIndex(threadIdx);
-        const int linearThreadIdx = DataSpaceOperations<simDim>::template map<SuperCellSize > (threadIndex);
-        const DataSpace<simDim> superCellIdx(mapper.getSuperCellIndex(DataSpace<simDim > (blockIdx)));
-
+        DataSpace< simDim > const superCellIdx(
+            mapper.getSuperCellIndex( DataSpace<simDim >( blockIdx ) )
+        );
 
         /* do not add particle to guarding super cells */
-        for (uint32_t d = 0; d < simDim; ++d)
-            if (superCellIdx[d] == 0 || superCellIdx[d] == superCells[d] - 1) return;
+        for( uint32_t d = 0; d < simDim; ++d )
+            if( superCellIdx[ d ] == 0 || superCellIdx[ d ] == superCells[ d ] - 1) return;
 
-        /*get local cell idx*/
-        const DataSpace<simDim> idx(superCellIdx * SuperCellSize::toRT() + threadIndex);
+        /* offset of the superCell relative to the local domain [cells] (without guarding cells) */
+        DataSpace< simDim > const superCellOffset(
+            ( superCellIdx - mapper.getGuardingSuperCells() )
+            * SuperCellSize::toRT()
+        );
 
-        /*delete garding cells */
-        const DataSpace<simDim> localCellIndex = idx - mapper.getGuardingSuperCells() * SuperCellSize::toRT();
 
-        const DataSpace<simDim> totalGpuCellIdx = totalGpuCellOffset + localCellIndex;
-        const float_X realDensity = calcRealDensity<T_Species>(densityFunctor, totalGpuCellIdx);
+        using ParticleDomCfg = IdxConfig<
+            frameSize,
+            numWorker
+        >;
 
-        const float_X realParticlesPerCell = realDensity * CELL_VOLUME;
+        ForEachIdx< ParticleDomCfg > forEachParticle( workerIdx );
 
-        PMACC_SMEM( finished, int );
-        if (linearThreadIdx == 0)
-            finished = 1;
+        /* weighting for all particles in a cell */
+        memory::CtxArray<
+            float_X,
+            ParticleDomCfg
+        >
+        macroWeightingCtx( 0.0 );
+
+        memory::CtxArray<
+            uint32_t,
+            ParticleDomCfg
+        >
+        numParsPerCellCtx( 0 );
+
+        /* create for virtual thread a own position functor instance */
+        memory::CtxArray<
+            T_PositionFunctor,
+            ParticleDomCfg
+        >
+        positionFunctorCtx( positionFunctor );
+
+
+        ForEachIdx<
+            IdxConfig<
+                1,
+                numWorker
+            >
+        > onlyMaster{ workerIdx };
+
+        /* reset shared memory flag if a virtual worker needs to create a particle */
+        onlyMaster(
+            [&]( uint32_t const, uint32_t const )
+            {
+                finished = 1;
+            }
+        );
+
         __syncthreads();
 
-        positionFunctor.init(totalGpuCellIdx);
-        // decrease number of macro particles, if weighting would be too small
-        particles::startPosition::MacroParticleCfg makroCfg =
-            positionFunctor.mapRealToMacroParticle(realParticlesPerCell);
-        float_X macroWeighting = makroCfg.weighting;
-        uint32_t numParsPerCell = makroCfg.numParticlesPerCell;
+        memory::CtxArray<
+            uint32_t,
+            ParticleDomCfg
+        > const
+        totalNumParsPerCellCtx(
+            workerIdx,
+            [&]( uint32_t const linearIdx, uint32_t const idx )
+            {
+                /* cell index within the superCell */
+                DataSpace< simDim > const cellIdx = DataSpaceOperations< simDim >::template map< SuperCellSize >( linearIdx );
 
-        const uint32_t totalNumParsPerCell = numParsPerCell;
+                /* cell offset to the begin of the simulation */
+                DataSpace< simDim > const totalCellOffset = totalGpuCellOffset + superCellOffset + cellIdx;
+                float_X const realDensity = calcRealDensity< T_Species >( densityFunctor, totalCellOffset );
 
-        if (numParsPerCell > 0)
-            nvidia::atomicAllExch(&finished, 0); //one or more cells have particles to create
+                const float_X realParticlesPerCell = realDensity * CELL_VOLUME;
+
+
+
+                positionFunctorCtx[ idx ].init( totalCellOffset );
+                // decrease number of macro particles, if weighting would be too small
+                particles::startPosition::MacroParticleCfg makroCfg =
+                    positionFunctorCtx[ idx ].mapRealToMacroParticle( realParticlesPerCell );
+                macroWeightingCtx[ idx ] = makroCfg.weighting;
+                numParsPerCellCtx[ idx ] = makroCfg.numParticlesPerCell;
+
+                if( numParsPerCellCtx[ idx ] > 0)
+                    nvidia::atomicAllExch( &finished, 0 ); //one or more cells have particles to create
+
+                return numParsPerCellCtx[ idx ];
+            }
+        );
 
         __syncthreads();
-        if (finished == 1)
+
+        if( finished == 1 )
             return; // if there is no particle which has to be created
 
-        if (linearThreadIdx == 0)
-        {
-            frame = pb.getEmptyFrame();
-            pb.setAsLastFrame(frame, superCellIdx);
-        }
-
-        __syncthreads();
+        onlyMaster(
+            [&]( uint32_t const, uint32_t const )
+            {
+                frame = pb.getEmptyFrame();
+                pb.setAsLastFrame( frame, superCellIdx );
+            }
+        );
 
         // distribute the particles within the cell
         do
         {
 
             __syncthreads();
-            if (linearThreadIdx == 0)
-                finished = 1; //clear flag
+
+            onlyMaster(
+                [&]( uint32_t const, uint32_t const )
+                {
+                    finished = 1;
+                }
+            );
+
             __syncthreads();
 
-            if (numParsPerCell > 0)
-            {
-                floatD_X pos = positionFunctor(totalNumParsPerCell - numParsPerCell);
-                auto particle = (frame[linearThreadIdx]);
-
-                /** we now initialize all attributes of the new particle to their default values
-                 *   some attributes, such as the position, localCellIdx, weighting or the
-                 *   multiMask (\see AttrToIgnore) of the particle will be set individually
-                 *   in the following lines since they are already known at this point.
-                 */
+            forEachParticle(
+                [&]( uint32_t const linearIdx, uint32_t const idx )
                 {
-                    typedef typename ParBox::FrameType FrameType;
-                    typedef typename FrameType::ValueTypeSeq ParticleAttrList;
-                    typedef bmpl::vector4<position<>, multiMask, localCellIdx, weighting> AttrToIgnore;
-                    typedef typename ResolveAndRemoveFromSeq<ParticleAttrList, AttrToIgnore>::type ParticleCleanedAttrList;
+                    if( numParsPerCellCtx[ idx ] > 0 )
+                    {
+                        floatD_X const pos = positionFunctorCtx[ idx ] ( totalNumParsPerCellCtx[ idx ] - numParsPerCellCtx[ idx ] );
+                        auto particle = frame[ linearIdx ];
 
-                    algorithms::forEach::ForEach<ParticleCleanedAttrList,
-                        SetAttributeToDefault<bmpl::_1> > setToDefault;
-                    setToDefault(forward(particle));
-                }
-                particle[position_] = pos;
-                particle[multiMask_] = 1;
-                particle[localCellIdx_] = linearThreadIdx;
-                particle[weighting_] = macroWeighting;
+                        /** we now initialize all attributes of the new particle to their default values
+                         *   some attributes, such as the position, localCellIdx, weighting or the
+                         *   multiMask (\see AttrToIgnore) of the particle will be set individually
+                         *   in the following lines since they are already known at this point.
+                         */
+                        {
+                            using FrameType = typename ParBox::FrameType;
+                            using ParticleAttrList = typename FrameType::ValueTypeSeq;
+                            using AttrToIgnore = bmpl::vector4<
+                                position<>,
+                                multiMask,
+                                localCellIdx,
+                                weighting
+                            >;
+                            using ParticleCleanedAttrList = typename ResolveAndRemoveFromSeq<
+                                ParticleAttrList,
+                                AttrToIgnore
+                            >::type;
+
+                            algorithms::forEach::ForEach<
+                                ParticleCleanedAttrList,
+                                SetAttributeToDefault< bmpl::_1 >
+                            > setToDefault;
+                            setToDefault( forward( particle ) );
+                        }
+                        particle[ position_ ] = pos;
+                        particle[ multiMask_ ] = 1;
+                        particle[ localCellIdx_ ] = linearIdx;
+                        particle[ weighting_ ] = macroWeightingCtx[ idx ];
 
 #if( ENABLE_RADIATION == 1 )
 #   if( RAD_MARK_PARTICLE>1 ) && ( RAD_ACTIVATE_GAMMA_FILTER==0 )
-                particle[radiationFlag_] = (bool)(rng() < (1.0 / (float_32) RAD_MARK_PARTICLE));
+                        particle[ radiationFlag_ ] = (bool)(rng() < (1.0 / (float_32) RAD_MARK_PARTICLE));
 #   endif
 #   if( RAD_ACTIVATE_GAMMA_FILTER!=0 )
-                particle[radiationFlag_] = (bool)(false);
+                        particle[ radiationFlag_ ] = (bool)(false);
 #   endif
 #endif
+                        numParsPerCellCtx[ idx ]--;
+                        if( numParsPerCellCtx[ idx ] > 0 )
+                            atomicExch( &finished, 0 ); //one or more cell has particles to create
+                    }
+                }
+            );
 
-                numParsPerCell--;
-                if (numParsPerCell > 0)
-                    atomicExch(&finished, 0); //one or more cell has particles to create
-            }
             __syncthreads();
-            if (linearThreadIdx == 0 && finished == 0)
-            {
-                frame = pb.getEmptyFrame();
-                pb.setAsLastFrame(frame, superCellIdx);
-            }
+
+            onlyMaster(
+                [&]( uint32_t const, uint32_t const )
+                {
+                    if( finished == 0 )
+                    {
+                        frame = pb.getEmptyFrame();
+                        pb.setAsLastFrame( frame, superCellIdx );
+                    }
+                }
+            );
         }
-        while (finished == 0);
+        while( finished == 0 );
     }
 };
 
