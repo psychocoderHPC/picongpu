@@ -55,6 +55,11 @@ namespace memory
         using T_IdxConfig::simdDim;
         using T_IdxConfig::collectiveOps;
 
+        using BaseArray = Array<
+            T_Type,
+            T_IdxConfig::collectiveOps * T_IdxConfig::simdDim
+        >;
+
         /** default constructor
          *
          * the default constructor of each member is called
@@ -67,10 +72,8 @@ namespace memory
          *
          * @param value element assigned to each member
          */
-        HDINLINE explicit CtxArray( T_Type const & value )
+        HDINLINE explicit CtxArray( T_Type const & value ) : BaseArray( value )
         {
-            for( uint32_t i = 0; i < this->size(); ++i )
-                (*this)[i] = value;
         }
 
         HDINLINE CtxArray( CtxArray const & ) = delete;

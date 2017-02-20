@@ -92,7 +92,7 @@ namespace memory
         HDINLINE Array( T_Type const & value )
         {
             for( size_type i = 0; i < size(); ++i )
-                m_data[ i ] = value;
+                reinterpret_cast< T_Type* >( m_data )[ i ] = value;
         }
 
         /** get N-th value
@@ -107,7 +107,7 @@ namespace memory
         const_reference
         operator[]( T_Idx const idx ) const
         {
-            return m_data[ idx ];
+            return reinterpret_cast< T_Type const * >( m_data )[ idx ];
         }
 
         template< typename T_Idx >
@@ -115,13 +115,13 @@ namespace memory
         reference
         operator[]( T_Idx const idx )
         {
-            return m_data[ idx ];
+            return reinterpret_cast< T_Type* >( m_data )[ idx ];
         }
         /** @} */
 
     private:
         /** data storage */
-        value_type m_data[ T_size ];
+        uint8_t m_data alignas( alignof( T_Type ) ) [ T_size * sizeof( T_Type ) ];
     };
 
 } // namespace memory
