@@ -392,6 +392,14 @@ namespace twts
         const float_T z = float_T(zMod / UNIT_LENGTH);
         const float_T t = float_T(timeMod / UNIT_TIME);
 
+	/* This makes the pulse super-gaussian (to the power of 8) and removes the previous purely gaussian dependency.
+	 * This is a hack), which can only work close to the center of the Rayleigh length rho0, because it does not include eventual phase-evolution,
+	 * due to super-gaussian focusing instead of gaussian focusing.
+	 */
+        const float_T s = y * math::cos(phiT) + z * math::sin(phiT); // Formally, this probably includes a sign-error, but this is OK, because s is later used only as s*s.
+        const float_T wx2_s = w0 * w0 * ( float_T(1.0) + s*s / ( rho0 * rho0 ) );
+        const float_T envelopeWx = math::exp( +(x*x/wx2_s) -(math::pow(x,8)/math::pow(wx2_s,4)) );
+
         /* Calculating shortcuts for speeding up field calculation */
         const float_T sinPhi = math::sin(phiT);
         const float_T cosPhi = math::cos(phiT);
@@ -466,7 +474,7 @@ namespace twts
                 ) * math::sqrt( cspeed * om0 * rho0 / helpVar2 )
             ) / ( float_T(2.0) * cspeed * math::pow(helpVar4, float_T(1.5) ) );
 
-        return envelopeWy * result.get_real() / UNIT_SPEED;
+        return envelopeWx * envelopeWy * result.get_real() / UNIT_SPEED;
     }
 
     /** Calculate the Bz(r,t) field
@@ -572,6 +580,14 @@ namespace twts
         const float_T z = float_T(zMod / UNIT_LENGTH);
         const float_T t = float_T(timeMod / UNIT_TIME);
 
+	/* This makes the pulse super-gaussian (to the power of 8) and removes the previous purely gaussian dependency.
+	 * This is a hack), which can only work close to the center of the Rayleigh length rho0, because it does not include eventual phase-evolution,
+	 * due to super-gaussian focusing instead of gaussian focusing.
+	 */
+        const float_T s = y * math::cos(phiT) + z * math::sin(phiT); // Formally, this probably includes a sign-error, but this is OK, because s is later used only as s*s.
+        const float_T wx2_s = w0 * w0 * ( float_T(1.0) + s*s / ( rho0 * rho0 ) );
+        const float_T envelopeWx = math::exp( +(x*x/wx2_s) -(math::pow(x,8)/math::pow(wx2_s,4)) );
+
         /* Calculating shortcuts for speeding up field calculation */
         const float_T sinPhi = math::sin(phiT);
         const float_T cosPhi = math::cos(phiT);
@@ -641,7 +657,7 @@ namespace twts
             )
             / math::pow(helpVar9, float_T(1.5) );
 
-        return envelopeWy * result.get_real() / UNIT_SPEED;
+        return envelopeWx * envelopeWy * result.get_real() / UNIT_SPEED;
     }
 
     /** Calculate the Bx(r,t) field
