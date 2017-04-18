@@ -398,7 +398,7 @@ namespace twts
 	 */
         const float_T s = y * math::cos(phiT) + z * math::sin(phiT); // Formally, this probably includes a sign-error, but this is OK, because s is later used only as s*s.
         const float_T wx2_s = w0 * w0 * ( float_T(1.0) + s*s / ( rho0 * rho0 ) );
-        const float_T envelopeWx = math::exp( +(x*x/wx2_s) -(math::pow(x,8)/math::pow(wx2_s,4)) );
+        const float_T envelopeWx = math::exp( +(x*x/wx2_s) - math::pow( (x*x/wx2_s) , 4 ) );
 
         /* Calculating shortcuts for speeding up field calculation */
         const float_T sinPhi = math::sin(phiT);
@@ -586,7 +586,7 @@ namespace twts
 	 */
         const float_T s = y * math::cos(phiT) + z * math::sin(phiT); // Formally, this probably includes a sign-error, but this is OK, because s is later used only as s*s.
         const float_T wx2_s = w0 * w0 * ( float_T(1.0) + s*s / ( rho0 * rho0 ) );
-        const float_T envelopeWx = math::exp( +(x*x/wx2_s) -(math::pow(x,8)/math::pow(wx2_s,4)) );
+        const float_T envelopeWx = math::exp( +(x*x/wx2_s) - math::pow( (x*x/wx2_s) , 4 ) );
 
         /* Calculating shortcuts for speeding up field calculation */
         const float_T sinPhi = math::sin(phiT);
