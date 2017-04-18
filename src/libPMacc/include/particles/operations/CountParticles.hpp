@@ -27,11 +27,13 @@
 #include "mappings/kernel/AreaMapping.hpp"
 #include "particles/memory/dataTypes/FramePointer.hpp"
 
+#include "traits/GetNumWorker.hpp"
 #include "particles/particleFilter/FilterFactory.hpp"
 #include "particles/particleFilter/PositionFilter.hpp"
 #include "nvidia/atomic.hpp"
 #include "memory/shared/Allocate.hpp"
-
+#include "mappings/threads/ForEachIdx.hpp"
+#include "mappings/threads/IdxConfig.hpp"
 
 
 namespace PMacc
@@ -40,6 +42,7 @@ namespace PMacc
 /* count particles in an area
  * is not optimized, it checks any partcile position if its realy a particle
  */
+template< uint32_t T_worker >
 struct KernelCountParticles
 {
     template<class PBox, class Filter, class Mapping>
@@ -51,9 +54,13 @@ struct KernelCountParticles
     ) const
     {
 
+        using namespace mappings::threads;
+
         typedef typename PBox::FrameType FRAME;
         typedef typename PBox::FramePtr FramePtr;
-        const uint32_t Dim = Mapping::Dim;
+        constexpr uint32_t dim = Mapping::Dim;
+        constexpr uint32_t frameSize = math::CT::volume<typename FRAME::SuperCellSize>::type::value;
+        constexpr uint32_t numWorker = T_worker;
 
         PMACC_SMEM( frame, FramePtr );
         PMACC_SMEM( counter, int );
@@ -62,41 +69,82 @@ struct KernelCountParticles
 
         typedef typename Mapping::SuperCellSize SuperCellSize;
 
-        const DataSpace<Dim > threadIndex(threadIdx);
-        const int linearThreadIdx = DataSpaceOperations<Dim>::template map<SuperCellSize > (threadIndex);
-        const DataSpace<Dim> superCellIdx(mapper.getSuperCellIndex(DataSpace<Dim > (blockIdx)));
+        const DataSpace< dim > threadIndex(threadIdx);
+        const uint32_t workerIdx = static_cast<uint32_t>(
+            DataSpaceOperations< dim >::template map<SuperCellSize > (threadIndex)
+        );
 
-        if (linearThreadIdx == 0)
-        {
-            frame = pb.getLastFrame(superCellIdx);
-            particlesInSuperCell = pb.getSuperCell(superCellIdx).getSizeLastFrame();
-            counter = 0;
-        }
+        const DataSpace< dim > superCellIdx(mapper.getSuperCellIndex(DataSpace< dim > (blockIdx)));
+
+        ForEachIdx<
+            IdxConfig<
+                1,
+                numWorker
+            >
+        > onlyMaster{ workerIdx };
+
+        onlyMaster(
+            [&]( uint32_t const, uint32_t const )
+            {
+                frame = pb.getLastFrame(superCellIdx);
+                particlesInSuperCell = pb.getSuperCell(superCellIdx).getSizeLastFrame();
+                counter = 0;
+            }
+        );
+
         __syncthreads();
+
         if (!frame.isValid())
             return; //end kernel if we have no frames
         filter.setSuperCellPosition((superCellIdx - mapper.getGuardingSuperCells()) * mapper.getSuperCellSize());
+
+        ForEachIdx<
+            IdxConfig<
+                frameSize,
+                numWorker
+            >
+        > forEachParticle( workerIdx );
+
         while (frame.isValid())
         {
-            if (linearThreadIdx < particlesInSuperCell)
-            {
-                if (filter(*frame, linearThreadIdx))
-                    nvidia::atomicAllInc(&counter);
-            }
+            forEachParticle(
+                [&]( uint32_t const linearIdx, uint32_t const idx )
+                {
+                    if (linearIdx < particlesInSuperCell)
+                    {
+                        if(
+                            filter(
+                                *frame,
+                                linearIdx
+                            )
+                        )
+                            nvidia::atomicAllInc( &counter );
+                    }
+                }
+            );
+
             __syncthreads();
-            if (linearThreadIdx == 0)
-            {
-                frame = pb.getPreviousFrame(frame);
-                particlesInSuperCell = math::CT::volume<SuperCellSize>::type::value;
-            }
+
+            onlyMaster(
+                [&]( uint32_t const, uint32_t const )
+                {
+                    frame = pb.getPreviousFrame( frame );
+                    particlesInSuperCell = math::CT::volume< SuperCellSize >::type::value;
+                }
+            );
+
             __syncthreads();
         }
 
         __syncthreads();
-        if (linearThreadIdx == 0)
-        {
-            atomicAdd(gCounter, (uint64_cu) counter);
-        }
+
+        onlyMaster(
+            [&]( uint32_t const, uint32_t const )
+            {
+
+                atomicAdd(gCounter, (uint64_cu) counter);
+            }
+        );
     }
 };
 
@@ -117,12 +165,13 @@ struct CountParticles
     {
         GridBuffer<uint64_cu, DIM1> counter(DataSpace<DIM1>(1));
 
-        auto block = CellDesc::SuperCellSize::toRT();
-
         AreaMapping<AREA, CellDesc> mapper(cellDescription);
+        constexpr uint32_t worker = traits::GetNumWorker<
+            math::CT::volume<typename CellDesc::SuperCellSize>::type::value
+        >::value;
 
-        PMACC_KERNEL(KernelCountParticles{})
-            (mapper.getGridDim(), block)
+        PMACC_KERNEL(KernelCountParticles< worker >{})
+            (mapper.getGridDim(), worker)
             (buffer.getDeviceParticlesBox(),
              counter.getDeviceBuffer().getBasePointer(),
              filter,

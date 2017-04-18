@@ -25,84 +25,99 @@
 #include "memory/boxes/CachedBox.hpp"
 #include "nvidia/functors/Assign.hpp"
 #include "mappings/threads/ThreadCollective.hpp"
+#include "mappings/threads/ForEachIdx.hpp"
+#include "mappings/threads/IdxConfig.hpp"
 
 namespace picongpu
 {
 using namespace PMacc;
 
+template< uint32_t T_worker >
 struct KernelLaserE
 {
     template<class EBox>
     DINLINE void operator()(EBox fieldE, LaserManipulator lMan) const
     {
-        DataSpace<simDim> cellOffset;
 
-        cellOffset.x() = (blockIdx.x * blockDim.x) + threadIdx.x;
-        DataSpace<simDim> EFieldOffset;
-        EFieldOffset.x() = cellOffset.x() + (MappingDesc::SuperCellSize::x::value * GUARD_SIZE);
-        EFieldOffset.y() = MappingDesc::SuperCellSize::y::value*GUARD_SIZE;
+        typedef typename PMacc::math::CT::AssignIfInRange<
+                SuperCellSize,
+                bmpl::integral_c<uint32_t, 1>, /* y direction */
+                bmpl::integral_c<int, 1>
+        >::type SuperCellPlaneSize;
 
-#if( SIMDIM==DIM3 )
-        cellOffset.z() = (blockIdx.y * blockDim.y) + threadIdx.y;
-        EFieldOffset.z() = cellOffset.z() + (MappingDesc::SuperCellSize::z::value * GUARD_SIZE);
-#endif
-        // shift offsets to the laser initialization plane
-        cellOffset.y() += laser::initPlaneY;
-        EFieldOffset.y() += laser::initPlaneY;
+        constexpr uint32_t planeSize = PMacc::math::CT::volume< SuperCellPlaneSize >::type::value;
+        constexpr uint32_t numWorker = T_worker;
 
-        /** Calculate how many neighbors to the left we have
-         * to initialize the laser in the E-Field
-         *
-         * Example: Yee needs one neighbor to perform dB = curlE
-         *            -> initialize in y=0 plane
-         *          A second order solver could need 2 neighbors left:
-         *            -> initialize in y=0 and y=1 plane
-         *
-         * Question: Why do other codes initialize the B-Field instead?
-         * Answer:   Because our fields are defined on the lower cell side
-         *           (C-Style ftw). Therefore, our curls (for example Yee)
-         *           are shifted nabla+ <-> nabla- compared to Fortran codes
-         *           (in other words: curlLeft <-> curlRight)
-         *           for E and B.
-         *           For this reason, we have to initialize E instead of B.
-         *
-         * Problem: that's still not our case. For example our Yee does a
-         *          dE = curlLeft(B) - therefor, we should init B, too.
-         *
-         *
-         *  @todo: might also lack temporal offset since our formulas are E(x,z,t) instead of E(x,y,z,t)
-         *  `const int max_y_neighbors = Get<fieldSolver::FieldSolver::OffsetOrigin_E, 1 >::value;`
-         */
-        const int max_y_neighbors = 1;
+        const uint32_t workerIdx = threadIdx.x;
 
-        for (int totalOffsetY = 0; totalOffsetY < max_y_neighbors; ++totalOffsetY)
-        {
-            /** \todo Right now, the phase could be wrong ( == is cloned)
-             *        \see LaserPhysics.hpp
-             *
-             *  \todo What about the B-Field in the second plane?
-             */
-            if (laser::initPlaneY != 0) // compile time if
+        DataSpace< simDim > blockCellOffset = DataSpace< simDim >( blockIdx ) * SuperCellPlaneSize::toRT();
+        blockCellOffset.y() = 0; /* use a plane with the width of one cell to initialize the laser */
+
+        mappings::threads::ForEachIdx<
+            mappings::threads::IdxConfig<
+                planeSize,
+                numWorker
+            >
+        >{ workerIdx }(
+            [&]( uint32_t const linearIdx, uint32_t const )
             {
-                /* If the laser is not initialized in the first cell we emit a
-                 * negatively and positively propagating wave. Therefore we need to multiply the
-                 * amplitude with a correction factor depending of the cell size in
-                 * propagation direction.
-                 * The negatively propagating wave is damped by the absorber.
+                /* cell index within the superCell */
+                DataSpace< simDim > cellIdx = DataSpaceOperations<simDim>::template map< SuperCellPlaneSize >( linearIdx );
+
+                /** Calculate how many neighbors to the left we have
+                 * to initialize the laser in the E-Field
                  *
-                 * The `correctionFactor` assume that the wave is moving in y direction.
+                 * Example: Yee needs one neighbor to perform dB = curlE
+                 *            -> initialize in y=0 plane
+                 *          A second order solver could need 2 neighbors left:
+                 *            -> initialize in y=0 and y=1 plane
+                 *
+                 * Question: Why do other codes initialize the B-Field instead?
+                 * Answer:   Because our fields are defined on the lower cell side
+                 *           (C-Style ftw). Therefore, our curls (for example Yee)
+                 *           are shifted nabla+ <-> nabla- compared to Fortran codes
+                 *           (in other words: curlLeft <-> curlRight)
+                 *           for E and B.
+                 *           For this reason, we have to initialize E instead of B.
+                 *
+                 * Problem: that's still not our case. For example our Yee does a
+                 *          dE = curlLeft(B) - therefor, we should init B, too.
+                 *
+                 *
+                 *  @todo: might also lack temporal offset since our formulas are E(x,z,t) instead of E(x,y,z,t)
+                 *  `const int max_y_neighbors = Get<fieldSolver::FieldSolver::OffsetOrigin_E, 1 >::value;`
                  */
-                auto correctionFactor = (SPEED_OF_LIGHT * DELTA_T) / CELL_HEIGHT * float_X(2.);
-                fieldE(EFieldOffset) +=  correctionFactor * lMan.getManipulation(cellOffset);
+                const int max_y_neighbors = 1;
+
+                for (int totalOffsetY = 0; totalOffsetY < max_y_neighbors; ++totalOffsetY)
+                {
+                    /** \todo Right now, the phase could be wrong ( == is cloned)
+                     *        \see LaserPhysics.hpp
+                     *
+                     *  \todo What about the B-Field in the second plane?
+                     */
+                    auto cell = blockCellOffset + cellIdx;
+                    cell.y() += totalOffsetY + laser::initPlaneY;
+                    if (laser::initPlaneY != 0) // compile time if
+                    {
+                        /* If the laser is not initialized in the first cell we emit a
+                         * negatively and positively propagating wave. Therefore we need to multiply the
+                         * amplitude with a correction factor depending of the cell size in
+                         * propagation direction.
+                         * The negatively propagating wave is damped by the absorber.
+                         *
+                         * The `correctionFactor` assume that the wave is moving in y direction.
+                         */
+                        auto correctionFactor = (SPEED_OF_LIGHT * DELTA_T) / CELL_HEIGHT * float_X(2.);
+                        fieldE( cell + SuperCellSize::toRT() * GUARD_SIZE ) +=  correctionFactor * lMan.getManipulation(cell);
+                    }
+                    else
+                    {
+                        fieldE( cell + SuperCellSize::toRT() * GUARD_SIZE ) = lMan.getManipulation(cell);
+                    }
+                }
             }
-            else
-            {
-                fieldE(EFieldOffset) = lMan.getManipulation(cellOffset);
-            }
-            /* move to next cell @see max_y_neighbors */
-            cellOffset.y() += 1;
-            EFieldOffset.y() += 1;
-        }
+        );
     }
 };
 

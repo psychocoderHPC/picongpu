@@ -31,6 +31,7 @@
 
 #include "mappings/kernel/StrideMapping.hpp"
 #include "traits/NumberOfExchanges.hpp"
+#include "traits/GetNumWorker.hpp"
 #include "assert.hpp"
 
 #include <memory>
@@ -110,17 +111,20 @@ protected:
         StrideMapping<AREA, 3, MappingDesc> mapper(this->cellDescription);
         ParticlesBoxType pBox = particlesBuffer->getDeviceParticleBox();
 
+        constexpr uint32_t worker = traits::GetNumWorker<
+            math::CT::volume<typename FrameType::SuperCellSize>::type::value
+        >::value;
         __startTransaction(__getTransactionEvent());
         do
         {
-            PMACC_KERNEL(KernelShiftParticles{})
-                (mapper.getGridDim(), (int)TileSize)
+            PMACC_KERNEL(KernelShiftParticles< worker >{})
+                (mapper.getGridDim(), worker)
                 (pBox, mapper);
-            PMACC_KERNEL(KernelFillGaps{})
-                (mapper.getGridDim(), (int)TileSize)
+            PMACC_KERNEL(KernelFillGaps< worker >{})
+                (mapper.getGridDim(), worker)
                 (pBox, mapper);
-            PMACC_KERNEL(KernelFillGapsLastFrame{})
-                (mapper.getGridDim(), (int)TileSize)
+            PMACC_KERNEL(KernelFillGapsLastFrame< worker >{})
+                (mapper.getGridDim(), worker)
                 (pBox, mapper);
         }
         while (mapper.next());
@@ -137,12 +141,16 @@ protected:
     {
         AreaMapping<AREA, MappingDesc> mapper(this->cellDescription);
 
-        PMACC_KERNEL(KernelFillGaps{})
-            (mapper.getGridDim(), (int)TileSize)
+        constexpr uint32_t worker = traits::GetNumWorker<
+            math::CT::volume<typename FrameType::SuperCellSize>::type::value
+        >::value;
+
+        PMACC_KERNEL(KernelFillGaps< worker >{})
+            (mapper.getGridDim(), worker)
             (particlesBuffer->getDeviceParticleBox(), mapper);
 
-        PMACC_KERNEL(KernelFillGapsLastFrame{})
-            (mapper.getGridDim(), (int)TileSize)
+        PMACC_KERNEL(KernelFillGapsLastFrame< worker >{})
+            (mapper.getGridDim(), worker)
             (particlesBuffer->getDeviceParticleBox(), mapper);
     }
 

@@ -41,6 +41,7 @@
 #include "traits/GetMargin.hpp"
 #include "traits/Resolve.hpp"
 #include "traits/SIBaseUnits.hpp"
+#include "traits/GetNumWorker.hpp"
 
 #include <boost/mpl/accumulate.hpp>
 
@@ -194,8 +195,13 @@ void FieldJ::bashField( uint32_t exchangeType )
     auto grid = mapper.getGridDim( );
 
     const DataSpace<simDim> direction = Mask::getRelativeDirections<simDim > ( mapper.getExchangeType( ) );
-    PMACC_KERNEL( KernelBashCurrent{} )
-        ( grid, mapper.getSuperCellSize( ) )
+
+    constexpr uint32_t worker = PMacc::traits::GetNumWorker<
+        PMacc::math::CT::volume< SuperCellSize >::type::value
+    >::value;
+
+    PMACC_KERNEL( KernelBashCurrent< worker >{} )
+        ( grid, worker )
         ( fieldJ.getDeviceBuffer( ).getDataBox( ),
           fieldJ.getSendExchange( exchangeType ).getDeviceBuffer( ).getDataBox( ),
           fieldJ.getSendExchange( exchangeType ).getDeviceBuffer( ).getDataSpace( ),
@@ -209,9 +215,13 @@ void FieldJ::insertField( uint32_t exchangeType )
 
     auto grid = mapper.getGridDim( );
 
+    constexpr uint32_t worker = PMacc::traits::GetNumWorker<
+        PMacc::math::CT::volume< SuperCellSize >::type::value
+    >::value;
+
     const DataSpace<simDim> direction = Mask::getRelativeDirections<simDim > ( mapper.getExchangeType( ) );
-    PMACC_KERNEL( KernelInsertCurrent{} )
-        ( grid, mapper.getSuperCellSize( ) )
+    PMACC_KERNEL( KernelInsertCurrent< worker >{} )
+        ( grid, worker )
         ( fieldJ.getDeviceBuffer( ).getDataBox( ),
           fieldJ.getReceiveExchange( exchangeType ).getDeviceBuffer( ).getDataBox( ),
           fieldJ.getReceiveExchange( exchangeType ).getDeviceBuffer( ).getDataSpace( ),
@@ -292,20 +302,21 @@ void FieldJ::computeCurrent( ParticlesClass &parClass, uint32_t )
         typename MappingDesc::SuperCellSize,
         typename GetMargin<ParticleCurrentSolver>::LowerMargin,
         typename GetMargin<ParticleCurrentSolver>::UpperMargin
-        > BlockArea;
+    > BlockArea;
 
     StrideMapping<AREA, 3, MappingDesc> mapper( cellDescription );
     typename ParticlesClass::ParticlesBoxType pBox = parClass.getDeviceParticlesBox( );
     FieldJ::DataBoxType jBox = this->fieldJ.getDeviceBuffer( ).getDataBox( );
     FrameSolver solver( DELTA_T );
 
-    DataSpace<simDim> blockSize( mapper.getSuperCellSize( ) );
-    blockSize[simDim - 1] *= workerMultiplier;
+    constexpr uint32_t worker = PMacc::traits::GetNumWorker<
+        PMacc::math::CT::volume< SuperCellSize >::type::value * workerMultiplier
+    >::value;
 
     do
     {
-        PMACC_KERNEL( KernelComputeCurrent<workerMultiplier, BlockArea, AREA>{} )
-            ( mapper.getGridDim( ), blockSize )
+        PMACC_KERNEL( KernelComputeCurrent< worker, BlockArea, AREA >{} )
+            ( mapper.getGridDim( ), worker )
             ( jBox,
               pBox, solver, mapper );
     }

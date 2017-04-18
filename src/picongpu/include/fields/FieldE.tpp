@@ -38,9 +38,9 @@
 #include "fields/numericalCellTypes/NumericalCellTypes.hpp"
 
 #include "math/Vector.hpp"
-
 #include "particles/traits/GetInterpolation.hpp"
 #include "particles/traits/FilterByFlag.hpp"
+#include "traits/GetNumWorker.hpp"
 #include "traits/GetMargin.hpp"
 #include "traits/SIBaseUnits.hpp"
 #include "particles/traits/GetMarginPusher.hpp"
@@ -213,17 +213,16 @@ void FieldE::laserManipulation( uint32_t currentStep )
         laserProfile::INIT_TIME == float_X(0.0) /* laser is disabled e.g. laserNone */
     );
 
-    DataSpace<simDim-1> gridBlocks;
-    DataSpace<simDim-1> blockSize;
-    gridBlocks.x()=fieldE->getGridLayout( ).getDataSpaceWithoutGuarding( ).x( ) / SuperCellSize::x::value;
-    blockSize.x()=SuperCellSize::x::value;
-#if(SIMDIM ==DIM3)
-    gridBlocks.y()=fieldE->getGridLayout( ).getDataSpaceWithoutGuarding( ).z( ) / SuperCellSize::z::value;
-    blockSize.y()=SuperCellSize::z::value;
-#endif
-    PMACC_KERNEL( KernelLaserE{} )
+    DataSpace<simDim> gridBlocks = fieldE->getGridLayout( ).getDataSpaceWithoutGuarding( ) / SuperCellSize::toRT();
+    // use the first superCells in y direction to initialize the laser
+    gridBlocks.y() = 1;
+
+    constexpr uint32_t worker = PMacc::traits::GetNumWorker<
+        PMacc::math::CT::volume<SuperCellSize>::type::value
+    >::value;
+    PMACC_KERNEL( KernelLaserE< worker >{} )
         ( gridBlocks,
-          blockSize )
+          worker )
         ( this->getDeviceDataBox( ), laser->getLaserManipulator( currentStep ) );
 }
 
