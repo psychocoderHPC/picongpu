@@ -83,7 +83,8 @@ namespace particles
  * the functors are called in order (from first to last functor)
  */
 typedef mpl::vector<
-  CreateDensity<densityProfiles::FreeFormula, startPosition::Random, PIC_Electrons>
+  CreateDensity<densityProfiles::FreeFormula, startPosition::Random, PIC_Electrons>,
+  Manipulate<RandomParticleDistructionFunctor, PIC_Electrons>
 > InitPipeline;
 
 } /* namespace particles */

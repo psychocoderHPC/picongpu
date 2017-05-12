@@ -79,6 +79,24 @@ namespace manipulators
     typedef SetAttributeImpl<BoundElectronsWhenNeutral,nvidia::functors::Assign> SetBoundElectrons;
 } //namespace manipulators
 
+
+
+    struct RandomParticleDistructionFunctor
+    {
+      template< typename T_Rng, typename T_Particle >
+      DINLINE void operator()( T_Rng& rng, T_Particle& particle )
+      {
+        // enable radiation for 10% of the particles
+        particle[ weighting_ ] *= 1.0*( rng() < 0.07 );
+      }
+    };
+
+  /* definition of RandomEnableRadiation start*/
+  typedef FreeRngImpl< RandomParticleDistructionFunctor, nvidia::rng::distributions::Uniform_float > RandomParticleDistructionFunctor;
+
+
+
+
 } //namespace particles
 
 } //namespac picongpu
