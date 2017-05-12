@@ -29,14 +29,14 @@ namespace picongpu
     {
         /** Duration of one timestep
          *  unit: seconds */
-        constexpr float_64 DELTA_T_SI = 1.6615336480499512e-17;
+        constexpr float_64 DELTA_T_SI = 2.25152e-18;
 
         /** equals X
          *  unit: meter */
-        constexpr float_64 CELL_WIDTH_SI = 8.120995783129748e-8;
+        constexpr float_64 CELL_WIDTH_SI = 1.75185e-7;
         /** equals Y - the laser & moving window propagation direction
          *  unit: meter */
-        constexpr float_64 CELL_HEIGHT_SI = 5.0e-9;
+        constexpr float_64 CELL_HEIGHT_SI = 6.75e-10;
         /** equals Z
          *  unit: meter */
         constexpr float_64 CELL_DEPTH_SI = CELL_WIDTH_SI;
