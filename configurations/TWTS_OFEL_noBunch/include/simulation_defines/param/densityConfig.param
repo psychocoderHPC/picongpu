@@ -38,46 +38,66 @@ namespace SI
      *
      * unit: ELEMENTS/m^3
      */
-    constexpr float_64 BASE_DENSITY_SI = 1.e25;
+    constexpr float_64 BASE_DENSITY_SI = 1.0 /
+      ( CELL_WIDTH_SI * CELL_HEIGHT_SI * CELL_DEPTH_SI );
 }
 
 namespace densityProfiles
 {
-    PMACC_STRUCT(GaussianParameter,
-        /** Profile Formula:
-         *   constexpr float_X exponent = abs((y - gasCenter_SI) / gasSigma_SI);
-         *   constexpr float_X density = exp(gasFactor * pow(exponent, gasPower));
-         *
-         *   takes `gasCenterLeft_SI      for y < gasCenterLeft_SI`,
-         *         `gasCenterRight_SI     for y > gasCenterRight_SI`,
-         *   and exponent = float_X(0.0)  for gasCenterLeft_SI < y < gasCenterRight_SI
-         */
-        (PMACC_C_VALUE(float_X, gasFactor, -1.0))
-        (PMACC_C_VALUE(float_X, gasPower, 4.0))
+    struct FreeFormulaFunctor
+    {
+      /** This formula uses SI quantities only.
+       *  The profile will be multiplied by BASE_DENSITY_SI.
+       *
+       * @param position_SI total offset including all slides [meter]
+       * @param cellSize_SI cell sizes [meter]
+       *
+       * @return float_X density [normalized to 1.0]
+       */
+        HDINLINE float_X
+        operator()(
+                   const floatD_64& position_SI,
+            const float3_64& cellSize_SI
+                   )
+      {
+        return 1.0;
+      }
+    };
 
-        /** height of vacuum area on top border
-         *
-         *  this vacuum is important because of the laser initialization,
-         *  which is done in the first cells of the simulation and
-         *  assumes a charge-free volume
-         *  unit: cells
-         */
-        (PMACC_C_VALUE(uint32_t, vacuumCellsY, 50))
+  /* definition of free formula profile */
+  using FreeFormula = FreeFormulaImpl< FreeFormulaFunctor >;
 
-        /** The central position of the gas distribution
-          *  unit: meter
-          */
-        (PMACC_C_VALUE(float_64, gasCenterLeft_SI, 8.0e-5))
-        (PMACC_C_VALUE(float_64, gasCenterRight_SI, 10.0e-5))
-
-        /** the distance from gasCenter_SI until the gas density decreases to its 1/e-th part
-          *  unit: meter
-          */
-        (PMACC_C_VALUE(float_64, gasSigmaLeft_SI, 8.0e-5))
-        (PMACC_C_VALUE(float_64, gasSigmaRight_SI, 8.0e-5))
-    ); /* struct GaussianParam */
-
-    /* definition of density with Gaussian profile */
-    typedef GaussianImpl< GaussianParameter > Gaussian;
 }
+
+namespace densityProfiles
+{
+    struct FreeFormulaFunctorRNG
+    {
+      /** This formula uses SI quantities only.
+       *  The profile will be multiplied by BASE_DENSITY_SI.
+       *
+       * @param position_SI total offset including all slides [meter]
+       * @param cellSize_SI cell sizes [meter]
+       *
+       * @return float_X density [normalized to 1.0]
+       */
+        HDINLINE float_X
+        operator()(
+                   const floatD_64& position_SI,
+            const float3_64& cellSize_SI
+                   )
+      {
+        return 1.0;
+      }
+    };
+
+  /* definition of free formula profile */
+  using FreeFormulaRNG = FreeFormulaImpl< FreeFormulaFunctorRNG >;
+
+}
+
+
+
+
+
 }
