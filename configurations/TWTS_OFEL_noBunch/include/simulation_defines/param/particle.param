@@ -136,6 +136,27 @@ namespace manipulators
     /* definition of RandomEnableRadiation start*/
     typedef FreeRngImpl< RandomEnabledRadiationFunctor, nvidia::rng::distributions::Uniform_float > RandomEnabledRadiation;
 
+
+
+
+    struct RandomDeleteParticleFunctor
+    {
+        template< typename T_Rng, typename T_Particle >
+        DINLINE void operator()( T_Rng& rng, T_Particle& particle )
+        {
+            // enable radiation for 10% of the particles
+            particle[ multiMask_ ] = rng() < ( 0.07 );
+        }
+    };
+
+    /* definition of rng on multiMask start*/
+    typedef FreeRngImpl< RandomDeleteParticleFunctor, nvidia::rng::distributions::Uniform_float > RandomDeleteParticle;
+
+
+
+
+
+
     /** changes the in-cell position of each particle of a species */
     using RandomPosition = RandomPositionImpl<>;
 
