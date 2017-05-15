@@ -85,18 +85,24 @@ namespace particles
      * the functors are called in order (from first to last functor)
      */
     using InitPipeline = mpl::vector<
-        CreateDensity<densityProfiles::FreeFormula, 
-                      startPosition::Random, 
-                      PIC_Electrons
+        CreateDensity<
+            densityProfiles::FreeFormula,
+            startPosition::Random,
+            PIC_Electrons
         >,
-        Manipulate< manipulators::RandomDeleteParticle, 
-                    PIC_Electrons
+        Manipulate<
+            manipulators::RandomDeleteParticle,
+            PIC_Electrons
         >,
-      FillAllGaps<PIC_Electrons>,
-      Manipulate<manipulators::AssignYDrift, 
-                 PIC_Electrons
-                 >,
-      Manipulate<manipulators::AddTemperature, PIC_Electrons>
+        FillAllGaps< PIC_Electrons >,
+        Manipulate<
+            manipulators::AssignYDrift,
+            PIC_Electrons
+        >,
+        Manipulate<
+            manipulators::AddTemperature,
+            PIC_Electrons
+        >
     >;
 
 } // namespace particles

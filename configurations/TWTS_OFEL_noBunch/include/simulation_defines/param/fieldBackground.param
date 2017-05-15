@@ -46,7 +46,7 @@ namespace picongpu
         const templates::twts::EField twtsFieldE1;
 
         /* Constructor is host-only, because of subGrid and halfSimSize initialization */
-        HINLINE FieldBackgroundE( const float3_64 unitField ) : 
+        HINLINE FieldBackgroundE( const float3_64 unitField ) :
 
             m_unitField(unitField),
 
@@ -63,7 +63,7 @@ namespace picongpu
                 /* w_y [m] */
                 /* 8.0e-3*sin(10.1 Degree) - numCellsZ*CELL_DEPTH_SI/2/cos(10.1 Degree / 2)  */
                 //1.392498426704549e-3, // corresponds to 8mm interaction distance along y-axis -- 5.88mm is the original design value
-		8.0e-3,
+                8.0e-3,
                 /* interaction angle between TWTS laser propagation vector and the y-axis [rad] */
                 15.3 * (PI/180.),
                 /* propagation speed of overlap [speed of light]. */
