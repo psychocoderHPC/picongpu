@@ -58,16 +58,16 @@ namespace manipulators
 
     /** Parameter for DriftParam
      */
-    CONST_VECTOR(float_X,3,DriftParam_direction,1.0,0.0,0.0);
+    CONST_VECTOR(float_X,3,DriftParam_direction,0.0,1.0,0.0);
     /** Parameter for a particle drift assignment
      */
     struct DriftParam
     {
-        static constexpr float_64 gamma = 1.0;
+        static constexpr float_64 gamma = 34.9;
         const DriftParam_direction_t direction;
     };
     /** definition of manipulator that assigns a dirft in X */
-    using AssignXDrift = DriftImpl<
+    using AssignYDrift = DriftImpl<
         DriftParam,
         nvidia::functors::Assign
     >;
@@ -80,62 +80,13 @@ namespace manipulators
         /*Initial temperature
          *  unit: keV
          */
-        static constexpr float_64 temperature = 0.0;
+        static constexpr float_64 temperature = 17.3;
     };
     /* definition a temperature assignment manipulator */
     using AddTemperature = TemperatureImpl<
         TemperatureParam,
         nvidia::functors::Add
     >;
-
-
-    /** Parameters for an assignment in a relative position selection
-     */
-    struct IfRelativeGlobalPositionParam
-    {
-        /* lowerBound is included in the range*/
-        static constexpr float_X lowerBound = 0.0;
-        /* upperBound is excluded in the range*/
-        static constexpr float_X upperBound = 0.5;
-        /* dimension for the filter
-         * x = 0; y= 1; z = 2
-         */
-        static constexpr uint32_t dimension = 0;
-    };
-    /** definition of a relative position selection that assigns a drift in X
-     */
-    using AssignXDriftToLowerHalfXPosition = IfRelativeGlobalPositionImpl<
-        IfRelativeGlobalPositionParam,
-        AssignXDrift
-    >;
-
-    /** Unary particle manipulator: double each weighting
-     */
-    struct DoubleWeightingFunctor
-    {
-        template< typename T_Particle >
-        DINLINE void operator()( T_Particle& particle )
-        {
-            particle[weighting_] *= float_X(2.0);
-        }
-    };
-
-    /** definition of a free particle manipulator: double weighting */
-    using DoubleWeighting = FreeImpl< DoubleWeightingFunctor >;
-
-    struct RandomEnabledRadiationFunctor
-    {
-        template< typename T_Rng, typename T_Particle >
-        DINLINE void operator()( T_Rng& rng, T_Particle& particle )
-        {
-            // enable radiation for 10% of the particles
-            particle[ radiationMask_ ] = rng() < ( 0.1 );
-        }
-    };
-
-    /* definition of RandomEnableRadiation start*/
-    typedef FreeRngImpl< RandomEnabledRadiationFunctor, nvidia::rng::distributions::Uniform_float > RandomEnabledRadiation;
-
 
 
 
@@ -151,10 +102,6 @@ namespace manipulators
 
     /* definition of rng on multiMask start*/
     typedef FreeRngImpl< RandomDeleteParticleFunctor, nvidia::rng::distributions::Uniform_float > RandomDeleteParticle;
-
-
-
-
 
 
     /** changes the in-cell position of each particle of a species */

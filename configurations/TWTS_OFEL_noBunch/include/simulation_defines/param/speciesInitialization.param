@@ -92,7 +92,11 @@ namespace particles
         Manipulate< manipulators::RandomDeleteParticle, 
                     PIC_Electrons
         >,
-        FillAllGaps<PIC_Electrons>
+      FillAllGaps<PIC_Electrons>,
+      Manipulate<manipulators::AssignYDrift, 
+                 PIC_Electrons
+                 >,
+      Manipulate<manipulators::AddTemperature, PIC_Electrons>
     >;
 
 } // namespace particles
