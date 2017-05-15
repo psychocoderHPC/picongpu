@@ -53,7 +53,7 @@ namespace picongpu
             twtsFieldE1(
                 /* focus_y [m], the distance to the laser focus in y-direction */
                 /* 4.0e-3 + numCellsOfWindowY / 2 * CELL_HEIGHT_SI  */
-                4.00896e-3, // 8.96 micrometer more for centering laser in interaction region
+                8.96e-6, // 8.96 micrometer more for centering laser in interaction region
                 /* wavelength [m] */
                 1.035e-6,
                 /* pulselength [s], sigma of std. gauss for intensity (E^2) */
@@ -65,11 +65,11 @@ namespace picongpu
                 //1.392498426704549e-3, // corresponds to 8mm interaction distance along y-axis -- 5.88mm is the original design value
 		8.0e-3,
                 /* interaction angle between TWTS laser propagation vector and the y-axis [rad] */
-                10.1 * (PI/180.),
+                15.3 * (PI/180.),
                 /* propagation speed of overlap [speed of light]. */
                 1.0,
                 /* manual time delay [s] if auto_tdelay is false */
-                4.0e-3 / SI::SPEED_OF_LIGHT_SI,
+                0.0e-3 / SI::SPEED_OF_LIGHT_SI,
                 /* Should PIConGPU automatically choose a suitable time delay? [true/false] */
                 false,
                 /* Polarization of TWTS laser field */
@@ -107,7 +107,7 @@ namespace picongpu
             /* const float_64 _A0  = _PEAK_INTENSITY_SI * UNITCONV_Intens_to_A0; */
 
             /** unit: none */
-            const float_64 _A0  = 2.0;
+            const float_64 _A0  = 0.02;
 
             /** unit: Volt /meter */
             /*\todo #738 implement math::vector, native type operations */
