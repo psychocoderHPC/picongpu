@@ -76,30 +76,29 @@ using PIC_Electrons = Particles<
     DefaultParticleAttributes
 >;
 
-/*--------------------------- ions -------------------------------------------*/
+/*--------------------------- opsitrons -------------------------------------------*/
 
 /* ratio relative to BASE_CHARGE and BASE_MASS */
-value_identifier( float_X, MassRatioIons, 1836.152672 );
-value_identifier( float_X, ChargeRatioIons, -1.0 );
+value_identifier( float_X, MassRatioPositrons, 1.0 );
+value_identifier( float_X, ChargeRatioPositrons, -1.0 );
 
 /* ratio relative to BASE_DENSITY */
-value_identifier( float_X, DensityRatioIons, -1.0 );
+value_identifier( float_X, DensityRatioPositrons, -1.0 );
 
-using ParticleFlagsIons = bmpl::vector<
+using ParticleFlagsPositrons = bmpl::vector<
     particlePusher< UsedParticlePusher >,
     shape< UsedParticleShape >,
     interpolation< UsedField2Particle >,
     current< UsedParticleCurrentSolver >,
-    massRatio< MassRatioIons >,
-    chargeRatio< ChargeRatioIons >,
-    densityRatio< DensityRatioIons >,
-    atomicNumbers< ionization::atomicNumbers::Hydrogen_t >
+    massRatio< MassRatioPositrons >,
+    chargeRatio< ChargeRatioPositrons >,
+    densityRatio< DensityRatioPositrons >
 >;
 
-/* define species ions */
-using PIC_Ions = Particles<
-    bmpl::string< 'i' >,
-    ParticleFlagsIons,
+/* define species positrons */
+using PIC_Positrons = Particles<
+    bmpl::string< 'p' >,
+    ParticleFlagsPositrons,
     DefaultParticleAttributes
 >;
 
@@ -112,7 +111,7 @@ using PIC_Ions = Particles<
  */
 using VectorAllSpecies = MakeSeq_t<
     PIC_Electrons,
-    PIC_Ions
+    PIC_Positrons
 >;
 
 } // namespace picongpu

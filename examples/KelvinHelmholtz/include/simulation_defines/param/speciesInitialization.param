@@ -83,10 +83,10 @@ namespace particles
  */
 typedef mpl::vector<
     CreateDensity<densityProfiles::Homogenous, startPosition::Quiet, PIC_Electrons>,
-    DeriveSpecies<PIC_Electrons, PIC_Ions>,
-    Manipulate<manipulators::AssignXDriftPrositiveToLowerQuarterYPosition, PIC_Ions>,
-    Manipulate<manipulators::AssignXDriftNegativeToMiddleHalfYPosition, PIC_Ions>,
-    Manipulate<manipulators::AssignXDriftPrositiveToUpperQuarterYPosition, PIC_Ions>,
+    DeriveSpecies<PIC_Electrons, PIC_Positrons>,
+    Manipulate<manipulators::AssignXDriftPrositiveToLowerQuarterYPosition, PIC_Positrons>,
+    Manipulate<manipulators::AssignXDriftNegativeToMiddleHalfYPosition, PIC_Positrons>,
+    Manipulate<manipulators::AssignXDriftPrositiveToUpperQuarterYPosition, PIC_Positrons>,
     Manipulate<manipulators::AssignXDriftPrositiveToLowerQuarterYPosition, PIC_Electrons>,
     Manipulate<manipulators::AssignXDriftNegativeToMiddleHalfYPosition, PIC_Electrons>,
     Manipulate<manipulators::AssignXDriftPrositiveToUpperQuarterYPosition, PIC_Electrons>,

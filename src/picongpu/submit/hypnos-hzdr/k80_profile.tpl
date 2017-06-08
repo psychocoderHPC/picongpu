@@ -45,7 +45,7 @@
 .TBG_profile=${PIC_PROFILE:-"~/picongpu.profile"}
 
 # 8 gpus per node if we need more than 8 gpus else same count as TBG_tasks
-.TBG_gpusPerNode=`if [ $TBG_tasks -gt 8 ] ; then echo 8; else echo $TBG_tasks; fi`
+.TBG_gpusPerNode=`if [ $TBG_tasks -gt 8 ] ; then echo 8; else echo 8; fi`
 
 #number of cores per parallel node / default is 2 cores per gpu on k20 queue
 .TBG_coresPerNode="$(( TBG_gpusPerNode * 2 ))"
