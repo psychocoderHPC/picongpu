@@ -106,7 +106,7 @@ struct ZigZagCIC<particles::shapes::CIC, T_villabuneCorrection, DIM3>
         }
         const float_X volume_reci = float_X(1.0) / float_X(CELL_VOLUME);
 
-        PMACC_AUTO(j, dataBoxJ.toCursor());
+        auto j = dataBoxJ.toCursor();
 #       pragma unroll 2
         for(int l = 0; l< 2; ++l)
         {
@@ -313,7 +313,7 @@ struct ZigZagCIC<particles::shapes::CIC, T_villabuneCorrection, DIM2>
         }
         const float_X volume_reci = float_X(1.0) / float_X(CELL_VOLUME);
 
-        PMACC_AUTO(j, dataBoxJ.toCursor());
+        auto j = dataBoxJ.toCursor();
 #       pragma unroll 2
         for(int l = 0; l< 2; ++l)
         {
