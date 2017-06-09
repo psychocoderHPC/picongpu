@@ -51,8 +51,11 @@ using namespace PMacc;
 template<typename T_ParticleShape>
 struct ZigZag;
 
-template<typename T_ParticleShape, uint32_t T_dim = simDim>
+template<typename T_ParticleShape, bool T_villabuneCorrection = false,  uint32_t T_dim = simDim>
 struct ZigZagCIC;
+
+template<typename T_ParticleShape, uint32_t T_dim = simDim>
+using ZigZagCICVcorrect = ZigZagCIC<T_ParticleShape, true, T_dim>;
 
 } //namespace currentSolver
 
@@ -75,11 +78,11 @@ public:
 /* Get margin of a solver
  * class must define a LowerMargin and UpperMargin
  */
-template<typename T_ParticleShape, uint32_t T_dim>
-struct GetMargin<picongpu::currentSolver::ZigZagCIC<T_ParticleShape, T_dim > >
+template<typename T_ParticleShape, bool T_villabuneCorrection, uint32_t T_dim>
+struct GetMargin<picongpu::currentSolver::ZigZagCIC<T_ParticleShape, T_villabuneCorrection, T_dim > >
 {
 private:
-    typedef picongpu::currentSolver::ZigZagCIC<T_ParticleShape, T_dim> Solver;
+    typedef picongpu::currentSolver::ZigZagCIC<T_ParticleShape, T_villabuneCorrection, T_dim> Solver;
 public:
     typedef typename Solver::LowerMargin LowerMargin;
     typedef typename Solver::UpperMargin UpperMargin;

@@ -48,8 +48,8 @@ using namespace PMacc;
  *
  * @see ZigZag.def for paper references
  */
-template<>
-struct ZigZagCIC<particles::shapes::CIC, DIM3>
+template<bool T_villabuneCorrection>
+struct ZigZagCIC<particles::shapes::CIC, T_villabuneCorrection, DIM3>
 {
     /* cloud shape: describe the form factor of a posticle
      * assignment shape: integral over the cloud shape (this shape is defined by the user in
@@ -118,7 +118,9 @@ struct ZigZagCIC<particles::shapes::CIC, DIM3>
             int z = I[l].z();
 
             floatD_X deltaPos(( relayPoint - pos[l] ) * sign);
-            const float_X tmp = deltaPos.x() * deltaPos.y() * deltaPos.z() * (float_X(1.0) / float_X(12.0));
+            float_X tmp = deltaPos.x() * deltaPos.y() * deltaPos.z() * (float_X(1.0) / float_X(12.0));
+            if( T_villabuneCorrection == false )
+                tmp = float_X( 0. );
 
             // X
             atomicAddWrapper(
@@ -253,8 +255,8 @@ private:
     }
 };
 
-template<>
-struct ZigZagCIC<particles::shapes::CIC, DIM2>
+template<bool T_villabuneCorrection>
+struct ZigZagCIC<particles::shapes::CIC, T_villabuneCorrection, DIM2>
 {
     /* cloud shape: describe the form factor of a posticle
      * assignment shape: integral over the cloud shape (this shape is defined by the user in
