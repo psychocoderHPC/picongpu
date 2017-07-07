@@ -88,7 +88,7 @@ struct TemperatureImpl : private T_ValueFunctor
         {
             const float3_X tmpRand = float3_X(rng(),
                                               rng(),
-                                              rng());
+                                              0.0);
             const float_X macroWeighting = particle[weighting_];
 
             const float_X energy = (ParamClass::temperature * UNITCONV_keV_to_Joule) / UNIT_ENERGY;
