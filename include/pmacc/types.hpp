@@ -23,6 +23,28 @@
 
 #pragma once
 
+#include <cuda_to_cupla.hpp>
+
+#ifndef PMACC_CUDA_ENABLED
+#   define PMACC_CUDA_ENABLED ALPAKA_ACC_GPU_CUDA_ENABLED
+#endif
+
+#if( PMACC_CUDA_ENABLED == 1 )
+/** @todo please remove this workaround
+ * This workaround allows to use native CUDA on the CUDA device without
+ * passing the variable `acc` to each function. This is only needed during the
+ * porting phase to allow the full feature set of the plain PMacc and PIConGPU
+ * CUDA version if the accelerator is CUDA.
+ */
+#   undef blockIdx
+#   undef __syncthreads
+#   undef threadIdx
+#   undef gridDim
+#   undef blockDim
+#   undef uint3
+#   undef dim3
+#endif
+
 #include "pmacc/debug/PMaccVerbose.hpp"
 #include "pmacc/ppFunctions.hpp"
 
@@ -34,10 +56,6 @@
 
 // compatibility macros (compiler or C++ standard version specific)
 #include <boost/config.hpp>
-
-#include <builtin_types.h>
-#include <cuda_runtime.h>
-#include <cuda.h>
 
 #include <stdint.h>
 #include <stdexcept>
@@ -56,8 +74,8 @@ typedef uint64_t id_t;
 typedef unsigned long long int uint64_cu;
 typedef long long int int64_cu;
 
-#define HDINLINE __device__ __host__ __forceinline__
-#define DINLINE __device__ __forceinline__
+#define HDINLINE ALPAKA_FN_HOST_ACC
+#define DINLINE ALPAKA_FN_ACC
 #define DEVICEONLY __device__
 #define HINLINE __host__ inline
 
@@ -72,7 +90,7 @@ typedef long long int int64_cu;
 #endif
 
 /** PMacc global identifier for CUDA kernel */
-#define PMACC_GLOBAL_KEYWORD __location__(global)
+#define PMACC_GLOBAL_KEYWORD DINLINE
 
 /*
  * Disable nvcc warning:
@@ -180,7 +198,7 @@ enum EventType
   * @param byte size of data in bytes
   */
 #define __optimal_align__(byte)                                                \
-    __align__(                                                                 \
+    alignas(                                                                 \
         /** \bug avoid bug if alignment is >16 byte                            \
          * https://github.com/ComputationalRadiationPhysics/picongpu/issues/1563 \
          */                                                                    \
@@ -188,7 +206,7 @@ enum EventType
     )
 
 #define PMACC_ALIGN(var,...) __optimal_align__(sizeof(__VA_ARGS__)) __VA_ARGS__ var
-#define PMACC_ALIGN8(var,...) __align__(8) __VA_ARGS__ var
+#define PMACC_ALIGN8( var, ... ) alignas( 8 ) __VA_ARGS__ var
 
 /*! area which is calculated
  *

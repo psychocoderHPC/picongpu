@@ -51,12 +51,16 @@ namespace shared
          *
          * @return reference to shared memory
          */
-        static
-        DINLINE T_Type &
-        get()
+        template< typename T_Acc >
+        static DINLINE T_Type &
+        get( T_Acc const & acc )
         {
-            __shared__ uint8_t smem alignas( alignof( T_Type ) ) [ sizeof( T_Type ) ];
-            return *( reinterpret_cast< T_Type* >( smem ) );
+            auto& smem = ::alpaka::block::shared::st::allocVar<
+                /** @todo readd the alignment `alignas( alignof( T_Type ) )`*/
+                cupla::Array< uint8_t, sizeof( T_Type ) >,
+                T_uniqueId
+            >( acc );
+            return *( reinterpret_cast< T_Type* >( &smem ) );
         }
     };
 
@@ -73,24 +77,29 @@ namespace shared
      */
     template<
         uint32_t T_uniqueId,
-        typename T_Type
+        typename T_Type,
+        typename T_Acc
     >
     DINLINE T_Type&
-    allocate( )
+    allocate( T_Acc const & acc )
     {
         return Allocate<
             T_uniqueId,
             T_Type
-        >::get( );
+        >::get( acc );
     }
 
     /* @param instance of the type to store (is not to initialize the shared memory) */
     template<
         uint32_t T_uniqueId,
-        typename T_Type
+        typename T_Type,
+        typename T_Acc
     >
     DINLINE T_Type&
-    allocate( T_Type const & )
+    allocate(
+        T_Acc const & acc,
+        T_Type const &
+    )
     {
         return Allocate<
             T_uniqueId,
@@ -137,7 +146,8 @@ namespace shared
  * };
  * @endcode
  *
+ * @param acc alpaka accelerator
  * @param varName name of the variable
  * @param ... type of the variable
  */
-#define PMACC_SMEM( varName, ... ) auto & varName = pmacc::memory::shared::allocate< __COUNTER__, __VA_ARGS__ >( )
+#define PMACC_SMEM( acc, varName, ... ) auto & varName = pmacc::memory::shared::allocate< __COUNTER__, __VA_ARGS__ >( acc )

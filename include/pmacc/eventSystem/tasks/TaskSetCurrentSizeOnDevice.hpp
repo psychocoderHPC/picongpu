@@ -34,7 +34,8 @@
 
 struct KernelSetValueOnDeviceMemory
 {
-    DINLINE void operator()(size_t* pointer, const size_t size) const
+    template< typename T_Acc >
+    DINLINE void operator()(const T_Acc&, size_t* pointer, const size_t size) const
     {
         *pointer = size;
     }
@@ -86,14 +87,13 @@ private:
 
     void setSize()
     {
-         auto sizePtr = destination->getCurrentSizeOnDevicePointer();
-         nvidia::gpuEntryFunction<<<
+        auto sizePtr = destination->getCurrentSizeOnDevicePointer();
+        CUPLA_KERNEL( KernelSetValueOnDeviceMemory )(
             1,
             1,
             0,
             this->getCudaStream()
-        >>>(
-            KernelSetValueOnDeviceMemory{},
+        )(
             sizePtr,
             size
         );
