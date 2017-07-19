@@ -34,7 +34,7 @@ namespace pmacc{
 
     template<typename T_Type, unsigned T_dim>
     HostDeviceBuffer<T_Type, T_dim>::HostDeviceBuffer(
-            DeviceBuffer& otherDeviceBuffer,
+            DBuffer& otherDeviceBuffer,
             const DataSpace<T_dim>& size,
             bool sizeOnDevice)
     {
@@ -44,9 +44,9 @@ namespace pmacc{
 
     template<typename T_Type, unsigned T_dim>
     HostDeviceBuffer<T_Type, T_dim>::HostDeviceBuffer(
-               HostBuffer& otherHostBuffer,
+               HBuffer& otherHostBuffer,
                const DataSpace<T_dim>& offsetHost,
-               DeviceBuffer& otherDeviceBuffer,
+               DBuffer& otherDeviceBuffer,
                const DataSpace<T_dim>& offsetDevice,
                const GridLayout<T_dim> size,
                bool sizeOnDevice)

@@ -34,7 +34,6 @@ cmake_minimum_required(VERSION 3.3.0)
 # set helper pathes to find libraries and packages
 # Add specific hints
 list(APPEND CMAKE_PREFIX_PATH "$ENV{MPI_ROOT}")
-list(APPEND CMAKE_PREFIX_PATH "$ENV{CUDA_ROOT}")
 list(APPEND CMAKE_PREFIX_PATH "$ENV{BOOST_ROOT}")
 list(APPEND CMAKE_PREFIX_PATH "$ENV{VT_ROOT}")
 # Add from environment after specific env vars
@@ -67,127 +66,14 @@ set(CMAKE_CXX_EXTENSIONS OFF)
 set(CMAKE_CXX_STANDARD 11)
 
 
-###############################################################################
-# Select CUDA Compiler
-###############################################################################
-
-set(PMACC_DEVICE_COMPILER "nvcc")
-set(PMACC_CUDA_COMPILER "${PMACC_DEVICE_COMPILER}" CACHE STRING "Select the device compiler")
-
-if("${CMAKE_CXX_COMPILER_ID}" STREQUAL "Clang")
-    list(APPEND PMACC_DEVICE_COMPILER "clang")
-endif()
-
-set_PROPERTY(CACHE PMACC_CUDA_COMPILER PROPERTY STRINGS "${PMACC_DEVICE_COMPILER}")
-
-
 ################################################################################
-# Find CUDA
+# Find cupla
 ################################################################################
 
-find_package(CUDA 7.5 REQUIRED)
+SET(cupla_ROOT "$ENV{CUPLA_ROOT}" CACHE STRING  "The location of the cupla library")
 
-set(PMacc_LIBRARIES ${PMacc_LIBRARIES} ${CUDA_LIBRARIES})
-
-set(CUDA_ARCH "20" CACHE STRING "Set GPU architecture (semicolon separated list, e.g. '-DCUDA_ARCH=20;35;60')")
-
-foreach(PMACC_CUDA_ARCH_ELEM ${CUDA_ARCH})
-    string(REGEX MATCH "^[0-9]+$" PMACC_IS_NUMBER ${CUDA_ARCH})
-    if(NOT PMACC_IS_NUMBER)
-        message(FATAL_ERROR "Defined compute architecture '${PMACC_CUDA_ARCH_ELEM}' in "
-                            "'${CUDA_ARCH}' is not an integral number, use e.g. '20' (for SM 2.0).")
-    endif()
-    unset(PMACC_IS_NUMBER)
-
-    if(${PMACC_CUDA_ARCH_ELEM} LESS 20)
-        message(FATAL_ERROR "Unsupported CUDA architecture '${PMACC_CUDA_ARCH_ELEM}' specified. "
-                            "Use '20' (for SM 2.0) or higher.")
-    endif()
-endforeach()
-
-option(CUDA_FAST_MATH "Enable fast-math" ON)
-option(CUDA_FTZ "Set flush to zero for CUDA" OFF)
-option(CUDA_SHOW_REGISTER "Show kernel registers and create PTX" OFF)
-option(CUDA_KEEP_FILES "Keep all intermediate files that are generated during internal compilation steps (folder: nvcc_tmp)" OFF)
-
-if(CUDA_KEEP_FILES)
-    file(MAKE_DIRECTORY "${PROJECT_BINARY_DIR}/nvcc_tmp")
-endif(CUDA_KEEP_FILES)
-
-if("${PMACC_CUDA_COMPILER}" STREQUAL "clang")
-    add_definitions(-DPMACC_CUDA_COMPILER_CLANG=1)
-    set(CLANG_BUILD_FLAGS "-O3 -x cuda --cuda-path=${CUDA_TOOLKIT_ROOT_DIR}")
-    # activation usage of FMA
-    set(CLANG_BUILD_FLAGS "${CLANG_BUILD_FLAGS} -ffp-contract=fast")
-
-    if(CUDA_FAST_MATH)
-        # enable fast math
-        set(CLANG_BUILD_FLAGS "${CLANG_BUILD_FLAGS} -ffast-math")
-    endif()
-
-    if(CUDA_FTZ)
-        set(CLANG_BUILD_FLAGS "${CLANG_BUILD_FLAGS} -fcuda-flush-denormals-to-zero")
-    else()
-        set(CLANG_BUILD_FLAGS "${CLANG_BUILD_FLAGS} -fno-cuda-flush-denormals-to-zero")
-    endif()
-
-    if(CUDA_SHOW_REGISTER)
-        set(CLANG_BUILD_FLAGS "${CLANG_BUILD_FLAGS} -Xcuda-ptxas -v")
-    endif(CUDA_SHOW_REGISTER)
-
-    if(CUDA_KEEP_FILES)
-        set(CLANG_BUILD_FLAGS "${CLANG_BUILD_FLAGS} -save-temps=${PROJECT_BINARY_DIR}/nvcc_tmp")
-    endif(CUDA_KEEP_FILES)
-
-    foreach(PMACC_CUDA_ARCH_ELEM ${CUDA_ARCH})
-        # set flags to create device code for the given architectures
-        set(CLANG_BUILD_FLAGS "${CLANG_BUILD_FLAGS} --cuda-gpu-arch=sm_${PMACC_CUDA_ARCH_ELEM}")
-    endforeach()
-
-elseif("${PMACC_CUDA_COMPILER}" STREQUAL "nvcc")
-    add_definitions(-DPMACC_CUDA_COMPILER_CLANG=0)
-    # work-around since the above flag does not necessarily put -std=c++11 in
-    # the CMAKE_CXX_FLAGS, which is unfurtunately hiding the switch from FindCUDA
-    if(NOT "${CMAKE_CXX_FLAGS}" MATCHES "-std=c\\+\\+11")
-        set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11")
-    endif()
-
-    foreach(PMACC_CUDA_ARCH_ELEM ${CUDA_ARCH})
-        # set flags to create device code for the given architecture
-        set(CUDA_NVCC_FLAGS ${CUDA_NVCC_FLAGS}
-            "--generate-code arch=compute_${PMACC_CUDA_ARCH_ELEM},code=sm_${PMACC_CUDA_ARCH_ELEM} --generate-code arch=compute_${PMACC_CUDA_ARCH_ELEM},code=compute_${PMACC_CUDA_ARCH_ELEM}")
-    endforeach()
-
-    if(CUDA_FAST_MATH)
-        # enable fast math
-        set(CUDA_NVCC_FLAGS ${CUDA_NVCC_FLAGS} --use_fast_math)
-    endif()
-
-    if(CUDA_FTZ)
-        set(CUDA_NVCC_FLAGS "${CUDA_NVCC_FLAGS}" --ftz=true)
-    else()
-        set(CUDA_NVCC_FLAGS "${CUDA_NVCC_FLAGS}" --ftz=false)
-    endif()
-
-    option(CUDA_SHOW_CODELINES "Show kernel lines in cuda-gdb and cuda-memcheck" OFF)
-
-    if(CUDA_SHOW_CODELINES)
-        set(CUDA_NVCC_FLAGS "${CUDA_NVCC_FLAGS}" --source-in-ptx -Xcompiler -rdynamic -lineinfo)
-        set(CUDA_KEEP_FILES ON CACHE BOOL "activate keep files" FORCE)
-    endif(CUDA_SHOW_CODELINES)
-
-    if(CUDA_SHOW_REGISTER)
-        set(CUDA_NVCC_FLAGS "${CUDA_NVCC_FLAGS}" -Xptxas=-v)
-    endif(CUDA_SHOW_REGISTER)
-
-    if(CUDA_KEEP_FILES)
-        set(CUDA_NVCC_FLAGS "${CUDA_NVCC_FLAGS}" --keep --keep-dir "${PROJECT_BINARY_DIR}/nvcc_tmp")
-    endif(CUDA_KEEP_FILES)
-
-else()
-    message(FATAL_ERROR "selected CUDA compiler '${PMACC_CUDA_COMPILER}' is not supported")
-endif()
-
+LIST(APPEND CMAKE_MODULE_PATH "${cupla_ROOT}")
+FIND_PACKAGE("cupla" REQUIRED)
 
 ################################################################################
 # VampirTrace
