@@ -476,6 +476,7 @@ struct KernelFillGaps
 
         // fill all gaps in the last frame of the supercell
         KernelFillGapsLastFrame< numWorkers >{ }(
+            acc,
             pb,
             mapper
         );
@@ -794,6 +795,7 @@ struct KernelShiftParticles
 
         // fill all gaps in the frame list of the supercell
         KernelFillGaps< numWorkers >{ }(
+            acc,
             pb,
             mapper
         );

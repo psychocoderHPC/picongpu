@@ -57,8 +57,16 @@ struct DirSplittingKernel
         __syncthreads();
     }
 
-    template<typename CursorE, typename CursorB >
-    DINLINE void operator()(CursorE globalE, CursorB globalB) const
+    template<
+        typename CursorE,
+        typename CursorB,
+        typename T_Acc
+    >
+    DINLINE void operator()(
+        T_Acc const & acc,
+        CursorE globalE,
+        CursorB globalB
+    ) const
     {
         //\todo: optimize cache size
         typedef typename pmacc::math::CT::add<
@@ -67,8 +75,8 @@ struct DirSplittingKernel
 
         typedef container::CT::SharedBuffer<float3_X, CacheSize, 0 > CacheE;
         typedef container::CT::SharedBuffer<float3_X, CacheSize, 1 > CacheB;
-        CacheE cacheE;
-        CacheB cacheB;
+        CacheE cacheE( acc );
+        CacheB cacheB( acc );
 
         float3_X fieldE_old;
         float3_X fieldB_old;

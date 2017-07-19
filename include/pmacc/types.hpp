@@ -43,6 +43,16 @@
 #   undef blockDim
 #   undef uint3
 #   undef dim3
+
+// use native atomic functions
+#   undef atomicAdd
+#   undef atomicSub
+#   undef atomicMin
+#   undef atomicMax
+#   undef atomicInc
+#   undef atomicDec
+#   undef atomicExch
+#   undef atomicCAS
 #endif
 
 #include "pmacc/debug/PMaccVerbose.hpp"

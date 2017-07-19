@@ -29,7 +29,8 @@
 #include "pmacc/memory/buffers/HostDeviceBuffer.hpp"
 #include "pmacc/debug/PMaccVerbose.hpp"
 
-namespace pmacc{
+namespace pmacc
+{
 
     namespace idDetail {
 
@@ -37,7 +38,8 @@ namespace pmacc{
 
         struct SetNextId
         {
-            DINLINE void operator()(uint64_cu id) const
+            template<typename T_Acc>
+            DINLINE void operator()(const T_Acc&, uint64_cu id) const
             {
                 nextId = id;
             }
@@ -45,8 +47,8 @@ namespace pmacc{
 
         struct GetNextId
         {
-            template<class T_Box>
-            DINLINE void operator()(T_Box boxOut) const
+            template<class T_Box, typename T_Acc>
+            DINLINE void operator()(const T_Acc&, T_Box boxOut) const
             {
                 boxOut(0) = nextId;
             }
@@ -54,10 +56,10 @@ namespace pmacc{
 
         struct GetNewId
         {
-            template<class T_Box, class T_GetNewId>
-            DINLINE void operator()(T_Box boxOut, T_GetNewId getNewId) const
+            template<class T_Box, class T_IdFactory, typename T_Acc>
+            DINLINE void operator()(const T_Acc& acc, T_Box boxOut, T_IdFactory idFactory) const
             {
-                boxOut(0) = getNewId();
+                boxOut(0) = idFactory();
             }
         };
 
@@ -78,8 +80,6 @@ namespace pmacc{
         state.startId = state.nextId = calcStartId();
         // Init value to avoid uninitialized read warnings
         setNextId(state.startId);
-        // Instantiate kernel (Omitting this will result in silent crashes at runtime)
-        getNewIdHost();
         // Reset to start value
         state.maxNumProc = Environment<T_dim>::get().GridController().getGpuNodes().productOfComponents();
         setState(state);
@@ -113,12 +113,7 @@ namespace pmacc{
     template<unsigned T_dim>
     HDINLINE uint64_t IdProvider<T_dim>::getNewId()
     {
-#ifdef __CUDA_ARCH__
         return static_cast<uint64_t>(nvidia::atomicAllInc(&idDetail::nextId));
-#else
-        // IMPORTANT: This calls a kernel. So make sure this kernel is instantiated somewhere before!
-        return getNewIdHost();
-#endif
     }
 
     template<unsigned T_dim>

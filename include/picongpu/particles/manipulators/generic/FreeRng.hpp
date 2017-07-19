@@ -62,15 +62,18 @@ namespace acc
          *
          * The random number generator is initialized with the first call.
          *
+         * @param alpaka accelerator
          * @param particle particle which is given to the user functor
          * @return void is used to enable the operator if the user functor except two arguments
          */
         template<
+            typename T_Acc,
             typename T_Particle,
             typename ... T_Args
         >
         DINLINE
         void operator()(
+            T_Acc const &,
             T_Particle& particle,
             T_Args && ... args
         )
@@ -103,9 +106,10 @@ namespace acc
         using Distribution = T_Distribution;
         using SpeciesType = T_SpeciesType;
 
+        template< typename T_Acc >
         using RngType = pmacc::nvidia::rng::RNG<
-            nvidia::rng::methods::Xor,
-            Distribution
+            nvidia::rng::methods::Xor< T_Acc >,
+            decltype( Distribution::get( std::declval<T_Acc>( ) ) )
         >;
 
         /** constructor
@@ -155,16 +159,23 @@ namespace acc
         /** create functor for the accelerator
          *
          * @tparam T_WorkerCfg pmacc::mappings::threads::WorkerCfg, configuration of the worker
+         * @tparam T_Acc alpaka accelerator type
+         *
+         * @param alpaka accelerator
          * @param localSupercellOffset offset (in superCells, without any guards) relative
          *                        to the origin of the local domain
          * @param workerCfg configuration of the worker
          */
-        template< typename T_WorkerCfg >
+        template<
+            typename T_WorkerCfg,
+            typename T_Acc
+        >
         DINLINE
         acc::FreeRng<
             Functor,
-            RngType
+            RngType< T_Acc >
         > operator()(
+            T_Acc const & acc,
             DataSpace< simDim > const & localSupercellOffset,
             T_WorkerCfg const & workerCfg
         )
@@ -181,16 +192,17 @@ namespace acc
                 localSupercellOffset * SuperCellSize::toRT( ) +
                     DataSpaceOperations< simDim >::template map< SuperCellSize >( workerCfg.getWorkerIdx( ) )
             );
-            RngType const rng = nvrng::create(
-                nvidia::rng::methods::Xor(
+            RngType< T_Acc > const rng = nvrng::create(
+                nvidia::rng::methods::Xor<T_Acc>(
+                    acc,
                     seed,
                     cellIdx
                 ),
-                Distribution{}
+                Distribution::get(acc)
             );
             return acc::FreeRng<
                 Functor,
-                RngType
+                RngType< T_Acc >
             >(
                 *reinterpret_cast< Functor * >( this ),
                 rng

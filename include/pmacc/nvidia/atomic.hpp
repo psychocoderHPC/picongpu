@@ -23,9 +23,10 @@
 
 
 #include "pmacc/types.hpp"
-#include "pmacc/nvidia/warp.hpp"
+#if( PMACC_CUDA_ENABLED == 1 )
+#   include "pmacc/nvidia/warp.hpp"
+#endif
 #include <boost/type_traits.hpp>
-#include <math_functions.h>
 #include <climits>
 
 
@@ -39,10 +40,11 @@ namespace nvidia
         template<typename T_Type, bool T_isKepler>
         struct AtomicAllInc
         {
+            template< typename T_Acc, typename T_Hierarchy >
             DINLINE T_Type
-            operator()(T_Type* ptr)
+            operator()(const T_Acc& acc, T_Type* ptr, const T_Hierarchy& hierarchy)
             {
-                return atomicAdd(ptr, 1);
+                return ::alpaka::atomic::atomicOp<::alpaka::atomic::op::Add>(acc, ptr, T_Type(1), hierarchy);
             }
         };
 
@@ -82,8 +84,9 @@ namespace nvidia
         template<typename T_Type>
         struct AtomicAllIncKepler<T_Type, true>
         {
+            template< typename T_Acc, typename T_Hierarchy >
             DINLINE T_Type
-            operator()(T_Type* ptr)
+            operator()(const T_Acc& acc,T_Type* ptr, const T_Hierarchy& hierarchy)
             {
                 /* Get a bitmask with 1 for each thread in the warp, that executes this */
                 const int mask = __ballot(1);
@@ -93,7 +96,7 @@ namespace nvidia
                 const int laneId = getLaneId();
                 /* Get the start value for this warp */
                 if (laneId == leader)
-                    result = atomicAdd(ptr, static_cast<T_Type>(__popc(mask)));
+                    result = ::alpaka::atomic::atomicOp<::alpaka::atomic::op::Add>(acc,ptr, static_cast<T_Type>(__popc(mask)), hierarchy);
                 result = warpBroadcast(result, leader);
                 /* Add offset per thread */
                 return result + static_cast<T_Type>(__popc(mask & ((1 << laneId) - 1)));
@@ -108,12 +111,15 @@ namespace nvidia
         template<>
         struct AtomicAllIncKepler<long long int, true>
         {
+            template< typename T_Acc, typename T_Hierarchy >
             DINLINE long long int
-            operator()(long long int* ptr)
+            operator()(const T_Acc& acc, long long int* ptr, const T_Hierarchy&, const T_Hierarchy& hierarchy )
             {
                 return static_cast<long long int>(
                         AtomicAllIncKepler<unsigned long long int>()(
-                                reinterpret_cast<unsigned long long int*>(ptr)
+                            acc,
+                            reinterpret_cast<unsigned long long int*>(ptr),
+                            hierarchy
                         )
                 );
             }
@@ -136,11 +142,23 @@ namespace nvidia
  * @param ptr pointer to memory (must be the same address for all threads in a block)
  *
  */
-template<typename T>
+template<typename T, typename T_Acc, typename T_Hierarchy = ::alpaka::hierarchy::Grids>
 DINLINE
+T atomicAllInc(const T_Acc& acc, T *ptr, const T_Hierarchy& hierarchy = T_Hierarchy())
+{
+    return detail::AtomicAllInc<T, (PMACC_CUDA_ARCH >= 300) >()(acc, ptr, hierarchy);
+}
+
+template<typename T>
+HDINLINE
 T atomicAllInc(T *ptr)
 {
-    return detail::AtomicAllInc<T, (PMACC_CUDA_ARCH >= 300) >()(ptr);
+#ifdef __CUDA_ARCH__
+   return atomicAllInc(alpaka::atomic::AtomicCudaBuiltIn(), ptr, ::alpaka::hierarchy::Grids());
+#else
+   // assume that we can use stl atomics if we are not on gpu
+   return atomicAllInc(alpaka::atomic::AtomicStlLock(), ptr, ::alpaka::hierarchy::Grids());
+#endif
 }
 
 /** optimized atomic value exchange
@@ -157,9 +175,9 @@ T atomicAllInc(T *ptr)
  * @param ptr pointer to memory (must be the same address for all threads in a block)
  * @param value new value (must be the same for all threads in a block)
  */
-template<typename T_Type>
+template<typename T_Type, typename T_Acc, typename T_Hierarchy = ::alpaka::hierarchy::Grids>
 DINLINE void
-atomicAllExch(T_Type* ptr, const T_Type value)
+atomicAllExch(const T_Acc& acc, T_Type* ptr, const T_Type value, const T_Hierarchy& hierarchy = T_Hierarchy())
 {
 #if (__CUDA_ARCH__ >= 200)
     const int mask = __ballot(1);
@@ -168,7 +186,19 @@ atomicAllExch(T_Type* ptr, const T_Type value)
     // leader does the update
     if (getLaneId() == leader)
 #endif
-        atomicExch(ptr, value);
+        ::alpaka::atomic::atomicOp<::alpaka::atomic::op::Exch>(acc, ptr, value, hierarchy);
+}
+
+template<typename T_Type>
+HDINLINE void
+atomicAllExch(T_Type* ptr, const T_Type value)
+{
+#ifdef __CUDA_ARCH__
+   atomicAllExch(alpaka::atomic::AtomicCudaBuiltIn(), ptr, value, ::alpaka::hierarchy::Grids());
+#else
+   // assume that we can use stl atomics if we are not on gpu
+   atomicAllExch(alpaka::atomic::AtomicStlLock(), ptr, value, ::alpaka::hierarchy::Grids());
+#endif
 }
 
 namespace detail
@@ -180,6 +210,13 @@ namespace detail
         operator()(T_Type* ptr, const T_Type value)
         {
             return ::atomicAdd(ptr, value);
+        }
+
+        template< typename T_Acc, typename T_Hierarchy >
+        DINLINE T_Type
+        operator()(T_Acc const & acc, T_Type* ptr, const T_Type value, T_Hierarchy const& hierarchy)
+        {
+            return ::alpaka::atomic::atomicOp<::alpaka::atomic::op::Add>(acc, ptr, value, hierarchy);
         }
     };
 #if (__CUDA_ARCH__ < 600)
@@ -206,11 +243,20 @@ namespace detail
 #endif
 } // namespace detail
 
-template<typename T_Type>
+template<
+    typename T_Type,
+    typename T_Acc,
+    typename T_Hierarchy = ::alpaka::hierarchy::Grids
+>
 DINLINE T_Type
-atomicAdd(T_Type* ptr, const T_Type value)
+atomicAdd(
+    T_Acc const & acc,
+    T_Type* ptr,
+    T_Type const value,
+    T_Hierarchy const& hierarchy = T_Hierarchy()
+)
 {
-    return detail::AtomicAdd<T_Type>()(ptr, value);
+    return detail::AtomicAdd<T_Type>()(acc, ptr, value, hierarchy);
 }
 
 } //namespace nvidia

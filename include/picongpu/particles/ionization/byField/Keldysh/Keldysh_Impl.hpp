@@ -146,8 +146,20 @@ namespace ionization
             {
 
                 /* caching of E and B fields */
-                cachedB = CachedBox::create < 0, ValueType_B > (BlockArea());
-                cachedE = CachedBox::create < 1, ValueType_E > (BlockArea());
+                cachedB = CachedBox::create<
+                    0,
+                    ValueType_B
+                >(
+                    acc,
+                    BlockArea()
+                );
+                cachedE = CachedBox::create<
+                    1,
+                    ValueType_E
+                >(
+                    acc,
+                    BlockArea()
+                );
 
                 /* instance of nvidia assignment operator */
                 nvidia::functors::Assign assign;

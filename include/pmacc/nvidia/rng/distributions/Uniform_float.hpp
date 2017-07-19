@@ -32,7 +32,8 @@ namespace rng
 {
 namespace distributions
 {
-
+namespace detail
+{
     /*create a random float number from [0.0,1.0)
      */
     template< typename T_Acc>
@@ -74,6 +75,17 @@ namespace distributions
             return r;
         }
 
+    };
+} // namespace detail
+
+    struct Uniform_float
+    {
+        template< typename T_Acc>
+        static HDINLINE detail::Uniform_float< T_Acc >
+        get( T_Acc const & acc)
+        {
+            return detail::Uniform_float< T_Acc >( acc );
+        }
     };
 } // namespace distributions
 } // namespace rng

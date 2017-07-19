@@ -149,8 +149,20 @@ public:
     DINLINE void init(const DataSpace<simDim>& blockCell, const int& linearThreadIdx, const DataSpace<simDim>& localCellOffset)
     {
         /* caching of E and B fields */
-        cachedB = CachedBox::create < 0, ValueType_B > (BlockArea());
-        cachedE = CachedBox::create < 1, ValueType_E > (BlockArea());
+        cachedB = CachedBox::create<
+            0,
+            ValueType_B
+        >(
+            acc,
+            BlockArea()
+        );
+        cachedE = CachedBox::create<
+            1,
+            ValueType_E
+        >(
+            acc,
+            BlockArea()
+        );
 
         /* instance of nvidia assignment operator */
         nvidia::functors::Assign assign;

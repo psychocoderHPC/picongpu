@@ -29,8 +29,20 @@ namespace picongpu
 
 using namespace pmacc;
 
-template<int pos, class BoxedMemory, class Mapping>
-DINLINE void absorb(BoxedMemory field, uint32_t thickness, float_X absorber_strength, Mapping mapper, const DataSpace<simDim> &direction)
+template<
+    int pos,
+    typename BoxedMemory,
+    typename Mapping,
+    typename T_Acc
+>
+DINLINE void absorb(
+    T_Acc const & acc,
+    BoxedMemory field,
+    uint32_t thickness,
+    float_X absorber_strength,
+    Mapping mapper,
+    const DataSpace<simDim> &direction
+)
 {
     typedef typename MappingDesc::SuperCellSize SuperCellSize;
     const DataSpace<simDim> superCellIdx(mapper.getSuperCellIndex(DataSpace<simDim > (blockIdx)));
@@ -43,7 +55,7 @@ DINLINE void absorb(BoxedMemory field, uint32_t thickness, float_X absorber_stre
     //cells in simulation
     const DataSpace<simDim> gCells = mapper.getGridSuperCells() * SuperCellSize::toRT();
 
-    PMACC_SMEM( finish, int );
+    PMACC_SMEM( acc, finish, int );
 
 
     float_X factor = float_X(0.0);
@@ -91,20 +103,30 @@ DINLINE void absorb(BoxedMemory field, uint32_t thickness, float_X absorber_stre
 
 struct KernelAbsorbBorder
 {
-    template<class BoxedMemory, class Mapping>
-    DINLINE void operator()(BoxedMemory field, uint32_t thickness, float_X absorber_strength, Mapping mapper) const
+    template<
+        typename BoxedMemory,
+        typename Mapping,
+        typename T_Acc
+    >
+    DINLINE void operator()(
+        T_Acc const & acc,
+        BoxedMemory field,
+        uint32_t thickness,
+        float_X absorber_strength,
+        Mapping mapper
+    ) const
     {
 
         const DataSpace<simDim> direction = Mask::getRelativeDirections<simDim > (mapper.getExchangeType());
 
         //this is a workaround that we get a kernelwithout lmem
         if (direction.x() != 0)
-            absorb < 0 > (field, thickness, absorber_strength, mapper, direction);
+            absorb < 0 > (acc, field, thickness, absorber_strength, mapper, direction);
         else if (direction.y() != 0)
-            absorb < 1 > (field, thickness, absorber_strength, mapper, direction);
+            absorb < 1 > (acc, field, thickness, absorber_strength, mapper, direction);
 #if( SIMDIM==DIM3 )
         else if (direction.z() != 0)
-            absorb < 2 > (field, thickness, absorber_strength, mapper, direction);
+            absorb < 2 > (acc, field, thickness, absorber_strength, mapper, direction);
 #endif
     }
 };

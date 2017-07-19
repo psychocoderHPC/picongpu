@@ -77,7 +77,13 @@ void Bremsstrahlung<T_IonSpecies, T_ElectronSpecies, T_PhotonSpecies>::init
     (const DataSpace<simDim>& blockCell, const int& linearThreadIdx, const DataSpace<simDim>& localCellOffset)
 {
     /* caching of ion density field */
-    cachedIonDensity = CachedBox::create < 0, ValueTypeIonDensity > (BlockArea());
+    cachedIonDensity = CachedBox::create<
+        0,
+        ValueTypeIonDensity
+    >(
+        acc,
+        BlockArea()
+    );
 
     /* instance of nvidia assignment operator */
     nvidia::functors::Assign assign;

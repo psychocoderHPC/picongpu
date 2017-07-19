@@ -40,8 +40,20 @@ namespace picongpu
     template< class BlockDescription_, uint32_t AREA >
     struct KernelComputeSupercells
     {
-        template<class TmpBox, class ParBox, class FrameSolver, class Mapping>
-        DINLINE void operator()( TmpBox fieldTmp, ParBox boxPar, FrameSolver frameSolver, Mapping mapper ) const
+        template<
+            typename TmpBox,
+            typename ParBox,
+            typename FrameSolver,
+            typename Mapping,
+            typename T_Acc
+        >
+        DINLINE void operator()(
+            T_Acc const & acc,
+            TmpBox fieldTmp,
+            ParBox boxPar,
+            FrameSolver frameSolver,
+            Mapping mapper
+        ) const
         {
             typedef typename ParBox::FramePtr FramePtr;
             typedef typename BlockDescription_::SuperCellSize SuperCellSize;
@@ -51,9 +63,9 @@ namespace picongpu
             const DataSpace<simDim > threadIndex( threadIdx );
             const int linearThreadIdx = DataSpaceOperations<simDim>::template map<SuperCellSize > ( threadIndex );
 
-            PMACC_SMEM( frame, FramePtr );
+            PMACC_SMEM( acc, frame, FramePtr );
 
-            PMACC_SMEM( particlesInSuperCell, lcellId_t );
+            PMACC_SMEM( acc, particlesInSuperCell, lcellId_t );
 
 
             if( linearThreadIdx == 0 )
@@ -66,7 +78,13 @@ namespace picongpu
             if( !frame.isValid() )
                 return; //end kernel if we have no frames
 
-            auto cachedVal = CachedBox::create < 0, typename TmpBox::ValueType > ( BlockDescription_( ) );
+            auto cachedVal = CachedBox::create<
+                0,
+                typename TmpBox::ValueType
+            >(
+                acc,
+                BlockDescription_( )
+            );
             Set<typename TmpBox::ValueType > set( float_X( 0.0 ) );
 
             ThreadCollective<

@@ -47,8 +47,8 @@ BOOST_PP_ENUM_TRAILING(N, NORMAL_ARGS, _)) \
     \
     typedef typename TParticlesBox::FramePtr FramePtr; \
     typedef typename TParticlesBox::FrameType Frame; \
-    PMACC_SMEM( frame, FramePtr ); \
-    PMACC_SMEM( particlesInSuperCell, uint16_t ); \
+    PMACC_SMEM( acc, frame, FramePtr ); \
+    PMACC_SMEM( acc, particlesInSuperCell, uint16_t ); \
     \
     if(linearThreadIdx == 0) \
     { \

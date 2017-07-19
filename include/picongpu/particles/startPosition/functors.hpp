@@ -22,5 +22,7 @@
 
 #include "picongpu/particles/startPosition/IFunctor.hpp"
 #include "picongpu/particles/startPosition/QuietImpl.hpp"
+#if 0
 #include "picongpu/particles/startPosition/RandomImpl.hpp"
+#endif
 #include "picongpu/particles/startPosition/OnePositionImpl.hpp"
