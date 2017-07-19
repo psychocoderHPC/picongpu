@@ -198,7 +198,7 @@ namespace kernel
             // get uniform random number from seed
             auto rng = nvidia::rng::create(
                 nvidia::rng::methods::Xor< T_Acc >( acc, seed, globalUniqueId ),
-                nvidia::rng::distributions::Uniform_float< T_Acc >( acc )
+                nvidia::rng::distributions::Uniform_float::get( acc )
             );
 
             ForEachIdx<

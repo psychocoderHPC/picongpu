@@ -58,7 +58,7 @@ struct MallocMemory
         type* ptr = nullptr;
         if (size != 0)
         {
-            CUDA_CHECK(cudaHostAlloc(&ptr, size * sizeof (type), cudaHostAllocMapped));
+            CUDA_CHECK((cuplaError_t)cudaHostAlloc(&ptr, size * sizeof (type), cudaHostAllocMapped));
         }
         v1.getIdentifier(T_Type()) = VectorDataBox<type>(ptr);
 
@@ -119,7 +119,7 @@ struct GetDevicePtr
         type* srcPtr = src.getIdentifier(T_Type()).getPointer();
         if (srcPtr != nullptr)
         {
-            CUDA_CHECK(cudaHostGetDevicePointer(&ptr, srcPtr, 0));
+            CUDA_CHECK((cuplaError_t)cudaHostGetDevicePointer(&ptr, srcPtr, 0));
         }
         dest.getIdentifier(T_Type()) = VectorDataBox<type>(ptr);
     }

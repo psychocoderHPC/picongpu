@@ -107,8 +107,8 @@ struct CreateParticlesKernel
         /* for not mixing operations::assign up with the nvidia functor assign */
         namespace partOp = pmacc::particles::operations;
 
-        PMACC_SMEM( sourceFrame, SourceFramePtr );
-        PMACC_SMEM( targetFrame, TargetFramePtr );
+        PMACC_SMEM( acc, sourceFrame, SourceFramePtr );
+        PMACC_SMEM( acc, targetFrame, TargetFramePtr );
         const lcellId_t maxParticlesInFrame = pmacc::math::CT::volume<SuperCellSize>::type::value;
 
         /* find last frame in super cell
@@ -130,7 +130,7 @@ struct CreateParticlesKernel
         /* Declare counter in shared memory that will later tell the current fill level or
          * occupation of the newly created target frames.
          */
-        PMACC_SMEM( newFrameFillLvl, int );
+        PMACC_SMEM( acc, newFrameFillLvl, int );
 
         /* Declare local variable oldFrameFillLvl for each thread */
         int oldFrameFillLvl;

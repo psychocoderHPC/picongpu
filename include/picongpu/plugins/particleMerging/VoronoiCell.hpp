@@ -124,15 +124,17 @@ namespace particleMerging
 
 
         /** add a particle to this Voronoi cell */
+        template< typename T_Acc >
         DINLINE
         void addParticle(
+            T_Acc const & acc,
             const floatD_X position,
             const float3_X momentum,
             const float_X weighting
         )
         {
-            nvidia::atomicAllInc( &this->numMacroParticles );
-            nvidia::atomicAdd( &this->numRealParticles, weighting );
+            nvidia::atomicAllInc( acc, &this->numMacroParticles );
+            nvidia::atomicAdd( acc, &this->numRealParticles, weighting );
 
             if( this->splittingStage == VoronoiSplittingStage::position )
             {
@@ -140,8 +142,8 @@ namespace particleMerging
 
                 for( int i = 0; i < simDim; i++ )
                 {
-                    nvidia::atomicAdd( &this->meanValue[i], weighting * position[i] );
-                    nvidia::atomicAdd( &this->meanSquaredValue[i], weighting * position2[i] );
+                    nvidia::atomicAdd( acc, &this->meanValue[i], weighting * position[i] );
+                    nvidia::atomicAdd( acc, &this->meanSquaredValue[i], weighting * position2[i] );
                 }
             }
             else
@@ -150,8 +152,8 @@ namespace particleMerging
 
                 for( int i = 0; i < DIM3; i++ )
                 {
-                    nvidia::atomicAdd( &this->meanValue[i], weighting * momentum[i] );
-                    nvidia::atomicAdd( &this->meanSquaredValue[i], weighting * momentum2[i] );
+                    nvidia::atomicAdd( acc, &this->meanValue[i], weighting * momentum[i] );
+                    nvidia::atomicAdd( acc, &this->meanSquaredValue[i], weighting * momentum2[i] );
                 }
             }
         }

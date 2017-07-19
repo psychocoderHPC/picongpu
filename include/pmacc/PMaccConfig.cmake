@@ -205,18 +205,19 @@ endif()
 # Find mallocMC
 ################################################################################
 
-find_package(mallocMC 2.2.0 QUIET)
+if(ALPAKA_ACC_GPU_CUDA_ENABLE)
+    find_package(mallocMC 2.2.0 QUIET)
 
-if(NOT mallocMC_FOUND)
-    message(STATUS "Using mallocMC from thirdParty/ directory")
-    set(MALLOCMC_ROOT "${PMacc_DIR}/../../thirdParty/mallocMC")
-    find_package(mallocMC 2.2.0 REQUIRED)
-endif(NOT mallocMC_FOUND)
+    if(NOT mallocMC_FOUND)
+        message(STATUS "Using mallocMC from thirdParty/ directory")
+        set(MALLOCMC_ROOT "${PMacc_DIR}/../../thirdParty/mallocMC")
+        find_package(mallocMC 2.2.0 REQUIRED)
+    endif(NOT mallocMC_FOUND)
 
-set(PMacc_INCLUDE_DIRS ${PMacc_INCLUDE_DIRS} ${mallocMC_INCLUDE_DIRS})
-set(PMacc_LIBRARIES ${PMacc_LIBRARIES} ${mallocMC_LIBRARIES})
-set(PMacc_DEFINITIONS ${PMacc_DEFINITIONS} ${mallocMC_DEFINITIONS})
-
+    set(PMacc_INCLUDE_DIRS ${PMacc_INCLUDE_DIRS} ${mallocMC_INCLUDE_DIRS})
+    set(PMacc_LIBRARIES ${PMacc_LIBRARIES} ${mallocMC_LIBRARIES})
+    set(PMacc_DEFINITIONS ${PMacc_DEFINITIONS} ${mallocMC_DEFINITIONS})
+endif()
 
 ################################################################################
 # PMacc options

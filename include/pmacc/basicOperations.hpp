@@ -22,11 +22,9 @@
 #pragma once
 
 
-#include <builtin_types.h>
 #include "pmacc/types.hpp"
 #include <string>
 #include <ostream>
-#include <math_functions.h>
 
 namespace pmacc
 {
@@ -40,12 +38,16 @@ DINLINE void atomicAddWrapper(float* address, float value)
 
 DINLINE void atomicAddWrapper(double* inAddress, double value)
 {
+#if( PMACC_CUDA_ENABLED == 1 )
     uint64_cu* address = (uint64_cu*) inAddress;
     double old = value;
     while (
            (old = __longlong_as_double(atomicExch(address,
                                                   (uint64_cu) __double_as_longlong(__longlong_as_double(atomicExch(address, (uint64_cu) 0L)) +
                                                                                    old)))) != 0.0);
+#else
+    atomicAdd(address, value);
+#endif
 }
 
 }

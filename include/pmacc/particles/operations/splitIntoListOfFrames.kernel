@@ -57,8 +57,17 @@ namespace kernel
          *                                with respect to localDomainCellOffset
          * @param cellDesc picongpu cellDescription
          */
-        template<class T_CounterBox, class T_DestBox, class T_SrcFrame, class T_Space, class T_Identifier, class T_CellDescription>
+        template<
+            typename T_CounterBox,
+            typename T_DestBox,
+            typename T_SrcFrame,
+            typename T_Space,
+            typename T_Identifier,
+            typename T_CellDescription,
+            typename T_Acc
+        >
         DINLINE void operator()(
+            T_Acc const & acc,
             T_CounterBox counter,
             T_DestBox destBox,
             T_SrcFrame srcFrame,

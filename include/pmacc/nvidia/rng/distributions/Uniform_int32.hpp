@@ -32,7 +32,8 @@ namespace rng
 {
 namespace distributions
 {
-
+namespace detail
+{
     /*create a 32Bit random int number
      * Range: [INT_MIN,INT_MAX]
      */
@@ -63,6 +64,17 @@ namespace distributions
         {
             /*curand create a random 32Bit int value*/
             return static_cast<Type>(dist(state));
+        }
+    };
+} // namespace detail
+
+    struct Normal_float
+    {
+        template< typename T_Acc>
+        static HDINLINE detail::Uniform_int32< T_Acc >
+        get( T_Acc const & acc)
+        {
+            return detail::Uniform_int32< T_Acc >( acc );
         }
     };
 } // namespace distributions

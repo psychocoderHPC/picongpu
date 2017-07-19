@@ -180,7 +180,8 @@ namespace emz
                          */
                         const float_X W = DS( line, k, 2 ) * tmp;
                         accumulated_J += W;
-                        atomicAddWrapper(
+                        nvidia::atomicAdd(
+                            acc,
                             &( (*cursorJ( i, j, k ) ).z( ) ),
                             accumulated_J
                         );
@@ -202,9 +203,13 @@ namespace emz
         DIM2
     > : public BaseMethods< ParticleAssign >
     {
-        template< typename T_Cursor >
+        template<
+            typename T_Cursor,
+            typename T_Acc
+        >
         DINLINE void
         operator()(
+            T_Acc const & acc,
             const T_Cursor& cursorJ,
             const Line< float2_X >& line,
             const float_X chargeDensity,
@@ -237,10 +242,12 @@ namespace emz
          */
         template<
             typename CursorJ,
-            typename T_Line
+            typename T_Line,
+            typename T_Acc
         >
         DINLINE void
         cptCurrent1D(
+            T_Acc const & acc,
             CursorJ cursorJ,
             const T_Line& line,
             const float_X currentSurfaceDensity
@@ -269,7 +276,8 @@ namespace emz
                      */
                     const float_X W = DS( line, i, 0 ) * tmp;
                     accumulated_J += W;
-                    atomicAddWrapper(
+                    nvidia::atomicAdd(
+                        acc,
                         &( ( *cursorJ( i, j ) ).x( ) ),
                         accumulated_J
                     );
@@ -285,10 +293,12 @@ namespace emz
          */
         template<
             typename CursorJ,
-            typename T_Line
+            typename T_Line,
+            typename T_Acc
         >
         DINLINE void
         cptCurrentZ(
+            T_Acc const & acc,
             CursorJ cursorJ,
             const T_Line& line,
             const float_X currentSurfaceDensityZ
@@ -310,7 +320,8 @@ namespace emz
                         ( float_X( 1.0 ) / float_X( 3.0 ) ) * dsi * dsj;
 
                     const float_X j_z = W * currentSurfaceDensityZ;
-                    atomicAddWrapper(
+                    nvidia::atomicAdd(
+                        acc,
                         &( ( *cursorJ( i, j ) ).z( ) ),
                         j_z
                     );

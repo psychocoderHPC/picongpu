@@ -69,7 +69,9 @@ struct KernelComputeCurrent
      * @tparam ParBox pmacc::ParticlesBox, particle box type
      * @tparam Mapping mapper functor type
      * @tparam FrameSolver frame solver functor type
+     * @param T_Acc alpaka accelerator type
      *
+     * @param alpaka accelerator
      * @param fieldJ field with particle current
      * @param boxPar particle memory
      * @param frameSolver functor to calculate the current for a frame
@@ -79,9 +81,11 @@ struct KernelComputeCurrent
         typename JBox,
         typename ParBox,
         typename FrameSolver,
-        typename Mapping
+        typename Mapping,
+        typename T_Acc
     >
     DINLINE void operator()(
+        T_Acc const & acc,
         JBox fieldJ,
         ParBox boxPar,
         FrameSolver frameSolver,
@@ -186,10 +190,13 @@ struct KernelComputeCurrent
         );
 
         /* this memory is used by all virtual blocks */
-        auto cachedJ = CachedBox::create <
+        auto cachedJ = CachedBox::create<
             0u,
             typename JBox::ValueType
-        >( T_BlockDescription() );
+        >(
+            acc,
+            T_BlockDescription()
+        );
 
         Set< typename JBox::ValueType > set( float3_X::create( 0.0 ) );
         ThreadCollective<
@@ -233,6 +240,7 @@ struct KernelComputeCurrent
                     )
                     {
                         frameSolver(
+                            acc,
                             *frameCtx[ idx ],
                             virtualLinearIdCtx[ idx ],
                             cachedJ
@@ -288,8 +296,17 @@ struct ComputeCurrentPerFrame
     {
     }
 
-    template<class FrameType, class BoxJ >
-    DINLINE void operator()(FrameType& frame, const int localIdx, BoxJ & jBox)
+    template<
+        typename FrameType,
+        typename BoxJ,
+        typename T_Acc
+    >
+    DINLINE void operator()(
+        T_Acc const & acc,
+        FrameType& frame,
+        const int localIdx,
+        BoxJ & jBox
+    )
     {
 
         auto particle = frame[localIdx];
@@ -305,26 +322,35 @@ struct ComputeCurrentPerFrame
                                       attribute::getMass(weighting,particle));
         auto fieldJShiftToParticle = jBox.shift(localCell);
         ParticleAlgo perParticle;
-        perParticle(fieldJShiftToParticle,
-                    pos,
-                    vel,
-                    charge,
-                    m_deltaTime
-                    );
+        perParticle(
+            acc,
+            fieldJShiftToParticle,
+            pos,
+            vel,
+            charge,
+            m_deltaTime
+        );
     }
 
 private:
-    const PMACC_ALIGN(m_deltaTime, float_32);
+    PMACC_ALIGN(m_deltaTime, const float_32);
 };
 
 struct KernelAddCurrentToEMF
 {
-    template<class T_CurrentInterpolation, class T_Mapping>
-    DINLINE void operator()(typename FieldE::DataBoxType fieldE,
-                                          typename FieldB::DataBoxType fieldB,
-                                          J_DataBox fieldJ,
-                                          T_CurrentInterpolation currentInterpolation,
-                                          T_Mapping mapper) const
+    template<
+        typename T_CurrentInterpolation,
+        typename T_Mapping,
+        typename T_Acc
+    >
+    DINLINE void operator()(
+        T_Acc const & acc,
+        typename FieldE::DataBoxType fieldE,
+        typename FieldB::DataBoxType fieldB,
+        J_DataBox fieldJ,
+        T_CurrentInterpolation currentInterpolation,
+        T_Mapping mapper
+    ) const
     {
         /* Caching of fieldJ */
         typedef SuperCellDescription<
@@ -333,7 +359,13 @@ struct KernelAddCurrentToEMF
                     typename T_CurrentInterpolation::UpperMargin
                     > BlockArea;
 
-        auto cachedJ = CachedBox::create < 0, typename J_DataBox::ValueType > (BlockArea());
+        auto cachedJ = CachedBox::create<
+            0,
+            typename J_DataBox::ValueType
+        >(
+            acc,
+            BlockArea()
+        );
 
         nvidia::functors::Assign assign;
         const DataSpace<simDim> block(mapper.getSuperCellIndex(DataSpace<simDim > (blockIdx)));

@@ -32,7 +32,8 @@ namespace rng
 {
 namespace distributions
 {
-
+namespace detail
+{
     /*Return normally distributed floats with mean 0.0f and standard deviation 1.0f
      */
     template< typename T_Acc>
@@ -61,6 +62,17 @@ namespace distributions
             return dist(state);
         }
 
+    };
+} // namespace detail
+
+    struct Normal_float
+    {
+        template< typename T_Acc>
+        static HDINLINE detail::Normal_float< T_Acc >
+        get( T_Acc const & acc)
+        {
+            return detail::Normal_float< T_Acc >( acc );
+        }
     };
 } // namespace distributions
 } // namespace rng

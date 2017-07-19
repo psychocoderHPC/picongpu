@@ -59,7 +59,9 @@
 #include "picongpu/particles/filter/filter.hpp"
 #include "picongpu/particles/flylite/NonLTE.tpp"
 #include <pmacc/random/methods/XorMin.hpp>
+#if( PMACC_CUDA_ENABLED == 1 )
 #include <pmacc/random/RNGProvider.hpp>
+#endif
 
 #include <pmacc/nvidia/reduce/Reduce.hpp>
 #include <pmacc/memory/boxes/DataBoxDim1Access.hpp>
@@ -72,7 +74,9 @@
 #include <pmacc/algorithms/ForEach.hpp>
 #include "picongpu/particles/ParticlesFunctors.hpp"
 #include "picongpu/particles/InitFunctors.hpp"
-#include <pmacc/particles/memory/buffers/MallocMCBuffer.hpp>
+#if( PMACC_CUDA_ENABLED == 1 )
+#   include <pmacc/particles/memory/buffers/MallocMCBuffer.hpp>
+#endif
 #include <pmacc/particles/traits/FilterByFlag.hpp>
 #include <pmacc/particles/traits/FilterByIdentifier.hpp>
 #include "picongpu/particles/traits/HasIonizersWithRNG.hpp"
@@ -301,7 +305,7 @@ public:
         // ... or if ionization methods need an RNG
         using HasIonizerRNGs = typename traits::HasIonizersWithRNG< VectorAllSpecies >::type;
         constexpr bool hasIonizerRNGs = HasIonizerRNGs::value;
-
+#if( PMACC_CUDA_ENABLED == 1 )
         if( !bmpl::empty<AllSynchrotronPhotonsSpecies>::value ||
             !bmpl::empty<AllBremsstrahlungPhotonsSpecies>::value ||
             hasIonizerRNGs
@@ -334,7 +338,7 @@ public:
 
             this->bremsstrahlungPhotonAngle.init();
         }
-
+#endif
         /* Create an empty allocator. This one is resized after all exchanges
          * for particles are created */
         deviceHeap.reset(new DeviceHeap(0));
@@ -385,9 +389,10 @@ public:
 
         // initializing the heap for particles
         deviceHeap->destructiveResize(heapSize);
+#if( PMACC_CUDA_ENABLED == 1 )
         MallocMCBuffer<DeviceHeap>* mallocMCBuffer = new MallocMCBuffer<DeviceHeap>(deviceHeap);
         dc.share( std::shared_ptr< ISimulationData >( mallocMCBuffer ) );
-
+#endif
         ForEach< VectorAllSpecies, particles::LogMemoryStatisticsForSpecies<bmpl::_1> > logMemoryStatisticsForSpecies;
         logMemoryStatisticsForSpecies( deviceHeap );
 

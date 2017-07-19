@@ -214,8 +214,20 @@ namespace ionization
             {
 
                 /* caching of density and "temperature" fields */
-                cachedRho = CachedBox::create < 0, ValueType_Rho > (BlockArea());
-                cachedEne = CachedBox::create < 1, ValueType_Ene > (BlockArea());
+                cachedRho = CachedBox::create<
+                    0,
+                    ValueType_Rho
+                >(
+                    acc,
+                    BlockArea()
+                );
+                cachedEne = CachedBox::create<
+                    1,
+                    ValueType_Ene
+                >(
+                    acc,
+                    BlockArea()
+                );
 
                 /* instance of nvidia assignment operator */
                 nvidia::functors::Assign assign;

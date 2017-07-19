@@ -77,12 +77,14 @@ struct KernelDeriveParticles
      * @param mapper functor to map a block to a supercell
      */
    template<
-        class T_DestParBox,
-        class T_SrcParBox,
-        class T_ManipulateFunctor,
-        class T_Mapping
+        typename T_DestParBox,
+        typename T_SrcParBox,
+        typename T_ManipulateFunctor,
+        typename T_Mapping,
+        typename T_Acc
     >
     DINLINE void operator()(
+        T_Acc const & acc,
         T_DestParBox & destBox,
         T_SrcParBox & srcBox,
         T_ManipulateFunctor & manipulateFunctor,
@@ -101,10 +103,12 @@ struct KernelDeriveParticles
         uint32_t const workerIdx = threadIdx.x;
 
         PMACC_SMEM(
+            acc,
             srcFrame,
             SrcFramePtr
         );
         PMACC_SMEM(
+            acc,
             destFrame,
             DestFramePtr
         );
@@ -138,6 +142,7 @@ struct KernelDeriveParticles
         );
 
         auto accManipulator = manipulateFunctor(
+            acc,
             localSuperCellOffset,
             WorkerCfg< numWorker >{ workerIdx }
         );
@@ -173,6 +178,7 @@ struct KernelDeriveParticles
                         );
 
                     accManipulator(
+                        acc,
                         parDest,
                         parSrc
                     );
@@ -207,14 +213,20 @@ struct KernelDeriveParticles
 struct KernelManipulateAllParticles
 {
     /* kernel must called with one dimension for blockSize */
-    template<typename T_ParticleFunctor,typename T_ParBox,  class Mapping>
+    template<
+        typename T_ParticleFunctor,
+        typename T_ParBox,
+        typename Mapping,
+        typename T_Acc
+    >
     DINLINE void operator()(
+        T_Acc const & acc,
         T_ParBox pb,
         T_ParticleFunctor particleFunctor,
         Mapping mapper) const
     {
         typedef typename T_ParBox::FramePtr FramePtr;
-        PMACC_SMEM( frame, FramePtr );
+        PMACC_SMEM( acc, frame, FramePtr );
 
         typedef typename Mapping::SuperCellSize SuperCellSize;
 
@@ -242,6 +254,7 @@ struct KernelManipulateAllParticles
             superCellIdx - mapper.getGuardingSuperCells();
 
         auto accManipulator = particleFunctor(
+            acc,
             localSuperCellOffset,
             mappings::threads::WorkerCfg< pmacc::math::CT::volume<
                 SuperCellSize
@@ -254,7 +267,10 @@ struct KernelManipulateAllParticles
             auto particle = frame[linearThreadIdx];
             if( !isParticle )
                 particle.setHandleInvalid( );
-            accManipulator( particle );
+            accManipulator(
+                acc,
+                particle
+            );
 
             __syncthreads();
             if (linearThreadIdx == 0)
@@ -291,7 +307,9 @@ struct KernelMoveAndMarkParticles
      * @tparam T_BBox pmacc::DataBox, magnetic field box type
      * @tparam T_ParticleFunctor particle functor type
      * @tparam T_Mapping mapper functor type
+     * @tparam T_Acc alpaka accelerator type
      *
+     * @param alpaka accelerator
      * @param pb particle memory
      * @param fieldE electric field data
      * @param fieldB magnetic field data
@@ -303,14 +321,16 @@ struct KernelMoveAndMarkParticles
         typename T_EBox,
         typename T_BBox,
         typename T_ParticleFunctor,
-        typename T_Mapping
+        typename T_Mapping,
+        typename T_Acc
     >
     DINLINE void operator()(
-       T_ParBox pb,
-       T_EBox fieldE,
-       T_BBox fieldB,
-       T_ParticleFunctor particleFunctor,
-       T_Mapping mapper
+        T_Acc const & acc,
+        T_ParBox pb,
+        T_EBox fieldE,
+        T_BBox fieldB,
+        T_ParticleFunctor particleFunctor,
+        T_Mapping mapper
     ) const
     {
         using namespace mappings::threads;
@@ -335,6 +355,7 @@ struct KernelMoveAndMarkParticles
         >;
 
         PMACC_SMEM(
+            acc,
             mustShift,
             int
         );
@@ -363,14 +384,20 @@ struct KernelMoveAndMarkParticles
         frame = pb.getLastFrame( block );
         particlesInSuperCell = pb.getSuperCell( block ).getSizeLastFrame( );
 
-        auto cachedB = CachedBox::create <
+        auto cachedB = CachedBox::create<
             0,
             typename T_BBox::ValueType
-        >( T_DataDomain( ) );
-        auto cachedE = CachedBox::create <
+        >(
+            acc,
+            T_DataDomain( )
+        );
+        auto cachedE = CachedBox::create<
             1,
             typename T_EBox::ValueType
-        >( T_DataDomain( ) );
+        >(
+            acc,
+            T_DataDomain( )
+        );
 
         __syncthreads();
 

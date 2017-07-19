@@ -57,7 +57,9 @@ namespace kernel
          * @tparam T_DestBuffer type of result buffer
          * @tparam T_Functor type of the binary functor to reduce two elements to the intermediate buffer
          * @tparam T_DestFunctor type of the binary functor to reduce two elements to @destBuffer
+         * @tparam T_Acc alpaka accelerator type
          *
+         * @param acc alpaka accelerator
          * @param srcBuffer a class or a pointer with the `operator[](size_t)` (one dimensional access)
          * @param bufferSize number of elements in @p srcBuffer
          * @param destBuffer a class or a pointer with the `operator[](size_t)` (one dimensional access),
@@ -75,9 +77,11 @@ namespace kernel
             typename T_SrcBuffer,
             typename T_DestBuffer,
             typename T_Functor,
-            typename T_DestFunctor
+            typename T_DestFunctor,
+            typename T_Acc
         >
         DINLINE void operator()(
+            T_Acc const & acc,
             T_SrcBuffer const & srcBuffer,
             uint32_t const bufferSize,
             T_DestBuffer destBuffer,

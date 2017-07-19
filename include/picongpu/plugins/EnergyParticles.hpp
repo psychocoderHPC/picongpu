@@ -53,16 +53,24 @@ namespace po = boost::program_options;
  **/
 struct KernelEnergyParticles
 {
-    template<class ParBox, class DBox, class Mapping>
-    DINLINE void operator()(ParBox pb,
-                                          DBox gEnergy,
-                                          Mapping mapper) const
+    template<
+        typename ParBox,
+        typename DBox,
+        typename Mapping,
+        typename T_Acc
+    >
+    DINLINE void operator()(
+        T_Acc const & acc,
+        ParBox pb,
+        DBox gEnergy,
+        Mapping mapper
+    ) const
     {
 
         typedef typename ParBox::FramePtr FramePtr;
-        PMACC_SMEM( frame, FramePtr ); /* pointer to particle data frame */
-        PMACC_SMEM( shEnergyKin, float_X ); /* shared kinetic energy */
-        PMACC_SMEM( shEnergy, float_X ); /* shared total energy */
+        PMACC_SMEM( acc, frame, FramePtr ); /* pointer to particle data frame */
+        PMACC_SMEM( acc, shEnergyKin, float_X ); /* shared kinetic energy */
+        PMACC_SMEM( acc, shEnergy, float_X ); /* shared total energy */
 
         float_X _local_energyKin = float_X(0.0); /* sum kinetic energy for this thread */
         float_X _local_energy = float_X(0.0); /* sum total energy for this thread */
@@ -127,16 +135,16 @@ struct KernelEnergyParticles
         }
 
         /* add energies on block level using shared memory */
-        atomicAddWrapper(&shEnergyKin, _local_energyKin); /* add kinetic energy */
-        atomicAddWrapper(&shEnergy, _local_energy);       /* add total energy */
+        nvidia::atomicAdd( acc, &shEnergyKin, _local_energyKin); /* add kinetic energy */
+        nvidia::atomicAdd( acc, &shEnergy, _local_energy);       /* add total energy */
 
         __syncthreads(); /* wait till all threads have added their energies */
 
         /* add energies on global level using global memory */
         if (linearThreadIdx == 0) /* only done by thread 0 of a block */
         {
-            atomicAddWrapper(&(gEnergy[0]), (float_64) (shEnergyKin)); /* add kinetic energy */
-            atomicAddWrapper(&(gEnergy[1]), (float_64) (shEnergy));    /* add total energy */
+            nvidia::atomicAdd( acc, &(gEnergy[0]), (float_64) (shEnergyKin)); /* add kinetic energy */
+            nvidia::atomicAdd( acc, &(gEnergy[1]), (float_64) (shEnergy));    /* add total energy */
         }
     }
 };

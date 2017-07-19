@@ -30,13 +30,17 @@
 #include "picongpu/plugins/SumCurrents.hpp"
 #include "picongpu/plugins/PositionsParticles.hpp"
 #include "picongpu/plugins/BinEnergyParticles.hpp"
-#include "picongpu/plugins/ChargeConservation.hpp"
+#   if 0
+#       include "picongpu/plugins/ChargeConservation.hpp"
+#   endif
 #include "picongpu/plugins/particleMerging/ParticleMerger.hpp"
 #if(ENABLE_HDF5 == 1)
 #include "picongpu/plugins/radiation/parameters.hpp"
 #include "picongpu/plugins/radiation/Radiation.hpp"
-#include "picongpu/plugins/particleCalorimeter/ParticleCalorimeter.hpp"
-#include "picongpu/plugins/PhaseSpace/PhaseSpaceMulti.hpp"
+#   if 0
+#        include "picongpu/plugins/particleCalorimeter/ParticleCalorimeter.hpp"
+#       include "picongpu/plugins/PhaseSpace/PhaseSpaceMulti.hpp"
+#   endif
 #endif
 
 #if (ENABLE_INSITU_VOLVIS == 1)
@@ -122,8 +126,10 @@ private:
     /* define stand alone plugins*/
     typedef bmpl::vector<
         EnergyFields,
-        SumCurrents,
-        ChargeConservation
+        SumCurrents
+#if 0
+        ,ChargeConservation
+#endif
 #if(SIMDIM==DIM3)
       , IntensityPlugin
 #endif
@@ -171,9 +177,11 @@ private:
         plugins::particleMerging::ParticleMerger<bmpl::_1>
 #if(ENABLE_HDF5 == 1)
       , Radiation<bmpl::_1>
-      , ParticleCalorimeter<bmpl::_1>
       , PerSuperCell<bmpl::_1>
+#   if 0
+      , ParticleCalorimeter<bmpl::_1>
       , PhaseSpaceMulti<particles::shapes::Counter::ChargeAssignment, bmpl::_1>
+#   endif
 #endif
     > UnspecializedSpeciesPlugins;
 
