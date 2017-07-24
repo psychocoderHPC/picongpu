@@ -71,10 +71,19 @@ Bremsstrahlung<T_IonSpecies, T_ElectronSpecies, T_PhotonSpecies>::Bremsstrahlung
     this->ionDensityBox = fieldIonDensity->getDeviceDataBox();
 }
 
-template<typename T_IonSpecies, typename T_ElectronSpecies, typename T_PhotonSpecies>
+template<
+    typename T_IonSpecies,
+    typename T_ElectronSpecies,
+    typename T_PhotonSpecies
+>
+template< typename T_Acc >
 DINLINE
-void Bremsstrahlung<T_IonSpecies, T_ElectronSpecies, T_PhotonSpecies>::init
-    (const DataSpace<simDim>& blockCell, const int& linearThreadIdx, const DataSpace<simDim>& localCellOffset)
+void Bremsstrahlung<T_IonSpecies, T_ElectronSpecies, T_PhotonSpecies>::init(
+    T_Acc const & acc,
+    const DataSpace<simDim>& blockCell,
+    const int& linearThreadIdx,
+    const DataSpace<simDim>& localCellOffset
+)
 {
     /* caching of ion density field */
     cachedIonDensity = CachedBox::create<

@@ -142,7 +142,13 @@ namespace ionization
              * during loop execution. The reason for this is the `__syncthreads()` call which is necessary after
              * initializing the E-/B-field shared boxes in shared memory.
              */
-            DINLINE void init(const DataSpace<simDim>& blockCell, const int& linearThreadIdx, const DataSpace<simDim>& localCellOffset)
+            template< typename T_Acc >
+            DINLINE void init(
+                T_Acc const & acc,
+                const DataSpace<simDim>& blockCell,
+                const int& linearThreadIdx,
+                const DataSpace<simDim>& localCellOffset
+            )
             {
 
                 /* caching of E and B fields */

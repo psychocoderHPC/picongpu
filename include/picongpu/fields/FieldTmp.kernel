@@ -98,7 +98,7 @@ namespace picongpu
             {
                 if( linearThreadIdx < particlesInSuperCell )
                 {
-                    frameSolver( *frame, linearThreadIdx, SuperCellSize::toRT(), cachedVal );
+                    frameSolver( acc, *frame, linearThreadIdx, SuperCellSize::toRT(), cachedVal );
                 }
                 __syncthreads( );
                 if( linearThreadIdx == 0 )
