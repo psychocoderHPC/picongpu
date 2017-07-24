@@ -77,7 +77,11 @@ struct CreateParticlesKernel
      *
      * @param cellIndex n-dim. cell index from the origin of the local domain
      */
-    DINLINE void operator()(const pmacc::math::Int<simDim>& cellIndex)
+    template< typename T_Acc >
+    DINLINE void operator()(
+        T_Acc const & acc,
+        const pmacc::math::Int<simDim>& cellIndex
+    )
     {
         /* definitions for domain variables, like indices of blocks and threads */
         typedef typename MappingDesc::SuperCellSize SuperCellSize;

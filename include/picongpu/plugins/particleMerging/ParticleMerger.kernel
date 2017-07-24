@@ -117,10 +117,15 @@ namespace particleMerging
          *
          * @param cellIdx cell index
          */
-        DINLINE void initVoronoiCellIdAttribute( const pmacc::math::Int<simDim>& cellIdx )
+        template< typename T_Acc >
+        DINLINE void initVoronoiCellIdAttribute(
+            T_Acc const & acc,
+            const pmacc::math::Int<simDim>& cellIdx
+        )
         {
             particleAccess::Cell2Particle< SuperCellSize > forEachFrame;
             forEachFrame(
+                acc,
                 this->particlesBox,
                 cellIdx,
                 [this]( FramePtr frame, const int linearThreadIdx )
@@ -167,13 +172,16 @@ namespace particleMerging
          * @param cellIdx n-dim. cell index from the origin of the local domain
          * @param listVoronoiCells fixed-sized array of Voronoi cells
          */
+        template< typename T_Acc >
         DINLINE void processParticles(
+            T_Acc const & acc,
             const pmacc::math::Int<simDim>& cellIdx,
             ArrayVoronoiCells& listVoronoiCells
         )
         {
             particleAccess::Cell2Particle< SuperCellSize > forEachFrame;
             forEachFrame(
+                acc,
                 this->particlesBox,
                 cellIdx,
                 [&]( FramePtr frame, const int linearThreadIdx )
@@ -197,6 +205,7 @@ namespace particleMerging
                     {
                     case VoronoiStatus::collecting:
                         voronoiCell.addParticle(
+                            acc,
                             position,
                             momentum,
                             weighting
@@ -216,6 +225,7 @@ namespace particleMerging
 
                             /* place particle into one of the two sub-Voronoi cells */
                             listVoronoiCells[subVoronoiCellId].addParticle(
+                                acc,
                                 position,
                                 momentum,
                                 weighting

@@ -210,7 +210,13 @@ namespace ionization
              *                        domain, i.e. from the @see BORDER
              *                        *without guarding supercells*
              */
-            DINLINE void init(const DataSpace<simDim>& blockCell, const int& linearThreadIdx, const DataSpace<simDim>& localCellOffset)
+            template< typename T_Acc >
+            DINLINE void init(
+                T_Acc const & acc,
+                const DataSpace<simDim>& blockCell,
+                const int& linearThreadIdx,
+                const DataSpace<simDim>& localCellOffset
+            )
             {
 
                 /* caching of density and "temperature" fields */

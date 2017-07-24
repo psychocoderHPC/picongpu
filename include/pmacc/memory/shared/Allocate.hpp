@@ -56,11 +56,10 @@ namespace shared
         get( T_Acc const & acc )
         {
             auto& smem = ::alpaka::block::shared::st::allocVar<
-                /** @todo readd the alignment `alignas( alignof( T_Type ) )`*/
-                cupla::Array< uint8_t, sizeof( T_Type ) >,
+                T_Type,
                 T_uniqueId
             >( acc );
-            return *( reinterpret_cast< T_Type* >( &smem ) );
+            return smem;
         }
     };
 

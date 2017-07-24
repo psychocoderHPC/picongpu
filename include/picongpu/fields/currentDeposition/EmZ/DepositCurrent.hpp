@@ -99,9 +99,13 @@ namespace emz
         DIM3
     > : public BaseMethods< ParticleAssign >
     {
-        template< typename T_Cursor >
+        template<
+            typename T_Cursor,
+            typename T_Acc
+        >
         DINLINE void
         operator()(
+            T_Acc const & acc,
             const T_Cursor& cursorJ,
             const Line< float3_X >& line,
             const float_X chargeDensity,
@@ -116,16 +120,19 @@ namespace emz
              */
             using namespace cursor::tools;
             cptCurrent1D(
+                acc,
                 twistVectorFieldAxes< pmacc::math::CT::Int < 1, 2, 0 > >( cursorJ ),
                 rotateOrigin< 1, 2, 0 >( line ),
                 cellSize.x( ) * chargeDensity / DELTA_T
             );
             cptCurrent1D(
+                acc,
                 twistVectorFieldAxes< pmacc::math::CT::Int < 2, 0, 1 > >( cursorJ ),
                 rotateOrigin< 2, 0, 1 >( line ),
                 cellSize.y( ) * chargeDensity / DELTA_T
             );
             cptCurrent1D(
+                acc,
                 cursorJ,
                 line,
                 cellSize.z( ) * chargeDensity / DELTA_T
@@ -140,10 +147,12 @@ namespace emz
          */
         template<
             typename CursorJ,
-            typename T_Line
+            typename T_Line,
+            typename T_Acc
         >
         DINLINE void
         cptCurrent1D(
+            T_Acc const & acc,
             CursorJ cursorJ,
             const T_Line& line,
             const float_X currentSurfaceDensity
@@ -218,16 +227,19 @@ namespace emz
         {
             using namespace cursor::tools;
             cptCurrent1D(
+                acc,
                 cursorJ,
                 line,
                 cellSize.x( ) * chargeDensity / DELTA_T
             );
             cptCurrent1D(
+                acc,
                 twistVectorFieldAxes< pmacc::math::CT::Int < 1, 0 > >( cursorJ ),
                 rotateOrigin < 1, 0 > ( line ),
                 cellSize.y( ) * chargeDensity / DELTA_T
             );
             cptCurrentZ(
+                acc,
                 cursorJ,
                 line,
                 velocityZ * chargeDensity
