@@ -22,7 +22,6 @@
 #include "picongpu/simulation_defines.hpp"
 #include <pmacc/dimensions/DataSpace.hpp>
 #include <pmacc/math/Vector.hpp>
-#include <pmacc/basicOperations.hpp>
 #include <pmacc/cuSTL/cursor/Cursor.hpp>
 #include <pmacc/cuSTL/cursor/tools/twistVectorFieldAxes.hpp>
 #include <pmacc/cuSTL/cursor/compile-time/SafeCursor.hpp>
@@ -140,7 +139,7 @@ struct EsirkepovNative
                     /* We multiply with `cellEdgeLength` due to the fact that the attribute for the
                      * in-cell particle `position` (and it's change in DELTA_T) is normalize to [0,1) */
                     accumulated_J += -this->charge * (float_X(1.0) / float_X(CELL_VOLUME * DELTA_T)) * W * cellEdgeLength;
-                    nvidia::atomicAdd(acc, &((*cursorJ(i, j, k)).z()), accumulated_J);
+                    atomicAdd(acc, &((*cursorJ(i, j, k)).z()), accumulated_J);
                 }
             }
         }

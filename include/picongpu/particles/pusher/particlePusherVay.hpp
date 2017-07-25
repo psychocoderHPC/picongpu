@@ -39,7 +39,7 @@ struct Push
 
     template<typename T_FunctorFieldE, typename T_FunctorFieldB, typename T_Pos, typename T_Mom, typename T_Mass,
              typename T_Charge, typename T_Weighting >
-        __host__ DINLINE void operator()(
+        HDINLINE void operator()(
                                             const T_FunctorFieldB functorBField, /* at t=0 */
                                             const T_FunctorFieldE functorEField, /* at t=0 */
                                             T_Pos& pos, /* at t=0 */

@@ -218,7 +218,7 @@ struct CreateParticlesKernel
                     if (!targetFrame.isValid())
                     {
                         targetFrame = targetBox.getEmptyFrame();
-                        targetBox.setAsLastFrame(targetFrame, block);
+                        targetBox.setAsLastFrame(acc, targetFrame, block);
                     }
                 }
                 __syncthreads();
@@ -251,7 +251,7 @@ struct CreateParticlesKernel
                     if (newFrameFillLvl >= maxParticlesInFrame)
                     {
                         targetFrame = targetBox.getEmptyFrame();
-                        targetBox.setAsLastFrame(targetFrame, block);
+                        targetBox.setAsLastFrame(acc, argetFrame, block);
                         newFrameFillLvl -= maxParticlesInFrame;
                     }
                 }

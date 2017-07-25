@@ -194,6 +194,7 @@ struct KernelDeriveParticles
                 )
                 {
                     destBox.setAsLastFrame(
+                        acc,
                         destFrame,
                         superCellIdx
                     );

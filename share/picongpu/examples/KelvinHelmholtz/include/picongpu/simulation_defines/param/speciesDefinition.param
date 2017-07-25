@@ -92,8 +92,10 @@ using ParticleFlagsIons = bmpl::vector<
     current< UsedParticleCurrentSolver >,
     massRatio< MassRatioIons >,
     chargeRatio< ChargeRatioIons >,
-    densityRatio< DensityRatioIons >,
-    atomicNumbers< ionization::atomicNumbers::Hydrogen_t >
+    densityRatio< DensityRatioIons >
+#if( PMACC_CUDA_ENABLED == 1 )
+    ,atomicNumbers< ionization::atomicNumbers::Hydrogen_t >
+#endif
 >;
 
 /* define species ions */

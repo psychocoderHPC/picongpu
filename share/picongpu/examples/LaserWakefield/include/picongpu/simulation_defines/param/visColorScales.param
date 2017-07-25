@@ -21,7 +21,6 @@
 
 #pragma once
 
-#include <pmacc/basicOperations.hpp>
 
 namespace picongpu
 {

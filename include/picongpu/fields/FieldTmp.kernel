@@ -23,7 +23,6 @@
 
 #include <pmacc/types.hpp>
 #include <pmacc/particles/frame_types.hpp>
-#include <pmacc/basicOperations.hpp>
 
 #include "picongpu/simulation_defines.hpp"
 

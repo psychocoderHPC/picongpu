@@ -22,7 +22,6 @@
 #include "picongpu/simulation_defines.hpp"
 #include <pmacc/types.hpp>
 #include <pmacc/cuSTL/cursor/Cursor.hpp>
-#include <pmacc/basicOperations.hpp>
 #include <pmacc/cuSTL/cursor/tools/twistVectorFieldAxes.hpp>
 #include <pmacc/cuSTL/cursor/compile-time/SafeCursor.hpp>
 #include "picongpu/fields/currentDeposition/Esirkepov/Esirkepov.def"
@@ -212,7 +211,7 @@ struct Esirkepov<T_ParticleShape, DIM3>
                                  */
                                 const float_X W = DS( line, k, 2 ) * tmp;
                                 accumulated_J += W;
-                                nvidia::atomicAdd( acc, &( ( *cursorJ( i, j, k ) ).z() ), accumulated_J );
+                                atomicAdd( acc, &( ( *cursorJ( i, j, k ) ).z() ), accumulated_J );
                             }
                     }
             }

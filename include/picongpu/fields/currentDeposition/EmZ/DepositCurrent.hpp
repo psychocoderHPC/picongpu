@@ -20,7 +20,6 @@
 #pragma once
 
 #include <pmacc/cuSTL/cursor/Cursor.hpp>
-#include <pmacc/basicOperations.hpp>
 #include <pmacc/cuSTL/cursor/tools/twistVectorFieldAxes.hpp>
 
 #include "picongpu/fields/currentDeposition/EmZ/EmZ.def"
@@ -189,7 +188,7 @@ namespace emz
                          */
                         const float_X W = DS( line, k, 2 ) * tmp;
                         accumulated_J += W;
-                        nvidia::atomicAdd(
+                        atomicAdd(
                             acc,
                             &( (*cursorJ( i, j, k ) ).z( ) ),
                             accumulated_J
@@ -288,7 +287,7 @@ namespace emz
                      */
                     const float_X W = DS( line, i, 0 ) * tmp;
                     accumulated_J += W;
-                    nvidia::atomicAdd(
+                    atomicAdd(
                         acc,
                         &( ( *cursorJ( i, j ) ).x( ) ),
                         accumulated_J
@@ -332,7 +331,7 @@ namespace emz
                         ( float_X( 1.0 ) / float_X( 3.0 ) ) * dsi * dsj;
 
                     const float_X j_z = W * currentSurfaceDensityZ;
-                    nvidia::atomicAdd(
+                    atomicAdd(
                         acc,
                         &( ( *cursorJ( i, j ) ).z( ) ),
                         j_z

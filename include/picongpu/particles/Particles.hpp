@@ -41,6 +41,16 @@ namespace picongpu
 {
 using namespace pmacc;
 
+#if( PMACC_CUDA_ENABLED != 1 )
+/* dummy because we are not using mallocMC with cupla
+ * DeviceHeap is defined in `mallocMC.param`
+ */
+struct DeviceHeap
+{
+    using AllocatorHandle = void;
+};
+#endif
+
 /** particle species
  *
  * @tparam T_Name name of the species [type boost::mpl::string]

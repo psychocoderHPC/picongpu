@@ -33,9 +33,6 @@
 #include <pmacc/simulationControl/SimulationHelper.hpp>
 #include "picongpu/simulation_defines.hpp"
 
-#include "picongpu/particles/bremsstrahlung/ScaledSpectrum.hpp"
-#include "picongpu/particles/bremsstrahlung/PhotonEmissionAngle.hpp"
-
 #include <pmacc/eventSystem/EventSystem.hpp>
 #include <pmacc/dimensions/GridLayout.hpp>
 #include <pmacc/nvidia/memory/MemoryInfo.hpp>
@@ -53,13 +50,16 @@
 #include "picongpu/fields/background/cellwiseOperation.hpp"
 #include "picongpu/initialization/IInitPlugin.hpp"
 #include "picongpu/initialization/ParserGridDistribution.hpp"
-#include "picongpu/particles/synchrotronPhotons/SynchrotronFunctions.hpp"
 #include "picongpu/particles/Manipulate.hpp"
 #include "picongpu/particles/manipulators/manipulators.hpp"
 #include "picongpu/particles/filter/filter.hpp"
 #include "picongpu/particles/flylite/NonLTE.tpp"
 #include <pmacc/random/methods/XorMin.hpp>
 #if( PMACC_CUDA_ENABLED == 1 )
+#include "picongpu/particles/bremsstrahlung/ScaledSpectrum.hpp"
+#include "picongpu/particles/bremsstrahlung/PhotonEmissionAngle.hpp"
+#include "picongpu/particles/synchrotronPhotons/SynchrotronFunctions.hpp"
+
 #include <pmacc/random/RNGProvider.hpp>
 #endif
 
@@ -519,7 +519,7 @@ public:
         copyMomentumPrev1( currentStep );
 
         DataConnector &dc = Environment<>::get().DataConnector();
-
+#if( PMACC_CUDA_ENABLED == 1 )
         /* Initialize ionization routine for each species with the flag `ionizers<>` */
         using VectorSpeciesWithIonizers = typename pmacc::particles::traits::FilterByFlag<
             VectorAllSpecies,
@@ -527,7 +527,7 @@ public:
         >::type;
         ForEach< VectorSpeciesWithIonizers, particles::CallIonization< bmpl::_1 > > particleIonization;
         particleIonization( cellDescription, currentStep );
-
+#endif
         /* FLYlite population kinetics for atomic physics */
         using AllFlyLiteIons = typename pmacc::particles::traits::FilterByFlag<
             VectorAllSpecies,
@@ -541,6 +541,7 @@ public:
         > populationKinetics;
         populationKinetics( currentStep );
 
+#if( PMACC_CUDA_ENABLED == 1 )
         /* call the synchrotron radiation module for each radiating species (normally electrons) */
         typedef typename pmacc::particles::traits::FilterByFlag<VectorAllSpecies,
                                                                 synchrotronPhotons<> >::type AllSynchrotronPhotonsSpecies;
@@ -566,7 +567,7 @@ public:
             currentStep,
             this->scaledBremsstrahlungSpectrumMap,
             this->bremsstrahlungPhotonAngle);
-
+#endif
         EventTask initEvent = __getTransactionEvent();
         EventTask updateEvent;
         EventTask commEvent;
@@ -780,6 +781,8 @@ protected:
 } /* namespace picongpu */
 
 #include "picongpu/fields/Fields.tpp"
-#include "picongpu/particles/synchrotronPhotons/SynchrotronFunctions.tpp"
-#include "picongpu/particles/bremsstrahlung/Bremsstrahlung.tpp"
-#include "picongpu/particles/bremsstrahlung/ScaledSpectrum.tpp"
+#if( PMACC_CUDA_ENABLED == 1 )
+#   include "picongpu/particles/synchrotronPhotons/SynchrotronFunctions.tpp"
+#   include "picongpu/particles/bremsstrahlung/Bremsstrahlung.tpp"
+#   include "picongpu/particles/bremsstrahlung/ScaledSpectrum.tpp"
+#endif

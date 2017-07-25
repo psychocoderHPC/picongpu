@@ -115,7 +115,7 @@ struct CopySpecies
             if (threadIdx.x == 0)
             {
                 /*reserve host memory for particle*/
-                globalOffset = nvidia::atomicAdd(acc, counter, localCounter);
+                globalOffset = atomicAdd(acc, counter, localCounter);
             }
             __syncthreads();
             if (storageOffset != -1)

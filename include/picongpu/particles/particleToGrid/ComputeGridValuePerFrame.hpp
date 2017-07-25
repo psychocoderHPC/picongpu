@@ -119,7 +119,7 @@ ComputeGridValuePerFrame<T_ParticleShape, T_DerivedAttribute>::operator()
          * note: the .x() is used because FieldTmp is a scalar field with only
          * one "x" component
          */
-        nvidia::atomicAdd(
+        atomicAdd(
             acc,
             &(fieldTmpShiftToParticle(offsetParticleCellToCurrentCell).x()),
             assign * particleAttr

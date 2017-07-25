@@ -309,7 +309,7 @@ struct KernelPaintParticles3D
 
         // counter is always DIM2
         typedef DataBox < PitchedBox< float_X, DIM2 > > SharedMem;
-        extern __shared__ float_X shBlock[];
+        sharedMemExtern( shBlock, float_X );
 
         const DataSpace<simDim> blockSize(blockDim);
         SharedMem counter(PitchedBox<float_X, DIM2 > ((float_X*) shBlock,
@@ -342,7 +342,7 @@ struct KernelPaintParticles3D
 #endif
                 {
                     const DataSpace<DIM2> reducedCell(particleCellId[transpose.x()], particleCellId[transpose.y()]);
-                    nvidia::atomicAdd(acc, &(counter(reducedCell)), particle[weighting_] / particles::TYPICAL_NUM_PARTICLES_PER_MACROPARTICLE);
+                    atomicAdd(acc, &(counter(reducedCell)), particle[weighting_] / particles::TYPICAL_NUM_PARTICLES_PER_MACROPARTICLE);
                 }
             }
             __syncthreads();
