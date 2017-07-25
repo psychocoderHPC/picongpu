@@ -94,14 +94,10 @@ namespace kernel
             uint32_t const tid = blockIdx.x * blockSize + localId;
             uint32_t const globalThreadCount = gridDim.x * blockSize;
 
-            /* CUDA can not handle extern shared memory were the type is
-             * defined by a template
-             * - therefore we use type `int` for the definition (dirty but OK) */
-            extern __shared__ int s_mem_extern[ ];
-            /* create a pointer with the right type*/
-            Type* s_mem=( Type* )s_mem_extern;
+            sharedMemExtern(s_mem,Type);
 
             this->operator()(
+                acc,
                 localId,
                 blockSize,
                 tid,
@@ -145,10 +141,12 @@ namespace kernel
         template<
             typename T_SrcBuffer,
             typename T_Functor,
-            typename T_SharedBuffer
+            typename T_SharedBuffer,
+            typename T_Acc
         >
         DINLINE void
         operator()(
+            T_Acc const & acc,
             uint32_t const linearThreadIdxInBlock,
             uint32_t const numThreadsInBlock,
             size_t const linearReduceThreadIdx,

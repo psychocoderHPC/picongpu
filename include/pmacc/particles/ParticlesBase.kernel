@@ -699,6 +699,7 @@ struct KernelShiftParticles
                             FramePtr tmpFrame( pb.getEmptyFrame( ) );
                             destFrames[ linearIdx ] = tmpFrame;
                             pb.setAsLastFrame(
+                                acc,
                                 tmpFrame,
                                 relativeCtx[ idx ]
                             );
@@ -710,6 +711,7 @@ struct KernelShiftParticles
                             FramePtr tmpFrame( pb.getEmptyFrame( ) );
                             destFrames[ linearIdx + numExchanges ] = tmpFrame;
                             pb.setAsLastFrame(
+                                acc,
                                 tmpFrame,
                                 relativeCtx[ idx ]
                             );
@@ -1286,6 +1288,7 @@ struct KernelInsertParticles
                     );
 
                     pb.setAsLastFrame(
+                        acc,
                         frame,
                         dstSuperCell
                     );

@@ -124,7 +124,8 @@ struct KernelBinEnergyParticles
          * 0 is for <minEnergy
          * (numBins+2)-1 is for >maxEnergy
          */
-        extern __shared__ float_X shBin[]; /* size must be numBins+2 because we have <min and >max */
+        sharedMemExtern(shBin,float_X); /* size must be numBins+2 because we have <min and >max */
+
 
         int const realNumBins = numBins + 2;
 
@@ -243,7 +244,7 @@ struct KernelBinEnergyParticles
                              */
                             float_X const normedWeighting = weighting /
                                 float_X( particles::TYPICAL_NUM_PARTICLES_PER_MACROPARTICLE );
-                            nvidia::atomicAdd(
+                            atomicAdd(
                                 acc,
                                 &( shBin[ binNumber ] ),
                                 normedWeighting
@@ -280,7 +281,7 @@ struct KernelBinEnergyParticles
             )
             {
                 for( int i = linearIdx; i < realNumBins; i += numWorkers )
-                    nvidia::atomicAdd(
+                    atomicAdd(
                         acc,
                         &( gBins[ i ] ),
                         float_64( shBin[ i ] )

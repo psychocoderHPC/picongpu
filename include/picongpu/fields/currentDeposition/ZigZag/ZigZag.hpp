@@ -131,7 +131,7 @@ struct AssignChargeToCell
         /* shift memory cursor to cell (grid point)*/
         auto cursorToValue = cursor(GridPointVec::toRT());
         /* add current to component of the cell*/
-        nvidia::atomicAdd(acc, &((*cursorToValue)[currentComponent]), j);
+        atomicAdd(acc, &((*cursorToValue)[currentComponent]), j);
     }
 };
 
@@ -349,7 +349,7 @@ private:
         /* paper version:
          *   i_1 == i_2 ? (x_1 + x_2) / float_X(2.0) : ::max(i_1, i_2);
          */
-        return i_1 == i_2 ? x_2 : ::max(i_1, i_2);
+        return i_1 == i_2 ? x_2 : math::max(i_1, i_2);
     }
 
     /** get normalized average in cell particle position

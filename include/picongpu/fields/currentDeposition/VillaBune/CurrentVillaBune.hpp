@@ -89,7 +89,7 @@ private:
         if (math::float2int_rd(oldPos.x()) != math::float2int_rd(newPos.x()))
         {
             const float3_X interPos = intersectXPlane(oldPos, newPos,
-                                                      max(math::float2int_rd(oldPos.x()), math::float2int_rd(newPos.x())));
+                                                      math::max(math::float2int_rd(oldPos.x()), math::float2int_rd(newPos.x())));
             addCurrentSplitY(acc, oldPos, interPos, charge, mem, deltaTime);
             addCurrentSplitY(acc, interPos, newPos, charge, mem, deltaTime);
             return;
@@ -155,20 +155,20 @@ private:
         const float_X rho_dtY = charge * (float_X(1.0) / (CELL_WIDTH * CELL_DEPTH * deltaTime));
         const float_X rho_dtZ = charge * (float_X(1.0) / (CELL_WIDTH * CELL_HEIGHT * deltaTime));
 
-        nvidia::atomicAdd(acc, &(mem[1][1][0].x()), rho_dtX * (deltaPos.x() * meanPos.y() * meanPos.z() + tmp));
-        nvidia::atomicAdd(acc, &(mem[1][0][0].x()), rho_dtX * (deltaPos.x() * (float_X(1.0) - meanPos.y()) * meanPos.z() - tmp));
-        nvidia::atomicAdd(acc, &(mem[0][1][0].x()), rho_dtX * (deltaPos.x() * meanPos.y() * (float_X(1.0) - meanPos.z()) - tmp));
-        nvidia::atomicAdd(acc, &(mem[0][0][0].x()), rho_dtX * (deltaPos.x() * (float_X(1.0) - meanPos.y()) * (float_X(1.0) - meanPos.z()) + tmp));
+        atomicAdd(acc, &(mem[1][1][0].x()), rho_dtX * (deltaPos.x() * meanPos.y() * meanPos.z() + tmp));
+        atomicAdd(acc, &(mem[1][0][0].x()), rho_dtX * (deltaPos.x() * (float_X(1.0) - meanPos.y()) * meanPos.z() - tmp));
+        atomicAdd(acc, &(mem[0][1][0].x()), rho_dtX * (deltaPos.x() * meanPos.y() * (float_X(1.0) - meanPos.z()) - tmp));
+        atomicAdd(acc, &(mem[0][0][0].x()), rho_dtX * (deltaPos.x() * (float_X(1.0) - meanPos.y()) * (float_X(1.0) - meanPos.z()) + tmp));
 
-        nvidia::atomicAdd(acc, &(mem[1][0][1].y()), rho_dtY * (deltaPos.y() * meanPos.z() * meanPos.x() + tmp));
-        nvidia::atomicAdd(acc, &(mem[0][0][1].y()), rho_dtY * (deltaPos.y() * (float_X(1.0) - meanPos.z()) * meanPos.x() - tmp));
-        nvidia::atomicAdd(acc, &(mem[1][0][0].y()), rho_dtY * (deltaPos.y() * meanPos.z() * (float_X(1.0) - meanPos.x()) - tmp));
-        nvidia::atomicAdd(acc, &(mem[0][0][0].y()), rho_dtY * (deltaPos.y() * (float_X(1.0) - meanPos.z()) * (float_X(1.0) - meanPos.x()) + tmp));
+        atomicAdd(acc, &(mem[1][0][1].y()), rho_dtY * (deltaPos.y() * meanPos.z() * meanPos.x() + tmp));
+        atomicAdd(acc, &(mem[0][0][1].y()), rho_dtY * (deltaPos.y() * (float_X(1.0) - meanPos.z()) * meanPos.x() - tmp));
+        atomicAdd(acc, &(mem[1][0][0].y()), rho_dtY * (deltaPos.y() * meanPos.z() * (float_X(1.0) - meanPos.x()) - tmp));
+        atomicAdd(acc, &(mem[0][0][0].y()), rho_dtY * (deltaPos.y() * (float_X(1.0) - meanPos.z()) * (float_X(1.0) - meanPos.x()) + tmp));
 
-        nvidia::atomicAdd(acc, &(mem[0][1][1].z()), rho_dtZ * (deltaPos.z() * meanPos.x() * meanPos.y() + tmp));
-        nvidia::atomicAdd(acc, &(mem[0][1][0].z()), rho_dtZ * (deltaPos.z() * (float_X(1.0) - meanPos.x()) * meanPos.y() - tmp));
-        nvidia::atomicAdd(acc, &(mem[0][0][1].z()), rho_dtZ * (deltaPos.z() * meanPos.x() * (float_X(1.0) - meanPos.y()) - tmp));
-        nvidia::atomicAdd(acc, &(mem[0][0][0].z()), rho_dtZ * (deltaPos.z() * (float_X(1.0) - meanPos.x()) * (float_X(1.0) - meanPos.y()) + tmp));
+        atomicAdd(acc, &(mem[0][1][1].z()), rho_dtZ * (deltaPos.z() * meanPos.x() * meanPos.y() + tmp));
+        atomicAdd(acc, &(mem[0][1][0].z()), rho_dtZ * (deltaPos.z() * (float_X(1.0) - meanPos.x()) * meanPos.y() - tmp));
+        atomicAdd(acc, &(mem[0][0][1].z()), rho_dtZ * (deltaPos.z() * meanPos.x() * (float_X(1.0) - meanPos.y()) - tmp));
+        atomicAdd(acc, &(mem[0][0][0].z()), rho_dtZ * (deltaPos.z() * (float_X(1.0) - meanPos.x()) * (float_X(1.0) - meanPos.y()) + tmp));
 
     }
 
@@ -215,7 +215,7 @@ private:
         if (math::float2int_rd(oldPos.z()) != math::float2int_rd(newPos.z()))
         {
             const float3_X interPos = intersectZPlane(oldPos, newPos,
-                                                      max(math::float2int_rd(oldPos.z()), math::float2int_rd(newPos.z())));
+                                                      math::max(math::float2int_rd(oldPos.z()), math::float2int_rd(newPos.z())));
             float3_X deltaPos = interPos - oldPos;
             float3_X meanPos = oldPos + float_X(0.5) * deltaPos;
             addCurrentToSingleCell(acc, meanPos, deltaPos, charge, mem, deltaTime);
@@ -250,7 +250,7 @@ private:
         if (math::float2int_rd(oldPos.y()) != math::float2int_rd(newPos.y()))
         {
             const float3_X interPos = intersectYPlane(oldPos, newPos,
-                                                      max(math::float2int_rd(oldPos.y()), math::float2int_rd(newPos.y())));
+                                                      math::max(math::float2int_rd(oldPos.y()), math::float2int_rd(newPos.y())));
             addCurrentSplitZ(acc, oldPos, interPos, charge, mem, deltaTime);
             addCurrentSplitZ(acc, interPos, newPos, charge, mem, deltaTime);
             return;

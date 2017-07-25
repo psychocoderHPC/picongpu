@@ -232,7 +232,7 @@ namespace helperFields
                                 float_X const normedWeighting = weighting /
                                     float_X( particles::TYPICAL_NUM_PARTICLES_PER_MACROPARTICLE );
 
-                                nvidia::atomicAdd(
+                                atomicAdd(
                                     acc,
                                     &( shLocalEnergyHistogram[ binNumber ] ),
                                     normedWeighting
@@ -271,7 +271,7 @@ namespace helperFields
                 )
                 {
                     for( int i = linearIdx; i < numBins; i += numWorkers )
-                        nvidia::atomicAdd(
+                        atomicAdd(
                             acc,
                             &( localEnergyHistogram[ i ] ),
                             shLocalEnergyHistogram[ i ]

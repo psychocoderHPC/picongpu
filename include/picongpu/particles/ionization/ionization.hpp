@@ -240,7 +240,7 @@ struct KernelIonizeParticles
                     if (!electronFrame.isValid())
                     {
                         electronFrame = electronBox.getEmptyFrame();
-                        electronBox.setAsLastFrame(electronFrame, block);
+                        electronBox.setAsLastFrame(acc, electronFrame, block);
                     }
                 }
                 __syncthreads();
@@ -276,7 +276,7 @@ struct KernelIonizeParticles
                     if (newFrameFillLvl >= maxParticlesInFrame)
                     {
                         electronFrame = electronBox.getEmptyFrame();
-                        electronBox.setAsLastFrame(electronFrame, block);
+                        electronBox.setAsLastFrame(acc, electronFrame, block);
                         newFrameFillLvl -= maxParticlesInFrame;
                     }
                 }

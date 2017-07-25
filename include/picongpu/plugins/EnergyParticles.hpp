@@ -136,16 +136,16 @@ struct KernelEnergyParticles
         }
 
         /* add energies on block level using shared memory */
-        nvidia::atomicAdd( acc, &shEnergyKin, _local_energyKin); /* add kinetic energy */
-        nvidia::atomicAdd( acc, &shEnergy, _local_energy);       /* add total energy */
+        atomicAdd( acc, &shEnergyKin, _local_energyKin); /* add kinetic energy */
+        atomicAdd( acc, &shEnergy, _local_energy);       /* add total energy */
 
         __syncthreads(); /* wait till all threads have added their energies */
 
         /* add energies on global level using global memory */
         if (linearThreadIdx == 0) /* only done by thread 0 of a block */
         {
-            nvidia::atomicAdd( acc, &(gEnergy[0]), (float_64) (shEnergyKin)); /* add kinetic energy */
-            nvidia::atomicAdd( acc, &(gEnergy[1]), (float_64) (shEnergy));    /* add total energy */
+            atomicAdd( acc, &(gEnergy[0]), (float_64) (shEnergyKin)); /* add kinetic energy */
+            atomicAdd( acc, &(gEnergy[1]), (float_64) (shEnergy));    /* add total energy */
         }
     }
 };

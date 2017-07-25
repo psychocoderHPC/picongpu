@@ -74,17 +74,17 @@ struct KernelSumCurrents
 
         const float3_X myJ = fieldJ(cell);
 
-        nvidia::atomicAdd( acc, &(sh_sumJ.x()), myJ.x());
-        nvidia::atomicAdd( acc, &(sh_sumJ.y()), myJ.y());
-        nvidia::atomicAdd( acc, &(sh_sumJ.z()), myJ.z());
+        atomicAdd( acc, &(sh_sumJ.x()), myJ.x());
+        atomicAdd( acc, &(sh_sumJ.y()), myJ.y());
+        atomicAdd( acc, &(sh_sumJ.z()), myJ.z());
 
         __syncthreads();
 
         if (linearThreadIdx == 0)
         {
-            nvidia::atomicAdd( acc, &(gCurrent->x()), sh_sumJ.x());
-            nvidia::atomicAdd( acc, &(gCurrent->y()), sh_sumJ.y());
-            nvidia::atomicAdd( acc, &(gCurrent->z()), sh_sumJ.z());
+            atomicAdd( acc, &(gCurrent->x()), sh_sumJ.x());
+            atomicAdd( acc, &(gCurrent->y()), sh_sumJ.y());
+            atomicAdd( acc, &(gCurrent->z()), sh_sumJ.z());
         }
     }
 };

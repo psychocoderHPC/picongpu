@@ -201,21 +201,5 @@ atomicAllExch(T_Type* ptr, const T_Type value)
 #endif
 }
 
-template<
-    typename T_Type,
-    typename T_Acc,
-    typename T_Hierarchy = ::alpaka::hierarchy::Grids
->
-DINLINE T_Type
-atomicAdd(
-    T_Acc const & acc,
-    T_Type* ptr,
-    T_Type const value,
-    T_Hierarchy const& hierarchy = T_Hierarchy()
-)
-{
-    return ::alpaka::atomic::atomicOp<::alpaka::atomic::op::Add>(acc, ptr, value, hierarchy);
-}
-
 } //namespace nvidia
 } //namespace pmacc

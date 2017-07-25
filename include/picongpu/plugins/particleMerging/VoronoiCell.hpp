@@ -116,8 +116,9 @@ namespace particleMerging
         }
 
         /** check if the current thread is associated to the first particle */
+        template< typename T_Acc >
         DINLINE
-        bool isFirstParticle()
+        bool isFirstParticle(T_Acc const & acc)
         {
             return atomicExch( &this->firstParticleFlag, 1 ) == 0;
         }
@@ -134,7 +135,7 @@ namespace particleMerging
         )
         {
             nvidia::atomicAllInc( acc, &this->numMacroParticles );
-            nvidia::atomicAdd( acc, &this->numRealParticles, weighting );
+            atomicAdd( acc, &this->numRealParticles, weighting );
 
             if( this->splittingStage == VoronoiSplittingStage::position )
             {
@@ -142,8 +143,8 @@ namespace particleMerging
 
                 for( int i = 0; i < simDim; i++ )
                 {
-                    nvidia::atomicAdd( acc, &this->meanValue[i], weighting * position[i] );
-                    nvidia::atomicAdd( acc, &this->meanSquaredValue[i], weighting * position2[i] );
+                    atomicAdd( acc, &this->meanValue[i], weighting * position[i] );
+                    atomicAdd( acc, &this->meanSquaredValue[i], weighting * position2[i] );
                 }
             }
             else
@@ -152,8 +153,8 @@ namespace particleMerging
 
                 for( int i = 0; i < DIM3; i++ )
                 {
-                    nvidia::atomicAdd( acc, &this->meanValue[i], weighting * momentum[i] );
-                    nvidia::atomicAdd( acc, &this->meanSquaredValue[i], weighting * momentum2[i] );
+                    atomicAdd( acc, &this->meanValue[i], weighting * momentum[i] );
+                    atomicAdd( acc, &this->meanSquaredValue[i], weighting * momentum2[i] );
                 }
             }
         }

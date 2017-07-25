@@ -131,7 +131,7 @@ namespace picongpu
                 FramePtr
             );
             PMACC_SMEM(
-                acc, 
+                acc,
                 finished,
                 int
             );
@@ -248,6 +248,7 @@ namespace picongpu
                 {
                     frame = pb.getEmptyFrame();
                     pb.setAsLastFrame(
+                        acc,
                         frame,
                         superCellIdx
                     );
@@ -335,6 +336,7 @@ namespace picongpu
                         {
                             frame = pb.getEmptyFrame();
                             pb.setAsLastFrame(
+                                acc,
                                 frame,
                                 superCellIdx
                             );

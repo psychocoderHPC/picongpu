@@ -91,7 +91,7 @@ struct CountMakroParticle
         {
             if (isParticle)
             {
-                nvidia::atomicAdd(acc, &counterValue, static_cast<uint64_cu> (1LU));
+                atomicAdd(acc, &counterValue, static_cast<uint64_cu> (1LU));
             }
             __syncthreads();
             if (linearThreadIdx == 0)

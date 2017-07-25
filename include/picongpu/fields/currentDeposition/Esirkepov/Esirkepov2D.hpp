@@ -201,7 +201,7 @@ struct Esirkepov<T_ParticleShape, DIM2>
                          */
                         const float_X W = DS( line, i, 0 ) * tmp;
                         accumulated_J += W;
-                        nvidia::atomicAdd( acc, &( ( *cursorJ( i, j ) ).x() ), accumulated_J );
+                        atomicAdd( acc, &( ( *cursorJ( i, j ) ).x() ), accumulated_J );
                     }
             }
 
@@ -240,7 +240,7 @@ struct Esirkepov<T_ParticleShape, DIM2>
                             ( float_X( 1.0 ) / float_X( 3.0 ) ) * dsi * dsj;
 
                         const float_X j_z = W * currentSurfaceDensityZ;
-                        nvidia::atomicAdd( acc, &( ( *cursorJ( i, j ) ).z() ), j_z );
+                        atomicAdd( acc, &( ( *cursorJ( i, j ) ).z() ), j_z );
                     }
             }
     }

@@ -54,7 +54,12 @@ public:
     {
     }
 
-    HDINLINE TileDataBox<VALUE> pushN(TYPE count, const DataSpace<DIM> &superCell)
+    template< typename T_Acc >
+    HDINLINE TileDataBox<VALUE> pushN(
+        T_Acc const & acc,
+        TYPE count,
+        const DataSpace<DIM> &superCell
+    )
     {
         TYPE oldSize = atomicAdd(currentSizePointer, count); //get count VALUEs
 

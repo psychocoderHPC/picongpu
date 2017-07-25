@@ -242,7 +242,7 @@ namespace particleMerging
 
                     case VoronoiStatus::readyForMerging:
                         /* merge all particles of this Voronoi cell */
-                        if( voronoiCell.isFirstParticle() )
+                        if( voronoiCell.isFirstParticle( acc ) )
                         {
                             /* I am the first particle in the Voronoi cell
                              * => get dressed with Voronoi cell's attributes */

@@ -33,7 +33,9 @@
 #   if 0
 #       include "picongpu/plugins/ChargeConservation.hpp"
 #   endif
-#include "picongpu/plugins/particleMerging/ParticleMerger.hpp"
+#if( PMACC_CUDA_ENABLED == 1 )
+#   include "picongpu/plugins/particleMerging/ParticleMerger.hpp"
+#endif
 #if(ENABLE_HDF5 == 1)
 #include "picongpu/plugins/radiation/parameters.hpp"
 #include "picongpu/plugins/radiation/Radiation.hpp"
@@ -173,8 +175,10 @@ private:
         BinEnergyParticles<bmpl::_1>,
         LiveViewPlugin<bmpl::_1>,
         PositionsParticles<bmpl::_1>,
-        PngPlugin< Visualisation<bmpl::_1, PngCreator> >,
-        plugins::particleMerging::ParticleMerger<bmpl::_1>
+        PngPlugin< Visualisation<bmpl::_1, PngCreator> >
+#if( PMACC_CUDA_ENABLED == 1 )
+        ,plugins::particleMerging::ParticleMerger<bmpl::_1>
+#endif
 #if(ENABLE_HDF5 == 1)
       , Radiation<bmpl::_1>
       , PerSuperCell<bmpl::_1>
