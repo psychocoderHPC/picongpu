@@ -104,7 +104,7 @@ struct ZigZagCIC<particles::shapes::CIC, T_villabuneCorrection, DIM3>
         {
             relayPoint[d] = calc_relayPoint(I[0][d], I[1][d], pos[0][d], pos[1][d]);
         }
-        const float_X volume_reci = float_X(1.0) / float_X(CELL_VOLUME);
+        constexpr float_X volume_reci = float_X(1.0) / float_X(CELL_VOLUME);
 
         auto j = dataBoxJ.toCursor();
 #       pragma unroll 2
@@ -118,98 +118,104 @@ struct ZigZagCIC<particles::shapes::CIC, T_villabuneCorrection, DIM3>
             int z = I[l].z();
 
             floatD_X deltaPos(( relayPoint - pos[l] ) * sign);
-            float_X tmp = deltaPos.x() * deltaPos.y() * deltaPos.z() * (float_X(1.0) / float_X(12.0));
+            float_X tmpX = deltaPos.y() * deltaPos.z() * (float_X(1.0) / float_X(12.0));
+            float_X tmpY = deltaPos.x() * deltaPos.z() * (float_X(1.0) / float_X(12.0));
+            float_X tmpZ = deltaPos.x() * deltaPos.y() * (float_X(1.0) / float_X(12.0));
             if( T_villabuneCorrection == false )
-                tmp = float_X( 0. );
+            {
+                tmpX = float_X( 0. );
+                tmpY = float_X( 0. );
+                tmpZ = float_X( 0. );
+            }
 
             // X
             atomicAddWrapper(
                 &( (*j( x, y, z )).x() ),
-                volume_reci * F1(relayPoint.x(), pos[l].x(), charge) * sign * cellSize.x() *
+                volume_reci * cellSize.x() * F1(relayPoint.x(), pos[l].x(), charge) * sign * (
                 (1 - W1(relayPoint.y(), pos[l].y(), y) ) *
                 (1 - W1(relayPoint.z(), pos[l].z(), z) ) +
-                tmp
+                tmpX)
             );
             atomicAddWrapper(
                 &( (*j( x, y + 1, z )).x() ),
-                volume_reci * F1(relayPoint.x(), pos[l].x(), charge) * sign * cellSize.x() *
+                volume_reci * cellSize.x() * F1(relayPoint.x(), pos[l].x(), charge) * sign * (
                 (W1(relayPoint.y(), pos[l].y(), y) ) *
                 (1 - W1(relayPoint.z(), pos[l].z(), z) ) -
-                tmp
+                tmpX)
             );
             atomicAddWrapper(
                 &( (*j( x, y, z + 1 )).x() ),
-                volume_reci * F1(relayPoint.x(), pos[l].x(), charge) * sign * cellSize.x() *
+                volume_reci * cellSize.x() * F1(relayPoint.x(), pos[l].x(), charge) * sign * (
                 (1 - W1(relayPoint.y(), pos[l].y(), y) ) *
                 (W1(relayPoint.z(), pos[l].z(), z) ) -
-                tmp
+                tmpX)
             );
             atomicAddWrapper(
                 &( (*j( x, y + 1, z + 1 )).x() ),
-                volume_reci * F1(relayPoint.x(), pos[l].x(), charge) * sign * cellSize.x() *
+                volume_reci * cellSize.x() * F1(relayPoint.x(), pos[l].x(), charge) * sign * (
                 (W1(relayPoint.y(), pos[l].y(), y) ) *
                 (W1(relayPoint.z(), pos[l].z(), z) ) +
-                tmp
+                tmpX)
             );
             // Y
             atomicAddWrapper(
                 &( (*j(x, y, z )).y() ),
-                volume_reci * F1(relayPoint.y(), pos[l].y(), charge) * sign * cellSize.y() *
+                volume_reci * cellSize.y() * F1(relayPoint.y(), pos[l].y(), charge) * sign * (
                 (1 - W1(relayPoint.x(), pos[l].x(), x) ) *
                 (1 - W1(relayPoint.z(), pos[l].z(), z) ) +
-                tmp
+                tmpY)
             );
             atomicAddWrapper(
                 &( (*j( x + 1, y, z )).y() ),
-                volume_reci * F1(relayPoint.y(), pos[l].y(), charge) * sign * cellSize.y() *
+                volume_reci * cellSize.y() * F1(relayPoint.y(), pos[l].y(), charge) * sign * (
                 (W1(relayPoint.x(), pos[l].x(), x) ) *
                 (1 - W1(relayPoint.z(), pos[l].z(), z) ) -
-                tmp
+                tmpY)
             );
             atomicAddWrapper(
                 &( (*j( x, y, z + 1 )).y() ),
-                volume_reci * F1(relayPoint.y(), pos[l].y(), charge) * sign * cellSize.y() *
+                volume_reci * cellSize.y() * F1(relayPoint.y(), pos[l].y(), charge) * sign * (
                 (1 - W1(relayPoint.x(), pos[l].x(), x) ) *
                 (W1(relayPoint.z(), pos[l].z(), z) ) -
-                tmp
+                tmpY)
             );
             atomicAddWrapper(
                 &( (*j( x + 1, y, z + 1 )).y() ),
-                volume_reci * F1(relayPoint.y(), pos[l].y(), charge) * sign * cellSize.y() *
+                volume_reci * cellSize.y() * F1(relayPoint.y(), pos[l].y(), charge) * sign * (
                 ( W1(relayPoint.x(), pos[l].x(), x) ) *
                 ( W1(relayPoint.z(), pos[l].z(), z) ) +
-                tmp
+                tmpY)
             );
 
             // Z
             atomicAddWrapper(
                 &( (*j(x, y, z )).z() ),
-                volume_reci * F1(relayPoint.z(), pos[l].z(), charge) * sign * cellSize.z() *
+                volume_reci * cellSize.z() * F1(relayPoint.z(), pos[l].z(), charge) * sign * (
                 (1 - W1(relayPoint.x(), pos[l].x(), x) ) *
                 (1 - W1(relayPoint.y(), pos[l].y(), y) ) +
-                tmp
+                tmpZ)
             );
             atomicAddWrapper(
                 &( (*j( x + 1, y, z )).z() ),
-                volume_reci * F1(relayPoint.z(), pos[l].z(), charge) * sign * cellSize.z() *
+                volume_reci * cellSize.z() * F1(relayPoint.z(), pos[l].z(), charge) * sign * (
                 (W1(relayPoint.x(), pos[l].x(), x) ) *
                 (1 - W1(relayPoint.y(), pos[l].y(), y) ) -
-                tmp
+                tmpZ)
             );
 
             atomicAddWrapper(
                 &( (*j(x, y + 1, z )).z() ),
-                volume_reci * F1(relayPoint.z(), pos[l].z(), charge) * sign * cellSize.z() *
+                volume_reci * cellSize.z() * F1(relayPoint.z(), pos[l].z(), charge) * sign * (
                 (1 - W1(relayPoint.x(), pos[l].x(), x) ) *
                 (W1(relayPoint.y(), pos[l].y(), y) ) -
-                tmp
+                tmpZ)
             );
             atomicAddWrapper(
                 &( (*j( x + 1, y + 1, z )).z() ),
-                volume_reci * F1(relayPoint.z(), pos[l].z(), charge) * sign * cellSize.z() *
+                volume_reci * cellSize.z() * F1(relayPoint.z(), pos[l].z(), charge) * sign * (
                 (W1(relayPoint.x(), pos[l].x(), x) ) *
                 (W1(relayPoint.y(), pos[l].y(), y) ) +
-                tmp
+                tmpZ)
             );
 
         }
