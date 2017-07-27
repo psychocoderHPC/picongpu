@@ -69,6 +69,7 @@ struct TSC : public shared_TSC::TSC
 
     struct ChargeAssignment : public shared_TSC::TSC
     {
+        typedef  picongpu::particles::shapes::CIC CloudShape;
 
         HDINLINE float_X operator()(const float_X x)
         {
@@ -92,6 +93,8 @@ struct TSC : public shared_TSC::TSC
     struct ChargeAssignmentOnSupport : public shared_TSC::TSC
     {
 
+        typedef  picongpu::particles::shapes::CIC CloudShape;
+        
         /** form factor of this particle shape.
          * \param x has to be within [-support/2, support/2]
          */

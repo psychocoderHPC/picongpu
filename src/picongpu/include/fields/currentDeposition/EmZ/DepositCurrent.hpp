@@ -99,6 +99,9 @@ namespace emz
         DIM3
     > : public BaseMethods< ParticleAssign >
     {
+
+        typedef typename ParticleAssign::CloudShape::ChargeAssignment CloudShape;
+
         template< typename T_Cursor >
         DINLINE void
         operator()(
@@ -151,42 +154,44 @@ namespace emz
         {
             if( line.m_pos0[2] == line.m_pos1[2] )
                 return;
+
+            floatD_X deltaPos( line.m_pos1 - line.m_pos0 );
+            float_X tmp = deltaPos.x() * deltaPos.y() * (float_X(1.0) / float_X(12.0));
+            float_X scalingFactor = currentSurfaceDensity * deltaPos.z();
+
             /* pick every cell in the xy-plane that is overlapped by particle's
              * form factor and deposit the current for the cells above and beneath
              * that cell and for the cell itself.
              */
             for( int i = T_begin ; i < T_end ; ++i )
             {
-                const float_X s0i = S0( line, i, 0 );
-                const float_X dsi = S1( line, i, 0 ) - s0i;
+                float_X const i_shape = ParticleAssign()( distance(line.m_pos1.x(), line.m_pos0.x(), i) );
+
                 for( int j = T_begin ; j < T_end ; ++j )
                 {
-                    const float_X s0j = S0( line, j, 1 );
-                    const float_X dsj = S1( line, j, 1 ) - s0j;
+                    float_X const j_shape = ParticleAssign()( distance(line.m_pos1.y(), line.m_pos0.y(), j) );
+                    float_X const sign = ( i == j ? float_X( 1.0 ) : float_X( -1.0 ) );
 
-                    float_X tmp =
-                        -currentSurfaceDensity * (
-                            s0i * s0j +
-                            float_X( 0.5 ) * ( dsi * s0j + s0i * dsj ) +
-                            ( float_X( 1.0 ) / float_X( 3.0 ) ) * dsj * dsi
-                        );
-
-                    float_X accumulated_J = float_X( 0.0 );
                     for( int k = T_begin ; k < T_end - 1 ; ++k )
                     {
-                        /* This is the implementation of the FORTRAN W(i,j,k,3)/ C style W(i,j,k,2) version from
-                         * Esirkepov paper. All coordinates are rotated before thus we can
-                         * always use C style W(i,j,k,2).
-                         */
-                        const float_X W = DS( line, k, 2 ) * tmp;
-                        accumulated_J += W;
                         atomicAddWrapper(
-                            &( (*cursorJ( i, j, k ) ).z( ) ),
-                            accumulated_J
+                            &( (*cursorJ(i, j, k )).z() ),
+                            CloudShape()( distance(line.m_pos1.z(), line.m_pos0.z(), k + float_X( 0.5 )) ) *
+                            scalingFactor *
+                            (
+                                i_shape * j_shape +
+                                tmp * sign
+                            )
                         );
                     }
                 }
             }
+        }
+
+        DINLINE float_X
+        distance(const float_X x_r, const float_X x, const float_X i) const
+        {
+            return i - (x + x_r)/float_X(2.0);
         }
     };
 

@@ -48,6 +48,8 @@ struct CIC : public shared_CIC::CIC
     struct ChargeAssignment : public shared_CIC::CIC
     {
 
+        typedef picongpu::particles::shapes::NGP CloudShape;
+
         HDINLINE float_X operator()(const float_X x)
         {
             /*       -
@@ -67,6 +69,8 @@ struct CIC : public shared_CIC::CIC
     struct ChargeAssignmentOnSupport : public shared_CIC::CIC
     {
 
+        typedef picongpu::particles::shapes::NGP CloudShape;
+        
         /** form factor of this particle shape.
          * \param x has to be within [-support/2, support/2]
          */
