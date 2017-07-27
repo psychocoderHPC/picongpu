@@ -94,11 +94,11 @@ public:
 /* Get margin of a solver
  * class must define a LowerMargin and UpperMargin
  */
-template<typename T_ParticleShape>
-struct GetMargin<picongpu::currentSolver::ZigZagShape<T_ParticleShape > >
+template<typename T_ParticleShape, uint32_t T_dim>
+struct GetMargin<picongpu::currentSolver::ZigZagShape<T_ParticleShape, T_dim > >
 {
 private:
-    typedef picongpu::currentSolver::ZigZagShape<T_ParticleShape> Solver;
+    typedef picongpu::currentSolver::ZigZagShape<T_ParticleShape, T_dim> Solver;
 public:
     typedef typename Solver::LowerMargin LowerMargin;
     typedef typename Solver::UpperMargin UpperMargin;

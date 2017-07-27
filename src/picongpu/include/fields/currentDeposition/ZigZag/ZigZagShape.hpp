@@ -48,7 +48,7 @@ using namespace PMacc;
  *
  * @see ZigZag.def for paper references
  */
-template<typename T_ParticleShape, uint32_t T_dim = simDim>
+template<typename T_ParticleShape, uint32_t T_dim>
 struct ZigZagShape
 {
     /* cloud shape: describe the form factor of a posticle
@@ -57,6 +57,7 @@ struct ZigZagShape
      */
     typedef particles::shapes::CIC ParticleShape;
     typedef typename ParticleShape::ChargeAssignmentOnSupport ParticleAssign;
+    typedef typename ParticleShape::CloudShape::ChargeAssignmentOnSupport CloudShape;
     BOOST_STATIC_CONSTEXPR int supp = ParticleAssign::support;
 
     BOOST_STATIC_CONSTEXPR int currentLowerMargin = supp / 2 + 1 - (supp + 1) % 2;
@@ -122,93 +123,115 @@ struct ZigZagShape
             float_X tmpY = deltaPos.x() * deltaPos.z() * (float_X(1.0) / float_X(12.0));
             float_X tmpZ = deltaPos.x() * deltaPos.y() * (float_X(1.0) / float_X(12.0));
 
+            float_X const tmp = deltaPos.x() * deltaPos.y() * deltaPos.z() * (float_X(1.0) / float_X(12.0));
+            atomicAddWrapper(
+                &( (*j( x, y, z )).x() ),
+                CloudShape()( distance(relayPoint.x(), pos[l].x(), x + float_X( 0.5 )) ) *
+                volume_reci * cellSize.x() * charge  / DELTA_T * ( deltaPos.x() *
+                ParticleAssign()( distance(relayPoint.y(), pos[l].y(), y) ) *
+                ParticleAssign()( distance(relayPoint.z(), pos[l].z(), z) ) +
+                tmp * deltaPos.x())
+            );
+
             // X
             atomicAddWrapper(
                 &( (*j( x, y, z )).x() ),
+                CloudShape()( distance(relayPoint.x(), pos[l].x(), x + float_X( 0.5 )) ) *
                 volume_reci * cellSize.x() * F1(deltaPos.x(), charge) * (
-                (1 - W1(relayPoint.y(), pos[l].y(), y) ) *
-                (1 - W1(relayPoint.z(), pos[l].z(), z) ) +
+                ParticleAssign()( distance(relayPoint.y(), pos[l].y(), y) ) *
+                ParticleAssign()( distance(relayPoint.z(), pos[l].z(), z) ) +
                 tmpX)
             );
             atomicAddWrapper(
                 &( (*j( x, y + 1, z )).x() ),
+                CloudShape()( distance(relayPoint.x(), pos[l].x(), x + float_X( 0.5 )) ) *
                 volume_reci * cellSize.x() * F1(deltaPos.x(), charge) * (
-                (W1(relayPoint.y(), pos[l].y(), y) ) *
-                (1 - W1(relayPoint.z(), pos[l].z(), z) ) -
+                ParticleAssign()( distance(relayPoint.y(), pos[l].y(), y + 1 ) ) *
+                ParticleAssign()( distance(relayPoint.z(), pos[l].z(), z) ) -
                 tmpX)
             );
             atomicAddWrapper(
                 &( (*j( x, y, z + 1 )).x() ),
+                CloudShape()( distance(relayPoint.x(), pos[l].x(), x + float_X( 0.5 )) ) *
                 volume_reci * cellSize.x() * F1(deltaPos.x(), charge) * (
-                (1 - W1(relayPoint.y(), pos[l].y(), y) ) *
-                (W1(relayPoint.z(), pos[l].z(), z) ) -
+                ParticleAssign()( distance(relayPoint.y(), pos[l].y(), y) ) *
+                ParticleAssign()( distance(relayPoint.z(), pos[l].z(), z + 1 ) ) -
                 tmpX)
             );
             atomicAddWrapper(
                 &( (*j( x, y + 1, z + 1 )).x() ),
+                CloudShape()( distance(relayPoint.x(), pos[l].x(), x + float_X( 0.5 )) ) *
                 volume_reci * cellSize.x() * F1(deltaPos.x(), charge) * (
-                (W1(relayPoint.y(), pos[l].y(), y) ) *
-                (W1(relayPoint.z(), pos[l].z(), z) ) +
+                ParticleAssign()( distance(relayPoint.y(), pos[l].y(), y + 1) ) *
+                ParticleAssign()( distance(relayPoint.z(), pos[l].z(), z + 1) ) +
                 tmpX)
             );
             // Y
             atomicAddWrapper(
                 &( (*j(x, y, z )).y() ),
+                CloudShape()( distance(relayPoint.y(), pos[l].y(), y + float_X( 0.5 )) ) *
                 volume_reci * cellSize.y() * F1(deltaPos.y(), charge) * (
-                (1 - W1(relayPoint.x(), pos[l].x(), x) ) *
-                (1 - W1(relayPoint.z(), pos[l].z(), z) ) +
+                ParticleAssign()( distance(relayPoint.x(), pos[l].x(), x) ) *
+                ParticleAssign()( distance(relayPoint.z(), pos[l].z(), z) ) +
                 tmpY)
             );
             atomicAddWrapper(
                 &( (*j( x + 1, y, z )).y() ),
+                CloudShape()( distance(relayPoint.y(), pos[l].y(), y + float_X( 0.5 )) ) *
                 volume_reci * cellSize.y() * F1(deltaPos.y(), charge) * (
-                (W1(relayPoint.x(), pos[l].x(), x) ) *
-                (1 - W1(relayPoint.z(), pos[l].z(), z) ) -
+                ParticleAssign()( distance(relayPoint.x(), pos[l].x(), x + 1) ) *
+                ParticleAssign()( distance(relayPoint.z(), pos[l].z(), z) ) -
                 tmpY)
             );
             atomicAddWrapper(
                 &( (*j( x, y, z + 1 )).y() ),
+                CloudShape()( distance(relayPoint.y(), pos[l].y(), y + float_X( 0.5 )) ) *
                 volume_reci * cellSize.y() * F1(deltaPos.y(), charge) * (
-                (1 - W1(relayPoint.x(), pos[l].x(), x) ) *
-                (W1(relayPoint.z(), pos[l].z(), z) ) -
+                ParticleAssign()( distance(relayPoint.x(), pos[l].x(), x) ) *
+                ParticleAssign()( distance(relayPoint.z(), pos[l].z(), z + 1) ) -
                 tmpY)
             );
             atomicAddWrapper(
                 &( (*j( x + 1, y, z + 1 )).y() ),
+                CloudShape()( distance(relayPoint.y(), pos[l].y(), y + float_X( 0.5 )) ) *
                 volume_reci * cellSize.y() * F1(deltaPos.y(), charge) * (
-                ( W1(relayPoint.x(), pos[l].x(), x) ) *
-                ( W1(relayPoint.z(), pos[l].z(), z) ) +
+                ParticleAssign()( distance(relayPoint.x(), pos[l].x(), x + 1) ) *
+                ParticleAssign()( distance(relayPoint.z(), pos[l].z(), z + 1) ) +
                 tmpY)
             );
 
             // Z
             atomicAddWrapper(
                 &( (*j(x, y, z )).z() ),
+                CloudShape()( distance(relayPoint.z(), pos[l].z(), z + float_X( 0.5 )) ) *
                 volume_reci * cellSize.z() * F1(deltaPos.z(), charge) * (
-                (1 - W1(relayPoint.x(), pos[l].x(), x) ) *
-                (1 - W1(relayPoint.y(), pos[l].y(), y) ) +
+                ParticleAssign()( distance(relayPoint.x(), pos[l].x(), x) ) *
+                ParticleAssign()( distance(relayPoint.y(), pos[l].y(), y) ) +
                 tmpZ)
             );
             atomicAddWrapper(
                 &( (*j( x + 1, y, z )).z() ),
+                CloudShape()( distance(relayPoint.z(), pos[l].z(), z + float_X( 0.5 )) ) *
                 volume_reci * cellSize.z() * F1(deltaPos.z(), charge) * (
-                (W1(relayPoint.x(), pos[l].x(), x) ) *
-                (1 - W1(relayPoint.y(), pos[l].y(), y) ) -
+                ParticleAssign()( distance(relayPoint.x(), pos[l].x(), x + 1) ) *
+                ParticleAssign()( distance(relayPoint.y(), pos[l].y(), y) ) -
                 tmpZ)
             );
 
             atomicAddWrapper(
                 &( (*j(x, y + 1, z )).z() ),
+                CloudShape()( distance(relayPoint.z(), pos[l].z(), z + float_X( 0.5 )) ) *
                 volume_reci * cellSize.z() * F1(deltaPos.z(), charge) * (
-                (1 - W1(relayPoint.x(), pos[l].x(), x) ) *
-                (W1(relayPoint.y(), pos[l].y(), y) ) -
+                ParticleAssign()( distance(relayPoint.x(), pos[l].x(), x) ) *
+                ParticleAssign()( distance(relayPoint.y(), pos[l].y(), y + 1) ) -
                 tmpZ)
             );
             atomicAddWrapper(
                 &( (*j( x + 1, y + 1, z )).z() ),
+                CloudShape()( distance(relayPoint.z(), pos[l].z(), z + float_X( 0.5 )) ) *
                 volume_reci * cellSize.z() * F1(deltaPos.z(), charge) * (
-                (W1(relayPoint.x(), pos[l].x(), x) ) *
-                (W1(relayPoint.y(), pos[l].y(), y) ) +
+                ParticleAssign()( distance(relayPoint.x(), pos[l].x(), x + 1) ) *
+                ParticleAssign()( distance(relayPoint.y(), pos[l].y(), y + 1) ) +
                 tmpZ)
             );
 
@@ -230,9 +253,9 @@ private:
     }
 
     DINLINE float_X
-    W1(const float_X x_r, const float_X x, const float_X i) const
+    distance(const float_X x_r, const float_X x, const float_X i) const
     {
-        return (x + x_r)/float_X(2.0) - i;
+        return i - (x + x_r)/float_X(2.0);
     }
 
     /** calculate virtual point were we split our posticle trajectory

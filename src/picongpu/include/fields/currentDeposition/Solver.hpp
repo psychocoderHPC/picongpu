@@ -22,6 +22,7 @@
 #include "fields/currentDeposition/Esirkepov/EsirkepovNative.hpp"
 #include "fields/currentDeposition/ZigZag/ZigZag.hpp"
 #include "fields/currentDeposition/ZigZag/ZigZagCIC.hpp"
+#include "fields/currentDeposition/ZigZag/ZigZagShape.hpp"
 #include "fields/currentDeposition/EmZ/EmZ.hpp"
 
 #if(SIMDIM==DIM3)
