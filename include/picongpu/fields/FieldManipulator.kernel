@@ -55,7 +55,7 @@ DINLINE void absorb(
     //cells in simulation
     const DataSpace<simDim> gCells = mapper.getGridSuperCells() * SuperCellSize::toRT();
 
-    PMACC_SMEM( finish, int );
+    PMACC_SMEM( acc, finish, int );
 
 
     float_X factor = float_X(0.0);
