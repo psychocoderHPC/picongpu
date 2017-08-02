@@ -100,7 +100,7 @@ namespace kernel
                 /* apply for work for the full block
                  * counter [0] -> offset to load particles
                  */
-                srcParticleOffset = atomicAdd(&(counter[0]), particlesPerFrame);
+                srcParticleOffset = atomicAdd(&(counter[0]), particlesPerFrame, ::alpaka::hierarchy::Blocks{});
             }
             destFramePtr[linearThreadIdx] = DestFramePtr();
             linearSuperCellIds[linearThreadIdx] = -1;
