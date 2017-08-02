@@ -110,12 +110,12 @@ struct CopySpecies
             storageOffset = -1;
             /*count particle in frame*/
             if (parSrc[multiMask_] == 1 && filter(*srcFramePtr, threadIdx.x))
-                storageOffset = nvidia::atomicAllInc(&localCounter);
+                storageOffset = nvidia::atomicAllInc(acc, &localCounter, ::alpaka::hierarchy::Blocks{});
             __syncthreads();
             if (threadIdx.x == 0)
             {
                 /*reserve host memory for particle*/
-                globalOffset = atomicAdd(counter, localCounter);
+                globalOffset = atomicAdd( counter, localCounter, ::alpaka::hierarchy::Blocks{});
             }
             __syncthreads();
             if (storageOffset != -1)
