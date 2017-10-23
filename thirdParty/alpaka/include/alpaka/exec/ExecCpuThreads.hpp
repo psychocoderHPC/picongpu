@@ -48,6 +48,7 @@
 #include <vector>                               // std::vector
 #include <tuple>                                // std::tuple
 #include <type_traits>                          // std::decay
+#include <future>                               // std::future
 #if ALPAKA_DEBUG >= ALPAKA_DEBUG_MINIMAL
     #include <iostream>                         // std::cout
 #endif
@@ -114,23 +115,23 @@ namespace alpaka
             //-----------------------------------------------------------------------------
             //! Copy constructor.
             //-----------------------------------------------------------------------------
-            ALPAKA_FN_HOST ExecCpuThreads(ExecCpuThreads const &) = default;
+            ExecCpuThreads(ExecCpuThreads const &) = default;
             //-----------------------------------------------------------------------------
             //! Move constructor.
             //-----------------------------------------------------------------------------
-            ALPAKA_FN_HOST ExecCpuThreads(ExecCpuThreads &&) = default;
+            ExecCpuThreads(ExecCpuThreads &&) = default;
             //-----------------------------------------------------------------------------
             //! Copy assignment operator.
             //-----------------------------------------------------------------------------
-            ALPAKA_FN_HOST auto operator=(ExecCpuThreads const &) -> ExecCpuThreads & = default;
+            auto operator=(ExecCpuThreads const &) -> ExecCpuThreads & = default;
             //-----------------------------------------------------------------------------
             //! Move assignment operator.
             //-----------------------------------------------------------------------------
-            ALPAKA_FN_HOST auto operator=(ExecCpuThreads &&) -> ExecCpuThreads & = default;
+            auto operator=(ExecCpuThreads &&) -> ExecCpuThreads & = default;
             //-----------------------------------------------------------------------------
             //! Destructor.
             //-----------------------------------------------------------------------------
-            ALPAKA_FN_HOST ~ExecCpuThreads() = default;
+            ~ExecCpuThreads() = default;
 
             //-----------------------------------------------------------------------------
             //! Executes the kernel function object.
