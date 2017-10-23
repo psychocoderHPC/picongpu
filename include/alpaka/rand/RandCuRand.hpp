@@ -29,9 +29,6 @@
     #error If ALPAKA_ACC_GPU_CUDA_ENABLED is set, the compiler has to support CUDA!
 #endif
 
-// This is not supported by older clang native CUDA compilers.
-#if !BOOST_COMP_CLANG_CUDA || (BOOST_COMP_CLANG_CUDA >= BOOST_VERSION_NUMBER(3,9,0))
-
 #include <alpaka/rand/Traits.hpp>       // CreateNormalReal, ...
 
 #include <alpaka/dev/DevCudaRt.hpp>     // dev::DevCudaRt
@@ -72,7 +69,7 @@ namespace alpaka
                     // After calling this constructor the instance is not valid initialized and
                     // need to be overwritten with a valid object
                     //-----------------------------------------------------------------------------
-                    ALPAKA_FN_ACC_CUDA_ONLY Xor() = default;
+                    Xor() = default;
 
                     //-----------------------------------------------------------------------------
                     //! Constructor.
@@ -116,7 +113,7 @@ namespace alpaka
                     //-----------------------------------------------------------------------------
                     //! Constructor.
                     //-----------------------------------------------------------------------------
-                    ALPAKA_FN_ACC_CUDA_ONLY NormalReal() = default;
+                    NormalReal() = default;
 
                     //-----------------------------------------------------------------------------
                     //! Call operator.
@@ -141,7 +138,7 @@ namespace alpaka
                     //-----------------------------------------------------------------------------
                     //! Constructor.
                     //-----------------------------------------------------------------------------
-                    ALPAKA_FN_ACC_CUDA_ONLY NormalReal() = default;
+                    NormalReal() = default;
 
                     //-----------------------------------------------------------------------------
                     //! Call operator.
@@ -174,7 +171,7 @@ namespace alpaka
                     //-----------------------------------------------------------------------------
                     //! Constructor.
                     //-----------------------------------------------------------------------------
-                    ALPAKA_FN_ACC_CUDA_ONLY UniformReal() = default;
+                    UniformReal() = default;
 
                     //-----------------------------------------------------------------------------
                     //! Call operator.
@@ -203,7 +200,7 @@ namespace alpaka
                     //-----------------------------------------------------------------------------
                     //! Constructor.
                     //-----------------------------------------------------------------------------
-                    ALPAKA_FN_ACC_CUDA_ONLY UniformReal() = default;
+                    UniformReal() = default;
 
                     //-----------------------------------------------------------------------------
                     //! Call operator.
@@ -240,7 +237,7 @@ namespace alpaka
                     //-----------------------------------------------------------------------------
                     //! Constructor.
                     //-----------------------------------------------------------------------------
-                    ALPAKA_FN_ACC_CUDA_ONLY UniformUint() = default;
+                    UniformUint() = default;
 
                     //-----------------------------------------------------------------------------
                     //! Call operator.
@@ -356,5 +353,4 @@ namespace alpaka
     }
 }
 
-#endif
 #endif
