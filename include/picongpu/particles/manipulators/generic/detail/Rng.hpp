@@ -61,7 +61,7 @@ namespace detail
         template< typename T_Acc >
         using RngType = pmacc::nvidia::rng::RNG<
             nvidia::rng::methods::Xor< T_Acc >,
-            decltype( Distribution::get( std::declval< T_Acc >( ) ) )
+            decltype( Distribution::get( alpaka::core::declval< T_Acc >( ) ) )
         >;
 
         /** constructor
