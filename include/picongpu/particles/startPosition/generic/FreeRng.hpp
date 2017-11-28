@@ -21,7 +21,7 @@
 
 #include "picongpu/simulation_defines.hpp"
 #include "picongpu/particles/startPosition/generic/FreeRng.def"
-#include "picongpu/particles/manipulators/generic/detail/Rng.hpp"
+#include "picongpu/particles/functor/generic/detail/Rng.hpp"
 
 #include <utility>
 #include <type_traits>
@@ -110,13 +110,13 @@ namespace acc
     >
     struct FreeRng :
         protected T_Functor,
-        private picongpu::particles::manipulators::generic::detail::Rng<
+        private picongpu::particles::functor::generic::detail::Rng<
             T_Distribution,
             T_Seed,
             T_SpeciesType
         >
     {
-        using RngGenerator = picongpu::particles::manipulators::generic::detail::Rng<
+        using RngGenerator = picongpu::particles::functor::generic::detail::Rng<
             T_Distribution,
             T_Seed,
             T_SpeciesType

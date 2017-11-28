@@ -19,12 +19,14 @@
 
 #pragma once
 
+#include "picongpu/particles/functor/generic/Free.def"
+
 
 namespace picongpu
 {
 namespace particles
 {
-namespace manipulators
+namespace functor
 {
 namespace generic
 {
@@ -49,6 +51,6 @@ namespace acc
     >;
 
 } // namespace generic
-} // namespace manipulators
+} // namespace functor
 } // namespace particles
 } // namespace picongpu

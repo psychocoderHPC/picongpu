@@ -20,6 +20,8 @@
 
 #pragma once
 
+#include "picongpu/particles/functor/generic/Free.def"
+
 namespace picongpu
 {
 namespace particles
@@ -36,7 +38,7 @@ namespace generic
      *                   `T_Functor()` or `T_Functor(uint32_t currentTimeStep)`
      */
     template< typename T_Functor >
-    struct Free;
+    using Free = functor::generic::Free< T_Functor >;
 
 } // namespace generic
 } // namespace manipulators

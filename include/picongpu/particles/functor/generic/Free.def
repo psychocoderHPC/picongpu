@@ -1,4 +1,4 @@
-/* Copyright 2015-2017 Rene Widera, Axel Huebl
+/* Copyright 2015-2017 Rene Widera
  *
  * This file is part of PIConGPU.
  *
@@ -17,38 +17,28 @@
  * If not, see <http://www.gnu.org/licenses/>.
  */
 
-#pragma once
 
+#pragma once
 
 namespace picongpu
 {
 namespace particles
 {
-namespace manipulators
+namespace functor
 {
 namespace generic
 {
-namespace acc
-{
-    struct None
-    {
-        template< typename ... T_Args >
-        HDINLINE void
-        operator( )( T_Args && ... )
-        {
-        }
-    };
-} // namespace acc
 
-    /** do nothing with the particle
+    /** call simple free user defined functor
      *
-     * The call of this functor results in an empty operation
+     * @tparam T_Functor user defined functor
+     *                   **optional**: can implement **one** host side constructor
+     *                   `T_Functor()` or `T_Functor(uint32_t currentTimeStep)`
      */
-    using None = Free<
-        acc::None
-    >;
+    template< typename T_Functor >
+    struct Free;
 
 } // namespace generic
-} // namespace manipulators
+} // namespace functor
 } // namespace particles
 } // namespace picongpu

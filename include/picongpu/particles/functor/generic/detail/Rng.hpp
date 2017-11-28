@@ -34,7 +34,7 @@ namespace picongpu
 {
 namespace particles
 {
-namespace manipulators
+namespace functor
 {
 namespace generic
 {
@@ -157,6 +157,6 @@ namespace detail
 
 } // namespace detail
 } // namepsace generic
-} // namespace manipulators
+} // namespace functor
 } // namespace particles
 } // namespace picongpu

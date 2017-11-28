@@ -20,7 +20,6 @@
 #pragma once
 
 #include "picongpu/simulation_defines.hpp"
-#include "picongpu/particles/functor/generic/FreeRng.def"
 
 #include <boost/mpl/integral_c.hpp>
 #include <boost/mpl/placeholders.hpp>
@@ -30,7 +29,7 @@ namespace picongpu
 {
 namespace particles
 {
-namespace manipulators
+namespace functor
 {
 namespace generic
 {
@@ -73,14 +72,9 @@ namespace generic
         >,
         typename T_SpeciesType = boost::mpl::_1
     >
-    using FreeRng = functor::generic::FreeRng<
-        T_Functor,
-        T_Distribution,
-        T_Seed,
-        T_SpeciesType
-    >;
+    struct FreeRng;
 
 } // namespace generic
-} // namespace manipulators
+} // namespace functor
 } // namespace particles
 } // namespace picongpu

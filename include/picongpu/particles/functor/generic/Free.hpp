@@ -20,7 +20,7 @@
 #pragma once
 
 #include "picongpu/simulation_defines.hpp"
-#include "picongpu/particles/manipulators/generic/Free.def"
+#include "picongpu/particles/functor/generic/Free.def"
 
 #include <utility>
 #include <type_traits>
@@ -29,7 +29,7 @@ namespace picongpu
 {
 namespace particles
 {
-namespace manipulators
+namespace functor
 {
 namespace generic
 {
@@ -151,6 +151,6 @@ namespace acc
     };
 
 } // namespace generic
-} // namespace manipulators
+} // namespace functor
 } // namespace particles
 } // namespace picongpu

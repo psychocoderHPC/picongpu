@@ -20,8 +20,8 @@
 #pragma once
 
 #include "picongpu/simulation_defines.hpp"
-#include "picongpu/particles/manipulators/generic/FreeRng.def"
-#include "picongpu/particles/manipulators/generic/detail/Rng.hpp"
+#include "picongpu/particles/functor/generic/FreeRng.def"
+#include "picongpu/particles/functor/generic/detail/Rng.hpp"
 
 #include <utility>
 #include <type_traits>
@@ -32,7 +32,7 @@ namespace picongpu
 {
 namespace particles
 {
-namespace manipulators
+namespace functor
 {
 namespace generic
 {
@@ -215,6 +215,6 @@ namespace acc
     };
 
 } // namepsace generic
-} // namespace manipulators
+} // namespace functor
 } // namespace particles
 } // namespace picongpu

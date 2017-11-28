@@ -1,4 +1,4 @@
-/* Copyright 2015-2017 Rene Widera, Axel Huebl
+/* Copyright 2014-2017 Rene Widera, Axel Huebl
  *
  * This file is part of PIConGPU.
  *
@@ -19,36 +19,5 @@
 
 #pragma once
 
-
-namespace picongpu
-{
-namespace particles
-{
-namespace manipulators
-{
-namespace generic
-{
-namespace acc
-{
-    struct None
-    {
-        template< typename ... T_Args >
-        HDINLINE void
-        operator( )( T_Args && ... )
-        {
-        }
-    };
-} // namespace acc
-
-    /** do nothing with the particle
-     *
-     * The call of this functor results in an empty operation
-     */
-    using None = Free<
-        acc::None
-    >;
-
-} // namespace generic
-} // namespace manipulators
-} // namespace particles
-} // namespace picongpu
+#include "picongpu/particles/functor/generic/Free.hpp"
+#include "picongpu/particles/functor/generic/FreeRng.hpp"
