@@ -26,6 +26,7 @@
 #include "pmacc/mappings/kernel/AreaMapping.hpp"
 #include "pmacc/particles/memory/dataTypes/FramePointer.hpp"
 
+#include "pmacc/filter/Interface.hpp"
 #include "pmacc/particles/particleFilter/FilterFactory.hpp"
 #include "pmacc/particles/particleFilter/PositionFilter.hpp"
 #include "pmacc/nvidia/atomic.hpp"
@@ -228,7 +229,7 @@ struct CountParticles
      * @return number of particles in defined area
      */
     template<uint32_t AREA, class PBuffer, class Filter, class CellDesc, typename T_ParticleFilter>
-    static uint64_cu countOnDevice( PBuffer& buffer, CellDesc cellDescription, Filter filter, T_ParticleFilter & parFilter )
+    static uint64_cu countOnDevice( PBuffer& buffer, CellDesc cellDescription, Filter filter, filter::Interface< T_ParticleFilter, 1u > & parFilter )
     {
         GridBuffer<
             uint64_cu,
@@ -268,7 +269,7 @@ struct CountParticles
      * @return number of particles in defined area
      */
     template< class PBuffer, class Filter, class CellDesc, typename T_ParticleFilter>
-    static uint64_cu countOnDevice(PBuffer& buffer, CellDesc cellDescription, Filter filter, T_ParticleFilter & parFilter)
+    static uint64_cu countOnDevice(PBuffer& buffer, CellDesc cellDescription, Filter filter, filter::Interface< T_ParticleFilter, 1u > & parFilter)
     {
         return pmacc::CountParticles::countOnDevice < CORE + BORDER + GUARD > (buffer, cellDescription, filter, parFilter);
     }
@@ -286,7 +287,7 @@ struct CountParticles
      * @return number of particles in defined area
      */
     template<uint32_t AREA, class PBuffer, class CellDesc, class Space, typename T_ParticleFilter>
-    static uint64_cu countOnDevice(PBuffer& buffer, CellDesc cellDescription, const Space& origin, const Space& size, T_ParticleFilter & parFilter)
+    static uint64_cu countOnDevice(PBuffer& buffer, CellDesc cellDescription, const Space& origin, const Space& size, filter::Interface< T_ParticleFilter, 1u > & parFilter)
     {
         typedef bmpl::vector< typename GetPositionFilter<Space::Dim>::type > usedFilters;
         typedef typename FilterFactory<usedFilters>::FilterType MyParticleFilter;
@@ -307,7 +308,7 @@ struct CountParticles
      * @return number of particles in defined area
      */
     template< class PBuffer, class Filter, class CellDesc, class Space, typename T_ParticleFilter>
-    static uint64_cu countOnDevice(PBuffer& buffer, CellDesc cellDescription, const Space& origin, const Space& size, T_ParticleFilter & parFilter)
+    static uint64_cu countOnDevice(PBuffer& buffer, CellDesc cellDescription, const Space& origin, const Space& size, filter::Interface< T_ParticleFilter, 1u > & parFilter)
     {
         return pmacc::CountParticles::countOnDevice < CORE + BORDER + GUARD > (buffer, cellDescription, origin, size, parFilter);
     }
