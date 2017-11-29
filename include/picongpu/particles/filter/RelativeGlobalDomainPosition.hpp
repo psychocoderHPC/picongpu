@@ -57,6 +57,7 @@ namespace acc
             typename T_Particle
         >
         HDINLINE bool operator()(
+            bool *,
             T_Acc const &,
             T_Particle const & particle
         )
@@ -121,7 +122,7 @@ namespace acc
             using type = RelativeGlobalDomainPosition;
         };
 
-        HINLINE RelativeGlobalDomainPosition( )
+        HINLINE RelativeGlobalDomainPosition( uint32_t )
         {
             SubGrid< simDim > const & subGrid = Environment< simDim >::get( ).SubGrid( );
             globalDomainSize = subGrid.getGlobalDomain( ).size;

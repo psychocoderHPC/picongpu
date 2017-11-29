@@ -48,7 +48,7 @@ namespace acc
         //! store user functor instance
         HDINLINE FreeCell(
             Functor const & functor,
-            DataSpace< simDim > const & gpuCellOffsetToTotalOrigin
+            DataSpace< simDim > const & superCellToLocalOriginCellOffset
         ) :
             Functor( functor ),
             m_superCellToLocalOriginCellOffset( superCellToLocalOriginCellOffset )
@@ -70,13 +70,14 @@ namespace acc
         >
         HDINLINE
         void operator( )(
+            void *,
             T_Acc const &,
             T_Particle && particle,
             T_Args && ... args
         )
         {
             DataSpace< simDim > const cellInSuperCell(
-                DataSpaceOperations< simdDim >::template map< SuperCellSize > ( particle[ localCellIdx_ ] )
+                DataSpaceOperations< simDim >::template map< SuperCellSize > ( particle[ localCellIdx_ ] )
             );
             Functor::operator( )(
                 m_superCellToLocalOriginCellOffset + cellInSuperCell,
@@ -91,15 +92,16 @@ namespace acc
         >
         HDINLINE
         bool operator( )(
+            bool *,
             T_Acc const &,
             T_Particle const & particle
         )
         {
             DataSpace< simDim > const cellInSuperCell(
-                DataSpaceOperations< simdDim >::template map< SuperCellSize > ( particle[ localCellIdx_ ] )
+                DataSpaceOperations< simDim >::template map< SuperCellSize > ( particle[ localCellIdx_ ] )
             );
             return Functor::operator( )(
-                m_superCellToLocalOriginCellOffset + cellInSuperCell
+                m_superCellToLocalOriginCellOffset + cellInSuperCell,
                 particle
             );
         }
@@ -142,7 +144,7 @@ namespace acc
             >::type* = 0
         ) : Functor( currentStep )
         {
-            hostInit( uint32_t currentStep );
+            hostInit( currentStep );
         }
 
         /** constructor
@@ -162,7 +164,7 @@ namespace acc
             >::type* = 0
         ) : Functor( )
         {
-            hostInit( uint32_t currentStep );
+            hostInit( currentStep );
         }
 
         /** create device functor
@@ -186,7 +188,7 @@ namespace acc
             T_WorkerCfg const &
         )
         {
-            uint32_t const superCellToLocalOriginCellOffset(
+            DataSpace< simDim > const superCellToLocalOriginCellOffset(
                 localSupercellOffset * SuperCellSize::toRT( )
             );
 
@@ -194,6 +196,14 @@ namespace acc
                 *static_cast< Functor * >( this ),
                 gpuCellOffsetToTotalOrigin + superCellToLocalOriginCellOffset
             );
+        }
+
+        static
+        HINLINE std::string
+        getName( )
+        {
+            // we provide the name from the param class
+            return Functor::name;
         }
 
     private:

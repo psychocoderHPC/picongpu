@@ -75,6 +75,7 @@ namespace acc
         >
         HDINLINE
         void operator()(
+            void*,
             T_Acc const &,
             T_Particle& particle,
             T_Args && ... args

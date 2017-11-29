@@ -50,6 +50,7 @@ namespace acc
             typename T_Acc
         >
         HDINLINE bool operator()(
+            bool *,
             T_Acc const &,
             T_Particle const & particle
         )
@@ -67,6 +68,8 @@ namespace acc
         {
             using type = All;
         };
+
+        HINLINE All( uint32_t ){}
 
         /** create filter for the accelerator
          *

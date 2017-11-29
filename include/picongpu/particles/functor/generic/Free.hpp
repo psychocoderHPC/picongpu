@@ -65,6 +65,7 @@ namespace acc
         >
         HDINLINE
         void operator( )(
+            void *,
             T_Acc const &,
             T_Args && ... args
         )
@@ -78,6 +79,7 @@ namespace acc
         >
         HDINLINE
         bool operator( )(
+            bool *,
             T_Acc const &,
             T_Particle const & particle
         )
@@ -165,6 +167,15 @@ namespace acc
         {
             return acc::Free< Functor >( *static_cast< Functor * >( this ) );
         }
+
+        static
+        HINLINE std::string
+        getName( )
+        {
+            // we provide the name from the param class
+            return Functor::name;
+        }
+
     };
 
 } // namespace generic

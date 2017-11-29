@@ -76,6 +76,7 @@ namespace acc
         >
         HDINLINE
         void operator()(
+            void *,
             T_Acc const &,
             T_Particle && particle,
             T_Args && ... args
@@ -96,6 +97,7 @@ namespace acc
         >
         HDINLINE
         bool operator()(
+            bool *,
             T_Acc const &,
             T_Particle const & particle
         )
@@ -108,6 +110,14 @@ namespace acc
             );
         }
         //!@}
+
+        static
+        HINLINE std::string
+        getName( )
+        {
+            // we provide the name from the param class
+            return T_Functor::name;
+        }
 
     private:
 
@@ -227,10 +237,11 @@ namespace acc
             );
         }
 
+        static
         HINLINE std::string
-        getName( ) const
+        getName( )
         {
-            return std::string("FreeRNG");
+            return Functor::name;
         }
     };
 

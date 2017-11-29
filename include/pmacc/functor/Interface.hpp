@@ -99,9 +99,7 @@ namespace detail
         HDINLINE auto operator( )(
             T_Acc const & acc,
             T_Args && ... args )
-        -> decltype(
-            std::declval< UserFunctor >( )( acc, args ... )
-        )
+        -> T_ReturnType
         {
             /* check if the current used number of arguments to execute the
              * functor is equal to the interface requirements
@@ -114,7 +112,7 @@ namespace detail
 
             // get the return type of the user functor
             using UserFunctorReturnType = decltype(
-                std::declval< UserFunctor >( )( acc, args ... )
+                std::declval< UserFunctor >( )( (T_ReturnType *)nullptr, acc, args ... )
             );
 
             // compare user functor return type with the interface requirements
@@ -125,7 +123,7 @@ namespace detail
                     detail::VoidWrapper< T_ReturnType >
                 >::value
             );
-            return ( *static_cast< UserFunctor * >( this ) )( acc, args ... );
+            return ( *static_cast< UserFunctor * >( this ) )( (T_ReturnType *)nullptr, acc, args ... );
         }
     };
 
@@ -239,10 +237,11 @@ namespace detail
          *
          * @return name to identify the functor
          */
+        static
         HINLINE std::string
-        getName( ) const
+        getName( )
         {
-            return ( *static_cast< UserFunctor * >( this ) ).getName( );
+            return UserFunctor::getName( );
         }
     };
 

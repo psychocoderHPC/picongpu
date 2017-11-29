@@ -85,6 +85,28 @@ namespace filter
         IfRelativeGlobalPositionParamUpperQuarter
     >;
 
+    struct InCell
+    {
+        template< typename T_Particle >
+        HDINLINE
+        bool operator()(
+            DataSpace< simDim > const & particleCell,
+            T_Particle const & particle
+        )
+        {
+            bool useParticle = false;
+            if( particleCell.x( ) == 5 )
+                useParticle =  true;
+
+            return useParticle;
+        }
+
+        static constexpr char const * name = "InCell";
+    };
+
+    //! definition of OnceIonized manipulator
+    using ParticleInCell = generic::FreeCell< InCell >;
+
     /** collection of all available particle filters
      *
      * - filter All is defined in picongpu/particles/filter/filter.def
@@ -93,7 +115,8 @@ namespace filter
         All,
         LowerQuarterYPosition,
         MiddleHalfYPosition,
-        UpperQuarterYPosition
+        UpperQuarterYPosition,
+        ParticleInCell
     >;
 
 } // namespace filter
