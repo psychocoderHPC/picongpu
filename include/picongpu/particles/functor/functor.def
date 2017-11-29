@@ -22,4 +22,5 @@
 
 #include "picongpu/particles/functor/generic/Free.def"
 #include "picongpu/particles/functor/generic/FreeRng.def"
+#include "picongpu/particles/functor/generic/FreeCell.def"
 #include "picongpu/particles/functor/generic/None.def"

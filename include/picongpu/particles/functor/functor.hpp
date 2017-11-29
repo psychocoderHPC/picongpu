@@ -21,3 +21,4 @@
 
 #include "picongpu/particles/functor/generic/Free.hpp"
 #include "picongpu/particles/functor/generic/FreeRng.hpp"
+#include "picongpu/particles/functor/generic/FreeCell.hpp"

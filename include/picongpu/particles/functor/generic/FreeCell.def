@@ -1,4 +1,4 @@
-/* Copyright 2017 Rene Widera
+/* Copyright 2015-2017 Rene Widera
  *
  * This file is part of PIConGPU.
  *
@@ -17,11 +17,28 @@
  * If not, see <http://www.gnu.org/licenses/>.
  */
 
+
 #pragma once
 
+namespace picongpu
+{
+namespace particles
+{
+namespace functor
+{
+namespace generic
+{
 
-#include "picongpu/particles/filter/generic/Free.hpp"
-#include "picongpu/particles/filter/generic/FreeRng.hpp"
-#include "picongpu/particles/filter/generic/FreeCell.hpp"
-#include "picongpu/particles/filter/RelativeGlobalDomainPosition.hpp"
-#include "picongpu/particles/filter/All.hpp"
+    /** call simple free user defined functor
+     *
+     * @tparam T_Functor user defined functor
+     *                   **optional**: can implement **one** host side constructor
+     *                   `T_Functor()` or `T_Functor(uint32_t currentTimeStep)`
+     */
+    template< typename T_Functor >
+    struct FreeCell;
+
+} // namespace generic
+} // namespace functor
+} // namespace particles
+} // namespace picongpu

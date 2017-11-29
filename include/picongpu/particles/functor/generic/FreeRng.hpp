@@ -67,6 +67,7 @@ namespace acc
          * @param alpaka accelerator
          * @param particle particle which is given to the user functor
          * @return void is used to enable the operator if the user functor except two arguments
+         * @{
          */
         template<
             typename T_Particle,
@@ -88,6 +89,25 @@ namespace acc
                 args ...
             );
         }
+
+        template<
+            typename T_Acc,
+            typename T_Particle
+        >
+        HDINLINE
+        bool operator()(
+            T_Acc const &,
+            T_Particle const & particle
+        )
+        {
+            namespace nvrng = nvidia::rng;
+
+            return Functor::operator()(
+                m_rng,
+                particle
+            );
+        }
+        //!@}
 
     private:
 
