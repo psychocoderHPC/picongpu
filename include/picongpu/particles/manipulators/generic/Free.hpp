@@ -1,4 +1,4 @@
-/* Copyright 2015-2017 Rene Widera
+/* Copyright 2013-2017 Rene Widera, Axel Huebl
  *
  * This file is part of PIConGPU.
  *
@@ -17,10 +17,15 @@
  * If not, see <http://www.gnu.org/licenses/>.
  */
 
-
 #pragma once
 
-#include "picongpu/particles/functor/generic/Free.def"
+#include "picongpu/simulation_defines.hpp"
+
+#include "picongpu/particles/manipulators/generic/Free.def"
+#include "picongpu/particles/functor/generic/Free.hpp"
+
+#include <utility>
+#include <type_traits>
 
 namespace picongpu
 {
@@ -31,14 +36,24 @@ namespace manipulators
 namespace generic
 {
 
-    /** call simple free user defined functor
-     *
-     * @tparam T_Functor user defined functor
-     *                   **optional**: can implement **one** host side constructor
-     *                   `T_Functor()` or `T_Functor(uint32_t currentTimeStep)`
-     */
     template< typename T_Functor >
-    struct Free;
+    struct Free : public functor::generic::Free< T_Functor >
+    {
+        using Base = functor::generic::Free< T_Functor >;
+
+        /** constructor
+         *
+         * T_Functor can only have one constructor of the following constructors:
+         * T_Functor( currentStep ) or the default constructor T_Functor()
+         *
+         * @param currentStep current simulation time step
+         */
+        HINLINE Free(
+            uint32_t currentStep
+        ) : Base( currentStep )
+        {
+        }
+    };
 
 } // namespace generic
 } // namespace manipulators

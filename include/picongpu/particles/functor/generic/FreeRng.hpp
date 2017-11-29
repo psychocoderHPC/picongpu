@@ -76,7 +76,7 @@ namespace acc
         HDINLINE
         void operator()(
             T_Acc const &,
-            T_Particle& particle,
+            T_Particle && particle,
             T_Args && ... args
         )
         {

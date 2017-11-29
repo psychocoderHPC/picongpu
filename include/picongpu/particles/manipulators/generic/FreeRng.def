@@ -73,12 +73,7 @@ namespace generic
         >,
         typename T_SpeciesType = boost::mpl::_1
     >
-    using FreeRng = functor::generic::FreeRng<
-        T_Functor,
-        T_Distribution,
-        T_Seed,
-        T_SpeciesType
-    >;
+    struct FreeRng;
 
 } // namespace generic
 } // namespace manipulators
