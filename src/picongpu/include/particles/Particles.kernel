@@ -173,6 +173,39 @@ struct KernelManipulateAllParticles
     }
 };
 
+struct Index
+{
+    HDINLINE Index(const DataSpace< simDim >& gOffset) :
+        globalOffset( gOffset )
+    {
+
+    }
+
+    HDINLINE DataSpace< simDim > operator()( const DataSpace< simDim > & inSuperCellOffset) const
+    {
+        return globalOffset + inSuperCellOffset;
+    }
+
+    DataSpace< simDim > globalOffset;
+};
+
+
+//! calculate and add the magnetic field backgroudn field
+struct FieldBack
+{
+    const uint32_t currentStep;
+    HDINLINE FieldBack( const uint32_t timeStep) : currentStep( timeStep )
+    {
+
+    }
+
+    template<typename Dst>
+    HDINLINE void operator()(Dst & dst, const DataSpace<simDim> & cellOffset) const
+    {
+        dst += FieldBackgroundB(float3_64(UNIT_BFIELD,UNIT_BFIELD,UNIT_BFIELD))(cellOffset, currentStep);
+    }
+};
+
 template< class BlockDescription_ >
 struct KernelMoveAndMarkParticles
 {
@@ -182,7 +215,9 @@ struct KernelMoveAndMarkParticles
        EBox fieldE,
        BBox fieldB,
        FrameSolver frameSolver,
-       Mapping mapper) const
+       Mapping mapper,
+       uint32_t currentStep,
+       DataSpace<simDim> globalOffset) const
    {
        /* definitions for domain variables, like indices of blocks and threads
         *
@@ -240,6 +275,18 @@ struct KernelMoveAndMarkParticles
                  );
        __syncthreads();
 
+       FieldBack backgroundFunctor(currentStep);
+       DataSpace< simDim > const localSuperCellOffset =
+            block - mapper.getGuardingSuperCells( );
+       // set offset in cells to the current supercell
+       Index localIndexFunctor(globalOffset + localSuperCellOffset * SuperCellSize::toRT( ));
+       collective(
+                 backgroundFunctor,
+                 cachedB,
+                 localIndexFunctor
+                 );
+
+       __syncthreads();
        /*move over frames and call frame solver*/
        while (frame.isValid())
        {

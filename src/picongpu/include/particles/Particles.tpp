@@ -204,7 +204,7 @@ Particles<
     T_Name,
     T_Flags,
     T_Attributes
->::update(uint32_t )
+>::update(uint32_t currentStep)
 {
     typedef typename GetFlagType<FrameType,particlePusher<> >::type PusherAlias;
     typedef typename PMacc::traits::Resolve<PusherAlias>::type ParticlePush;
@@ -232,6 +232,12 @@ Particles<
 
     auto block = MappingDesc::SuperCellSize::toRT();
 
+    uint32_t const numSlides = MovingWindow::getInstance( ).getSlideCounter( currentStep );
+    SubGrid< simDim > const & subGrid = Environment< simDim >::get( ).SubGrid( );
+    DataSpace< simDim > const localCells = subGrid.getLocalDomain( ).size;
+    DataSpace< simDim > gpuCellOffsetToTotalOrigin = subGrid.getLocalDomain( ).offset;
+    gpuCellOffsetToTotalOrigin.y( ) += numSlides * localCells.y( );
+
     AreaMapping<CORE+BORDER,MappingDesc> mapper(this->cellDescription);
     PMACC_KERNEL( KernelMoveAndMarkParticles<BlockArea>{} )
         (mapper.getGridDim(), block)
@@ -239,7 +245,9 @@ Particles<
           fieldE->getDeviceDataBox( ),
           fieldB->getDeviceDataBox( ),
           FrameSolver( ),
-          mapper
+          mapper,
+	   currentStep,
+	   gpuCellOffsetToTotalOrigin
           );
 
     dc.releaseData( FieldE::getName() );
