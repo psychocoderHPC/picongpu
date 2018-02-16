@@ -190,11 +190,29 @@ struct Index
 };
 
 
-//! calculate and add the magnetic field backgroudn field
-struct FieldBack
+//! calculate and add the electric field backgroudn field
+struct FieldEBack
 {
     const uint32_t currentStep;
-    HDINLINE FieldBack( const uint32_t timeStep) : currentStep( timeStep )
+    HDINLINE FieldEBack( const uint32_t timeStep) : currentStep( timeStep )
+    {
+
+    }
+
+    template<typename Dst>
+    HDINLINE void operator()(Dst & dst, const DataSpace<simDim> & cellOffset) const
+    {
+        dst += FieldBackgroundE(float3_64(UNIT_EFIELD,UNIT_EFIELD,UNIT_EFIELD))(cellOffset, currentStep);
+    }
+};
+
+
+
+//! calculate and add the magnetic field backgroudn field
+struct FieldBBack
+{
+    const uint32_t currentStep;
+    HDINLINE FieldBBack( const uint32_t timeStep) : currentStep( timeStep )
     {
 
     }
@@ -275,13 +293,26 @@ struct KernelMoveAndMarkParticles
                  );
        __syncthreads();
 
-       FieldBack backgroundFunctor(currentStep);
+
+
+       // prepare adding background fields to fields read by pusher
        DataSpace< simDim > const localSuperCellOffset =
             block - mapper.getGuardingSuperCells( );
        // set offset in cells to the current supercell
        Index localIndexFunctor(globalOffset + localSuperCellOffset * SuperCellSize::toRT( ));
+
+       // add background E fields to fields used by pusher:
+       FieldEBack backgroundFunctorE(currentStep);
        collective(
-                 backgroundFunctor,
+                 backgroundFunctorE,
+                 cachedE,
+                 localIndexFunctor
+                 );
+
+       // add background B fields to fields used by pusher:
+       FieldBBack backgroundFunctorB(currentStep);
+       collective(
+                 backgroundFunctorB,
                  cachedB,
                  localIndexFunctor
                  );
