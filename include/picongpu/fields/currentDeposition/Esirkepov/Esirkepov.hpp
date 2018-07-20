@@ -75,7 +75,10 @@ struct Esirkepov<T_ParticleShape, DIM3>
         typename PosType,
         typename VelType,
         typename ChargeType,
-        typename T_Acc
+        typename T_Acc,
+        typename T_MatA,
+        typename T_MatB,
+        typename T_MatR
     >
     DINLINE void operator()(
         T_Acc const & acc,
@@ -83,7 +86,11 @@ struct Esirkepov<T_ParticleShape, DIM3>
         const PosType pos,
         const VelType velocity,
         const ChargeType charge,
-        const float_X deltaTime
+        const float_X deltaTime,
+        T_MatA & matA,
+        T_MatB & matB,
+        T_MatR & matResult,
+        int idx
     )
     {
         this->charge = charge;
@@ -125,34 +132,57 @@ struct Esirkepov<T_ParticleShape, DIM3>
         }
         /* shift current field to the virtual coordinate system */
         auto cursorJ = dataBoxJ.shift(gridShift).toCursor();
-        /**
-         * \brief the following three calls separate the 3D current deposition
-         * into three independent 1D calls, each for one direction and current component.
-         * Therefore the coordinate system has to be rotated so that the z-direction
-         * is always specific.
-         */
-        using namespace cursor::tools;
-        cptCurrent1D(
-            acc,
-            DataSpace<simDim>(leaveCell.y(),leaveCell.z(),leaveCell.x()),
-            twistVectorFieldAxes<pmacc::math::CT::Int < 1, 2, 0 > >(cursorJ),
-            rotateOrigin < 1, 2, 0 > (line),
-            cellSize.x()
-        );
-        cptCurrent1D(
-            acc,
-            DataSpace<simDim>(leaveCell.z(),leaveCell.x(),leaveCell.y()),
-            twistVectorFieldAxes<pmacc::math::CT::Int < 2, 0, 1 > >(cursorJ),
-            rotateOrigin < 2, 0, 1 > (line),
-            cellSize.y()
-        );
-        cptCurrent1D(
+
+
+        cptCurrent(
             acc,
             leaveCell,
             cursorJ,
             line,
-            cellSize.z()
+            matA,
+            matB,
+            matResult,
+            idx
         );
+    }
+
+    template< typename MatA, typename MatB, typename MatResult>
+    HDINLINE void matmul(MatA const & matA, MatB const & matB, MatResult & matResult, int tid)
+    {
+        constexpr int matSize = 8;
+
+        int col = tid % matSize;
+        int row = tid / matSize;
+
+
+        for( int k = row; k < matSize; k+=4)
+        {
+            float_X r = 0.0;
+            for( int i = 0; i < matSize; i++ )
+            {
+                r += matA( DataSpace< DIM2>( k, i ) ) *  matB( DataSpace< DIM2>( col, i ) );
+            }
+            matResult( DataSpace< DIM2>( col, k ) ) = r;
+        }
+
+    }
+
+    template< typename Mat>
+    HDINLINE void pMat(Mat const & matA)
+    {
+        constexpr int matSize = 8;
+
+
+        for( int k = 0; k < matSize; k++)
+        {
+            for( int i = 0; i < matSize; i++ )
+            {
+                printf("%f ",matA( DataSpace< DIM2>( i, k ) ));
+            }
+            printf("\n");
+        }
+        printf("-----\n");
+
     }
 
     /**
@@ -166,18 +196,24 @@ struct Esirkepov<T_ParticleShape, DIM3>
      */
     template<
         typename CursorJ,
-        typename T_Acc
+        typename T_Acc,
+        typename T_MatA,
+        typename T_MatB,
+        typename T_MatR
     >
-    DINLINE void cptCurrent1D(
+    DINLINE void cptCurrent(
         T_Acc const & acc,
         const DataSpace<simDim>& leaveCell,
         CursorJ cursorJ,
         const Line<float3_X>& line,
-        const float_X cellEdgeLength
+        T_MatA & matA,
+        T_MatB & matB,
+        T_MatR & matResult,
+        int idx
     )
     {
-        /* skip calculation if the particle is not moving in z direction */
-        if(line.m_pos0[2] == line.m_pos1[2])
+        /* skip calculation if the particle is not moving */
+        if(line.m_pos0 == line.m_pos1)
             return;
 
         constexpr int begin = -currentLowerMargin + 1;
@@ -186,7 +222,7 @@ struct Esirkepov<T_ParticleShape, DIM3>
         /* We multiply with `cellEdgeLength` due to the fact that the attribute for the
          * in-cell particle `position` (and it's change in DELTA_T) is normalize to [0,1)
          */
-        const float_X currentSurfaceDensity = this->charge * (float_X(1.0) / float_X(CELL_VOLUME * DELTA_T)) * cellEdgeLength;
+        const float3_X currentSurfaceDensity = this->charge * (float_X(1.0) / float_X(CELL_VOLUME * DELTA_T)) * cellSize;
 
         /* pick every cell in the xy-plane that is overlapped by particle's
          * form factor and deposit the current for the cells above and beneath
@@ -197,44 +233,135 @@ struct Esirkepov<T_ParticleShape, DIM3>
          *   - skip invalid indexes with a if condition around the full loop body
          *     ( this helps the compiler to mask threads without work )
          */
-        for( int i = begin ; i < end  + 1; ++i )
-            if( i < end + leaveCell[0] )
+
+
+        if( begin + idx < end  + 1 )
+        {
+            DataSpace< DIM2 > matOffset = DataSpace< DIM2 >( 0, 0 );
+            DataSpace< DIM2 > matOffset2 = DataSpace< DIM2 >( 4, 4 );
+            int i = begin + idx;
+
+            const float_X s0i = S0( line, i, 0 );
+            const float_X dsi = S1( line, i, 0 ) - s0i;
+
+            // column, row
+            matA( DataSpace< DIM2 >( idx, 0 ) + matOffset ) = s0i;
+            matA( DataSpace< DIM2 >( idx, 0 ) + matOffset2 ) = s0i;
+            matA( DataSpace< DIM2 >( idx, 1 ) + matOffset ) = 0.5_X * dsi;
+            matA( DataSpace< DIM2 >( idx, 1 ) + matOffset2 ) = 0.5_X * dsi;
+            matA( DataSpace< DIM2 >( idx, 2 ) + matOffset ) = 0.5_X * s0i;
+            matA( DataSpace< DIM2 >( idx, 2 ) + matOffset2 ) = 0.5_X * s0i;
+            matA( DataSpace< DIM2 >( idx, 3 ) + matOffset ) = 1.0_X / 3.0_X * dsi;
+            matA( DataSpace< DIM2 >( idx, 3 ) + matOffset2 ) = 1.0_X / 3.0_X * dsi;
+        }
+
+        if( begin + idx < end  + 1 )
+        {
+            DataSpace< DIM2 > matOffsetA = DataSpace< DIM2 >( 4, 0 );
+            DataSpace< DIM2 > matOffsetB = DataSpace< DIM2 >( 4, 4 );
+            int j = begin + idx;
+
+            const float_X s0j = S0( line, j, 1 );
+            const float_X dsj = S1( line, j, 1 ) - s0j;
+
+            // column, row
+            matA( DataSpace< DIM2 >( idx, 0 ) + matOffsetA ) = s0j;
+            matB( DataSpace< DIM2 >( idx, 0 ) + matOffsetB ) = s0j;
+            matA( DataSpace< DIM2 >( idx, 1 ) + matOffsetA ) = 0.5_X * dsj;
+            matB( DataSpace< DIM2 >( idx, 1 ) + matOffsetB ) = s0j;
+            matA( DataSpace< DIM2 >( idx, 2 ) + matOffsetA ) = 0.5_X * s0j;
+            matB( DataSpace< DIM2 >( idx, 2 ) + matOffsetB ) = dsj;
+            matA( DataSpace< DIM2 >( idx, 3 ) + matOffsetA ) = 1.0_X / 3.0_X * dsj;
+            matB( DataSpace< DIM2 >( idx, 3 ) + matOffsetB ) = dsj;
+        }
+
+        if( begin + idx < end  + 1 )
+        {
+            DataSpace< DIM2 > matOffset = DataSpace< DIM2 >( 0, 0 );
+            int k = begin + idx;
+
+            const float_X s0k = S0( line, k, 2 );
+            const float_X dsk = S1( line, k, 2 ) - s0k;
+
+            // column, row
+            matB( DataSpace< DIM2 >( idx, 0 ) + matOffset ) = s0k;
+            matB( DataSpace< DIM2 >( idx, 1 ) + matOffset ) = s0k;
+            matB( DataSpace< DIM2 >( idx, 2 ) + matOffset ) = dsk;
+            matB( DataSpace< DIM2 >( idx, 3 ) + matOffset ) = dsk;
+        }
+
+        __syncthreads();
+
+        matmul( matA, matB, matResult, idx );
+#if 0
+        if(blockIdx.x == 0 && blockIdx.y == 0 &&blockIdx.z == 0 &&threadIdx.x == 0 &&threadIdx.y == 0 &&threadIdx.z == 0)
+        {
+            printf("A:\n");
+            pMat(matA);
+            printf("B:\n");
+            pMat(matB);
+        }
+
+        matmul( matA, matB, matResult, idx );
+
+        __syncthreads();
+
+        if(blockIdx.x == 0 && blockIdx.y == 0 &&blockIdx.z == 0 &&threadIdx.x == 0 &&threadIdx.y == 0 &&threadIdx.z == 0)
+        {
+            printf("C:\n");
+            pMat(matResult);
+        }
+#endif
+        DataSpace< DIM2 > id2d( idx % 4 , idx / 4 );
+
+        if( idx < 16 )
+        {
+            float_X accumulated_J( 0.0 );
+            DataSpace< DIM2 > matOffset = DataSpace< DIM2 >( 0, 4 );
+            float_X const tmp = -currentSurfaceDensity.x() * matResult( id2d + matOffset );
+            for( int k = begin ; k < end; ++k )
             {
-                const float_X s0i = S0( line, i, 0 );
-                const float_X dsi = S1( line, i, 0 ) - s0i;
-                for( int j = begin ; j < end  + 1; ++j )
-                    if( j < end + leaveCell[1] )
-                    {
-                        const float_X s0j = S0( line, j, 1 );
-                        const float_X dsj = S1( line, j, 1 ) - s0j;
-
-                        float_X tmp =
-                            -currentSurfaceDensity * (
-                                s0i * s0j +
-                                float_X( 0.5 ) * ( dsi * s0j + s0i * dsj ) +
-                                ( float_X( 1.0 ) / float_X( 3.0 ) ) * dsj * dsi
-                            );
-
-                        float_X accumulated_J = float_X( 0.0 );
-
-                        /* attention: inner loop has no upper bound `end + 1` because
-                         * the current for the point `end` is always zero,
-                         * therefore we skip the calculation
-                         */
-                        for( int k = begin ; k < end; ++k )
-                            if( k < end + leaveCell[2] - 1 )
-                            {
-                                /* This is the implementation of the FORTRAN W(i,j,k,3)/ C style W(i,j,k,2) version from
-                                 * Esirkepov paper. All coordinates are rotated before thus we can
-                                 * always use C style W(i,j,k,2).
-                                 */
-                                const float_X W = DS( line, k, 2 ) * tmp;
-                                accumulated_J += W;
-                                atomicAdd( &( ( *cursorJ( i, j, k ) ).z() ), accumulated_J, ::alpaka::hierarchy::Threads{} );
-                            }
-                    }
+                /* This is the implementation of the FORTRAN W(i,j,k,3)/ C style W(i,j,k,2) version from
+                 * Esirkepov paper. All coordinates are rotated before thus we can
+                 * always use C style W(i,j,k,2).
+                 */
+                accumulated_J += DS( line, k, 0 ) * tmp;
+                atomicAdd( &( ( *cursorJ( k, begin + id2d.y(), begin + id2d.x() ) ).x() ), accumulated_J, ::alpaka::hierarchy::Threads{} );
             }
+        }
 
+        if( idx < 16 )
+        {
+            float_X accumulated_J( 0.0 );
+            DataSpace< DIM2 > matOffset = DataSpace< DIM2 >( 0, 0 );
+            float_X const tmp = -currentSurfaceDensity.y() * matResult( id2d + matOffset );
+            for( int k = begin ; k < end; ++k )
+            {
+                /* This is the implementation of the FORTRAN W(i,j,k,3)/ C style W(i,j,k,2) version from
+                 * Esirkepov paper. All coordinates are rotated before thus we can
+                 * always use C style W(i,j,k,2).
+                 */
+                accumulated_J += DS( line, k, 1 ) * tmp;
+                atomicAdd( &( ( *cursorJ( begin + id2d.y(), k, begin + id2d.x() ) ).y() ), accumulated_J, ::alpaka::hierarchy::Threads{} );
+            }
+        }
+
+        if( idx < 16 )
+        {
+            float_X accumulated_J( 0.0 );
+            DataSpace< DIM2 > matOffset = DataSpace< DIM2 >( 4, 4 );
+            float_X const tmp = -currentSurfaceDensity.z() * matResult( id2d + matOffset );
+            for( int k = begin ; k < end; ++k )
+            {
+                /* This is the implementation of the FORTRAN W(i,j,k,3)/ C style W(i,j,k,2) version from
+                 * Esirkepov paper. All coordinates are rotated before thus we can
+                 * always use C style W(i,j,k,2).
+                 */
+                accumulated_J += DS( line, k, 2 ) * tmp;
+                atomicAdd( &( ( *cursorJ( begin + id2d.y(), begin + id2d.x(), k ) ).z() ), accumulated_J, ::alpaka::hierarchy::Threads{} );
+            }
+        }
+        __syncthreads();
     }
 
     /** calculate S0 (see paper)

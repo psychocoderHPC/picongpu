@@ -19,12 +19,17 @@
 
 
 #include "picongpu/fields/currentDeposition/Esirkepov/Esirkepov.hpp"
+
+
+#if 0
 #include "picongpu/fields/currentDeposition/Esirkepov/EsirkepovNative.hpp"
 #include "picongpu/fields/currentDeposition/ZigZag/ZigZag.hpp"
 #include "picongpu/fields/currentDeposition/EmZ/EmZ.hpp"
 
 #if(SIMDIM==DIM3)
 #include "picongpu/fields/currentDeposition/VillaBune/CurrentVillaBune.hpp"
+#endif
+
 #endif
 
 #include "picongpu/fields/numericalCellTypes/YeeCell.hpp"

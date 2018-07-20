@@ -19,9 +19,12 @@
 
 
 #include "picongpu/fields/currentDeposition/Esirkepov/Esirkepov.def"
+
+#if 0
 #include "picongpu/fields/currentDeposition/ZigZag/ZigZag.def"
 #include "picongpu/fields/currentDeposition/EmZ/EmZ.def"
 
 #if(SIMDIM==DIM3)
 #include "picongpu/fields/currentDeposition/VillaBune/CurrentVillaBune.def"
+#endif
 #endif

@@ -108,7 +108,7 @@ struct KernelComputeCurrent
          * Each virtual CUDA block is working on a frame, if we have 2 blocks each block processes
          * every second frame until all frames are processed.
          */
-        constexpr uint32_t numVirtualBlocks = ( numWorkers + numParticlesPerFrame - 1u ) / numParticlesPerFrame;
+        constexpr uint32_t numVirtualBlocks = 1; //( numWorkers + numParticlesPerFrame - 1u ) / numParticlesPerFrame;
 
 
         const DataSpace< simDim > block(
@@ -119,7 +119,7 @@ struct KernelComputeCurrent
         uint32_t const workerIdx = threadIdx.x;
 
         using VirtualWorkerDomCfg = IdxConfig<
-            numParticlesPerFrame * numVirtualBlocks,
+            32, //numParticlesPerFrame * numVirtualBlocks,
             numWorkers
         >;
 
@@ -139,6 +139,7 @@ struct KernelComputeCurrent
             }
         );
 
+#if 0
         /* linear virtual worker index in the virtual block*/
         memory::CtxArray<
             uint32_t,
@@ -155,7 +156,7 @@ struct KernelComputeCurrent
                 return linearIdx - ( virtualBlockIdCtx[ idx ] * numParticlesPerFrame );
             }
         );
-
+#endif
         /* each virtual worker stores the currently used frame */
         memory::CtxArray<
             FramePtr,
@@ -198,6 +199,46 @@ struct KernelComputeCurrent
             T_BlockDescription()
         );
 
+        using MatDesc = SuperCellDescription<
+            typename pmacc::math::CT::make_Int<
+                DIM2,
+                8
+            >::type
+        >;
+
+        /* this memory is used by all virtual blocks */
+        auto matA = CachedBox::create<
+            1u,
+            float_X
+        >(
+            acc,
+            MatDesc()
+        );
+
+                /* this memory is used by all virtual blocks */
+        auto matB = CachedBox::create<
+            2u,
+            float_X
+        >(
+            acc,
+            MatDesc()
+        );
+
+        /* this memory is used by all virtual blocks */
+        auto matResult = CachedBox::create<
+            3u,
+            float_X
+        >(
+            acc,
+            MatDesc()
+        );
+
+        Set< float_X > setMatZero( 0.0 );
+        ThreadCollective<
+            MatDesc,
+            numWorkers
+        > collectiveSetMatZero( workerIdx );
+
         Set< typename JBox::ValueType > set( float3_X::create( 0.0 ) );
         ThreadCollective<
             T_BlockDescription,
@@ -227,24 +268,37 @@ struct KernelComputeCurrent
 
             forEachVirtualWorker(
                 [&](
-                    uint32_t const,
+                    uint32_t const linearIdx,
                     uint32_t const idx
                 )
                 {
-                    /* this test is only important for the last frame
-                     * if the frame is not the last one then: `particlesInSuperCell == numParticlesPerFrame`
-                     */
-                    if(
-                        frameCtx[ idx ].isValid() &&
-                        virtualLinearIdCtx[ idx ] < particlesInSuperCellCtx[ idx ]
-                    )
+                    for( int i = 0; i < numParticlesPerFrame; ++i )
                     {
-                        frameSolver(
-                            acc,
-                            *frameCtx[ idx ],
-                            virtualLinearIdCtx[ idx ],
-                            cachedJ
-                        );
+
+                        collectiveSetMatZero( acc, setMatZero, matA );
+                        collectiveSetMatZero( acc, setMatZero, matB );
+                        collectiveSetMatZero( acc, setMatZero, matResult );
+
+                        __syncthreads();
+                        /* this test is only important for the last frame
+                         * if the frame is not the last one then: `particlesInSuperCell == numParticlesPerFrame`
+                         */
+                        if(
+                            frameCtx[ idx ].isValid() &&
+                            i < particlesInSuperCellCtx[ idx ]
+                        )
+                        {
+                            frameSolver(
+                                acc,
+                                *frameCtx[ idx ],
+                                i,
+                                cachedJ,
+                                matA,
+                                matB,
+                                matResult,
+                                linearIdx
+                            );
+                        }
                     }
                 }
             );
@@ -300,17 +354,24 @@ struct ComputeCurrentPerFrame
     template<
         typename FrameType,
         typename BoxJ,
-        typename T_Acc
+        typename T_Acc,
+        typename T_MatA,
+        typename T_MatB,
+        typename T_MatR
     >
     DINLINE void operator()(
         T_Acc const & acc,
         FrameType& frame,
-        const int localIdx,
-        BoxJ & jBox
+        const int parId,
+        BoxJ & jBox,
+        T_MatA & matA,
+        T_MatB & matB,
+        T_MatR & matResult,
+        const int localIdx
     )
     {
 
-        auto particle = frame[localIdx];
+        auto particle = frame[parId];
         const float_X weighting = particle[weighting_];
         const floatD_X pos = particle[position_];
         const int particleCellIdx = particle[localCellIdx_];
@@ -329,7 +390,11 @@ struct ComputeCurrentPerFrame
             pos,
             vel,
             charge,
-            m_deltaTime
+            m_deltaTime,
+            matA,
+            matB,
+            matResult,
+            localIdx
         );
     }
 

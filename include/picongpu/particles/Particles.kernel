@@ -24,6 +24,7 @@
 #include <pmacc/particles/frame_types.hpp>
 #include <pmacc/particles/memory/boxes/ParticlesBox.hpp>
 #include <pmacc/particles/memory/boxes/TileDataBox.hpp>
+#include "picongpu/fields/MaxwellSolver/Solvers.hpp"
 
 #include "picongpu/fields/FieldE.hpp"
 #include "picongpu/fields/FieldB.hpp"

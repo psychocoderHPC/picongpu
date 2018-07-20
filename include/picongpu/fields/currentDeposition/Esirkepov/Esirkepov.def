@@ -44,9 +44,10 @@ using namespace pmacc;
 template<typename ParticleShape,uint32_t T_dim=simDim>
 struct Esirkepov;
 
+#if 0
 template<typename ParticleAssign>
 struct EsirkepovNative;
-
+#endif
 } //namespace currentSolver
 
 namespace traits
