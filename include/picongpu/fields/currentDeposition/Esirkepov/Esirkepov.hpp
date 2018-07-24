@@ -326,7 +326,7 @@ struct Esirkepov<T_ParticleShape, DIM3>
                  * always use C style W(i,j,k,2).
                  */
                 accumulated_J += DS( line, k, 0 ) * tmp;
-                atomicAdd( &( ( *cursorJ( k, begin + id2d.y(), begin + id2d.x() ) ).x() ), accumulated_J, ::alpaka::hierarchy::Threads{} );
+                ( *cursorJ( k, begin + id2d.y(), begin + id2d.x() ) ).x() += accumulated_J;
             }
         }
 
@@ -342,7 +342,7 @@ struct Esirkepov<T_ParticleShape, DIM3>
                  * always use C style W(i,j,k,2).
                  */
                 accumulated_J += DS( line, k, 1 ) * tmp;
-                atomicAdd( &( ( *cursorJ( begin + id2d.y(), k, begin + id2d.x() ) ).y() ), accumulated_J, ::alpaka::hierarchy::Threads{} );
+                ( *cursorJ( begin + id2d.y(), k, begin + id2d.x() ) ).y() += accumulated_J;
             }
         }
 
@@ -358,7 +358,7 @@ struct Esirkepov<T_ParticleShape, DIM3>
                  * always use C style W(i,j,k,2).
                  */
                 accumulated_J += DS( line, k, 2 ) * tmp;
-                atomicAdd( &( ( *cursorJ( begin + id2d.y(), begin + id2d.x(), k ) ).z() ), accumulated_J, ::alpaka::hierarchy::Threads{} );
+                ( *cursorJ( begin + id2d.y(), begin + id2d.x(), k ) ).z() += accumulated_J;
             }
         }
         __syncthreads();
