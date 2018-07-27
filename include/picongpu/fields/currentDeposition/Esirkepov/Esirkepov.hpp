@@ -234,60 +234,59 @@ struct Esirkepov<T_ParticleShape, DIM3>
          *     ( this helps the compiler to mask threads without work )
          */
 
+        int matRow = idx % 4;
+        int i = begin + matRow;
 
-        if( begin + idx < end  + 1 )
+        if( idx < 12 )
         {
-            DataSpace< DIM2 > matOffset = DataSpace< DIM2 >( 0, 0 );
-            DataSpace< DIM2 > matOffset2 = DataSpace< DIM2 >( 4, 4 );
-            int i = begin + idx;
+            /* offset: S1  = (0,0) -> threads 0-3
+             *         S2  = (4,0) -> threads 4-7
+             *         S1  = (4,4) -> threads 8-12
+             */
+            DataSpace< DIM2 > const offset = DataSpace< DIM2 >(
+                idx < 4 ? 0 : 4,
+                idx < 8 ? 0 : 4
+            );
 
-            const float_X s0i = S0( line, i, 0 );
-            const float_X dsi = S1( line, i, 0 ) - s0i;
+            /* direction: S1  = 0 -> threads 0-3
+             *            S2  = 1 -> threads 4-7
+             *            S1  = 0 -> threads 8-12
+             */
+            uint32_t const direction = ( idx / 4 ) % 2;
+
+            float_X const s0i = S0( line, i, direction );
+            float_X const dsi = S1( line, i, direction ) - s0i;
 
             // column, row
-            matA( DataSpace< DIM2 >( idx, 0 ) + matOffset ) = s0i;
-            matA( DataSpace< DIM2 >( idx, 0 ) + matOffset2 ) = s0i;
-            matA( DataSpace< DIM2 >( idx, 1 ) + matOffset ) = 0.5_X * dsi;
-            matA( DataSpace< DIM2 >( idx, 1 ) + matOffset2 ) = 0.5_X * dsi;
-            matA( DataSpace< DIM2 >( idx, 2 ) + matOffset ) = 0.5_X * s0i;
-            matA( DataSpace< DIM2 >( idx, 2 ) + matOffset2 ) = 0.5_X * s0i;
-            matA( DataSpace< DIM2 >( idx, 3 ) + matOffset ) = 1.0_X / 3.0_X * dsi;
-            matA( DataSpace< DIM2 >( idx, 3 ) + matOffset2 ) = 1.0_X / 3.0_X * dsi;
+            matA( DataSpace< DIM2 >( matRow, 0 ) + offset ) = s0i;
+            matA( DataSpace< DIM2 >( matRow, 1 ) + offset ) = 0.5_X * dsi;
+            matA( DataSpace< DIM2 >( matRow, 2 ) + offset ) = 0.5_X * s0i;
+            matA( DataSpace< DIM2 >( matRow, 3 ) + offset ) = 1.0_X / 3.0_X * dsi;
         }
 
-        if( begin + idx < end  + 1 )
+        /* on VOLTA each thread have an own PC and therefore we not lose as much performance
+         * as on old gpus
+         */
+        if( idx >= 12 && idx < 20 )
         {
-            DataSpace< DIM2 > matOffsetA = DataSpace< DIM2 >( 4, 0 );
-            DataSpace< DIM2 > matOffsetB = DataSpace< DIM2 >( 4, 4 );
-            int j = begin + idx;
+            /* offset: S3  = (0,0) -> threads 0-3
+             *         S2  = (4,4) -> threads 4-7
+             */
+            DataSpace< DIM2 > const offset = DataSpace< DIM2 >::create( (idx - 12) < 4 ? 0 : 4 );
 
-            const float_X s0j = S0( line, j, 1 );
-            const float_X dsj = S1( line, j, 1 ) - s0j;
+            /* direction: S3  = 2 -> threads 0-3
+             *            S2  = 1 -> threads 4-7
+             */
+            uint32_t const direction = ( idx - 12 ) < 4 ? 2 : 1;
+
+            float_X const s0j = S0( line, i, direction );
+            float_X const dsj = S1( line, i, direction ) - s0j;
 
             // column, row
-            matA( DataSpace< DIM2 >( idx, 0 ) + matOffsetA ) = s0j;
-            matB( DataSpace< DIM2 >( idx, 0 ) + matOffsetB ) = s0j;
-            matA( DataSpace< DIM2 >( idx, 1 ) + matOffsetA ) = 0.5_X * dsj;
-            matB( DataSpace< DIM2 >( idx, 1 ) + matOffsetB ) = s0j;
-            matA( DataSpace< DIM2 >( idx, 2 ) + matOffsetA ) = 0.5_X * s0j;
-            matB( DataSpace< DIM2 >( idx, 2 ) + matOffsetB ) = dsj;
-            matA( DataSpace< DIM2 >( idx, 3 ) + matOffsetA ) = 1.0_X / 3.0_X * dsj;
-            matB( DataSpace< DIM2 >( idx, 3 ) + matOffsetB ) = dsj;
-        }
-
-        if( begin + idx < end  + 1 )
-        {
-            DataSpace< DIM2 > matOffset = DataSpace< DIM2 >( 0, 0 );
-            int k = begin + idx;
-
-            const float_X s0k = S0( line, k, 2 );
-            const float_X dsk = S1( line, k, 2 ) - s0k;
-
-            // column, row
-            matB( DataSpace< DIM2 >( idx, 0 ) + matOffset ) = s0k;
-            matB( DataSpace< DIM2 >( idx, 1 ) + matOffset ) = s0k;
-            matB( DataSpace< DIM2 >( idx, 2 ) + matOffset ) = dsk;
-            matB( DataSpace< DIM2 >( idx, 3 ) + matOffset ) = dsk;
+            matB( DataSpace< DIM2 >( matRow, 0 ) + offset ) = s0j;
+            matB( DataSpace< DIM2 >( matRow, 1 ) + offset ) = s0j;
+            matB( DataSpace< DIM2 >( matRow, 2 ) + offset ) = dsj;
+            matB( DataSpace< DIM2 >( matRow, 3 ) + offset ) = dsj;
         }
 
         __syncthreads();
@@ -312,7 +311,39 @@ struct Esirkepov<T_ParticleShape, DIM3>
             pMat(matResult);
         }
 #endif
-        DataSpace< DIM2 > id2d( idx % 4 , idx / 4 );
+        DataSpace< DIM2 > id2d( idx % 4 , ( idx / 4 ) % 4 );
+
+        if( idx < 32 )
+        {
+            /* 1 -> thread 0-15
+             * 2 -> thread 16-32
+             */
+            int w = idx < 16 ? 1 : 2;
+            /* offset: W2  = (0,0) -> threads 0-15
+             *         W3  = (4,4) -> threads 16-32
+             */
+            DataSpace< DIM2 > const offset = DataSpace< DIM2 >(
+                w == 1 ? 0 : 4,
+                w == 1 ? 0 : 4
+            );
+            float_X accumulated_J( 0.0 );
+
+            float_X const tmp = -currentSurfaceDensity[ w ] * matResult( id2d + offset );
+            /* we cheat a little bit y and z can be set both to the id2d.x
+             * because the correct direction will be later overwritten with k
+             */
+            DataSpace< DIM3 > jOffset(begin + id2d.y(), begin + id2d.x(), begin + id2d.x() );
+            for( int k = begin ; k < end; ++k )
+            {
+                /* This is the implementation of the FORTRAN W(i,j,k,3)/ C style W(i,j,k,2) version from
+                 * Esirkepov paper. All coordinates are rotated before thus we can
+                 * always use C style W(i,j,k,2).
+                 */
+                jOffset[ w ] = k;
+                accumulated_J += DS( line, k, w ) * tmp;
+                cursorJ[ jOffset ][ w ] += accumulated_J;
+            }
+        }
 
         if( idx < 16 )
         {
@@ -327,38 +358,6 @@ struct Esirkepov<T_ParticleShape, DIM3>
                  */
                 accumulated_J += DS( line, k, 0 ) * tmp;
                 ( *cursorJ( k, begin + id2d.y(), begin + id2d.x() ) ).x() += accumulated_J;
-            }
-        }
-
-        if( idx < 16 )
-        {
-            float_X accumulated_J( 0.0 );
-            DataSpace< DIM2 > matOffset = DataSpace< DIM2 >( 0, 0 );
-            float_X const tmp = -currentSurfaceDensity.y() * matResult( id2d + matOffset );
-            for( int k = begin ; k < end; ++k )
-            {
-                /* This is the implementation of the FORTRAN W(i,j,k,3)/ C style W(i,j,k,2) version from
-                 * Esirkepov paper. All coordinates are rotated before thus we can
-                 * always use C style W(i,j,k,2).
-                 */
-                accumulated_J += DS( line, k, 1 ) * tmp;
-                ( *cursorJ( begin + id2d.y(), k, begin + id2d.x() ) ).y() += accumulated_J;
-            }
-        }
-
-        if( idx < 16 )
-        {
-            float_X accumulated_J( 0.0 );
-            DataSpace< DIM2 > matOffset = DataSpace< DIM2 >( 4, 4 );
-            float_X const tmp = -currentSurfaceDensity.z() * matResult( id2d + matOffset );
-            for( int k = begin ; k < end; ++k )
-            {
-                /* This is the implementation of the FORTRAN W(i,j,k,3)/ C style W(i,j,k,2) version from
-                 * Esirkepov paper. All coordinates are rotated before thus we can
-                 * always use C style W(i,j,k,2).
-                 */
-                accumulated_J += DS( line, k, 2 ) * tmp;
-                ( *cursorJ( begin + id2d.y(), begin + id2d.x(), k ) ).z() += accumulated_J;
             }
         }
         __syncthreads();
