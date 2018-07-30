@@ -278,7 +278,7 @@ struct KernelComputeCurrent
                     int const parOffset = linearIdx / 16;
                     // round up to the next multiple of two
                     int const parInSuperCell = ( ( particlesInSuperCellCtx[ idx ] + 1 ) / 2 ) * 2;
-                    for( int i = parOffset; i < parInSuperCell; i += 1 )
+                    for( int i = parOffset; i < parInSuperCell; i += 2 )
                     {
 
                         collectiveSetMatZero( acc, setMatZero, matA );
@@ -302,7 +302,7 @@ struct KernelComputeCurrent
                                 matB,
                                 matResult,
                                 linearIdx,
-                                i < particlesInSuperCellCtx[ idx ] && parOffset == 0
+                                i < particlesInSuperCellCtx[ idx ]
                             );
                         }
                     }

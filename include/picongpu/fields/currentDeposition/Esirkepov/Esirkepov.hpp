@@ -125,7 +125,7 @@ struct Esirkepov<T_ParticleShape, DIM3>
             }
         }
         /* shift current field to the virtual coordinate system */
-        auto cursorJ = dataBoxJ.shift(gridShift).toCursor();
+        auto cursorJ = dataBoxJ.shift(gridShift);
 
         cptCurrent(
             acc,
@@ -195,7 +195,7 @@ struct Esirkepov<T_ParticleShape, DIM3>
     DINLINE void cptCurrent(
         T_Acc const & acc,
         CursorJ cursorJ,
-        const Line<float3_X>& line,
+        Line<float3_X>& line,
         T_MatA & matA,
         T_MatB & matB,
         T_MatR & matResult,
@@ -332,13 +332,26 @@ struct Esirkepov<T_ParticleShape, DIM3>
              * shifted to the correct J field offset for the particle handled by the first batch.
              */
             CursorJ batchCursorJ(cursorJ);
-//#if 0
             for( int b = 0; b < sizeof(CursorJ) / 4; ++b )
             {
                 uint32_t const value = *( reinterpret_cast< uint32_t* >( &cursorJ ) + b );
                 *( reinterpret_cast< uint32_t* >(&batchCursorJ) + b ) = ::pmacc::nvidia::warpBroadcast( value, 0 );
             }
-//#endif
+
+            PMACC_CASSERT_MSG_TYPE(
+                Line_size_is_not_a_multiple_of_4_byte,
+                bmpl::int_< sizeof( Line< float3_X > ) > ,
+                sizeof( Line< float3_X > ) % 4 == 0
+            );
+
+            // temporary storage of the trajectory of the particle from the first batch
+            Line< float3_X > parLine;
+            for( int b = 0; b < sizeof( Line< float3_X > ) / 4; ++b )
+            {
+                uint32_t const value = *( reinterpret_cast< uint32_t* >( &line ) + b );
+                *( reinterpret_cast< uint32_t* >( &parLine ) + b ) = ::pmacc::nvidia::warpBroadcast( value, 0 );
+            }
+
             if( tid < 32 )
             {
                 /* 1 -> thread 0-15
@@ -366,8 +379,8 @@ struct Esirkepov<T_ParticleShape, DIM3>
                      * always use C style W(i,j,k,2).
                      */
                     jOffset[ w ] = k;
-                    accumulated_J += DS( line, k, w ) * tmp;
-                    batchCursorJ[ jOffset ][ w ] += accumulated_J;
+                    accumulated_J += DS( parLine, k, w ) * tmp;
+                    batchCursorJ( jOffset )[ w ] += accumulated_J;
                 }
             }
 
@@ -382,13 +395,13 @@ struct Esirkepov<T_ParticleShape, DIM3>
                      * Esirkepov paper. All coordinates are rotated before thus we can
                      * always use C style W(i,j,k,2).
                      */
-                    accumulated_J += DS( line, k, 0 ) * tmp;
-                    ( *batchCursorJ( k, begin + id2d.y(), begin + id2d.x() ) ).x() += accumulated_J;
+                    accumulated_J += DS( parLine, k, 0 ) * tmp;
+                    batchCursorJ( DataSpace< DIM3 >(k, begin + id2d.y(), begin + id2d.x() )).x() += accumulated_J;
                 }
             }
         }
 
-#if 0
+
         processParticle = ::pmacc::nvidia::warpBroadcast( parIsValid, 16 );
 
         // process particle two
@@ -406,6 +419,14 @@ struct Esirkepov<T_ParticleShape, DIM3>
             {
                 uint32_t const value = *( reinterpret_cast< uint32_t* >( &cursorJ ) + b );
                 *( reinterpret_cast< uint32_t* >( &batchCursorJ ) + b ) = ::pmacc::nvidia::warpBroadcast( value, 16 );
+            }
+
+            // temporary storage of the trajectory of the particle from the second batch
+            Line< float3_X > parLine;
+            for( int b = 0; b < sizeof( Line< float3_X > ) / 4; ++b )
+            {
+                uint32_t const value = *( reinterpret_cast< uint32_t* >( &line ) + b );
+                *( reinterpret_cast< uint32_t* >(&parLine) + b ) = ::pmacc::nvidia::warpBroadcast( value, 16 );
             }
 
             if( tid < 32 )
@@ -435,8 +456,8 @@ struct Esirkepov<T_ParticleShape, DIM3>
                      * always use C style W(i,j,k,2).
                      */
                     jOffset[ w ] = k;
-                    accumulated_J += DS( line, k, w ) * tmp;
-                    batchCursorJ[ jOffset ][ w ] += accumulated_J;
+                    accumulated_J += DS( parLine, k, w ) * tmp;
+                    batchCursorJ( jOffset )[ w ] += accumulated_J;
                 }
             }
 
@@ -451,12 +472,12 @@ struct Esirkepov<T_ParticleShape, DIM3>
                      * Esirkepov paper. All coordinates are rotated before thus we can
                      * always use C style W(i,j,k,2).
                      */
-                    accumulated_J += DS( line, k, 0 ) * tmp;
-                    ( *batchCursorJ( k, begin + id2d.y(), begin + id2d.x() ) ).x() += accumulated_J;
+                    accumulated_J += DS( parLine, k, 0 ) * tmp;
+                    batchCursorJ( DataSpace< DIM3 >( k, begin + id2d.y(), begin + id2d.x() ) ).x() += accumulated_J;
                 }
             }
         }
-#endif
+
         __syncthreads();
     }
 
