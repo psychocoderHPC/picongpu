@@ -202,7 +202,7 @@ struct KernelComputeCurrent
         using MatDesc = SuperCellDescription<
             typename pmacc::math::CT::make_Int<
                 DIM2,
-                8
+                16
             >::type
         >;
 
@@ -272,7 +272,13 @@ struct KernelComputeCurrent
                     uint32_t const idx
                 )
                 {
-                    for( int i = 0; i < numParticlesPerFrame; ++i )
+                    /** particle 0 -> thread 0-15
+                     *  particle 1 -> thread 16-31
+                     */
+                    int const parOffset = linearIdx / 16;
+                    // round up to the next multiple of two
+                    int const parInSuperCell = ( ( particlesInSuperCellCtx[ idx ] + 1 ) / 2 ) * 2;
+                    for( int i = parOffset; i < parInSuperCell; i += 1 )
                     {
 
                         collectiveSetMatZero( acc, setMatZero, matA );
@@ -284,8 +290,7 @@ struct KernelComputeCurrent
                          * if the frame is not the last one then: `particlesInSuperCell == numParticlesPerFrame`
                          */
                         if(
-                            frameCtx[ idx ].isValid() &&
-                            i < particlesInSuperCellCtx[ idx ]
+                            frameCtx[ idx ].isValid()
                         )
                         {
                             frameSolver(
@@ -296,7 +301,8 @@ struct KernelComputeCurrent
                                 matA,
                                 matB,
                                 matResult,
-                                linearIdx
+                                linearIdx,
+                                i < particlesInSuperCellCtx[ idx ] && parOffset == 0
                             );
                         }
                     }
@@ -367,7 +373,8 @@ struct ComputeCurrentPerFrame
         T_MatA & matA,
         T_MatB & matB,
         T_MatR & matResult,
-        const int localIdx
+        const int localIdx,
+        const bool parIsValid
     )
     {
 
@@ -394,7 +401,8 @@ struct ComputeCurrentPerFrame
             matA,
             matB,
             matResult,
-            localIdx
+            localIdx,
+            parIsValid
         );
     }
 

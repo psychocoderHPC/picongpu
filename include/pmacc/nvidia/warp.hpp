@@ -45,7 +45,7 @@ DINLINE uint32_t getLaneId()
 #endif
 
 
-#if (__CUDA_ARCH__ >= 300)
+//#if (PMACC_CUDA_ARCH >= 300)
 /** broadcast data within a warp
  *
  * required PTX ISA >=3.0
@@ -110,7 +110,7 @@ DINLINE double warpBroadcast(double data, const int32_t srcLaneId)
     return data;
 }
 //! @}
-#endif
+//#endif
 
 } //namespace nvidia
 } //namespace pmacc

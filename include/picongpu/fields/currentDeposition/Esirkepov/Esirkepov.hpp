@@ -30,6 +30,7 @@
 #include "picongpu/fields/currentDeposition/Esirkepov/Line.hpp"
 #include "picongpu/fields/currentDeposition/RelayPoint.hpp"
 
+#include "pmacc/nvidia/warp.hpp"
 
 namespace picongpu
 {
@@ -90,10 +91,12 @@ struct Esirkepov<T_ParticleShape, DIM3>
         T_MatA & matA,
         T_MatB & matB,
         T_MatR & matResult,
-        int idx
+        int tid,
+        const bool parIsValid
     )
     {
         this->charge = charge;
+
         const float3_X deltaPos = float3_X(velocity.x() * deltaTime / cellSize.x(),
                                            velocity.y() * deltaTime / cellSize.y(),
                                            velocity.z() * deltaTime / cellSize.z());
@@ -101,61 +104,51 @@ struct Esirkepov<T_ParticleShape, DIM3>
         Line<float3_X> line(oldPos, pos);
 
         DataSpace<DIM3> gridShift;
-
-        /* Define in which direction the particle leaves the cell.
-         * It is not relevant whether the particle leaves the cell via
-         * the positive or negative cell border.
-         *
-         * 0 == stay in cell
-         * 1 == leave cell
-         */
-        DataSpace<simDim> leaveCell;
-
-        /* calculate the offset for the virtual coordinate system */
-        for(int d=0; d<simDim; ++d)
+        if( parIsValid )
         {
-            int iStart;
-            int iEnd;
-            constexpr bool isSupportEven = ( supp % 2 == 0 );
-            RelayPoint< isSupportEven >()(
-                iStart,
-                iEnd,
-                line.m_pos0[d],
-                line.m_pos1[d]
-            );
-            gridShift[d] = iStart < iEnd ? iStart : iEnd; // integer min function
-            /* particle is leaving the cell */
-            leaveCell[d] = iStart != iEnd ? 1 : 0;
-            /* shift the particle position to the virtual coordinate system */
-            line.m_pos0[d] -= gridShift[d];
-            line.m_pos1[d] -= gridShift[d];
+            /* calculate the offset for the virtual coordinate system */
+            for(int d=0; d<simDim; ++d)
+            {
+                int iStart;
+                int iEnd;
+                constexpr bool isSupportEven = ( supp % 2 == 0 );
+                RelayPoint< isSupportEven >()(
+                    iStart,
+                    iEnd,
+                    line.m_pos0[d],
+                    line.m_pos1[d]
+                );
+                gridShift[d] = iStart < iEnd ? iStart : iEnd; // integer min function
+                /* shift the particle position to the virtual coordinate system */
+                line.m_pos0[d] -= gridShift[d];
+                line.m_pos1[d] -= gridShift[d];
+            }
         }
         /* shift current field to the virtual coordinate system */
         auto cursorJ = dataBoxJ.shift(gridShift).toCursor();
 
-
         cptCurrent(
             acc,
-            leaveCell,
             cursorJ,
             line,
             matA,
             matB,
             matResult,
-            idx
+            tid,
+            parIsValid
         );
     }
 
     template< typename MatA, typename MatB, typename MatResult>
     HDINLINE void matmul(MatA const & matA, MatB const & matB, MatResult & matResult, int tid)
     {
-        constexpr int matSize = 8;
+        constexpr int matSize = 16;
 
         int col = tid % matSize;
         int row = tid / matSize;
 
-
-        for( int k = row; k < matSize; k+=4)
+        // 32 == number of threads working on the matrix
+        for( int k = row; k < matSize; k += 32 / matSize)
         {
             float_X r = 0.0;
             for( int i = 0; i < matSize; i++ )
@@ -170,7 +163,7 @@ struct Esirkepov<T_ParticleShape, DIM3>
     template< typename Mat>
     HDINLINE void pMat(Mat const & matA)
     {
-        constexpr int matSize = 8;
+        constexpr int matSize = 16;
 
 
         for( int k = 0; k < matSize; k++)
@@ -188,8 +181,6 @@ struct Esirkepov<T_ParticleShape, DIM3>
     /**
      * deposites current in z-direction
      *
-     * \param leaveCell vector with information if the particle is leaving the cell
-     *         (for each direction, 0 means stays in cell and 1 means leaves cell)
      * \param cursorJ cursor pointing at the current density field of the particle's cell
      * \param line trajectory of the particle from to last to the current time step
      * \param cellEdgeLength length of edge of the cell in z-direction
@@ -203,26 +194,21 @@ struct Esirkepov<T_ParticleShape, DIM3>
     >
     DINLINE void cptCurrent(
         T_Acc const & acc,
-        const DataSpace<simDim>& leaveCell,
         CursorJ cursorJ,
         const Line<float3_X>& line,
         T_MatA & matA,
         T_MatB & matB,
         T_MatR & matResult,
-        int idx
+        int tid,
+        bool parIsValid
     )
     {
         /* skip calculation if the particle is not moving */
-        if(line.m_pos0 == line.m_pos1)
-            return;
+        if(parIsValid && line.m_pos0 == line.m_pos1)
+            parIsValid = false;
 
         constexpr int begin = -currentLowerMargin + 1;
         constexpr int end = begin + supp;
-
-        /* We multiply with `cellEdgeLength` due to the fact that the attribute for the
-         * in-cell particle `position` (and it's change in DELTA_T) is normalize to [0,1)
-         */
-        const float3_X currentSurfaceDensity = this->charge * (float_X(1.0) / float_X(CELL_VOLUME * DELTA_T)) * cellSize;
 
         /* pick every cell in the xy-plane that is overlapped by particle's
          * form factor and deposit the current for the cells above and beneath
@@ -234,23 +220,30 @@ struct Esirkepov<T_ParticleShape, DIM3>
          *     ( this helps the compiler to mask threads without work )
          */
 
-        int matRow = idx % 4;
-        int i = begin + matRow;
+        // split the warp
+        int const idx = tid % 16;
+        /* the second batch in the warp is working on a 8x8 matrix within the 16x16
+         * matrix with an offset 8,8
+         */
+        int const batch = tid / 16;
+        int const matRow = idx % 4;
+        int const i = begin + matRow;
 
-        if( idx < 12 )
+
+        if( parIsValid && idx < 12 )
         {
             /* offset: S1  = (0,0) -> threads 0-3
              *         S2  = (4,0) -> threads 4-7
              *         S1  = (4,4) -> threads 8-12
              */
             DataSpace< DIM2 > const offset = DataSpace< DIM2 >(
-                idx < 4 ? 0 : 4,
-                idx < 8 ? 0 : 4
+                ( idx < 4 ? 0 : 4 ) + batch * 8,
+                ( idx < 8 ? 0 : 4 ) + batch * 8
             );
 
             /* direction: S1  = 0 -> threads 0-3
              *            S2  = 1 -> threads 4-7
-             *            S1  = 0 -> threads 8-12
+             *            S1  = 0 -> threads 8-11
              */
             uint32_t const direction = ( idx / 4 ) % 2;
 
@@ -264,20 +257,19 @@ struct Esirkepov<T_ParticleShape, DIM3>
             matA( DataSpace< DIM2 >( matRow, 3 ) + offset ) = 1.0_X / 3.0_X * dsi;
         }
 
-        /* on VOLTA each thread have an own PC and therefore we not lose as much performance
-         * as on old gpus
-         */
-        if( idx >= 12 && idx < 20 )
+        if( parIsValid && idx < 8 )
         {
             /* offset: S3  = (0,0) -> threads 0-3
              *         S2  = (4,4) -> threads 4-7
              */
-            DataSpace< DIM2 > const offset = DataSpace< DIM2 >::create( (idx - 12) < 4 ? 0 : 4 );
+            DataSpace< DIM2 > const offset = DataSpace< DIM2 >::create(
+                ( idx < 4 ? 0 : 4 ) + batch * 8
+            );
 
             /* direction: S3  = 2 -> threads 0-3
              *            S2  = 1 -> threads 4-7
              */
-            uint32_t const direction = ( idx - 12 ) < 4 ? 2 : 1;
+            uint32_t const direction = idx  < 4 ? 2 : 1;
 
             float_X const s0j = S0( line, i, direction );
             float_X const dsj = S1( line, i, direction ) - s0j;
@@ -289,9 +281,10 @@ struct Esirkepov<T_ParticleShape, DIM3>
             matB( DataSpace< DIM2 >( matRow, 3 ) + offset ) = dsj;
         }
 
+        // wait that matrix is filled
         __syncthreads();
 
-        matmul( matA, matB, matResult, idx );
+        matmul( matA, matB, matResult, tid );
 #if 0
         if(blockIdx.x == 0 && blockIdx.y == 0 &&blockIdx.z == 0 &&threadIdx.x == 0 &&threadIdx.y == 0 &&threadIdx.z == 0)
         {
@@ -301,7 +294,7 @@ struct Esirkepov<T_ParticleShape, DIM3>
             pMat(matB);
         }
 
-        matmul( matA, matB, matResult, idx );
+        matmul( matA, matB, matResult, tid );
 
         __syncthreads();
 
@@ -311,55 +304,159 @@ struct Esirkepov<T_ParticleShape, DIM3>
             pMat(matResult);
         }
 #endif
-        DataSpace< DIM2 > id2d( idx % 4 , ( idx / 4 ) % 4 );
 
-        if( idx < 32 )
+        // wait that the matrix is calculated
+        __syncthreads();
+
+        // idx is between [0;16)
+        DataSpace< DIM2 > id2d( idx % 4 , idx / 4 );
+
+        bool processParticle = ::pmacc::nvidia::warpBroadcast( parIsValid, 0 );
+
+        if( processParticle )
         {
-            /* 1 -> thread 0-15
-             * 2 -> thread 16-32
+
+            const float_X c = ::pmacc::nvidia::warpBroadcast( this->charge, 0 );
+            /* We multiply with `cellEdgeLength` due to the fact that the attribute for the
+             * in-cell particle `position` (and it's change in DELTA_T) is normalize to [0,1)
              */
-            int w = idx < 16 ? 1 : 2;
-            /* offset: W2  = (0,0) -> threads 0-15
-             *         W3  = (4,4) -> threads 16-32
-             */
-            DataSpace< DIM2 > const offset = DataSpace< DIM2 >(
-                w == 1 ? 0 : 4,
-                w == 1 ? 0 : 4
+            const float3_X currentSurfaceDensity = c * (float_X(1.0) / float_X(CELL_VOLUME * DELTA_T)) * cellSize;
+
+            PMACC_CASSERT_MSG_TYPE(
+                cursor_size_is_not_a_multiple_of_4_byte,
+                bmpl::int_< sizeof( CursorJ ) > ,
+                sizeof( CursorJ ) % 4 == 0
             );
-            float_X accumulated_J( 0.0 );
 
-            float_X const tmp = -currentSurfaceDensity[ w ] * matResult( id2d + offset );
-            /* we cheat a little bit y and z can be set both to the id2d.x
-             * because the correct direction will be later overwritten with k
+            /* Provide all threads with the cursor (iterator) which is already
+             * shifted to the correct J field offset for the particle handled by the first batch.
              */
-            DataSpace< DIM3 > jOffset(begin + id2d.y(), begin + id2d.x(), begin + id2d.x() );
-            for( int k = begin ; k < end; ++k )
+            CursorJ batchCursorJ(cursorJ);
+//#if 0
+            for( int b = 0; b < sizeof(CursorJ) / 4; ++b )
             {
-                /* This is the implementation of the FORTRAN W(i,j,k,3)/ C style W(i,j,k,2) version from
-                 * Esirkepov paper. All coordinates are rotated before thus we can
-                 * always use C style W(i,j,k,2).
+                uint32_t const value = *( reinterpret_cast< uint32_t* >( &cursorJ ) + b );
+                *( reinterpret_cast< uint32_t* >(&batchCursorJ) + b ) = ::pmacc::nvidia::warpBroadcast( value, 0 );
+            }
+//#endif
+            if( tid < 32 )
+            {
+                /* 1 -> thread 0-15
+                 * 2 -> thread 16-31
                  */
-                jOffset[ w ] = k;
-                accumulated_J += DS( line, k, w ) * tmp;
-                cursorJ[ jOffset ][ w ] += accumulated_J;
+                int w = tid < 16 ? 1 : 2;
+                /* offset: W2  = (0,0) -> threads 0-15
+                 *         W3  = (4,4) -> threads 16-31
+                 */
+                DataSpace< DIM2 > const offset = DataSpace< DIM2 >(
+                    w == 1 ? 0 : 4,
+                    w == 1 ? 0 : 4
+                );
+                float_X accumulated_J( 0.0 );
+
+                float_X const tmp = -currentSurfaceDensity[ w ] * matResult( id2d + offset );
+                /* we cheat a little bit y and z can be set both to the id2d.x
+                 * because the correct direction will be later overwritten with k
+                 */
+                DataSpace< DIM3 > jOffset(begin + id2d.y(), begin + id2d.x(), begin + id2d.x() );
+                for( int k = begin ; k < end; ++k )
+                {
+                    /* This is the implementation of the FORTRAN W(i,j,k,3)/ C style W(i,j,k,2) version from
+                     * Esirkepov paper. All coordinates are rotated before thus we can
+                     * always use C style W(i,j,k,2).
+                     */
+                    jOffset[ w ] = k;
+                    accumulated_J += DS( line, k, w ) * tmp;
+                    batchCursorJ[ jOffset ][ w ] += accumulated_J;
+                }
+            }
+
+            if( tid < 16 )
+            {
+                float_X accumulated_J( 0.0 );
+                DataSpace< DIM2 > matOffset = DataSpace< DIM2 >( 0, 4 );
+                float_X const tmp = -currentSurfaceDensity.x() * matResult( id2d + matOffset );
+                for( int k = begin ; k < end; ++k )
+                {
+                    /* This is the implementation of the FORTRAN W(i,j,k,3)/ C style W(i,j,k,2) version from
+                     * Esirkepov paper. All coordinates are rotated before thus we can
+                     * always use C style W(i,j,k,2).
+                     */
+                    accumulated_J += DS( line, k, 0 ) * tmp;
+                    ( *batchCursorJ( k, begin + id2d.y(), begin + id2d.x() ) ).x() += accumulated_J;
+                }
             }
         }
 
-        if( idx < 16 )
+#if 0
+        processParticle = ::pmacc::nvidia::warpBroadcast( parIsValid, 16 );
+
+        // process particle two
+        if( processParticle )
         {
-            float_X accumulated_J( 0.0 );
-            DataSpace< DIM2 > matOffset = DataSpace< DIM2 >( 0, 4 );
-            float_X const tmp = -currentSurfaceDensity.x() * matResult( id2d + matOffset );
-            for( int k = begin ; k < end; ++k )
+            const float_X c = ::pmacc::nvidia::warpBroadcast( this->charge, 16 );
+            /* We multiply with `cellEdgeLength` due to the fact that the attribute for the
+             * in-cell particle `position` (and it's change in DELTA_T) is normalize to [0,1)
+             */
+            const float3_X currentSurfaceDensity = c * (float_X(1.0) / float_X(CELL_VOLUME * DELTA_T)) * cellSize;
+
+            CursorJ batchCursorJ(cursorJ);
+            // switch to the particle handled by the second batch
+            for( int b = 0 ; b < sizeof(CursorJ) / 4; ++b )
             {
-                /* This is the implementation of the FORTRAN W(i,j,k,3)/ C style W(i,j,k,2) version from
-                 * Esirkepov paper. All coordinates are rotated before thus we can
-                 * always use C style W(i,j,k,2).
+                uint32_t const value = *( reinterpret_cast< uint32_t* >( &cursorJ ) + b );
+                *( reinterpret_cast< uint32_t* >( &batchCursorJ ) + b ) = ::pmacc::nvidia::warpBroadcast( value, 16 );
+            }
+
+            if( tid < 32 )
+            {
+                /* 1 -> thread 0-15
+                 * 2 -> thread 16-31
                  */
-                accumulated_J += DS( line, k, 0 ) * tmp;
-                ( *cursorJ( k, begin + id2d.y(), begin + id2d.x() ) ).x() += accumulated_J;
+                int w = tid < 16 ? 1 : 2;
+                /* offset: W2  = (8,8) -> threads 0-15
+                 *         W3  = (12,12) -> threads 16-31
+                 */
+                DataSpace< DIM2 > const offset = DataSpace< DIM2 >(
+                    ( w == 1 ? 0 : 4 ) + 8,
+                    ( w == 1 ? 0 : 4 ) + 8
+                );
+                float_X accumulated_J( 0.0 );
+
+                float_X const tmp = -currentSurfaceDensity[ w ] * matResult( id2d + offset );
+                /* we cheat a little bit y and z can be set both to the id2d.x
+                 * because the correct direction will be later overwritten with k
+                 */
+                DataSpace< DIM3 > jOffset(begin + id2d.y(), begin + id2d.x(), begin + id2d.x() );
+                for( int k = begin ; k < end; ++k )
+                {
+                    /* This is the implementation of the FORTRAN W(i,j,k,3)/ C style W(i,j,k,2) version from
+                     * Esirkepov paper. All coordinates are rotated before thus we can
+                     * always use C style W(i,j,k,2).
+                     */
+                    jOffset[ w ] = k;
+                    accumulated_J += DS( line, k, w ) * tmp;
+                    batchCursorJ[ jOffset ][ w ] += accumulated_J;
+                }
+            }
+
+            if( tid < 16 )
+            {
+                float_X accumulated_J( 0.0 );
+                DataSpace< DIM2 > matOffset = DataSpace< DIM2 >( 8, 12 );
+                float_X const tmp = -currentSurfaceDensity.x() * matResult( id2d + matOffset );
+                for( int k = begin ; k < end; ++k )
+                {
+                    /* This is the implementation of the FORTRAN W(i,j,k,3)/ C style W(i,j,k,2) version from
+                     * Esirkepov paper. All coordinates are rotated before thus we can
+                     * always use C style W(i,j,k,2).
+                     */
+                    accumulated_J += DS( line, k, 0 ) * tmp;
+                    ( *batchCursorJ( k, begin + id2d.y(), begin + id2d.x() ) ).x() += accumulated_J;
+                }
             }
         }
+#endif
         __syncthreads();
     }
 
