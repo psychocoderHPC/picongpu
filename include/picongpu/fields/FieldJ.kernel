@@ -218,7 +218,7 @@ struct KernelComputeCurrent
         /* this memory is used by all virtual blocks */
         auto matResult = CachedBox::create<
             3u,
-            half
+            float
         >(
             acc,
             MatDesc()
