@@ -190,15 +190,6 @@ struct KernelComputeCurrent
             }
         );
 
-        /* this memory is used by all virtual blocks */
-        auto cachedJ = CachedBox::create<
-            0u,
-            typename JBox::ValueType
-        >(
-            acc,
-            T_BlockDescription()
-        );
-
         using MatDesc = SuperCellDescription<
             typename pmacc::math::CT::make_Int<
                 DIM2,
@@ -209,7 +200,7 @@ struct KernelComputeCurrent
         /* this memory is used by all virtual blocks */
         auto matA = CachedBox::create<
             1u,
-            float_X
+            half
         >(
             acc,
             MatDesc()
@@ -218,7 +209,7 @@ struct KernelComputeCurrent
                 /* this memory is used by all virtual blocks */
         auto matB = CachedBox::create<
             2u,
-            float_X
+            half
         >(
             acc,
             MatDesc()
@@ -227,13 +218,28 @@ struct KernelComputeCurrent
         /* this memory is used by all virtual blocks */
         auto matResult = CachedBox::create<
             3u,
-            float_X
+            half
         >(
             acc,
             MatDesc()
         );
 
-        Set< float_X > setMatZero( 0.0 );
+        /* Allocate this buffer as last shared memory object because all shared memory after this
+         * allocation can be unaligned (we allocate float3_X)
+         */
+
+        /* this memory is used by all virtual blocks */
+        auto cachedJ = CachedBox::create<
+            0u,
+            typename JBox::ValueType
+        >(
+            acc,
+            T_BlockDescription()
+        );
+
+        Set< half > setMatZero(
+            __float2half(0.0_X)
+        );
         ThreadCollective<
             MatDesc,
             numWorkers
@@ -283,7 +289,8 @@ struct KernelComputeCurrent
 
                         collectiveSetMatZero( acc, setMatZero, matA );
                         collectiveSetMatZero( acc, setMatZero, matB );
-                        collectiveSetMatZero( acc, setMatZero, matResult );
+                        // the result matrix will be set to zero in the matrix multiplication operation
+                        // collectiveSetMatZero( acc, setMatZero, matResult );
 
                         __syncthreads();
                         /* this test is only important for the last frame

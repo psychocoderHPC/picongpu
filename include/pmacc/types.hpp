@@ -23,6 +23,15 @@
 
 #pragma once
 
+/* @bug for some reason we need to include fp16 and mma before cupla renamings
+ * else we end up with
+ * /sw/taurus/libraries/cuda/9.2.88/include/cuda_fp16.h(1966): error: incomplete type is not allowed
+ * /sw/taurus/libraries/cuda/9.2.88/include/cuda_fp16.h(1966): error: expected an identifier
+ * /sw/taurus/libraries/cuda/9.2.88/include/cuda_fp16.h(1966): error: inline specifier allowed on function declarations only
+ */
+#include <cuda_fp16.h>
+#include <mma.h>
+
 #include <cupla/types.hpp>
 
 #ifndef PMACC_CUDA_ENABLED

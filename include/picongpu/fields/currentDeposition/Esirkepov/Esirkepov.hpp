@@ -32,6 +32,9 @@
 
 #include "pmacc/nvidia/warp.hpp"
 
+#include <mma.h>
+
+
 namespace picongpu
 {
 namespace currentSolver
@@ -140,8 +143,9 @@ struct Esirkepov<T_ParticleShape, DIM3>
     }
 
     template< typename MatA, typename MatB, typename MatResult>
-    HDINLINE void matmul(MatA const & matA, MatB const & matB, MatResult & matResult, int tid)
+    DINLINE void matmul(MatA & matA, MatB & matB, MatResult & matResult, int tid)
     {
+#if 0
         constexpr int matSize = 16;
 
         int col = tid % matSize;
@@ -157,7 +161,15 @@ struct Esirkepov<T_ParticleShape, DIM3>
             }
             matResult( DataSpace< DIM2>( col, k ) ) = r;
         }
-
+#endif
+        nvcuda::wmma::fragment<nvcuda::wmma::matrix_a, 16, 16, 16, half, nvcuda::wmma::col_major> a_frag;
+        nvcuda::wmma::fragment<nvcuda::wmma::matrix_b, 16, 16, 16, half, nvcuda::wmma::row_major> b_frag;
+        nvcuda::wmma::fragment<nvcuda::wmma::accumulator, 16, 16, 16, half> acc_frag;
+        nvcuda::wmma::fill_fragment(acc_frag, __float2half(0.0));
+        nvcuda::wmma::load_matrix_sync(a_frag, matA.getPointer(), 16);
+        nvcuda::wmma::load_matrix_sync(b_frag, matB.getPointer(), 16);
+        nvcuda::wmma::mma_sync(acc_frag, a_frag, b_frag, acc_frag);
+        nvcuda::wmma::store_matrix_sync(matResult.getPointer() , acc_frag, 16, nvcuda::wmma::mem_row_major);
     }
 
     template< typename Mat>
@@ -251,10 +263,10 @@ struct Esirkepov<T_ParticleShape, DIM3>
             float_X const dsi = S1( line, i, direction ) - s0i;
 
             // column, row
-            matA( DataSpace< DIM2 >( matRow, 0 ) + offset ) = s0i;
-            matA( DataSpace< DIM2 >( matRow, 1 ) + offset ) = 0.5_X * dsi;
-            matA( DataSpace< DIM2 >( matRow, 2 ) + offset ) = 0.5_X * s0i;
-            matA( DataSpace< DIM2 >( matRow, 3 ) + offset ) = 1.0_X / 3.0_X * dsi;
+            matA( DataSpace< DIM2 >( matRow, 0 ) + offset ) = __float2half(s0i);
+            matA( DataSpace< DIM2 >( matRow, 1 ) + offset ) = __float2half(0.5_X * dsi);
+            matA( DataSpace< DIM2 >( matRow, 2 ) + offset ) = __float2half(0.5_X * s0i);
+            matA( DataSpace< DIM2 >( matRow, 3 ) + offset ) = __float2half(1.0_X / 3.0_X * dsi);
         }
 
         if( parIsValid && idx < 8 )
@@ -275,10 +287,10 @@ struct Esirkepov<T_ParticleShape, DIM3>
             float_X const dsj = S1( line, i, direction ) - s0j;
 
             // column, row
-            matB( DataSpace< DIM2 >( matRow, 0 ) + offset ) = s0j;
-            matB( DataSpace< DIM2 >( matRow, 1 ) + offset ) = s0j;
-            matB( DataSpace< DIM2 >( matRow, 2 ) + offset ) = dsj;
-            matB( DataSpace< DIM2 >( matRow, 3 ) + offset ) = dsj;
+            matB( DataSpace< DIM2 >( matRow, 0 ) + offset ) = __float2half(s0j);
+            matB( DataSpace< DIM2 >( matRow, 1 ) + offset ) = __float2half(s0j);
+            matB( DataSpace< DIM2 >( matRow, 2 ) + offset ) = __float2half(dsj);
+            matB( DataSpace< DIM2 >( matRow, 3 ) + offset ) = __float2half(dsj);
         }
 
         // wait that matrix is filled
@@ -370,7 +382,7 @@ struct Esirkepov<T_ParticleShape, DIM3>
                     );
                     float_X accumulated_J( 0.0 );
 
-                    float_X const tmp = -currentSurfaceDensity[ w ] * matResult( id2d + offset );
+                    float_X const tmp = -currentSurfaceDensity[ w ] * __half2float( matResult( id2d + offset ) );
                     /* we cheat a little bit y and z can be set both to the id2d.x
                      * because the correct direction will be later overwritten with k
                      */
@@ -391,7 +403,7 @@ struct Esirkepov<T_ParticleShape, DIM3>
                 {
                     float_X accumulated_J( 0.0 );
                     DataSpace< DIM2 > matOffset = DataSpace< DIM2 >( b * 8 , 4 + b * 8 );
-                    float_X const tmp = -currentSurfaceDensity.x() * matResult( id2d + matOffset );
+                    float_X const tmp = -currentSurfaceDensity.x() * __half2float( matResult( id2d + matOffset ) );
                     DataSpace< DIM3 > jOffset( 0, begin + id2d.y(), begin + id2d.x() );
                     for( int k = begin ; k < end; ++k )
                     {
