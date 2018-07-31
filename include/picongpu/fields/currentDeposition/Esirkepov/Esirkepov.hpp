@@ -311,174 +311,103 @@ struct Esirkepov<T_ParticleShape, DIM3>
         // idx is between [0;16)
         DataSpace< DIM2 > id2d( idx % 4 , idx / 4 );
 
-        bool processParticle = ::pmacc::nvidia::warpBroadcast( parIsValid, 0 );
-
-        if( processParticle )
+        #pragma unroll 2
+        for( int b = 0; b < 2; ++b )
         {
+            bool const processParticle = ::pmacc::nvidia::warpBroadcast( parIsValid, b * 16 );
 
-            const float_X c = ::pmacc::nvidia::warpBroadcast( this->charge, 0 );
-            /* We multiply with `cellEdgeLength` due to the fact that the attribute for the
-             * in-cell particle `position` (and it's change in DELTA_T) is normalize to [0,1)
-             */
-            const float3_X currentSurfaceDensity = c * (float_X(1.0) / float_X(CELL_VOLUME * DELTA_T)) * cellSize;
-
-            PMACC_CASSERT_MSG_TYPE(
-                cursor_size_is_not_a_multiple_of_4_byte,
-                bmpl::int_< sizeof( CursorJ ) > ,
-                sizeof( CursorJ ) % 4 == 0
-            );
-
-            /* Provide all threads with the cursor (iterator) which is already
-             * shifted to the correct J field offset for the particle handled by the first batch.
-             */
-            CursorJ batchCursorJ(cursorJ);
-            for( int b = 0; b < sizeof(CursorJ) / 4; ++b )
+            if( processParticle )
             {
-                uint32_t const value = *( reinterpret_cast< uint32_t* >( &cursorJ ) + b );
-                *( reinterpret_cast< uint32_t* >(&batchCursorJ) + b ) = ::pmacc::nvidia::warpBroadcast( value, 0 );
-            }
 
-            PMACC_CASSERT_MSG_TYPE(
-                Line_size_is_not_a_multiple_of_4_byte,
-                bmpl::int_< sizeof( Line< float3_X > ) > ,
-                sizeof( Line< float3_X > ) % 4 == 0
-            );
-
-            // temporary storage of the trajectory of the particle from the first batch
-            Line< float3_X > parLine;
-            for( int b = 0; b < sizeof( Line< float3_X > ) / 4; ++b )
-            {
-                uint32_t const value = *( reinterpret_cast< uint32_t* >( &line ) + b );
-                *( reinterpret_cast< uint32_t* >( &parLine ) + b ) = ::pmacc::nvidia::warpBroadcast( value, 0 );
-            }
-
-            if( tid < 32 )
-            {
-                /* 1 -> thread 0-15
-                 * 2 -> thread 16-31
+                const float_X c = ::pmacc::nvidia::warpBroadcast( this->charge, b * 16 );
+                /* We multiply with `cellEdgeLength` due to the fact that the attribute for the
+                 * in-cell particle `position` (and it's change in DELTA_T) is normalize to [0,1)
                  */
-                int w = tid < 16 ? 1 : 2;
-                /* offset: W2  = (0,0) -> threads 0-15
-                 *         W3  = (4,4) -> threads 16-31
-                 */
-                DataSpace< DIM2 > const offset = DataSpace< DIM2 >(
-                    w == 1 ? 0 : 4,
-                    w == 1 ? 0 : 4
+                const float3_X currentSurfaceDensity = c * (float_X(1.0) / float_X(CELL_VOLUME * DELTA_T)) * cellSize;
+
+                PMACC_CASSERT_MSG_TYPE(
+                    cursor_size_is_not_a_multiple_of_4_byte,
+                    bmpl::int_< sizeof( CursorJ ) > ,
+                    sizeof( CursorJ ) % 4 == 0
                 );
-                float_X accumulated_J( 0.0 );
 
-                float_X const tmp = -currentSurfaceDensity[ w ] * matResult( id2d + offset );
-                /* we cheat a little bit y and z can be set both to the id2d.x
-                 * because the correct direction will be later overwritten with k
+                /* Provide all threads with the cursor (iterator) which is already
+                 * shifted to the correct J field offset for the particle handled by the current batch.
                  */
-                DataSpace< DIM3 > jOffset(begin + id2d.y(), begin + id2d.x(), begin + id2d.x() );
-                for( int k = begin ; k < end; ++k )
+                CursorJ batchCursorJ(cursorJ);
+                for( int i = 0; i < sizeof(CursorJ) / 4; ++i )
                 {
-                    /* This is the implementation of the FORTRAN W(i,j,k,3)/ C style W(i,j,k,2) version from
-                     * Esirkepov paper. All coordinates are rotated before thus we can
-                     * always use C style W(i,j,k,2).
-                     */
-                    jOffset[ w ] = k;
-                    accumulated_J += DS( parLine, k, w ) * tmp;
-                    batchCursorJ( jOffset )[ w ] += accumulated_J;
+                    uint32_t const value = *( reinterpret_cast< uint32_t* >( &cursorJ ) + i );
+                    *( reinterpret_cast< uint32_t* >(&batchCursorJ) + i ) = ::pmacc::nvidia::warpBroadcast( value, b * 16 );
                 }
-            }
 
-            if( tid < 16 )
-            {
-                float_X accumulated_J( 0.0 );
-                DataSpace< DIM2 > matOffset = DataSpace< DIM2 >( 0, 4 );
-                float_X const tmp = -currentSurfaceDensity.x() * matResult( id2d + matOffset );
-                for( int k = begin ; k < end; ++k )
+                PMACC_CASSERT_MSG_TYPE(
+                    Line_size_is_not_a_multiple_of_4_byte,
+                    bmpl::int_< sizeof( Line< float3_X > ) > ,
+                    sizeof( Line< float3_X > ) % 4 == 0
+                );
+
+                // temporary storage of the trajectory of the particle from the current batch
+                Line< float3_X > parLine;
+                for( int i = 0; i < sizeof( Line< float3_X > ) / 4; ++i )
                 {
-                    /* This is the implementation of the FORTRAN W(i,j,k,3)/ C style W(i,j,k,2) version from
-                     * Esirkepov paper. All coordinates are rotated before thus we can
-                     * always use C style W(i,j,k,2).
+                    uint32_t const value = *( reinterpret_cast< uint32_t* >( &line ) + i );
+                    *( reinterpret_cast< uint32_t* >( &parLine ) + i ) = ::pmacc::nvidia::warpBroadcast( value, b * 16 );
+                }
+
+                if( tid < 32 )
+                {
+                    /* 1 -> thread 0-15
+                     * 2 -> thread 16-31
                      */
-                    accumulated_J += DS( parLine, k, 0 ) * tmp;
-                    batchCursorJ( DataSpace< DIM3 >(k, begin + id2d.y(), begin + id2d.x() )).x() += accumulated_J;
+                    int w = tid < 16 ? 1 : 2;
+                    /* offset: W2  = (0,0) -> threads 0-15
+                     *         W3  = (4,4) -> threads 16-31
+                     */
+                    DataSpace< DIM2 > const offset = DataSpace< DIM2 >(
+                        ( w == 1 ? 0 : 4 ) + b * 8 ,
+                        ( w == 1 ? 0 : 4 ) + b * 8
+                    );
+                    float_X accumulated_J( 0.0 );
+
+                    float_X const tmp = -currentSurfaceDensity[ w ] * matResult( id2d + offset );
+                    /* we cheat a little bit y and z can be set both to the id2d.x
+                     * because the correct direction will be later overwritten with k
+                     */
+                    DataSpace< DIM3 > jOffset(begin + id2d.y(), begin + id2d.x(), begin + id2d.x() );
+                    for( int k = begin ; k < end; ++k )
+                    {
+                        /* This is the implementation of the FORTRAN W(i,j,k,3)/ C style W(i,j,k,2) version from
+                         * Esirkepov paper. All coordinates are rotated before thus we can
+                         * always use C style W(i,j,k,2).
+                         */
+                        jOffset[ w ] = k;
+                        accumulated_J += DS( parLine, k, w ) * tmp;
+                        batchCursorJ( jOffset )[ w ] += accumulated_J;
+                    }
+                }
+
+                if( tid < 16 )
+                {
+                    float_X accumulated_J( 0.0 );
+                    DataSpace< DIM2 > matOffset = DataSpace< DIM2 >( b * 8 , 4 + b * 8 );
+                    float_X const tmp = -currentSurfaceDensity.x() * matResult( id2d + matOffset );
+                    DataSpace< DIM3 > jOffset( 0, begin + id2d.y(), begin + id2d.x() );
+                    for( int k = begin ; k < end; ++k )
+                    {
+                        /* This is the implementation of the FORTRAN W(i,j,k,3)/ C style W(i,j,k,2) version from
+                         * Esirkepov paper. All coordinates are rotated before thus we can
+                         * always use C style W(i,j,k,2).
+                         */
+                        accumulated_J += DS( parLine, k, 0 ) * tmp;
+                        jOffset.x() = k;
+                        batchCursorJ( jOffset ).x() += accumulated_J;
+                    }
                 }
             }
         }
 
-
-        processParticle = ::pmacc::nvidia::warpBroadcast( parIsValid, 16 );
-
-        // process particle two
-        if( processParticle )
-        {
-            const float_X c = ::pmacc::nvidia::warpBroadcast( this->charge, 16 );
-            /* We multiply with `cellEdgeLength` due to the fact that the attribute for the
-             * in-cell particle `position` (and it's change in DELTA_T) is normalize to [0,1)
-             */
-            const float3_X currentSurfaceDensity = c * (float_X(1.0) / float_X(CELL_VOLUME * DELTA_T)) * cellSize;
-
-            CursorJ batchCursorJ(cursorJ);
-            // switch to the particle handled by the second batch
-            for( int b = 0 ; b < sizeof(CursorJ) / 4; ++b )
-            {
-                uint32_t const value = *( reinterpret_cast< uint32_t* >( &cursorJ ) + b );
-                *( reinterpret_cast< uint32_t* >( &batchCursorJ ) + b ) = ::pmacc::nvidia::warpBroadcast( value, 16 );
-            }
-
-            // temporary storage of the trajectory of the particle from the second batch
-            Line< float3_X > parLine;
-            for( int b = 0; b < sizeof( Line< float3_X > ) / 4; ++b )
-            {
-                uint32_t const value = *( reinterpret_cast< uint32_t* >( &line ) + b );
-                *( reinterpret_cast< uint32_t* >(&parLine) + b ) = ::pmacc::nvidia::warpBroadcast( value, 16 );
-            }
-
-            if( tid < 32 )
-            {
-                /* 1 -> thread 0-15
-                 * 2 -> thread 16-31
-                 */
-                int w = tid < 16 ? 1 : 2;
-                /* offset: W2  = (8,8) -> threads 0-15
-                 *         W3  = (12,12) -> threads 16-31
-                 */
-                DataSpace< DIM2 > const offset = DataSpace< DIM2 >(
-                    ( w == 1 ? 0 : 4 ) + 8,
-                    ( w == 1 ? 0 : 4 ) + 8
-                );
-                float_X accumulated_J( 0.0 );
-
-                float_X const tmp = -currentSurfaceDensity[ w ] * matResult( id2d + offset );
-                /* we cheat a little bit y and z can be set both to the id2d.x
-                 * because the correct direction will be later overwritten with k
-                 */
-                DataSpace< DIM3 > jOffset(begin + id2d.y(), begin + id2d.x(), begin + id2d.x() );
-                for( int k = begin ; k < end; ++k )
-                {
-                    /* This is the implementation of the FORTRAN W(i,j,k,3)/ C style W(i,j,k,2) version from
-                     * Esirkepov paper. All coordinates are rotated before thus we can
-                     * always use C style W(i,j,k,2).
-                     */
-                    jOffset[ w ] = k;
-                    accumulated_J += DS( parLine, k, w ) * tmp;
-                    batchCursorJ( jOffset )[ w ] += accumulated_J;
-                }
-            }
-
-            if( tid < 16 )
-            {
-                float_X accumulated_J( 0.0 );
-                DataSpace< DIM2 > matOffset = DataSpace< DIM2 >( 8, 12 );
-                float_X const tmp = -currentSurfaceDensity.x() * matResult( id2d + matOffset );
-                for( int k = begin ; k < end; ++k )
-                {
-                    /* This is the implementation of the FORTRAN W(i,j,k,3)/ C style W(i,j,k,2) version from
-                     * Esirkepov paper. All coordinates are rotated before thus we can
-                     * always use C style W(i,j,k,2).
-                     */
-                    accumulated_J += DS( parLine, k, 0 ) * tmp;
-                    batchCursorJ( DataSpace< DIM3 >( k, begin + id2d.y(), begin + id2d.x() ) ).x() += accumulated_J;
-                }
-            }
-        }
-
-        __syncthreads();
+       __syncthreads();
     }
 
     /** calculate S0 (see paper)
