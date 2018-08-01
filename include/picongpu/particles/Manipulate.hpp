@@ -62,11 +62,6 @@ namespace particles
             >;
             using FrameType = typename SpeciesType::FrameType;
 
-            using SpeciesFunctor = typename bmpl::apply1<
-                T_Manipulator,
-                SpeciesType
-            >::type;
-
             DataConnector &dc = Environment<>::get().DataConnector();
             auto speciesPtr = dc.get< SpeciesType >(
                 FrameType::getName(),
