@@ -49,7 +49,7 @@ namespace mCT = pmacc::math::CT;
  * volume of a superCell must be <= 1024
  */
 using SuperCellSize = typename mCT::shrinkTo<
-    mCT::Int< 8, 8, 4 >,
+    mCT::Int< 4, 4, 4 >,
     simDim
 >::type;
 
