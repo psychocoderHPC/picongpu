@@ -20,13 +20,7 @@
 #pragma once
 
 #include "picongpu/simulation_defines.hpp"
-#include "picongpu/particles/filter/filter.def"
-#include "picongpu/particles/manipulators/manipulators.def"
-
-#include <pmacc/Environment.hpp>
-#include <pmacc/particles/compileTime/FindByNameOrType.hpp>
-
-#include <boost/mpl/apply.hpp>
+#include "picongpu/particles/ForEach.hpp"
 
 
 namespace picongpu
@@ -59,38 +53,44 @@ namespace particles
     >
     struct Manipulate
     {
-        using SpeciesType = pmacc::particles::compileTime::FindByNameOrType_t<
-            VectorAllSpecies,
-            T_SpeciesType
-        >;
-        using FrameType = typename SpeciesType::FrameType;
-
-        using SpeciesFunctor = typename bmpl::apply1<
-            T_Manipulator,
-            SpeciesType
-        >::type;
-
-        using FilteredManipulator = manipulators::IUnary<
-            SpeciesFunctor,
-            T_Filter
-        >;
-
         HINLINE void
-        operator()( const uint32_t currentStep )
+        operator()( uint32_t const currentStep )
         {
+            using SpeciesType = pmacc::particles::compileTime::FindByNameOrType_t<
+                VectorAllSpecies,
+                T_SpeciesType
+            >;
+            using FrameType = typename SpeciesType::FrameType;
+
+            using SpeciesFunctor = typename bmpl::apply1<
+                T_Manipulator,
+                SpeciesType
+            >::type;
+
             DataConnector &dc = Environment<>::get().DataConnector();
             auto speciesPtr = dc.get< SpeciesType >(
                 FrameType::getName(),
                 true
             );
 
-            FilteredManipulator filteredManipulator( currentStep );
-            speciesPtr->manipulateAllParticles(
-                currentStep,
-                filteredManipulator
-            );
+            AreaMapping<
+                CORE + BORDER,
+                MappingDesc
+            > mapper( speciesPtr->getCellDescription() );
 
             dc.releaseData( FrameType::getName() );
+
+
+            ForEachParticle<
+                T_Manipulator,
+                T_SpeciesType,
+                T_Filter
+            > forEachParticle;
+
+            forEachParticle(
+                currentStep,
+                mapper
+            );
         }
     };
 
