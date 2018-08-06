@@ -48,5 +48,15 @@ namespace particles
         T_Filter
     >;
 
+    template<
+        typename T_ColliderSeq,
+        typename T_FinilizerSeq = bmpl::vector0<>
+    >
+    struct Collision
+    {
+        using ColliderSeq = T_ColliderSeq;
+        using FinilizerSeq = T_FinilizerSeq;
+    };
+
 } //namespace particles
 } //namespace picongpu

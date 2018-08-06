@@ -30,16 +30,18 @@
 #include <pmacc/particles/compileTime/FindByNameOrType.hpp>
 
 #include "picongpu/particles/traits/GetIonizerList.hpp"
-#include "picongpu/particles/traits/GetColliderList.hpp"
+#include "picongpu/particles/traits/GetCollider.hpp"
 #if( PMACC_CUDA_ENABLED == 1 )
 #   include "picongpu/particles/bremsstrahlung/Bremsstrahlung.hpp"
 #endif
 #include "picongpu/particles/traits/GetPhotonCreator.hpp"
 #include "picongpu/particles/synchrotronPhotons/SynchrotronFunctions.hpp"
 #include "picongpu/particles/creation/creation.hpp"
+#include "picongpu/particles/flylite/IFlyLite.hpp"
+
 #include <pmacc/particles/traits/FilterByFlag.hpp>
 #include <pmacc/particles/traits/ResolveAliasFromSpecies.hpp>
-#include "picongpu/particles/flylite/IFlyLite.hpp"
+#include <pmacc/compileTime/conversion/ToSeq.hpp>
 
 #include <boost/mpl/plus.hpp>
 #include <boost/mpl/accumulate.hpp>
@@ -460,10 +462,10 @@ struct CallCollider
         >;
 
         // list with collider, can be also an empty list
-        using SelectColliderList = typename traits::GetColliderList< SpeciesType >::type;
+        using SelectedCollider = typename traits::GetCollider< SpeciesType >::type;
 
         using SelectColliderListWithSpecies = typename pmacc::OperateOnSeq<
-            SelectColliderList,
+            typename pmacc::ToSeq< typename SelectedCollider::ColliderSeq >::type,
             bmpl::apply1<
                 bmpl::_1,
                 SpeciesType

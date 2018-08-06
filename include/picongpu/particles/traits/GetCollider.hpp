@@ -25,8 +25,6 @@
 #include <pmacc/traits/GetFlagType.hpp>
 #include <pmacc/compileTime/accessors/Type.hpp>
 #include <pmacc/compileTime/conversion/OperateOnSeq.hpp>
-#include <pmacc/compileTime/conversion/ToSeq.hpp>
-
 
 #include <boost/mpl/apply.hpp>
 
@@ -37,12 +35,12 @@ namespace particles
 {
 namespace traits
 {
-    /** Returns a sequence with collider algorithms for a species
+    /** Return the collider algorithms for a species
      *
      * @tparam T_SpeciesType ion species
      */
     template< typename T_SpeciesType >
-    struct GetColliderList
+    struct GetCollider
     {
         using SpeciesType = T_SpeciesType;
         using FrameType = typename SpeciesType::FrameType;
@@ -58,7 +56,7 @@ namespace traits
             FoundColliderAlias
         >::type;
 
-        using type = typename pmacc::ToSeq< ColliderAlias >::type;
+        using type = ColliderAlias;
     };
 
 } // namespace traits
