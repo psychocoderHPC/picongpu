@@ -19,9 +19,7 @@
 
 #pragma once
 
-#include "picongpu/simulation_defines.hpp"
-#include "picongpu/particles/ForEach.hpp"
-#include "picongpu/particles/Manipulate.def"
+#include <boost/mpl/placeholders.hpp>
 
 
 namespace picongpu
@@ -49,46 +47,10 @@ namespace particles
      */
     template<
         typename T_Manipulator,
-        typename T_SpeciesType,
-        typename T_Filter
+        typename T_SpeciesType = bmpl::_1,
+        typename T_Filter = filter::All
     >
-    struct Manipulate
-    {
-        HINLINE void
-        operator()( uint32_t const currentStep )
-        {
-            using SpeciesType = pmacc::particles::compileTime::FindByNameOrType_t<
-                VectorAllSpecies,
-                T_SpeciesType
-            >;
-            using FrameType = typename SpeciesType::FrameType;
-
-            DataConnector &dc = Environment<>::get().DataConnector();
-            auto speciesPtr = dc.get< SpeciesType >(
-                FrameType::getName(),
-                true
-            );
-
-            AreaMapping<
-                CORE + BORDER,
-                MappingDesc
-            > mapper( speciesPtr->getCellDescription() );
-
-            dc.releaseData( FrameType::getName() );
-
-
-            ForEachParticle<
-                T_Manipulator,
-                T_SpeciesType,
-                T_Filter
-            > forEachParticle;
-
-            forEachParticle(
-                currentStep,
-                mapper
-            );
-        }
-    };
+    struct Manipulate;
 
 } //namespace particles
 } //namespace picongpu

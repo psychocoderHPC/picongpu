@@ -54,6 +54,7 @@
 #include "picongpu/initialization/ParserGridDistribution.hpp"
 #include "picongpu/particles/Manipulate.hpp"
 #include "picongpu/particles/manipulators/manipulators.hpp"
+#include "picongpu/particles/collision/collision.hpp"
 #include "picongpu/particles/filter/filter.hpp"
 #include "picongpu/particles/flylite/NonLTE.tpp"
 #include <pmacc/random/methods/methods.hpp>
@@ -537,6 +538,14 @@ public:
             >
         > copyMomentumPrev1;
         copyMomentumPrev1( currentStep );
+
+        /* Initialize ionization routine for each species with the flag `ionizers<>` */
+        using VectorSpeciesWithCollider = typename pmacc::particles::traits::FilterByFlag<
+            VectorAllSpecies,
+            collider<>
+        >::type;
+        //ForEach< VectorSpeciesWithCollider, particles::CallCollider< bmpl::_1 > > speciesCollider;
+       // speciesCollider( currentStep );
 
         DataConnector &dc = Environment<>::get().DataConnector();
 

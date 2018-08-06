@@ -22,6 +22,7 @@
 
 #include "picongpu/particles/startPosition/functors.def"
 #include "picongpu/particles/manipulators/manipulators.def"
+#include "picongpu/particles/collision/collision.def"
 #include "picongpu/particles/filter/filter.def"
 
 #include <pmacc/nvidia/functors/Assign.hpp>
@@ -63,6 +64,24 @@ namespace particles
     constexpr uint32_t TYPICAL_PARTICLES_PER_CELL = mCT::volume<
         startPosition::QuietParam25ppc::numParticlesPerDimension
     >::type::value;
+
+namespace collision
+{
+    struct RandomMomentumImpl
+    {
+        template< typename T_Rng, typename T_ParIter, typename T_Particle >
+        HDINLINE void operator()( T_Rng& rng, T_ParIter& iter, T_Particle& particle )
+        {
+            particle[ momentum_ ].y() = iter[rng() * iter.numParPerCell][momentum_].y();
+        }
+        static constexpr char const * name = "randomMomentum";
+    };
+
+    using RandomMomentum = generic::FreeRng<
+        RandomMomentumImpl,
+        pmacc::random::distributions::Uniform< float_X >
+    >;
+}
 
 namespace manipulators
 {

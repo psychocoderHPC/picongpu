@@ -30,6 +30,7 @@
 #include <pmacc/particles/compileTime/FindByNameOrType.hpp>
 
 #include "picongpu/particles/traits/GetIonizerList.hpp"
+#include "picongpu/particles/traits/GetColliderList.hpp"
 #if( PMACC_CUDA_ENABLED == 1 )
 #   include "picongpu/particles/bremsstrahlung/Bremsstrahlung.hpp"
 #endif
@@ -434,6 +435,43 @@ struct CallIonization
             ForEach< SelectIonizerList, CallIonizationScheme< SpeciesType, bmpl::_1 > > particleIonization;
             particleIonization( cellDesc, currentStep );
         }
+    }
+
+};
+
+/** Call the collision functor from the given species
+ *
+ * @tparam T_SpeciesType type or name as boost::mpl::string of particle species
+ */
+template< typename T_SpeciesType >
+struct CallCollider
+{
+
+    /** Functor implementation
+     * \param currentStep The current time step
+     */
+    HINLINE void operator()(
+        const uint32_t currentStep
+    ) const
+    {
+        using SpeciesType = pmacc::particles::compileTime::FindByNameOrType_t<
+            VectorAllSpecies,
+            T_SpeciesType
+        >;
+
+        // list with collider, can be also an empty list
+        using SelectColliderList = typename traits::GetColliderList< SpeciesType >::type;
+
+        using SelectColliderListWithSpecies = typename pmacc::OperateOnSeq<
+            SelectColliderList,
+            bmpl::apply1<
+                bmpl::_1,
+                SpeciesType
+            >
+        >::type;
+
+        ForEach< SelectColliderListWithSpecies, particles::CallFunctor<bmpl::_1> > collider;
+        collider( currentStep );
     }
 
 };

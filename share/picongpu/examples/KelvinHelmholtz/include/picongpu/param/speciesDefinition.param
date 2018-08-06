@@ -21,6 +21,7 @@
 
 #include "picongpu/simulation_defines.hpp"
 #include "picongpu/particles/Particles.hpp"
+#include "picongpu/particles/Collider.hpp"
 
 #include <pmacc/particles/Identifier.hpp>
 #include <pmacc/compileTime/conversion/MakeSeq.hpp>
@@ -66,7 +67,15 @@ using ParticleFlagsElectrons = bmpl::vector<
     interpolation< UsedField2Particle >,
     current< UsedParticleCurrentSolver >,
     massRatio< MassRatioElectrons >,
-    chargeRatio< ChargeRatioElectrons >
+    chargeRatio< ChargeRatioElectrons >,
+    collider<
+        MakeSeq_t<
+            particles::Collider<
+                particles::collision::RandomMomentum,
+                PMACC_CSTRING( "e" )
+            >
+        >
+    >
 >;
 
 /* define species electrons */

@@ -189,6 +189,9 @@ namespace picongpu
     //! alias for particle current solver, see also species.param
     alias( current );
 
+     //! alias for particle collision algorithm list
+    alias( collider );
+
     /** alias for particle flag: atomic numbers, see also ionizer.param
      * - only reasonable for atoms / ions / nuclei
      */
