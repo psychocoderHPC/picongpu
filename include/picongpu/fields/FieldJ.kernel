@@ -41,6 +41,8 @@
 #include <pmacc/memory/CtxArray.hpp>
 #include <pmacc/particles/frame_types.hpp>
 
+#define PICONGPU_NUMWARPS 2
+
 namespace picongpu
 {
 
@@ -108,7 +110,7 @@ struct KernelComputeCurrent
          * Each virtual CUDA block is working on a frame, if we have 2 blocks each block processes
          * every second frame until all frames are processed.
          */
-        constexpr uint32_t numVirtualBlocks = 1; //( numWorkers + numParticlesPerFrame - 1u ) / numParticlesPerFrame;
+        constexpr uint32_t numVirtualBlocks = PICONGPU_NUMWARPS; //( numWorkers + numParticlesPerFrame - 1u ) / numParticlesPerFrame;
 
 
         const DataSpace< simDim > block(
@@ -119,7 +121,7 @@ struct KernelComputeCurrent
         uint32_t const workerIdx = threadIdx.x;
 
         using VirtualWorkerDomCfg = IdxConfig<
-            32, //numParticlesPerFrame * numVirtualBlocks,
+            32 * numVirtualBlocks, //numParticlesPerFrame * numVirtualBlocks,
             numWorkers
         >;
 
@@ -135,11 +137,11 @@ struct KernelComputeCurrent
                 uint32_t const
             )
             {
-                return linearIdx / numParticlesPerFrame;
+                return linearIdx / 32;
             }
         );
 
-#if 0
+
         /* linear virtual worker index in the virtual block*/
         memory::CtxArray<
             uint32_t,
@@ -153,10 +155,10 @@ struct KernelComputeCurrent
             )
             {
                 /* map virtualLinearIdCtx to the range [0;numParticlesPerFrame) */
-                return linearIdx - ( virtualBlockIdCtx[ idx ] * numParticlesPerFrame );
+                return linearIdx - ( virtualBlockIdCtx[ idx ] * 32 );
             }
         );
-#endif
+
         /* each virtual worker stores the currently used frame */
         memory::CtxArray<
             FramePtr,
@@ -178,23 +180,16 @@ struct KernelComputeCurrent
             )
             {
                 frameCtx[ idx ] = boxPar.getLastFrame( block );
-                if( frameCtx[ idx ].isValid() && virtualBlockIdCtx[ idx ] == 0u )
+                if( frameCtx[ idx ].isValid() )
                     particlesInSuperCellCtx[ idx ] = boxPar.getSuperCell( block ).getSizeLastFrame();
-
-                /* select N-th (N=virtualBlockId) frame from the end of the list */
-                for( uint32_t i = 1; i <= virtualBlockIdCtx[ idx ] && frameCtx[ idx ].isValid(); ++i )
-                {
-                    particlesInSuperCellCtx[ idx ] = numParticlesPerFrame;
-                    frameCtx[ idx ] = boxPar.getPreviousFrame( frameCtx[ idx ] );
-                }
             }
         );
 
         using MatDesc = SuperCellDescription<
-            typename pmacc::math::CT::make_Int<
-                DIM2,
-                16
-            >::type
+            pmacc::math::CT::Int<
+                16,
+                16 * numVirtualBlocks
+            >
         >;
 
         /* this memory is used by all virtual blocks */
@@ -206,7 +201,7 @@ struct KernelComputeCurrent
             MatDesc()
         );
 
-                /* this memory is used by all virtual blocks */
+        /* this memory is used by all virtual blocks */
         auto matB = CachedBox::create<
             2u,
             half
@@ -215,7 +210,11 @@ struct KernelComputeCurrent
             MatDesc()
         );
 
-        /* this memory is used by all virtual blocks */
+        /* this memory is used by all virtual blocks
+         * It is useful to have a result matrix. Else we need to write the results
+         * to matrix A or B what means we need to set is after each particle back to zero.
+         * This step can be skipped if we have this matrix with results.
+         */
         auto matResult = CachedBox::create<
             3u,
             float
@@ -254,6 +253,12 @@ struct KernelComputeCurrent
         /* initialize shared memory with zeros */
         collectiveSet( acc, set, cachedJ );
 
+        /* we need only set the matrix one to zero because all particle values will always
+         * set to an valid value
+         */
+        collectiveSetMatZero( acc, setMatZero, matA );
+        collectiveSetMatZero( acc, setMatZero, matB );
+
         __syncthreads();
 
         while( true )
@@ -281,18 +286,13 @@ struct KernelComputeCurrent
                     /** particle 0 -> thread 0-15
                      *  particle 1 -> thread 16-31
                      */
-                    int const parOffset = linearIdx / 16;
-                    // round up to the next multiple of two
+                    int const parOffset = virtualLinearIdCtx[ idx ] / 16;
+
+                    constexpr int numActiveParticles = 2 * numVirtualBlocks;
+                    // round up to the next multiple of numActiveParticles
                     int const parInSuperCell = ( ( particlesInSuperCellCtx[ idx ] + 1 ) / 2 ) * 2;
-                    for( int i = parOffset; i < parInSuperCell; i += 2 )
+                    for( int i = parOffset + 2 * virtualBlockIdCtx[ idx ]; i < parInSuperCell; i += numActiveParticles )
                     {
-
-                        collectiveSetMatZero( acc, setMatZero, matA );
-                        collectiveSetMatZero( acc, setMatZero, matB );
-                        // the result matrix will be set to zero in the matrix multiplication operation
-                        // collectiveSetMatZero( acc, setMatZero, matResult );
-
-                        __syncthreads();
                         /* this test is only important for the last frame
                          * if the frame is not the last one then: `particlesInSuperCell == numParticlesPerFrame`
                          */
@@ -305,10 +305,11 @@ struct KernelComputeCurrent
                                 *frameCtx[ idx ],
                                 i,
                                 cachedJ,
-                                matA,
-                                matB,
-                                matResult,
-                                linearIdx,
+                                // shift to the data for the warp
+                                matA.shift( DataSpace< DIM2 >( 0, 16 * virtualBlockIdCtx[ idx ] ) ),
+                                matB.shift( DataSpace< DIM2 >( 0, 16 * virtualBlockIdCtx[ idx ] ) ),
+                                matResult.shift( DataSpace< DIM2 >( 0, 16 * virtualBlockIdCtx[ idx ] ) ),
+                                virtualLinearIdCtx[ idx ],
                                 i < particlesInSuperCellCtx[ idx ]
                             );
                         }
@@ -324,11 +325,8 @@ struct KernelComputeCurrent
                 {
                     if( frameCtx[ idx ].isValid() )
                     {
+                        frameCtx[ idx ] = boxPar.getPreviousFrame( frameCtx[ idx ] );
                         particlesInSuperCellCtx[ idx ] = numParticlesPerFrame;
-                        for( int i = 0; i < numVirtualBlocks && frameCtx[ idx ].isValid(); ++i )
-                        {
-                            frameCtx[ idx ] = boxPar.getPreviousFrame( frameCtx[ idx ] );
-                        }
                     }
                 }
             );
@@ -377,9 +375,9 @@ struct ComputeCurrentPerFrame
         FrameType& frame,
         const int parId,
         BoxJ & jBox,
-        T_MatA & matA,
-        T_MatB & matB,
-        T_MatR & matResult,
+        T_MatA matA,
+        T_MatB matB,
+        T_MatR matResult,
         const int localIdx,
         const bool parIsValid
     )

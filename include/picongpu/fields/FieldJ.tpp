@@ -263,9 +263,8 @@ void FieldJ::computeCurrent( ParticlesClass &parClass, uint32_t )
     /* tuning parameter to use more workers than cells in a supercell
      * valid domain: 1 <= workerMultiplier
      */
-#if 0
-    const int workerMultiplier = 2;
-#endif
+    const int workerMultiplier = PICONGPU_NUMWARPS;
+
     using FrameType = typename ParticlesClass::FrameType;
     typedef typename pmacc::traits::Resolve<
         typename GetFlagType<FrameType, current<> >::type
@@ -306,7 +305,7 @@ void FieldJ::computeCurrent( ParticlesClass &parClass, uint32_t )
     FrameSolver solver( DELTA_T );
 
     constexpr uint32_t numWorkers = pmacc::traits::GetNumWorkers<
-        32//pmacc::math::CT::volume< SuperCellSize >::type::value * workerMultiplier
+        32 * workerMultiplier
     >::value;
 
     do

@@ -172,24 +172,6 @@ struct Esirkepov<T_ParticleShape, DIM3>
         nvcuda::wmma::store_matrix_sync(matResult.getPointer() , acc_frag, 16, nvcuda::wmma::mem_row_major);
     }
 
-    template< typename Mat>
-    HDINLINE void pMat(Mat const & matA)
-    {
-        constexpr int matSize = 16;
-
-
-        for( int k = 0; k < matSize; k++)
-        {
-            for( int i = 0; i < matSize; i++ )
-            {
-                printf("%f ",matA( DataSpace< DIM2>( i, k ) ));
-            }
-            printf("\n");
-        }
-        printf("-----\n");
-
-    }
-
     /**
      * deposites current in z-direction
      *
@@ -240,6 +222,9 @@ struct Esirkepov<T_ParticleShape, DIM3>
         int const batch = tid / 16;
         int const matRow = idx % 4;
         int const i = begin + matRow;
+
+        // wait that previous round is flushed to the charge current matrix in the shared memory
+        __syncwarp();
 
 
         if( parIsValid && idx < 12 )
@@ -294,31 +279,10 @@ struct Esirkepov<T_ParticleShape, DIM3>
         }
 
         // wait that matrix is filled
-        __syncthreads();
+        __syncwarp();
 
+        // this function is also syncing the warp
         matmul( matA, matB, matResult, tid );
-#if 0
-        if(blockIdx.x == 0 && blockIdx.y == 0 &&blockIdx.z == 0 &&threadIdx.x == 0 &&threadIdx.y == 0 &&threadIdx.z == 0)
-        {
-            printf("A:\n");
-            pMat(matA);
-            printf("B:\n");
-            pMat(matB);
-        }
-
-        matmul( matA, matB, matResult, tid );
-
-        __syncthreads();
-
-        if(blockIdx.x == 0 && blockIdx.y == 0 &&blockIdx.z == 0 &&threadIdx.x == 0 &&threadIdx.y == 0 &&threadIdx.z == 0)
-        {
-            printf("C:\n");
-            pMat(matResult);
-        }
-#endif
-
-        // wait that the matrix is calculated
-        __syncthreads();
 
         // idx is between [0;16)
         DataSpace< DIM2 > id2d( idx % 4 , idx / 4 );
@@ -395,7 +359,7 @@ struct Esirkepov<T_ParticleShape, DIM3>
                          */
                         jOffset[ w ] = k;
                         accumulated_J += DS( parLine, k, w ) * tmp;
-                        batchCursorJ( jOffset )[ w ] += accumulated_J;
+                        atomicAdd(&(batchCursorJ( jOffset )[ w ]), accumulated_J, ::alpaka::hierarchy::Threads{});
                     }
                 }
 
@@ -413,13 +377,11 @@ struct Esirkepov<T_ParticleShape, DIM3>
                          */
                         accumulated_J += DS( parLine, k, 0 ) * tmp;
                         jOffset.x() = k;
-                        batchCursorJ( jOffset ).x() += accumulated_J;
+                        atomicAdd(&(batchCursorJ( jOffset ).x()), accumulated_J, ::alpaka::hierarchy::Threads{});
                     }
                 }
             }
         }
-
-       __syncthreads();
     }
 
     /** calculate S0 (see paper)
