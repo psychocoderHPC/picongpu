@@ -201,7 +201,7 @@ struct KernelComputeCurrent
             MatDesc()
         );
 
-                /* this memory is used by all virtual blocks */
+        /* this memory is used by all virtual blocks */
         auto matB = CachedBox::create<
             2u,
             half
@@ -210,7 +210,11 @@ struct KernelComputeCurrent
             MatDesc()
         );
 
-        /* this memory is used by all virtual blocks */
+        /* this memory is used by all virtual blocks
+         * It is useful to have a result matrix. Else we need to write the results
+         * to matrix A or B what means we need to set is after each particle back to zero.
+         * This step can be skipped if we have this matrix with results.
+         */
         auto matResult = CachedBox::create<
             3u,
             float
@@ -249,6 +253,12 @@ struct KernelComputeCurrent
         /* initialize shared memory with zeros */
         collectiveSet( acc, set, cachedJ );
 
+        /* we need only set the matrix one to zero because all particle values will always
+         * set to an valid value
+         */
+        collectiveSetMatZero( acc, setMatZero, matA );
+        collectiveSetMatZero( acc, setMatZero, matB );
+
         __syncthreads();
 
         while( true )
@@ -280,17 +290,9 @@ struct KernelComputeCurrent
 
                     constexpr int numActiveParticles = 2 * numVirtualBlocks;
                     // round up to the next multiple of numActiveParticles
-                    int const parInSuperCell = ( ( particlesInSuperCellCtx[ idx ] + numActiveParticles - 1 ) / numActiveParticles ) * numActiveParticles;
+                    int const parInSuperCell = ( ( particlesInSuperCellCtx[ idx ] + 1 ) / 2 ) * 2;
                     for( int i = parOffset + 2 * virtualBlockIdCtx[ idx ]; i < parInSuperCell; i += numActiveParticles )
                     {
-                        __syncthreads();
-                        // this collective calls are the reason why we need to move with all threads throw this loop
-                        collectiveSetMatZero( acc, setMatZero, matA );
-                        collectiveSetMatZero( acc, setMatZero, matB );
-                        // the result matrix will be set to zero in the matrix multiplication operation
-                        // collectiveSetMatZero( acc, setMatZero, matResult );
-
-                        __syncthreads();
                         /* this test is only important for the last frame
                          * if the frame is not the last one then: `particlesInSuperCell == numParticlesPerFrame`
                          */
@@ -303,6 +305,7 @@ struct KernelComputeCurrent
                                 *frameCtx[ idx ],
                                 i,
                                 cachedJ,
+                                // shift to the data for the warp
                                 matA.shift( DataSpace< DIM2 >( 0, 16 * virtualBlockIdCtx[ idx ] ) ),
                                 matB.shift( DataSpace< DIM2 >( 0, 16 * virtualBlockIdCtx[ idx ] ) ),
                                 matResult.shift( DataSpace< DIM2 >( 0, 16 * virtualBlockIdCtx[ idx ] ) ),
