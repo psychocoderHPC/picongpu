@@ -395,7 +395,7 @@ struct Esirkepov<T_ParticleShape, DIM3>
                          */
                         jOffset[ w ] = k;
                         accumulated_J += DS( parLine, k, w ) * tmp;
-                        batchCursorJ( jOffset )[ w ] += accumulated_J;
+                        atomicAdd(&(batchCursorJ( jOffset )[ w ]), accumulated_J, ::alpaka::hierarchy::Threads{});
                     }
                 }
 
@@ -413,7 +413,7 @@ struct Esirkepov<T_ParticleShape, DIM3>
                          */
                         accumulated_J += DS( parLine, k, 0 ) * tmp;
                         jOffset.x() = k;
-                        batchCursorJ( jOffset ).x() += accumulated_J;
+                        atomicAdd(&(batchCursorJ( jOffset ).x()), accumulated_J, ::alpaka::hierarchy::Threads{});
                     }
                 }
             }
