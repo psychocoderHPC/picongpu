@@ -34,6 +34,7 @@
 
 #include <mma.h>
 
+#define PIC_ENFORCE_SHARED_ATOMICS 1
 
 namespace picongpu
 {
@@ -171,6 +172,18 @@ struct Esirkepov<T_ParticleShape, DIM3>
         nvcuda::wmma::mma_sync(acc_frag, a_frag, b_frag, acc_frag);
         nvcuda::wmma::store_matrix_sync(matResult.getPointer() , acc_frag, 16, nvcuda::wmma::mem_row_major);
     }
+
+#if (PIC_ENFORCE_SHARED_ATOMICS == 1)
+    DINLINE void atomicAddSharedMem( float* addr, float const & val )
+    {
+        asm volatile("{\n.reg .u64 rd1;"
+                     ".reg .u32 t1;.reg .f32 t2;"
+                     "cvta.to.shared.u64 rd1,%0;" :: "l"(addr));
+        asm volatile("cvt.u32.u64 t1,rd1;"
+                     "atom.shared.add.f32 t2, [t1], %0;\n}" :: "f"(val));
+
+    }
+#endif
 
     /**
      * deposites current in z-direction
@@ -359,7 +372,11 @@ struct Esirkepov<T_ParticleShape, DIM3>
                          */
                         jOffset[ w ] = k;
                         accumulated_J += DS( parLine, k, w ) * tmp;
+#if (PIC_ENFORCE_SHARED_ATOMICS == 1)
+                        atomicAddSharedMem(&(batchCursorJ( jOffset )[ w ]), accumulated_J);
+#else
                         atomicAdd(&(batchCursorJ( jOffset )[ w ]), accumulated_J, ::alpaka::hierarchy::Threads{});
+#endif
                     }
                 }
 
@@ -377,7 +394,11 @@ struct Esirkepov<T_ParticleShape, DIM3>
                          */
                         accumulated_J += DS( parLine, k, 0 ) * tmp;
                         jOffset.x() = k;
+#if (PIC_ENFORCE_SHARED_ATOMICS == 1)
+                        atomicAddSharedMem(&(batchCursorJ( jOffset ).x()), accumulated_J);
+#else
                         atomicAdd(&(batchCursorJ( jOffset ).x()), accumulated_J, ::alpaka::hierarchy::Threads{});
+#endif
                     }
                 }
             }
