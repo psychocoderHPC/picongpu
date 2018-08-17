@@ -35,6 +35,7 @@
 #include <mma.h>
 
 #define PIC_ENFORCE_SHARED_ATOMICS 1
+#define PIC_USE_MMA 1
 
 namespace picongpu
 {
@@ -146,7 +147,21 @@ struct Esirkepov<T_ParticleShape, DIM3>
     template< typename MatA, typename MatB, typename MatResult>
     DINLINE void matmul(MatA & matA, MatB & matB, MatResult & matResult, int tid)
     {
-#if 0
+#if (PIC_USE_MMA == 1)
+        nvcuda::wmma::fragment<nvcuda::wmma::matrix_a, 16, 16, 16, half, nvcuda::wmma::col_major> a_frag;
+        nvcuda::wmma::fragment<nvcuda::wmma::matrix_b, 16, 16, 16, half, nvcuda::wmma::row_major> b_frag;
+        nvcuda::wmma::fragment<nvcuda::wmma::accumulator, 16, 16, 16, float> acc_frag;
+        nvcuda::wmma::fill_fragment(acc_frag, float(0.0));
+        nvcuda::wmma::load_matrix_sync(a_frag, matA.getPointer(), 16);
+        nvcuda::wmma::load_matrix_sync(b_frag, matB.getPointer(), 16);
+        nvcuda::wmma::mma_sync(acc_frag, a_frag, b_frag, acc_frag);
+        nvcuda::wmma::store_matrix_sync(matResult.getPointer() , acc_frag, 16, nvcuda::wmma::mem_row_major);
+#else
+        PMACC_CASSERT_MSG(
+            __PICONGPU_NUMWARPS_must_be_one_if_non_mma_are_used,
+            numParticlesPerFrame == 1
+        );
+        __syncwarp();
         constexpr int matSize = 16;
 
         int col = tid % matSize;
@@ -158,19 +173,12 @@ struct Esirkepov<T_ParticleShape, DIM3>
             float_X r = 0.0;
             for( int i = 0; i < matSize; i++ )
             {
-                r += matA( DataSpace< DIM2>( k, i ) ) *  matB( DataSpace< DIM2>( col, i ) );
+                r += __half2float(__hmul(matA( DataSpace< DIM2>( k, i ) ),  matB( DataSpace< DIM2>( col, i ) )));
             }
             matResult( DataSpace< DIM2>( col, k ) ) = r;
         }
+        __syncwarp();
 #endif
-        nvcuda::wmma::fragment<nvcuda::wmma::matrix_a, 16, 16, 16, half, nvcuda::wmma::col_major> a_frag;
-        nvcuda::wmma::fragment<nvcuda::wmma::matrix_b, 16, 16, 16, half, nvcuda::wmma::row_major> b_frag;
-        nvcuda::wmma::fragment<nvcuda::wmma::accumulator, 16, 16, 16, float> acc_frag;
-        nvcuda::wmma::fill_fragment(acc_frag, float(0.0));
-        nvcuda::wmma::load_matrix_sync(a_frag, matA.getPointer(), 16);
-        nvcuda::wmma::load_matrix_sync(b_frag, matB.getPointer(), 16);
-        nvcuda::wmma::mma_sync(acc_frag, a_frag, b_frag, acc_frag);
-        nvcuda::wmma::store_matrix_sync(matResult.getPointer() , acc_frag, 16, nvcuda::wmma::mem_row_major);
     }
 
 #if (PIC_ENFORCE_SHARED_ATOMICS == 1)
