@@ -157,7 +157,7 @@ struct KernelComputeCurrent
                 uint32_t const idx
             )
             {
-                /* map virtualLinearIdCtx to the range [0;numParticlesPerFrame) */
+                /* map virtualLinearIdCtx to the range [0;32) */
                 return linearIdx - ( virtualBlockIdCtx[ idx ] * 32 );
             }
         );
@@ -188,39 +188,18 @@ struct KernelComputeCurrent
             }
         );
 
+        // matrix A and B are stored contiguous to allow the reuse as result matrix
         using MatDesc = SuperCellDescription<
             pmacc::math::CT::Int<
                 16,
-                16 * numVirtualBlocks
+                32 * numVirtualBlocks
             >
         >;
 
         /* this memory is used by all virtual blocks */
-        auto matA = CachedBox::create<
+        auto mmaMat = CachedBox::create<
             1u,
             half
-        >(
-            acc,
-            MatDesc()
-        );
-
-        /* this memory is used by all virtual blocks */
-        auto matB = CachedBox::create<
-            2u,
-            half
-        >(
-            acc,
-            MatDesc()
-        );
-
-        /* this memory is used by all virtual blocks
-         * It is useful to have a result matrix. Else we need to write the results
-         * to matrix A or B what means we need to set is after each particle back to zero.
-         * This step can be skipped if we have this matrix with results.
-         */
-        auto matResult = CachedBox::create<
-            3u,
-            float
         >(
             acc,
             MatDesc()
@@ -239,14 +218,6 @@ struct KernelComputeCurrent
             T_BlockDescription()
         );
 
-        Set< half > setMatZero(
-            __float2half(0.0_X)
-        );
-        ThreadCollective<
-            MatDesc,
-            numWorkers
-        > collectiveSetMatZero( workerIdx );
-
         Set< typename JBox::ValueType > set( float3_X::create( 0.0 ) );
         ThreadCollective<
             T_BlockDescription,
@@ -255,12 +226,6 @@ struct KernelComputeCurrent
 
         /* initialize shared memory with zeros */
         collectiveSet( acc, set, cachedJ );
-
-        /* we need only set the matrix one to zero because all particle values will always
-         * set to an valid value
-         */
-        collectiveSetMatZero( acc, setMatZero, matA );
-        collectiveSetMatZero( acc, setMatZero, matB );
 
         __syncthreads();
 
@@ -309,9 +274,8 @@ struct KernelComputeCurrent
                                 i,
                                 cachedJ,
                                 // shift to the data for the warp
-                                matA.shift( DataSpace< DIM2 >( 0, 16 * virtualBlockIdCtx[ idx ] ) ),
-                                matB.shift( DataSpace< DIM2 >( 0, 16 * virtualBlockIdCtx[ idx ] ) ),
-                                matResult.shift( DataSpace< DIM2 >( 0, 16 * virtualBlockIdCtx[ idx ] ) ),
+                                mmaMat.shift( DataSpace< DIM2 >( 0, 32 * virtualBlockIdCtx[ idx ] ) ),
+                                mmaMat.shift( DataSpace< DIM2 >( 0, 32 * virtualBlockIdCtx[ idx ] + 16 ) ),
                                 virtualLinearIdCtx[ idx ],
                                 i < particlesInSuperCellCtx[ idx ]
                             );
@@ -370,8 +334,7 @@ struct ComputeCurrentPerFrame
         typename BoxJ,
         typename T_Acc,
         typename T_MatA,
-        typename T_MatB,
-        typename T_MatR
+        typename T_MatB
     >
     DINLINE void operator()(
         T_Acc const & acc,
@@ -380,7 +343,6 @@ struct ComputeCurrentPerFrame
         BoxJ & jBox,
         T_MatA matA,
         T_MatB matB,
-        T_MatR matResult,
         const int localIdx,
         const bool parIsValid
     )
@@ -408,7 +370,6 @@ struct ComputeCurrentPerFrame
             m_deltaTime,
             matA,
             matB,
-            matResult,
             localIdx,
             parIsValid
         );
