@@ -34,6 +34,7 @@
 
 #include <mma.h>
 
+#define PICONGPU_NUMWARPS 1
 #define PIC_ENFORCE_SHARED_ATOMICS 1
 #define PIC_USE_MMA 1
 
@@ -159,7 +160,7 @@ struct Esirkepov<T_ParticleShape, DIM3>
 #else
         PMACC_CASSERT_MSG(
             __PICONGPU_NUMWARPS_must_be_one_if_non_mma_are_used,
-            numParticlesPerFrame == 1
+            PICONGPU_NUMWARPS == 1
         );
         __syncwarp();
         constexpr int matSize = 16;
