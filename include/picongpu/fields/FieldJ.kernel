@@ -41,8 +41,6 @@
 #include <pmacc/memory/CtxArray.hpp>
 #include <pmacc/particles/frame_types.hpp>
 
-#define PICONGPU_NUMWARPS 2
-
 namespace picongpu
 {
 
