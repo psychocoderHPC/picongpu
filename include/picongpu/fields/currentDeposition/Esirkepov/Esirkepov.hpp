@@ -20,6 +20,7 @@
 #pragma once
 
 #include "picongpu/simulation_defines.hpp"
+#include "picongpu/algorithms/Set.hpp"
 #include <pmacc/types.hpp>
 #include <pmacc/cuSTL/cursor/Cursor.hpp>
 #include <pmacc/cuSTL/cursor/tools/twistVectorFieldAxes.hpp>
@@ -31,10 +32,12 @@
 #include "picongpu/fields/currentDeposition/RelayPoint.hpp"
 
 #include "pmacc/nvidia/warp.hpp"
+#include <pmacc/memory/boxes/SharedBox.hpp>
+#include <pmacc/mappings/threads/ThreadCollective.hpp>
 
 #include <mma.h>
 
-#define PICONGPU_NUMWARPS 1
+#define PICONGPU_NUMWARPS 4
 #define PIC_ENFORCE_SHARED_ATOMICS 1
 #define PIC_USE_MMA 1
 
@@ -84,8 +87,7 @@ struct Esirkepov<T_ParticleShape, DIM3>
         typename ChargeType,
         typename T_Acc,
         typename T_MatA,
-        typename T_MatB,
-        typename T_MatR
+        typename T_MatB
     >
     DINLINE void operator()(
         T_Acc const & acc,
@@ -96,7 +98,6 @@ struct Esirkepov<T_ParticleShape, DIM3>
         const float_X deltaTime,
         T_MatA & matA,
         T_MatB & matB,
-        T_MatR & matResult,
         int tid,
         const bool parIsValid
     )
@@ -139,7 +140,6 @@ struct Esirkepov<T_ParticleShape, DIM3>
             line,
             matA,
             matB,
-            matResult,
             tid,
             parIsValid
         );
@@ -205,8 +205,7 @@ struct Esirkepov<T_ParticleShape, DIM3>
         typename CursorJ,
         typename T_Acc,
         typename T_MatA,
-        typename T_MatB,
-        typename T_MatR
+        typename T_MatB
     >
     DINLINE void cptCurrent(
         T_Acc const & acc,
@@ -214,7 +213,6 @@ struct Esirkepov<T_ParticleShape, DIM3>
         Line<float3_X>& line,
         T_MatA & matA,
         T_MatB & matB,
-        T_MatR & matResult,
         int tid,
         bool parIsValid
     )
@@ -244,6 +242,46 @@ struct Esirkepov<T_ParticleShape, DIM3>
         int const batch = tid / 16;
         int const matRow = idx % 4;
         int const i = begin + matRow;
+
+        __syncwarp();
+
+        Set< float > setMatZero(
+            0.0
+        );
+
+        // define size of result matrix
+        using MatResult = SuperCellDescription<
+            pmacc::math::CT::Int<
+                16,
+                16
+            >
+        >;
+        ThreadCollective<
+            MatResult,
+            32 // one warp
+        > collectiveSetMatZero( tid );
+
+        DataBox<
+            SharedBox<
+                float,
+                pmacc::math::CT::Int<
+                   16,
+                   16
+                >
+            >
+        > matResult(
+            SharedBox<
+                float,
+                pmacc::math::CT::Int<
+                   16,
+                   16
+                >
+            >{ (float*)matA.getPointer() }
+        );
+
+        // because of the reuse of the matrix A and B as result matrix it must be cleared each round
+        collectiveSetMatZero( acc, setMatZero, matResult );
+
 
         // wait that previous round is flushed to the charge current matrix in the shared memory
         __syncwarp();
