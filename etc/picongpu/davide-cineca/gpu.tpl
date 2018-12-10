@@ -19,7 +19,14 @@
 #
 
 
-# PIConGPU batch script for hemera' SLURM batch system
+# PIConGPU batch script for davide' SLURM batch system
+
+# A Davide node contains 2 sockets with a Power8 processors with 8 cores and 8x hyperthreading.
+# Each node has accesss to 4 P100 gpus. PIConGPu will use 2 MPI tasks per socket with each 32 OpenMP threads.
+# The batch system limits the allocation of cores per tasks to 16.
+# To allow the usage of all cores we allocate twice as much mpi tasks as required for PIConGPU.
+# This overallocation is fixed later on with `srun` where the number of tasks per socket
+# is limited to 2 and the correct number of tasks are spawned.
 
 #SBATCH --account=!TBG_nameProject
 #SBATCH --partition=!TBG_queue
@@ -27,12 +34,12 @@
 # Sets batch job's name
 #SBATCH --job-name=!TBG_jobName
 #SBATCH --nodes=!TBG_nodes
-#SBATCH --ntasks=!TBG_tasks
-#SBATCH --ntasks-per-node=!TBG_gpusPerNode
-#SBATCH --mincpus=!TBG_mpiTasksPerNode
-#SBATCH --cpus-per-task=!TBG_coresPerGPU
+#SBATCH --ntasks=!TBG_allocNTasks
+# 16 is the maximum allowed by the abtch system
+#SBATCH --cpus-per-task=16
 #SBATCH --mem=!TBG_memPerNode
 #SBATCH --gres=gpu:!TBG_gpusPerNode
+#SBATCH --gres-flags=enforce-binding
 #SBATCH --mail-type=!TBG_mailSettings
 #SBATCH --mail-user=!TBG_mailAddress
 #SBATCH --workdir=!TBG_dstPath
@@ -57,19 +64,12 @@
 
 # required GPUs per node for the current job
 .TBG_gpusPerNode=`if [ $TBG_tasks -gt $TBG_numHostedGPUPerNode ] ; then echo $TBG_numHostedGPUPerNode; else echo $TBG_tasks; fi`
+.TBG_allocNTasks=$(( $TBG_tasks * 2 ))
 
 # host memory per gpu
-.TBG_memPerGPU="$((254000 / $TBG_gpusPerNode))"
+.TBG_memPerGPU="$((254000 / $TBG_numHostedGPUPerNode))"
 # host memory per node
 .TBG_memPerNode="$((TBG_memPerGPU * TBG_gpusPerNode))"
-
-# number of cores to block per GPU
-# We got two Power8 processors with each 8 cores per node,
-# so 16 cores means 4 cores for each of the 4 GPUs.
-.TBG_coresPerGPU=4
-
-# We only start 1 MPI task per GPU
-.TBG_mpiTasksPerNode="$(( TBG_gpusPerNode * 1 ))"
 
 # use ceil to caculate nodes
 .TBG_nodes="$((( TBG_tasks + TBG_gpusPerNode - 1 ) / TBG_gpusPerNode))"
@@ -102,7 +102,9 @@ else
   echo "no binary 'cuda_memtest' available or compute node is not exclusively allocated, skip GPU memory test" >&2
 fi
 
+export OMP_NUM_THREADS=32
+
 if [ $? -eq 0 ] ; then
-  # Run PIConGPU
-  srun --cpu-bind=sockets !TBG_dstPath/input/bin/picongpu !TBG_author !TBG_programParams | tee output
+  # Run PIConGPU correct number of tasks
+  srun --ntasks=!TBG_tasks -cpu-bind=sockets --ntasks-per-socket=2 !TBG_dstPath/input/bin/picongpu !TBG_author !TBG_programParams | tee output
 fi
