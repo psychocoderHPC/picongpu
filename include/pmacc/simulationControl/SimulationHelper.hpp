@@ -72,7 +72,8 @@ public:
     restartDirectory("checkpoints"),
     restartRequested(false),
     CHECKPOINT_MASTER_FILE("checkpoints.txt"),
-    author("")
+    author(""),
+    useGpuDirect(false)
     {
         tSimulation.toggleStart();
         tInit.toggleStart();
@@ -225,6 +226,9 @@ public:
      */
     void startSimulation()
     {
+        if(useGpuDirect)
+            Environment<>::get().enableGPUDirect();
+
         init();
 
         // translate checkpointPeriod string into checkpoint intervals
@@ -319,7 +323,8 @@ public:
             ("checkpoint.directory", po::value<std::string>(&checkpointDirectory)->default_value(checkpointDirectory),
              "Directory for checkpoints")
             ("author", po::value<std::string>(&author)->default_value(std::string("")),
-             "The author that runs the simulation and is responsible for created output files");
+             "The author that runs the simulation and is responsible for created output files")
+            ("gpuDirect", po::value<bool>(&useGpuDirect)->zero_tokens(), "use GPU direct for MPI communication");
     }
 
     std::string pluginGetName() const
@@ -383,6 +388,9 @@ protected:
 
     /* author that runs the simulation */
     std::string author;
+
+    //! enable MPI gpu direct
+    bool useGpuDirect;
 
 private:
 

@@ -53,3 +53,7 @@ if [ -f $TBG_cfgPath/cpuNumaStarter.sh ]
 then
   cp -a $TBG_cfgPath/cpuNumaStarter.sh tbg
 fi
+if [ -f $TBG_cfgPath/gpuNumaStarter.sh ]
+then
+  cp -a $TBG_cfgPath/gpuNumaStarter.sh tbg
+fi

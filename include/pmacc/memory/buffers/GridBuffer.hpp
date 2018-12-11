@@ -451,7 +451,7 @@ public:
     EventTask asyncCommunication(EventTask serialEvent)
     {
         EventTask evR;
-        for (uint32_t i = 0; i < maxExchange; ++i)
+        for (int i = maxExchange -1; i >=0; --i)
         {
 
             evR += asyncReceive(serialEvent, i);
@@ -459,6 +459,7 @@ public:
             ExchangeType sendEx = Mask::getMirroredExchangeType(i);
 
             evR += asyncSend(serialEvent, sendEx);
+            evR.waitForFinished();
 
         }
         return evR;
@@ -471,8 +472,10 @@ public:
             __startTransaction(serialEvent + sendEvents[sendEx]);
             sendEvents[sendEx] = sendExchanges[sendEx]->startSend();
             __endTransaction();
+            //std::cout<<"send submitted"<<std::endl;
             return sendEvents[sendEx];
         }
+
         return EventTask();
     }
 
@@ -484,6 +487,7 @@ public:
             receiveEvents[recvEx] = receiveExchanges[recvEx]->startReceive();
 
             __endTransaction();
+            //std::cout<<"receive submitted"<<std::endl;
             return receiveEvents[recvEx];
         }
         return EventTask();

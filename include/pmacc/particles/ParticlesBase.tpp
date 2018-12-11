@@ -115,7 +115,12 @@ namespace pmacc
     {
         if( particlesBuffer->hasReceiveExchange( exchangeType ) )
         {
-            size_t grid( particlesBuffer->getReceiveExchangeStack( exchangeType ).getHostCurrentSize( ) );
+            size_t grid = 0u;
+            if(Environment<>::get().isGPUDirectEnabled())
+                grid = ( particlesBuffer->getReceiveExchangeStack( exchangeType ).getDeviceCurrentSize( ) );
+            else
+                grid = ( particlesBuffer->getReceiveExchangeStack( exchangeType ).getHostCurrentSize( ) );
+            
             if( grid != 0u )
             {
                 ExchangeMapping<

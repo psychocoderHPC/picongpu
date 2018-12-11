@@ -164,7 +164,6 @@ struct Particle : public InheritLinearly<typename T_FrameType::MethodsList>
         return frame->getIdentifier(key)[idx];
     }
 
-    HDINLINE
     ThisType& operator=(const ThisType& other) = default;
 
 private:

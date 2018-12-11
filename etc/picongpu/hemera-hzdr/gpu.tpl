@@ -28,7 +28,6 @@
 #SBATCH --nodes=!TBG_nodes
 #SBATCH --ntasks=!TBG_tasks
 #SBATCH --ntasks-per-node=!TBG_gpusPerNode
-#SBATCH --mincpus=!TBG_mpiTasksPerNode
 #SBATCH --cpus-per-task=!TBG_coresPerGPU
 #SBATCH --mem=!TBG_memPerNode
 #SBATCH --gres=gpu:!TBG_gpusPerNode
@@ -96,12 +95,12 @@ cd simOutput
 # test if cuda_memtest binary is available and we have the node exclusive
 if [ -f !TBG_dstPath/input/bin/cuda_memtest ] && [ !TBG_numHostedGPUPerNode -eq !TBG_gpusPerNode ] ; then
   # Run CUDA memtest to check GPU's health
-  mpiexec !TBG_dstPath/input/bin/cuda_memtest.sh
+  mpiexec --bind-to none !TBG_dstPath/input/bin/cuda_memtest.sh
 else
   echo "no binary 'cuda_memtest' available or compute node is not exclusively allocated, skip GPU memory test" >&2
 fi
 
 if [ $? -eq 0 ] ; then
   # Run PIConGPU
-  mpiexec !TBG_dstPath/input/bin/picongpu !TBG_author !TBG_programParams | tee output
+  mpiexec --bind-to none !TBG_dstPath/tbg/gpuNumaStarter.sh !TBG_dstPath/input/bin/picongpu !TBG_author !TBG_programParams | tee output
 fi

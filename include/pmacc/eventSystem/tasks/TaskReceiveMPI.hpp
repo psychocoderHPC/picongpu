@@ -42,16 +42,37 @@ public:
     exchange(exchange)
     {
 
+        static int iid = 0;
+
+        myiId = ++iid;
     }
 
     virtual void init()
     {
+       // std::cout<<"start innit recive"<<std::endl;
+        Buffer<TYPE, DIM>* src = nullptr;
+
+        if(Environment<>::get().isGPUDirectEnabled())
+        {
+            if(exchange->hasDeviceDoubleBuffer())
+                src = &(exchange->getDeviceDoubleBuffer());
+            else
+                src = &(exchange->getDeviceBuffer());
+        }
+        else
+        {
+            src = &(exchange->getHostBuffer());
+        }
+
         this->request = Environment<DIM>::get().EnvironmentController()
-                .getCommunicator().startReceive(
-                                                exchange->getExchangeType(),
-                                                (char*) exchange->getHostBuffer().getBasePointer(),
-                                                exchange->getHostBuffer().getDataSpace().productOfComponents() * sizeof (TYPE),
-                                                exchange->getCommunicationTag());
+            .getCommunicator().startReceive(
+                exchange->getExchangeType(),
+                (char*) src->getPointer(),
+                src->getDataSpace().productOfComponents() * sizeof (TYPE),
+                exchange->getCommunicationTag()
+        );
+       // std::cout<<(std::string("submit receive") + std::to_string((uint64_t)exchange->getExchangeType()))<<" "<<std::to_string((uint64_t)exchange->getCommunicationTag())<<std::endl;
+      //  std::cout<<"end innit recive tag "<<std::to_string(exchange->getCommunicationTag())<<std::endl;
     }
 
     bool executeIntern()
@@ -65,8 +86,10 @@ public:
         int flag=0;
         MPI_CHECK(MPI_Test(this->request, &flag, &(this->status)));
 
+        //std::cout<<(std::string("receive") + std::to_string((uint64_t)exchange->getExchangeType()))<<" id="<<myiId<<" "<<flag<<" "<<std::endl;
         if (flag) //finished
         {
+           // std::cout<<(std::string("receive") + std::to_string((uint64_t)exchange->getExchangeType()))<<" id="<<myiId<<std::endl;
             delete this->request;
             this->request = nullptr;
             setFinished();
@@ -97,13 +120,14 @@ public:
 
     std::string toString()
     {
-        return "TaskReceiveMPI";
+        return std::string("TaskReceiveMPI") + std::to_string((uint64_t)exchange->getExchangeType()) + " id=" + std::to_string(myiId);
     }
 
 private:
     Exchange<TYPE, DIM> *exchange;
     MPI_Request *request;
     MPI_Status status;
+    int myiId;
 };
 
 } //namespace pmacc

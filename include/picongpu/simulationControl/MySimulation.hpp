@@ -501,6 +501,7 @@ public:
         // generate valid GUARDS (overwrite)
         EventTask eRfieldE = fieldE->asyncCommunication(__getTransactionEvent());
         __setTransactionEvent(eRfieldE);
+        //__getTransactionEvent().waitForFinished();
         EventTask eRfieldB = fieldB->asyncCommunication(__getTransactionEvent());
         __setTransactionEvent(eRfieldB);
 

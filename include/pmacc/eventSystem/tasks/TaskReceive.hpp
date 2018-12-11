@@ -30,6 +30,12 @@
 #include "pmacc/mappings/simulation/EnvironmentController.hpp"
 #include "pmacc/memory/buffers/Exchange.hpp"
 
+#include <sys/types.h>
+#include <unistd.h>
+#include <string>
+#include <sstream>
+#include <cstdlib>
+
 namespace pmacc
 {
 
@@ -43,6 +49,14 @@ namespace pmacc
         exchange(&ex),
         state(Constructor)
         {
+#if 0
+            pid_t myPid = getpid();
+            std::string pstackCommand = "pstack ";
+            std::stringstream ss;
+            ss << myPid;
+            pstackCommand += ss.str();
+            system(pstackCommand.c_str());
+#endif
         }
 
         virtual void init()
@@ -60,24 +74,57 @@ namespace pmacc
                 case RunCopy:
                     state = WaitForFinish;
                    __startTransaction();
-                    exchange->getHostBuffer().setCurrentSize(newBufferSize);
+
                     if (exchange->hasDeviceDoubleBuffer())
                     {
+                        if(Environment<>::get().isGPUDirectEnabled())
+                        {
+                            exchange->getDeviceDoubleBuffer().setCurrentSize(newBufferSize);
+                        }
+                        else
+                        {
+                            exchange->getHostBuffer().setCurrentSize(newBufferSize);
+                            Environment<>::get().Factory().createTaskCopyHostToDevice(
+                                exchange->getHostBuffer(),
+                                exchange->getDeviceDoubleBuffer()
+                            );
+                        }
 
-                        Environment<>::get().Factory().createTaskCopyHostToDevice(exchange->getHostBuffer(),
-                                                                                     exchange->getDeviceDoubleBuffer());
-                        Environment<>::get().Factory().createTaskCopyDeviceToDevice(exchange->getDeviceDoubleBuffer(),
-                                                                                       exchange->getDeviceBuffer(),
-                                                                                       this);
+                        Environment<>::get().Factory().createTaskCopyDeviceToDevice(
+                            exchange->getDeviceDoubleBuffer(),
+                            exchange->getDeviceBuffer(),
+                            this
+                        );
+
                     }
                     else
                     {
-
-                        Environment<>::get().Factory().createTaskCopyHostToDevice(exchange->getHostBuffer(),
-                                                                                     exchange->getDeviceBuffer(),
-                                                                                     this);
+                        if(Environment<>::get().isGPUDirectEnabled())
+                        {
+                            // set destination buffer size
+                            exchange->getDeviceBuffer().setCurrentSize(newBufferSize);
+                            setSizeEvent=__getTransactionEvent();
+                            state = WaitForSetSize;
+                        }
+                        else
+                        {
+                            exchange->getHostBuffer().setCurrentSize(newBufferSize);
+                            Environment<>::get().Factory().createTaskCopyHostToDevice(
+                                exchange->getHostBuffer(),
+                                exchange->getDeviceBuffer(),
+                                this
+                            );
+                        }
                     }
                     __endTransaction();
+                    break;
+                case WaitForSetSize:
+                    // this code is only passed if gpu direct is enabled
+                    if(NULL == Environment<>::get().Manager().getITaskIfNotFinished(setSizeEvent.getTaskId()))
+                    {
+                        state = Finish;
+                        return true;
+                    }
                     break;
                 case WaitForFinish:
                     break;
@@ -106,7 +153,7 @@ namespace pmacc
                         // std::cout<<" data rec "<<rdata->getReceivedCount()/sizeof(TYPE)<<std::endl;
                         newBufferSize = rdata->getReceivedCount() / sizeof (TYPE);
                         state = RunCopy;
-                        executeIntern();
+                        //executeIntern();
                     }
                     break;
                 case COPYHOST2DEVICE:
@@ -132,6 +179,7 @@ namespace pmacc
             Constructor,
             WaitForReceived,
             RunCopy,
+            WaitForSetSize,
             WaitForFinish,
             Finish
 
@@ -141,6 +189,7 @@ namespace pmacc
         Exchange<TYPE, DIM> *exchange;
         state_t state;
         size_t newBufferSize;
+        EventTask setSizeEvent;
     };
 
 } //namespace pmacc

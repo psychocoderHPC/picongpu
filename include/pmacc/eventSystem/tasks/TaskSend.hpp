@@ -44,6 +44,14 @@ namespace pmacc
         exchange(&ex),
         state(Constructor)
         {
+#if 0
+            pid_t myPid = getpid();
+            std::string pstackCommand = "pstack ";
+            std::stringstream ss;
+            ss << myPid;
+            pstackCommand += ss.str();
+            system(pstackCommand.c_str());
+#endif
         }
 
         virtual void init()
@@ -51,18 +59,40 @@ namespace pmacc
             state = InitDone;
             if (exchange->hasDeviceDoubleBuffer())
             {
-                Environment<>::get().Factory().createTaskCopyDeviceToDevice(exchange->getDeviceBuffer(),
-                                                                            exchange->getDeviceDoubleBuffer()
-                                                                            );
-                Environment<>::get().Factory().createTaskCopyDeviceToHost(exchange->getDeviceDoubleBuffer(),
-                                                                          exchange->getHostBuffer(),
-                                                                          this);
+                if(Environment<>::get().isGPUDirectEnabled())
+                    Environment<>::get().Factory().createTaskCopyDeviceToDevice(
+                        exchange->getDeviceBuffer(),
+                        exchange->getDeviceDoubleBuffer(),
+                        this
+                    );
+                else
+                {
+                    Environment<>::get().Factory().createTaskCopyDeviceToDevice(
+                        exchange->getDeviceBuffer(),
+                        exchange->getDeviceDoubleBuffer()
+                    );
+
+                    Environment<>::get().Factory().createTaskCopyDeviceToHost(
+                        exchange->getDeviceDoubleBuffer(),
+                        exchange->getHostBuffer(),
+                        this
+                    );
+                }
             }
             else
             {
-                Environment<>::get().Factory().createTaskCopyDeviceToHost(exchange->getDeviceBuffer(),
-                                                                          exchange->getHostBuffer(),
-                                                                          this);
+                if(Environment<>::get().isGPUDirectEnabled())
+                {
+                    // wait to be sure that all device work is finished
+                    __getTransactionEvent().waitForFinished();
+                    state = DeviceToHostFinished;
+                }
+                else
+                    Environment<>::get().Factory().createTaskCopyDeviceToHost(
+                        exchange->getDeviceBuffer(),
+                        exchange->getHostBuffer(),
+                        this
+                    );
             }
 
         }
@@ -97,7 +127,7 @@ namespace pmacc
 
         void event(id_t, EventType type, IEventData*)
         {
-            if (type == COPYDEVICE2HOST)
+            if (type == COPYDEVICE2HOST || type == COPYDEVICE2DEVICE)
             {
                 state = DeviceToHostFinished;
                 executeIntern();

@@ -49,7 +49,7 @@ namespace pmacc
 
         ExchangeIntern(DeviceBuffer<TYPE, DIM>& source, GridLayout<DIM> memoryLayout, DataSpace<DIM> guardingCells, uint32_t exchange,
                        uint32_t communicationTag, uint32_t area = BORDER, bool sizeOnDevice = false) :
-        Exchange<TYPE, DIM>(exchange, communicationTag)
+        Exchange<TYPE, DIM>(exchange, communicationTag), deviceDoubleBuffer(nullptr), hostBuffer(nullptr)
         {
 
             PMACC_ASSERT(!guardingCells.isOneDimensionGreaterThan(memoryLayout.getGuard()));
@@ -88,12 +88,13 @@ namespace pmacc
                 deviceDoubleBuffer.reset( new DeviceBufferIntern<TYPE, DIM > (tmp_size, false, true) );
             }
 
-            hostBuffer.reset( new HostBufferIntern<TYPE, DIM > (tmp_size) );
+            if(!Environment<>::get().isGPUDirectEnabled())
+                hostBuffer.reset(new HostBufferIntern<TYPE, DIM > (tmp_size));
         }
 
         ExchangeIntern(DataSpace<DIM> exchangeDataSpace, uint32_t exchange,
                        uint32_t communicationTag, bool sizeOnDevice = false) :
-        Exchange<TYPE, DIM>(exchange, communicationTag)
+        Exchange<TYPE, DIM>(exchange, communicationTag), deviceDoubleBuffer(nullptr), hostBuffer(nullptr)
         {
             deviceBuffer.reset( new DeviceBufferIntern<TYPE, DIM > (exchangeDataSpace, sizeOnDevice) );
            //  this->deviceBuffer = new DeviceBufferIntern<TYPE, DIM > (exchangeDataSpace, sizeOnDevice,true);
@@ -103,7 +104,8 @@ namespace pmacc
                deviceDoubleBuffer.reset( new DeviceBufferIntern<TYPE, DIM > (exchangeDataSpace, false, true) );
             }
 
-            hostBuffer.reset( new HostBufferIntern<TYPE, DIM > (exchangeDataSpace) );
+            if(!Environment<>::get().isGPUDirectEnabled())
+                hostBuffer.reset(new HostBufferIntern<TYPE, DIM > (exchangeDataSpace));
         }
 
         /**
@@ -203,11 +205,13 @@ namespace pmacc
 
         virtual HostBuffer<TYPE, DIM>& getHostBuffer()
         {
+            PMACC_VERIFY(hostBuffer!=nullptr);
             return *hostBuffer;
         }
 
         virtual DeviceBuffer<TYPE, DIM>& getDeviceBuffer()
         {
+            PMACC_VERIFY(deviceBuffer!=nullptr);
             return *deviceBuffer;
         }
 
@@ -218,6 +222,7 @@ namespace pmacc
 
         virtual DeviceBuffer<TYPE, DIM>& getDeviceDoubleBuffer()
         {
+            PMACC_VERIFY(deviceDoubleBuffer != nullptr);
             return *deviceDoubleBuffer;
         }
 

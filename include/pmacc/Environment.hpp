@@ -60,21 +60,20 @@ namespace detail
         friend pmacc::Environment<DIM2>;
         friend pmacc::Environment<DIM3>;
 
-        EnvironmentContext( ) :
-            m_isMpiInitialized( false ),
-            m_isDeviceSelected( false ),
-            m_isSubGridDefined( false )
+        EnvironmentContext( )
         {
         }
 
         /** initialization state of MPI */
-        bool m_isMpiInitialized;
+        bool m_isMpiInitialized = false;
 
         /** state if a computing device is selected */
-        bool m_isDeviceSelected;
+        bool m_isDeviceSelected = false;
 
         /** state if the SubGrid is defined */
-        bool m_isSubGridDefined;
+        bool m_isSubGridDefined = false;
+
+        bool m_isGPUDirectEnabled = false;
 
         /** get the singleton EnvironmentContext
          *
@@ -129,6 +128,19 @@ namespace detail
          * @param deviceNumber number of the device
          */
         void setDevice(int deviceNumber);
+
+        /** activate GPU direct usage
+         *
+         */
+        void enableGPUDirect()
+        {
+            m_isGPUDirectEnabled = true;
+        }
+
+        bool isGPUDirectEnabled() const
+        {
+            return m_isGPUDirectEnabled;
+        }
 
     };
 
@@ -280,6 +292,15 @@ template< uint32_t T_dim >
 class Environment : public detail::Environment
 {
 public:
+    void enableGPUDirect()
+    {
+        detail::EnvironmentContext::getInstance().enableGPUDirect();
+    }
+
+    bool isGPUDirectEnabled() const
+    {
+        return detail::EnvironmentContext::getInstance().isGPUDirectEnabled();
+    }
 
     /** get the singleton GridController
      *
@@ -449,17 +470,12 @@ namespace detail
         {
             throw std::runtime_error("no CUDA capable devices detected");
         }
-        else if (deviceNumber >= num_gpus) //check if device can be selected by deviceNumber
-        {
-            std::cerr << "no CUDA device " << deviceNumber << ", only " << num_gpus << " devices found" << std::endl;
-            throw std::runtime_error("CUDA capable devices can't be selected");
-        }
 #endif
 
         int maxTries = num_gpus;
 #if (PMACC_CUDA_ENABLED == 1)
         cudaDeviceProp devProp;
-        CUDA_CHECK((cuplaError_t)cudaGetDeviceProperties(&devProp, deviceNumber));
+        CUDA_CHECK((cuplaError_t)cudaGetDeviceProperties(&devProp, deviceNumber%num_gpus));
         /* if the gpu compute mode is set to default we use the given `deviceNumber` */
         if (devProp.computeMode == cudaComputeModeDefault)
             maxTries = 1;
