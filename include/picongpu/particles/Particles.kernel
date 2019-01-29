@@ -535,7 +535,7 @@ struct KernelMoveAndMarkParticles
                     {
                         particleFunctor(
                             acc,
-                            *frame,
+                            frame[linearIdx],
                             linearIdx,
                             cachedB,
                             cachedE,
@@ -572,14 +572,14 @@ struct KernelMoveAndMarkParticles
    }
 };
 
-template<class PushAlgo, class TVec, class T_Field2ParticleInterpolation>
+template<class PushAlgo, class T_Field2ParticleInterpolation>
 struct PushParticlePerFrame
 {
 
-    template<class FrameType, class BoxB, class BoxE, typename T_Acc >
+    template<class T_Particle, class BoxB, class BoxE, typename T_Acc >
     DINLINE void operator()(
         T_Acc const & acc,
-        FrameType& frame,
+        T_Particle& particle,
         int localIdx,
         BoxB& bBox,
         BoxE& eBox,
@@ -588,13 +588,11 @@ struct PushParticlePerFrame
     )
     {
 
-        using Block = TVec;
+        using TVec = SuperCellSize;
         using Field2ParticleInterpolation = T_Field2ParticleInterpolation;
 
         using BType = typename BoxB::ValueType;
         using EType = typename BoxE::ValueType;
-
-        auto particle = frame[localIdx];
 
         floatD_X pos = particle[position_];
         const int particleCellIdx = particle[localCellIdx_];

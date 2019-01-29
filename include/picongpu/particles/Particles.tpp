@@ -231,7 +231,6 @@ Particles<
 
     using FrameSolver = PushParticlePerFrame<
         ParticlePush,
-        MappingDesc::SuperCellSize,
         InterpolationScheme
     >;
 
