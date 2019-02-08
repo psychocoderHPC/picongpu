@@ -326,6 +326,11 @@ public:
             bremsstrahlungPhotons<>
         >::type;
 
+/* The random number generator is not used within the SPEC benchmarks.
+ * To keep the initialization enabled would result into a longer initialization than the
+ * benchmark itself on GPUs.
+ */
+#if 0
         // create factory for the random number generator
         const uint32_t userSeed = random::seed::ISeed< random::SeedGenerator >{}();
         const uint32_t seed = std::hash<std::string>{}(
@@ -345,6 +350,7 @@ public:
         pmacc::GridController<simDim>& gridCon = pmacc::Environment<simDim>::get().GridController();
         rngFactory->init( gridCon.getScalarPosition() ^ seed );
         dc.share( std::shared_ptr< ISimulationData >( rngFactory ) );
+#endif
 
         // Initialize synchrotron functions, if there are synchrotron photon species
         if(!bmpl::empty<AllSynchrotronPhotonsSpecies>::value)
