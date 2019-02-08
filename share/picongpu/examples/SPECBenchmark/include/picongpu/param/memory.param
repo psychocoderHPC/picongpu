@@ -84,11 +84,11 @@ using GuardSize = typename mCT::shrinkTo<
 struct DefaultExchangeMemCfg
 {
     // memory used for a direction
-    static constexpr uint32_t BYTES_EXCHANGE_X = 4 * 1024 * 1024; // 4 MiB
-    static constexpr uint32_t BYTES_EXCHANGE_Y = 6 * 1024 * 1024; // 6 MiB
-    static constexpr uint32_t BYTES_EXCHANGE_Z = 64 * 1024 * 1024; // 64 MiB
-    static constexpr uint32_t BYTES_EDGES = 2 * 1024 * 1024; // 2 MiB
-    static constexpr uint32_t BYTES_CORNER = 512 * 1024; // 512 kiB
+    static constexpr uint32_t BYTES_EXCHANGE_X = 1 * 1024 * 1024; // 4 MiB
+    static constexpr uint32_t BYTES_EXCHANGE_Y = 1 * 1024 * 1024; // 2 MiB
+    static constexpr uint32_t BYTES_EXCHANGE_Z = 9 * 1024 * 1024; // 8 MiB
+    static constexpr uint32_t BYTES_EDGES = 512 * 1024; // 512 kiB
+    static constexpr uint32_t BYTES_CORNER = 256 * 1024; // 256 kiB
 };
 
 /** number of scalar fields that are reserved as temporary fields */
@@ -102,6 +102,6 @@ constexpr uint32_t fieldTmpNumSlots = 1;
  * decomposition and only necessary for specific algorithms that extend
  * the basic PIC cycle, e.g. with dependence on derived density or energy fields.
  */
-constexpr bool fieldTmpSupportGatherCommunication = true;
+constexpr bool fieldTmpSupportGatherCommunication = false;
 
 } // namespace picongpu
