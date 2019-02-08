@@ -45,7 +45,7 @@ namespace picongpu
  *
  *  example: using UsedParticleShape = particles::shapes::CIC;
  */
-using UsedParticleShape = particles::shapes::TSC;
+using UsedParticleShape = particles::shapes::PCS;
 
 /** define which interpolation method is used to interpolate fields to particles
  */
@@ -63,7 +63,7 @@ using UsedField2Particle = FieldToParticleInterpolation<
  * - currentSolver::currentSolver::EsirkepovNative< SHAPE > : generic version of currentSolverEsirkepov
  *   without optimization (~4x slower and needs more shared memory)
  */
-using UsedParticleCurrentSolver = currentSolver::Esirkepov< UsedParticleShape >;
+using UsedParticleCurrentSolver = currentSolver::EmZ< UsedParticleShape >;
 
 /** particle pusher configuration
  *
