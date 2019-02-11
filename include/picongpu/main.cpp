@@ -17,6 +17,9 @@
  * If not, see <http://www.gnu.org/licenses/>.
  */
 
+// SPEC benchmark: translate SPEC_ defines into ALPAKA_ defines
+#include <specDefWrapper.h>
+
 #include "picongpu/ArgsParser.hpp"
 #include <pmacc/Environment.hpp>
 #include <pmacc/types.hpp>
