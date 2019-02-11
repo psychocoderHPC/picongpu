@@ -18,7 +18,10 @@
  *
  */
 
+// SPEC benchmark: translate SPEC_ defines into ALPAKA_ defines
+#include <specDefWrapper.h>
 #include "cupla/namespace.hpp"
+
 #include "cupla/types.hpp"
 #include "cupla_runtime.hpp"
 #include "cupla/manager/Driver.hpp"
