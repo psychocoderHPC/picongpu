@@ -18,6 +18,8 @@
  *
  */
 
+// SPEC benchmark: translate SPEC_ defines into ALPAKA_ defines
+#include <specDefWrapper.h>
 
 #include "cupla_runtime.hpp"
 #include "cupla/manager/Memory.hpp"
