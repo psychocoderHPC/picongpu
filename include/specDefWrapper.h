@@ -15,7 +15,9 @@
         #define CUPLA_STREAM_ASYNC_ENABLED 0
         #define ALPAKA_ACC_CPU_B_SEQ_T_THREADS_ENABLED
     #elif defined SPEC_OPENACC
-        #error "SPEC_OPENACC not supported"
+        #warning "SPEC_OPENACC not supported, falling back to sequential MPI"
+        #define CUPLA_STREAM_ASYNC_ENABLED 0
+        #define ALPAKA_ACC_CPU_B_SEQ_T_SEQ_ENABLED
     #else
         #define CUPLA_STREAM_ASYNC_ENABLED 0
         #define ALPAKA_ACC_CPU_B_SEQ_T_SEQ_ENABLED
