@@ -47,7 +47,7 @@ namespace alpaka
         {
             namespace detail
             {
-#if BOOST_ARCH_X86
+#if !defined(SPEC) && defined(BOOST_ARCH_X86)
     #if BOOST_COMP_GNUC || BOOST_COMP_CLANG || (!BOOST_COMP_MSVC_EMULATED && defined(__INTEL_COMPILER))
         #include <cpuid.h>
                 //-----------------------------------------------------------------------------
@@ -72,7 +72,7 @@ namespace alpaka
                 inline auto getCpuName()
                 -> std::string
                 {
-#if BOOST_ARCH_X86
+#if !defined(SPEC) && defined(BOOST_ARCH_X86)
                     // Get extended ids.
                     std::uint32_t ex[4] = {0};
                     cpuid(0x80000000, 0, ex);
