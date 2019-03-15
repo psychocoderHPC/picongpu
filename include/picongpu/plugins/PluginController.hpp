@@ -31,7 +31,9 @@
 #include "picongpu/plugins/SumCurrents.hpp"
 #include "picongpu/plugins/BinEnergyParticles.hpp"
 #include "picongpu/plugins/Emittance.hpp"
+#if !defined(SPEC)
 #include "picongpu/plugins/transitionRadiation/TransitionRadiation.hpp"
+#endif
 #include "picongpu/plugins/output/images/PngCreator.hpp"
 #include "picongpu/plugins/output/images/Visualisation.hpp"
 /* That's an abstract plugin for image output with the possibility
@@ -72,8 +74,9 @@
 #endif
 
 #include "picongpu/plugins/Checkpoint.hpp"
-#include "picongpu/plugins/ResourceLog.hpp"
-
+#if !defined(SPEC)
+#   include "picongpu/plugins/ResourceLog.hpp"
+#endif
 #include <pmacc/mappings/kernel/MappingDescription.hpp>
 
 #include "picongpu/plugins/ILightweightPlugin.hpp"
@@ -183,7 +186,9 @@ private:
 #if (ENABLE_HDF5 == 1)
         , plugins::multi::Master< hdf5::HDF5Writer >
 #endif
+#if !defined(SPEC)
         , ResourceLog
+#endif
     >;
 
 
@@ -215,8 +220,10 @@ private:
         plugins::multi::Master< CalcEmittance<bmpl::_1> >,
         plugins::multi::Master< BinEnergyParticles<bmpl::_1> >,
         CountParticles<bmpl::_1>,
-        PngPlugin< Visualisation<bmpl::_1, PngCreator> >,
-        plugins::transitionRadiation::TransitionRadiation<bmpl::_1>
+        PngPlugin< Visualisation<bmpl::_1, PngCreator> >
+#if !defined(SPEC)
+        , plugins::transitionRadiation::TransitionRadiation<bmpl::_1>
+#endif
 #if(ENABLE_HDF5 == 1)
         , plugins::radiation::Radiation<bmpl::_1>
         , plugins::multi::Master< ParticleCalorimeter<bmpl::_1> >

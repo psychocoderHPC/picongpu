@@ -60,13 +60,16 @@
 
 #include <boost/typeof/std/utility.hpp>
 #include <boost/mpl/placeholders.hpp>
-#include <boost/filesystem.hpp>
 
+#if !defined(SPEC)
+#   include <boost/filesystem.hpp>
+#endif
 
 namespace pmacc
 {
 
 namespace bmpl = boost::mpl;
+#if !defined(SPEC)
 namespace bfs = boost::filesystem;
-
+#endif
 } //namespace pmacc
