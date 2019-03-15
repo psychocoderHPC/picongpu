@@ -60,12 +60,15 @@
 #include <pmacc/random/methods/methods.hpp>
 #include <pmacc/random/RNGProvider.hpp>
 
-#if( PMACC_CUDA_ENABLED == 1 )
-#   include "picongpu/particles/bremsstrahlung/ScaledSpectrum.hpp"
-#   include "picongpu/particles/bremsstrahlung/PhotonEmissionAngle.hpp"
+#if !defined(SPEC)
+#   include "picongpu/particles/synchrotronPhotons/SynchrotronFunctions.hpp"
+#   if( PMACC_CUDA_ENABLED == 1 )
+#       include "picongpu/particles/bremsstrahlung/ScaledSpectrum.hpp"
+#       include "picongpu/particles/bremsstrahlung/PhotonEmissionAngle.hpp"
+#   endif
 #endif
 
-#include "picongpu/particles/synchrotronPhotons/SynchrotronFunctions.hpp"
+
 
 #include <pmacc/nvidia/reduce/Reduce.hpp>
 #include <pmacc/memory/boxes/DataBoxDim1Access.hpp>
@@ -810,9 +813,11 @@ protected:
 } /* namespace picongpu */
 
 #include "picongpu/fields/Fields.tpp"
-#include "picongpu/particles/synchrotronPhotons/SynchrotronFunctions.tpp"
+#if !defined(SPEC)
+#   include "picongpu/particles/synchrotronPhotons/SynchrotronFunctions.tpp"
 
-#if( PMACC_CUDA_ENABLED == 1 )
-#   include "picongpu/particles/bremsstrahlung/Bremsstrahlung.tpp"
-#   include "picongpu/particles/bremsstrahlung/ScaledSpectrum.tpp"
+#   if( PMACC_CUDA_ENABLED == 1 )
+#       include "picongpu/particles/bremsstrahlung/Bremsstrahlung.tpp"
+#       include "picongpu/particles/bremsstrahlung/ScaledSpectrum.tpp"
+#   endif
 #endif

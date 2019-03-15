@@ -24,12 +24,15 @@
 #include <fstream>
 #include <sstream>
 
-#include <boost/filesystem.hpp>
+#if !defined(SPEC)
+#   include <boost/filesystem.hpp>
+#endif
 
 namespace picongpu
 {
-using namespace boost::filesystem;
-
+#if !defined(SPEC)
+    using namespace boost::filesystem;
+#endif
     /** Restore a txt file from the checkpoint dir
      *
      * Restores a txt file from the checkpoint dir and starts appending to it.
@@ -46,6 +49,7 @@ using namespace boost::filesystem;
     bool restoreTxtFile( std::ofstream& outFile, std::string filename,
                          uint32_t restartStep, const std::string restartDirectory )
     {
+#if !defined(SPEC)
         /* get restart time step as string */
         std::stringstream sStep;
         sStep << restartStep;
@@ -82,6 +86,9 @@ using namespace boost::filesystem;
             }
             return true;
         }
+#else
+        return true;
+#endif
     }
 
     /** Checkpoints a txt file
@@ -96,6 +103,7 @@ using namespace boost::filesystem;
     void checkpointTxtFile( std::ofstream& outFile, std::string filename,
                             uint32_t currentStep, const std::string checkpointDirectory )
     {
+#if !defined(SPEC)
         outFile.flush();
 
         std::stringstream sStep;
@@ -108,6 +116,7 @@ using namespace boost::filesystem;
         copy_file( src,
                    dst,
                    copy_option::overwrite_if_exists );
+#endif
     }
 
 } /* namespace picongpu */

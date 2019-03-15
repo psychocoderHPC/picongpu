@@ -34,7 +34,9 @@
 #include "pmacc/pluginSystem/containsStep.hpp"
 #include "pmacc/pluginSystem/toTimeSlice.hpp"
 
+#if !defined(SPEC)
 #include <boost/filesystem.hpp>
+#endif
 #include <iostream>
 #include <iomanip>
 #include <fstream>
@@ -162,12 +164,13 @@ public:
              * time for checkpointing if some ranks died */
             MPI_CHECK(MPI_Barrier(gc.getCommunicator().getMPIComm()));
 
+#if !defined(SPEC)
             /* create directory containing checkpoints  */
             if (numCheckpoints == 0)
             {
                 Environment<DIM>::get().Filesystem().createDirectoryWithPermissions(checkpointDirectory);
             }
-
+#endif
             Environment<DIM>::get().PluginConnector().checkpointPlugins(currentStep,
                                                                         checkpointDirectory);
 
@@ -433,7 +436,7 @@ protected:
     std::vector<uint32_t> readCheckpointMasterFile()
     {
         std::vector<uint32_t> checkpoints;
-
+#if !defined(SPEC)
         const std::string checkpointMasterFile =
             this->restartDirectory + std::string("/") + this->CHECKPOINT_MASTER_FILE;
 
@@ -458,7 +461,7 @@ protected:
                     << line << ")" << std::endl;
             }
         }
-
+#endif
         return checkpoints;
     }
 private:
