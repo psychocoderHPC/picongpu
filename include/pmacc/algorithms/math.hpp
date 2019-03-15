@@ -35,7 +35,9 @@
 #include "pmacc/algorithms/math/defines/pow.hpp"
 #include "pmacc/algorithms/math/defines/modf.hpp"
 #include "pmacc/algorithms/math/defines/fmod.hpp"
-#include "pmacc/algorithms/math/defines/bessel.hpp"
+#if !defined(SPEC)
+#   include "pmacc/algorithms/math/defines/bessel.hpp"
+#endif
 #include "pmacc/algorithms/math/defines/pi.hpp"
 
 #include "pmacc/algorithms/math/floatMath/abs.tpp"
@@ -48,7 +50,9 @@
 #include "pmacc/algorithms/math/floatMath/pow.tpp"
 #include "pmacc/algorithms/math/floatMath/modf.tpp"
 #include "pmacc/algorithms/math/floatMath/fmod.tpp"
-#include "pmacc/algorithms/math/floatMath/bessel.tpp"
+#if !defined(SPEC)
+#   include "pmacc/algorithms/math/floatMath/bessel.tpp"
+#endif
 
 #include "pmacc/algorithms/math/doubleMath/abs.tpp"
 #include "pmacc/algorithms/math/doubleMath/sqrt.tpp"
@@ -60,4 +64,6 @@
 #include "pmacc/algorithms/math/doubleMath/pow.tpp"
 #include "pmacc/algorithms/math/doubleMath/modf.tpp"
 #include "pmacc/algorithms/math/doubleMath/fmod.tpp"
-#include "pmacc/algorithms/math/doubleMath/bessel.tpp"
+#if !defined(SPEC)
+#   include "pmacc/algorithms/math/doubleMath/bessel.tpp"
+#endif

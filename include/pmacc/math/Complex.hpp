@@ -21,8 +21,10 @@
 
 #pragma once
 
-#include "pmacc/math/complex/Complex.hpp"
-#include "pmacc/math/complex/Bessel.hpp"
+#if !defined(SPEC)
+#   include "pmacc/math/complex/Complex.hpp"
+#   include "pmacc/math/complex/Bessel.hpp"
 
-#include "pmacc/math/complex/Complex.tpp"
-#include "pmacc/math/complex/Bessel.tpp"
+#   include "pmacc/math/complex/Complex.tpp"
+#   include "pmacc/math/complex/Bessel.tpp"
+#endif

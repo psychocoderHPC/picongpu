@@ -33,7 +33,9 @@
 #include "pmacc/pluginSystem/PluginConnector.hpp"
 #include "pmacc/nvidia/memory/MemoryInfo.hpp"
 #include "pmacc/simulationControl/SimulationDescription.hpp"
+#if !defined(SPEC)
 #include "pmacc/mappings/simulation/Filesystem.hpp"
+#endif
 #include "pmacc/eventSystem/events/EventPool.hpp"
 #include "pmacc/Environment.def"
 #include "pmacc/communication/manager_common.hpp"
@@ -332,6 +334,7 @@ public:
         return pmacc::SubGrid< T_dim >::getInstance();
     }
 
+#if !defined(SPEC)
     /** get the singleton Filesystem
      *
      * @return instance of Filesystem
@@ -340,7 +343,7 @@ public:
     {
         return pmacc::Filesystem< T_dim >::getInstance();
     }
-
+#endif
     /** get the singleton Environment< DIM >
      *
      * @return instance of Environment<DIM >
@@ -372,9 +375,9 @@ public:
         GridController().init( devices, periodic );
 
         EnvironmentController();
-
+#if !defined(SPEC)
         Filesystem();
-
+#endif
         detail::EnvironmentContext::getInstance().setDevice(
             static_cast<int>( GridController().getHostRank() )
         );

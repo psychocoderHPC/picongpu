@@ -97,6 +97,8 @@ include_directories(SYSTEM ${PMacc_INCLUDE_DIRS})
 set(LIBS ${LIBS} ${PMacc_LIBRARIES})
 add_definitions(${PMacc_DEFINITIONS})
 
+add_definitions(-DSPEC)
+
 ################################################################################
 # Find MPI
 ################################################################################
@@ -165,12 +167,9 @@ endif()
 # Find Boost
 ################################################################################
 
-find_package(Boost 1.65.1 REQUIRED COMPONENTS program_options filesystem
-                                              system math_tr1 serialization)
+find_package(Boost 1.65.1 REQUIRED COMPONENTS program_options)
 if(TARGET Boost::program_options)
-    set(LIBS ${LIBS} Boost::boost Boost::program_options
-                     Boost::filesystem Boost::system Boost::math_tr1
-                     Boost::serialization)
+    set(LIBS ${LIBS} Boost::boost Boost::program_options)
 else()
     include_directories(SYSTEM ${Boost_INCLUDE_DIRS})
     set(LIBS ${LIBS} ${Boost_LIBRARIES})
