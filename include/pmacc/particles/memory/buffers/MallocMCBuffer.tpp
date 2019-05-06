@@ -42,10 +42,10 @@ MallocMCBuffer< T_DeviceHeap >::MallocMCBuffer( const std::shared_ptr<DeviceHeap
 template< typename T_DeviceHeap >
 MallocMCBuffer< T_DeviceHeap >::~MallocMCBuffer( )
 {
-    if ( hostPtr != nullptr )
-        cudaHostUnregister(hostPtr);
+    //if ( hostPtr != nullptr )
+    //    cudaHostUnregister(hostPtr);
 
-    __deleteArray(hostPtr);
+    //__deleteArray(hostPtr);
 
 }
 
@@ -62,16 +62,19 @@ void MallocMCBuffer< T_DeviceHeap >::synchronize( )
         /* use `new` and than `cudaHostRegister` is faster than `cudaMallocHost`
          * but with the some result (create page-locked memory)
          */
-        hostPtr = new char[deviceHeapInfo.size];
-        CUDA_CHECK((cuplaError_t)cudaHostRegister(hostPtr, deviceHeapInfo.size, cudaHostRegisterDefault));
+        hostPtr = (char*)deviceHeapInfo.p; //new char[deviceHeapInfo.size];
+        //CUDA_CHECK((cuplaError_t)cudaHostRegister(hostPtr, deviceHeapInfo.size, cudaHostRegisterDefault));
 
 
-        this->hostBufferOffset = static_cast<int64_t>(reinterpret_cast<char*>(deviceHeapInfo.p) - hostPtr);
+        //this->hostBufferOffset = static_cast<int64_t>(reinterpret_cast<char*>(deviceHeapInfo.p) - hostPtr);
     }
     /* add event system hints */
     __startOperation(ITask::TASK_CUDA);
     __startOperation(ITask::TASK_HOST);
-    CUDA_CHECK(cudaMemcpy(hostPtr, deviceHeapInfo.p, deviceHeapInfo.size, cudaMemcpyDeviceToHost));
+
+    // with unified memory it is required that we not access the memory on the device during we work with that memory on he host system
+    __getTransactionEvent().waitForFinished();
+    //CUDA_CHECK(cudaMemcpy(hostPtr, deviceHeapInfo.p, deviceHeapInfo.size, cudaMemcpyDeviceToHost));
 
 }
 
