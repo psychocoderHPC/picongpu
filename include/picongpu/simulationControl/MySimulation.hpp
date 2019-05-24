@@ -309,6 +309,8 @@ public:
         auto fieldJ = new FieldJ( *cellDescription );
         dc.share( std::shared_ptr< ISimulationData >( fieldJ ) );
 
+//fieldTmp is not required for SPEC benchmarks.
+#if !defined(SPEC)
         std::vector< FieldTmp * > fieldTmp;
         for( uint32_t slot = 0; slot < fieldTmpNumSlots; ++slot)
         {
@@ -316,6 +318,7 @@ public:
             fieldTmp.push_back( newFld );
             dc.share( std::shared_ptr< ISimulationData >( newFld ) );
         }
+#endif
         pushBGField = new cellwiseOperation::CellwiseOperation < CORE + BORDER + GUARD > (*cellDescription);
         currentBGField = new cellwiseOperation::CellwiseOperation < CORE + BORDER > (*cellDescription);
 
@@ -333,7 +336,7 @@ public:
  * To keep the initialization enabled would result into a longer initialization than the
  * benchmark itself on GPUs.
  */
-#if 0
+#if !defined(SPEC)
         // create factory for the random number generator
         const uint32_t userSeed = random::seed::ISeed< random::SeedGenerator >{}();
         const uint32_t seed = std::hash<std::string>{}(

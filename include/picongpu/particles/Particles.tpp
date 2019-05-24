@@ -90,7 +90,7 @@ Particles<
      * we can avoid performance decreases due to double send of particles.
      */
     double numBaseCells = 128.0 * 128.0 * 128.0;
-    double numGlobalCells = Environment<simDim>::get().SubGrid().getGlobalDomain().size.productOfComponents();
+    double numGlobalCells = Environment<simDim>::get().SubGrid().getLocalDomain().size.productOfComponents();
     size_t memScalingFactorZ = static_cast< size_t >( std::ceil( numGlobalCells / numBaseCells / 2.0 ) );
     size_t memScalingFactorOther = static_cast< size_t >( std::ceil( numGlobalCells / numBaseCells / 4.0 ) );
 
