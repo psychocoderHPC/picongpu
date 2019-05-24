@@ -71,8 +71,9 @@
 #endif
 
 #include "picongpu/plugins/Checkpoint.hpp"
-#include "picongpu/plugins/ResourceLog.hpp"
-
+#if !defined(SPEC)
+#   include "picongpu/plugins/ResourceLog.hpp"
+#endif
 #include <pmacc/mappings/kernel/MappingDescription.hpp>
 
 #include "picongpu/plugins/ILightweightPlugin.hpp"
@@ -182,7 +183,9 @@ private:
 #if (ENABLE_HDF5 == 1)
         , plugins::multi::Master< hdf5::HDF5Writer >
 #endif
+#if !defined(SPEC)
         , ResourceLog
+#endif
     >;
 
 

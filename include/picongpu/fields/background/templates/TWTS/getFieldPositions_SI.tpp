@@ -23,7 +23,9 @@
 #include <pmacc/types.hpp>
 #include <pmacc/math/Vector.hpp>
 #include <pmacc/dimensions/DataSpace.hpp>
-#include "picongpu/fields/background/templates/TWTS/numComponents.hpp"
+#if !defined(SPEC)
+#   include "picongpu/fields/background/templates/TWTS/numComponents.hpp"
+#endif
 
 namespace picongpu
 {

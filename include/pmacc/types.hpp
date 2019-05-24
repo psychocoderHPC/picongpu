@@ -63,7 +63,10 @@
 #define BOOST_MPL_LIMIT_MAP_SIZE 20
 #include <boost/typeof/std/utility.hpp>
 #include <boost/mpl/placeholders.hpp>
+
+#if !defined(SPEC)
 #include <boost/filesystem.hpp>
+#endif
 
 // compatibility macros (compiler or C++ standard version specific)
 #include <boost/config.hpp>
@@ -81,8 +84,9 @@ namespace pmacc
 {
 
 namespace bmpl = boost::mpl;
+#if !defined(SPEC)
 namespace bfs = boost::filesystem;
-
+#endif
 //short name for access verbose types of PMacc
 typedef PMaccVerbose ggLog;
 

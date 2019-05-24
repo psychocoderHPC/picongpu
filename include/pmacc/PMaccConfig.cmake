@@ -293,13 +293,11 @@ endif(MPI_CXX_FOUND)
 # Find Boost
 ################################################################################
 
-find_package(Boost 1.62.0 REQUIRED COMPONENTS filesystem system math_tr1)
-if(TARGET Boost::filesystem)
-    set(PMacc_LIBRARIES ${PMacc_LIBRARIES} Boost::boost Boost::filesystem
-                                           Boost::system Boost::math_tr1)
+find_package(Boost 1.62.0 REQUIRED)
+if(TARGET Boost::boost)
+    set(PMacc_LIBRARIES ${PMacc_LIBRARIES} Boost::boost)
 else()
     set(PMacc_INCLUDE_DIRS ${PMacc_INCLUDE_DIRS} ${Boost_INCLUDE_DIRS})
-    set(PMacc_LIBRARIES ${PMacc_LIBRARIES} ${Boost_LIBRARIES})
 endif()
 
 # Boost 1.55 added support for a define that makes result_of look for
