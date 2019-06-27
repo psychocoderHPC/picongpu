@@ -41,7 +41,7 @@ namespace picongpu
  *  example: using UsedParticleShape = particles::shapes::CIC;
  */
 #ifndef PARAM_PARTICLESHAPE
-#define PARAM_PARTICLESHAPE TSC
+#define PARAM_PARTICLESHAPE CIC
 #endif
 using UsedParticleShape = particles::shapes::PARAM_PARTICLESHAPE;
 
@@ -58,7 +58,7 @@ using UsedField2Particle = FieldToParticleInterpolation< UsedParticleShape, Assi
  *   without optimization (~4x slower and needs more shared memory)
  */
 #ifndef PARAM_CURRENTSOLVER
-#define PARAM_CURRENTSOLVER Esirkepov<UsedParticleShape>
+#define PARAM_CURRENTSOLVER EmZ<UsedParticleShape>
 #endif
 using UsedParticleCurrentSolver = currentSolver::PARAM_CURRENTSOLVER;
 

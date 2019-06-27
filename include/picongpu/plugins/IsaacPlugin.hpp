@@ -149,10 +149,12 @@ class TFieldSource< FieldTmpOperation< FrameSolver, ParticleType > >
                     fieldTmpNumSlots > 0
                 );
                 auto fieldTmp = dc.get< FieldTmp >( FieldTmp::getUniqueId( 0 ), true );
-                auto particles = dc.get< ParticleType >( ParticleType::FrameType::getName(), true );
+                auto particles0 = dc.get< PIC_Electrons >( PIC_Electrons::FrameType::getName(), true );
+                auto particles1 = dc.get< PIC_Ions >( PIC_Ions::FrameType::getName(), true );
 
                 fieldTmp->getGridBuffer().getDeviceBuffer().setValue( FieldTmp::ValueType(0.0) );
-                fieldTmp->template computeValue < CORE + BORDER, FrameSolver > (*particles, *currentStep);
+                fieldTmp->template computeValue < CORE + BORDER, FrameSolver > (*particles0, *currentStep);
+                fieldTmp->template computeValue < CORE + BORDER, FrameSolver > (*particles1, *currentStep);
                 EventTask fieldTmpEvent = fieldTmp->asyncCommunication(__getTransactionEvent());
 
                 __setTransactionEvent(fieldTmpEvent);

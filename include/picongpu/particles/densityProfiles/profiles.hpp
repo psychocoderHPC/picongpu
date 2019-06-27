@@ -27,6 +27,7 @@
 #include "picongpu/particles/densityProfiles/GaussianCloudImpl.hpp"
 #include "picongpu/particles/densityProfiles/SphereFlanksImpl.hpp"
 #include "picongpu/particles/densityProfiles/EveryNthCellImpl.hpp"
+#include "picongpu/particles/densityProfiles/FromPNGImpl.hpp"
 
 #if( ENABLE_HDF5 == 1 )
 #    include "picongpu/particles/densityProfiles/FromHDF5Impl.hpp"

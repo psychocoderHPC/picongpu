@@ -40,7 +40,21 @@ namespace SI
 
 namespace densityProfiles
 {
-    /* definition of homogenous profile */
-    using Homogenous = HomogenousImpl;
-}
-}
+    struct ElectronFile
+    {
+       // filter name
+       static constexpr char const * filename = "e.png";
+    };
+
+    using LoadPng_e = FromPNGImpl<ElectronFile>;
+
+    struct IonFile
+    {
+       // filter name
+       static constexpr char const * filename = "i.png";
+    };
+
+    using LoadPng_i = FromPNGImpl<IonFile>;
+
+} // namespace densityProfiles
+} // namespace picongpu
