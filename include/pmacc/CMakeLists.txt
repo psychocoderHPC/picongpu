@@ -103,7 +103,7 @@ enable_testing()
 # Test cases
 # Each *UT.cpp file is an independent executable with one or more test cases
 file(GLOB_RECURSE TESTS test/*UT.cpp)
-foreach(dim 2 3)
+foreach(dim 2)
     foreach(testCaseFilepath ${TESTS})
         get_filename_component(testCaseFilename ${testCaseFilepath} NAME)
         string(REPLACE "UT.cpp" "" testCase ${testCaseFilename})

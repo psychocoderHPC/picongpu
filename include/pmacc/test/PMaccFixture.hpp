@@ -50,7 +50,6 @@ struct PMaccFixture
 };
 
 using PMaccFixture2D = PMaccFixture< 2 >;
-using PMaccFixture3D = PMaccFixture< 3 >;
 
 } // namespace test
 } // namespace pmacc

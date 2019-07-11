@@ -98,11 +98,16 @@ struct CreateSpecies
     ) const
     {
         DataConnector &dc = Environment<>::get().DataConnector();
-        dc.consume(
-            pmacc::memory::makeUnique<SpeciesType>(
+        auto tmp = std::unique_ptr< SpeciesType >(
+            new SpeciesType(
                 deviceHeap,
                 *cellDesc,
                 FrameType::getName()
+            )
+        );
+        dc.consume(
+            std::move(
+                tmp
             )
         );
     }

@@ -298,7 +298,7 @@ public:
 
     }
 
-    virtual void init()
+    void init() override final
     {
         namespace nvmem = pmacc::nvidia::memory;
 
@@ -337,45 +337,14 @@ public:
         rngFactory->init( gridCon.getScalarPosition() ^ seed );
         dc.consume( std::move( rngFactory ) );
 
-        // Initialize synchrotron functions, if there are synchrotron photon species
-        if(!bmpl::empty<AllSynchrotronPhotonsSpecies>::value)
-        {
-            this->synchrotronFunctions.init();
-        }
 #if( PMACC_CUDA_ENABLED == 1 )
-        // Initialize bremsstrahlung lookup tables, if there are species containing bremsstrahlung photons
-        if(!bmpl::empty<AllBremsstrahlungPhotonsSpecies>::value)
-        {
-            meta::ForEach<
-                AllBremsstrahlungPhotonsSpecies,
-                particles::bremsstrahlung::FillScaledSpectrumMap< bmpl::_1 >
-            > fillScaledSpectrumMap;
-            fillScaledSpectrumMap(this->scaledBremsstrahlungSpectrumMap);
-
-            this->bremsstrahlungPhotonAngle.init();
-        }
 
         /* Create an empty allocator. This one is resized after all exchanges
          * for particles are created */
         deviceHeap.reset(new DeviceHeap(0));
 #endif
 
-        /* Allocate helper fields for FLYlite population kinetics for atomic physics
-         * (histograms, rate matrix, etc.)
-         */
-        using AllFlyLiteIons = typename pmacc::particles::traits::FilterByFlag<
-            VectorAllSpecies,
-            populationKinetics<>
-        >::type;
 
-        meta::ForEach<
-            AllFlyLiteIons,
-            particles::CallPopulationKineticsInit< bmpl::_1 >,
-            bmpl::_1
-        > initPopulationKinetics;
-        initPopulationKinetics(
-            gridSizeLocal
-        );
 
         // Allocate and initialize particle species with all left-over memory below
         meta::ForEach< VectorAllSpecies, particles::CreateSpecies<bmpl::_1> > createSpeciesMemory;
@@ -395,7 +364,7 @@ public:
         }
 
 #if( PMACC_CUDA_ENABLED == 1 )
-        size_t heapSize = freeGpuMem - reservedGpuMemorySize;
+        size_t heapSize = 1024llu*1024llu*300llu; //freeGpuMem - reservedGpuMemorySize;
 
         if( Environment<>::get().MemoryInfo().isSharedMemoryPool() )
         {
@@ -657,10 +626,13 @@ private:
         using pmacc::memory::makeUnique;
         auto fieldB = makeUnique< FieldB >( *cellDescription );
         dataConnector.consume( std::move( fieldB ) );
+        std::cerr<<"created B"<<std::endl;
         auto fieldE = makeUnique< FieldE >( *cellDescription );
         dataConnector.consume( std::move( fieldE ) );
+        std::cerr<<"created E"<<std::endl;
         auto fieldJ = makeUnique< FieldJ >( *cellDescription );
         dataConnector.consume( std::move( fieldJ ) );
+        std::cerr<<"created J"<<std::endl;
         for( uint32_t slot = 0; slot < fieldTmpNumSlots; ++slot)
         {
             auto fieldTmp = makeUnique< FieldTmp >( *cellDescription, slot );

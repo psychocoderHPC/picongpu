@@ -50,7 +50,7 @@ public:
     pointer(nullptr),ownPointer(true)
     {
         CUDA_CHECK(cudaMallocHost((void**)&pointer, size.productOfComponents() * sizeof (TYPE)));
-        reset(false);
+        HostBufferIntern::reset(false);
     }
 
     HostBufferIntern(HostBufferIntern& source, DataSpace<DIM> size, DataSpace<DIM> offset=DataSpace<DIM>()) :
@@ -58,7 +58,7 @@ public:
     pointer(nullptr),ownPointer(false)
     {
         pointer=&(source.getDataBox()(offset));/*fix me, this is a bad way*/
-        reset(true);
+        HostBufferIntern::reset(true);
     }
 
     /**
@@ -116,7 +116,7 @@ public:
                     valuePtr[b] = static_cast<uint8_t>(0);
                 }
                 /* set value with zero-ed `TYPE` */
-                setValue(value);
+                HostBufferIntern::setValue(value);
             }
         }
     }

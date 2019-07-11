@@ -83,6 +83,7 @@ struct CuplaErrorCode : public std::error_category
             case cuplaErrorDeviceAlreadyInUse:
                 return "cuplaErrorDeviceAlreadyInUse";
             default:
+                std::cerr<<"err: "<<ev<<std::endl;
                 return "not defined cuplaError";
         };
     }

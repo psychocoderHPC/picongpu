@@ -116,9 +116,9 @@ struct KernelSetValue
     DINLINE void
     operator()(
         T_Acc const & acc,
-        T_DataBox & memBox,
-        T_ValueType const & value,
-        T_SizeVecType const & size
+        T_DataBox  memBox,
+        T_ValueType const  value,
+        T_SizeVecType const  size
     ) const
     {
         using namespace mappings::threads;
@@ -150,6 +150,7 @@ struct KernelSetValue
                     memBox( idx ) = taskSetValueHelper::getValue( value );
             }
         );
+        __syncthreads();
     }
 };
 
@@ -232,6 +233,8 @@ public:
         size_t const current_size = this->destination->getCurrentSize( );
         // n-dimensional size of destination based on `current_size`
         DataSpace< dim > const area_size( this->destination->getCurrentDataSpace( current_size ) );
+        std::cerr<<"current size: "<<current_size<<" area:"<<area_size.toString()<<"mem size: "<< this->destination->getPhysicalMemorySize().toString()<<
+            "type: "<<typeid(this->value).name()<<" sizeof: "<<sizeof(this->value) <<"getId: "<<this->getId()<<std::endl;
 
         if( area_size.productOfComponents() != 0 )
         {
@@ -250,6 +253,8 @@ public:
                 static_cast< double >( gridSize.x( ) ) /
                 static_cast< double >( xChunkSize )
            );
+            std::cerr<<"num: "<<(static_cast< double >( gridSize.x( ) ) /
+                static_cast< double >( xChunkSize ))<<std::endl;
 
             auto destBox = this->destination->getDataBox( );
             CUPLA_KERNEL(
@@ -268,6 +273,7 @@ public:
                 area_size
             );
         }
+        cudaDeviceSynchronize();
         this->activate( );
     }
 };
@@ -335,7 +341,8 @@ public:
                 cudaMemcpyHostToDevice,
                 this->getCudaStream( )
             ));
-
+ std::cerr<<"large current size: "<<current_size<<" area:"<<area_size.toString()<<"mem size: "<< this->destination->getPhysicalMemorySize().toString()<<
+            "type: "<<typeid(this->value).name()<<" sizeof: "<<sizeof(this->value) <<"getId: "<<this->getId()<<std::endl;
             auto destBox = this->destination->getDataBox( );
             CUPLA_KERNEL(
                 KernelSetValue<

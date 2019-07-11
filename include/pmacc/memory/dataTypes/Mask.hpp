@@ -250,7 +250,7 @@ namespace pmacc
             return tmp;
         }
 
-    protected:
+    //protected:
 
         /**
          * mask which is a combination of the type \see ExchangeType

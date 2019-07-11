@@ -380,6 +380,8 @@ namespace alpaka
                     meta::apply(
                         [&](TArgs ... args)
                         {
+                            std::string const kernelName1("'before execution of kernel: '" + std::string(typeid(TKernelFnObj).name()) + "' failed with");
+                            ::alpaka::cuda::detail::cudaRtCheckLastError(kernelName1.c_str(), __FILE__, __LINE__);
                             kernel::cuda::detail::cudaKernel<TDim, TIdx, TKernelFnObj, TArgs...><<<
                                 gridDim,
                                 blockDim,
@@ -388,6 +390,8 @@ namespace alpaka
                                     threadElemExtent,
                                     task.m_kernelFnObj,
                                     args...);
+                            std::string const kernelName("'execution of kernel: '" + std::string(typeid(TKernelFnObj).name()) + "' failed with");
+                            ::alpaka::cuda::detail::cudaRtCheckLastError(kernelName.c_str(), __FILE__, __LINE__);
                         },
                         task.m_args);
 
@@ -500,6 +504,8 @@ namespace alpaka
                     meta::apply(
                         [&](TArgs ... args)
                         {
+                            std::string const kernelName1("'before execution of kernel: '" + std::string(typeid(TKernelFnObj).name()) + "' failed with");
+                            ::alpaka::cuda::detail::cudaRtCheckLastError(kernelName1.c_str(), __FILE__, __LINE__);
                             kernel::cuda::detail::cudaKernel<TDim, TIdx, TKernelFnObj, TArgs...><<<
                                 gridDim,
                                 blockDim,
@@ -508,6 +514,8 @@ namespace alpaka
                                     threadElemExtent,
                                     task.m_kernelFnObj,
                                     args...);
+                              std::string const kernelName("'execution of kernel: '" + std::string(typeid(TKernelFnObj).name()) + "' failed with");
+                            ::alpaka::cuda::detail::cudaRtCheckLastError(kernelName.c_str(), __FILE__, __LINE__);
                         },
                         task.m_args);
 

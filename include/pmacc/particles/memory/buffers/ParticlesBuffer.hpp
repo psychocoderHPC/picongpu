@@ -221,10 +221,11 @@ public:
     void addExchange(Mask receive, size_t usedMemory, uint32_t communicationTag)
     {
 
+        std::cerr<<"Mask:"<<receive.bitMask<<" "<<FrameType::getName()<<std::endl;
         size_t numFrameTypeBorders = usedMemory / SizeOfOneBorderElement;
 
         framesExchanges->addExchangeBuffer(receive, DataSpace<DIM1 > (numFrameTypeBorders), communicationTag, true, false);
-
+        std::cerr<<"eMask:"<<receive.bitMask<<" "<<FrameType::getName()<<std::endl;
         exchangeMemoryIndexer->addExchangeBuffer(receive, DataSpace<DIM1 > (numFrameTypeBorders), communicationTag | (1u << (20 - 5)), true, false);
     }
 

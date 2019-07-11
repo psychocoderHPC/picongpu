@@ -87,6 +87,13 @@ namespace alpaka
                                 << " pitch: " << m_pitchBytes
                                 << std::endl;
 #endif
+                            static size_t myId = 0;
+                            id = myId++;
+                        }
+
+                        size_t getId()
+                        {
+                            return id;
                         }
                         //-----------------------------------------------------------------------------
                         BufCpuImpl(BufCpuImpl const &) = delete;
@@ -128,6 +135,7 @@ namespace alpaka
                         vec::Vec<TDim, TIdx> const m_extentElements;
                         TElem * const m_pMem;
                         TIdx const m_pitchBytes;
+                        size_t id;
 #if defined(ALPAKA_ACC_GPU_CUDA_ENABLED) && BOOST_LANG_CUDA
                         bool m_bPinned;
 #endif
@@ -457,16 +465,16 @@ namespace alpaka
 #if defined(ALPAKA_ACC_GPU_CUDA_ENABLED) && BOOST_LANG_CUDA
                             if(buf.m_spBufCpuImpl->m_extentElements.prod() != 0)
                             {
+                                std::cerr<<"pin: "<<buf.m_spBufCpuImpl->getId()<<" "<<const_cast<void *>(reinterpret_cast<void const *>(mem::view::getPtrNative(buf)))<<std::endl;
                                 // - cudaHostRegisterDefault:
                                 //   See http://cgi.cs.indiana.edu/~nhusted/dokuwiki/doku.php?id=programming:cudaperformance1
                                 // - cudaHostRegisterPortable:
                                 //   The memory returned by this call will be considered as pinned memory by all CUDA contexts, not just the one that performed the allocation.
-                                ALPAKA_CUDA_RT_CHECK_IGNORE(
+                                ALPAKA_CUDA_RT_CHECK(
                                     cudaHostRegister(
                                         const_cast<void *>(reinterpret_cast<void const *>(mem::view::getPtrNative(buf))),
                                         extent::getExtentProduct(buf) * sizeof(elem::Elem<buf::BufCpu<TElem, TDim, TIdx>>),
-                                        cudaHostRegisterDefault),
-                                    cudaErrorHostMemoryAlreadyRegistered);
+                                        cudaHostRegisterDefault));
 
                                 buf.m_spBufCpuImpl->m_bPinned = true;
                             }
@@ -514,10 +522,10 @@ namespace alpaka
                         if(mem::buf::isPinned(bufImpl))
                         {
 #if defined(ALPAKA_ACC_GPU_CUDA_ENABLED) && BOOST_LANG_CUDA
-                            ALPAKA_CUDA_RT_CHECK_IGNORE(
+                            std::cerr<<"unpin "<<bufImpl.getId()<<" "<<const_cast<void *>(reinterpret_cast<void const *>(bufImpl.m_pMem))<<std::endl;
+                            ALPAKA_CUDA_RT_CHECK(
                                 cudaHostUnregister(
-                                    const_cast<void *>(reinterpret_cast<void const *>(bufImpl.m_pMem))),
-                                cudaErrorHostMemoryNotRegistered);
+                                    const_cast<void *>(reinterpret_cast<void const *>(bufImpl.m_pMem))));
 
                             bufImpl.m_bPinned = false;
 #else

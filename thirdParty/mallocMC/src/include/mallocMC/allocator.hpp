@@ -39,6 +39,7 @@
 #include <boost/static_assert.hpp>
 #include <sstream>
 #include <vector>
+#include <iostream>
 
 namespace mallocMC{
 
@@ -79,8 +80,8 @@ namespace detail{
 
     struct HeapInfo
     {
-        void* p;
-        size_t size;
+        void* p = nullptr;
+        size_t size = 0u;
     };
 
     /**
@@ -164,6 +165,7 @@ namespace detail{
             );
 
             allocatorHandle.devAllocator = devAllocatorPtr;
+           // std::cerr<<"allocator mc set: "<<(uint64_t)(devAllocatorPtr) <<" size: "<<size<<std::endl;
             heapInfos.p = pool;
             heapInfos.size = size;
         }
@@ -176,11 +178,27 @@ namespace detail{
         MAMC_HOST
         void free()
         {
-            cudaFree( allocatorHandle.devAllocator );
+          //  std::cerr<<"allocator mc: "<<(uint64_t)(allocatorHandle.devAllocator) <<std::endl;
+            MALLOCMC_CUDA_CHECKED_CALL( cudaGetLastError( ));
+           MALLOCMC_CUDA_CHECKED_CALL( cudaFree( allocatorHandle.devAllocator ));
             ReservePoolPolicy::resetMemPool( heapInfos.p );
             allocatorHandle.devAllocator = NULL;
             heapInfos.size = 0;
             heapInfos.p = NULL;
+          //  std::cerr<<"allocator mc out: "<<(uint64_t)(allocatorHandle.devAllocator) <<std::endl;
+        }
+
+                MAMC_HOST
+        void free2()
+        {
+           // std::cerr<<"allocator mc2: "<<(uint64_t)(allocatorHandle.devAllocator) <<std::endl;
+            MALLOCMC_CUDA_CHECKED_CALL( cudaGetLastError( ));
+           MALLOCMC_CUDA_CHECKED_CALL( cudaFree( allocatorHandle.devAllocator ));
+            ReservePoolPolicy::resetMemPool( heapInfos.p );
+            allocatorHandle.devAllocator = NULL;
+            heapInfos.size = 0;
+            heapInfos.p = NULL;
+           // std::cerr<<"allocator mc2 out: "<<(uint64_t)(allocatorHandle.devAllocator) <<std::endl;
         }
 
         /* forbid to copy the allocator */
@@ -196,12 +214,14 @@ namespace detail{
         ) :
             allocatorHandle( NULL )
         {
+                std::cerr<<"alloc"<<std::endl;
             alloc( size );
         }
 
         MAMC_HOST
         ~Allocator( )
         {
+           // ::__builtin_trap();
             free( );
         }
 
@@ -215,7 +235,7 @@ namespace detail{
             size_t size
         )
         {
-            free( );
+            free2( );
             alloc( size );
         }
 

@@ -31,37 +31,59 @@
 
 namespace pmacc
 {
-
+    __device__ uint64_t gpu_nextId = 1;
      namespace idDetail {
 
-        DEVICEONLY uint64_cu nextId;
+
 
         struct KernelSetNextId
         {
             template<typename T_Acc>
             DINLINE void operator()(const T_Acc&, uint64_cu id) const
             {
-                nextId = id;
+                printf("id=%u\n", gpu_nextId);
+                gpu_nextId = id;
+                printf("after id=%u\n addr=%p", gpu_nextId,&gpu_nextId);
             }
         };
+
+
+        __global__ void CudaSetNextId( uint64_cu id, uint64_t* ptr)
+        {
+            printf("id=%u\n", gpu_nextId);
+            gpu_nextId = id;
+            printf("after id=%u\n addr=%p", *ptr,&gpu_nextId);
+        }
 
         struct KernelGetNextId
         {
             template<class T_Box, typename T_Acc>
-            DINLINE void operator()(const T_Acc&, T_Box boxOut) const
+            HDINLINE void operator()(const T_Acc&, T_Box boxOut) const
             {
-                boxOut(0) = nextId;
+                boxOut(0) = gpu_nextId;
             }
         };
 
+        template<class T_Box>
+        __global__ void CudaGetNextId(T_Box boxOut)
+        {
+            boxOut(0) = gpu_nextId;
+        }
+
         struct KernelGetNewId
         {
-            template<class T_Box, class T_IdFactory, typename T_Acc>
-            DINLINE void operator()(const T_Acc& acc, T_Box boxOut, T_IdFactory idFactory) const
+            template<class T_Box, typename T_Acc>
+            DINLINE void operator()(const T_Acc& acc, T_Box boxOut) const
             {
-                boxOut(0) = idFactory();
+                boxOut(0) = static_cast<uint64_t>(nvidia::atomicAllInc(&gpu_nextId));
             }
         };
+
+        template<class T_Box>
+        __global__ void CudaGetNewId(T_Box boxOut,uint64_t* ptr)
+        {
+            boxOut(0) = static_cast<uint64_t>(nvidia::atomicAllInc(ptr));
+        }
 
     }  // namespace idDetail
 
@@ -73,6 +95,7 @@ namespace pmacc
     template<unsigned T_dim>
     void IdProvider<T_dim>::init()
     {
+        std::cerr<<"[+] init"<<std::endl;
         // Init static variables
         m_startId = m_maxNumProc = 0;
 
@@ -85,6 +108,7 @@ namespace pmacc
         // Reset to start value
         state.maxNumProc = Environment<T_dim>::get().GridController().getGpuNodes().productOfComponents();
         setState(state);
+        std::cerr<<"[-] init"<<std::endl;
     }
 
     template<unsigned T_dim>
@@ -103,7 +127,8 @@ namespace pmacc
     typename IdProvider<T_dim>::State IdProvider<T_dim>::getState()
     {
         HostDeviceBuffer<uint64_cu, 1> nextIdBuf(DataSpace<1>(1));
-        PMACC_KERNEL(idDetail::KernelGetNextId{})(1, 1)(nextIdBuf.getDeviceBuffer().getDataBox());
+        //PMACC_KERNEL(idDetail::KernelGetNextId{})(1, 1)(nextIdBuf.getDeviceBuffer().getDataBox());
+        idDetail::CudaGetNextId<<<1,1>>>(nextIdBuf.getDeviceBuffer().getDataBox());
         nextIdBuf.deviceToHost();
         State state;
         state.nextId = static_cast<uint64_t>(nextIdBuf.getHostBuffer().getDataBox()(0));
@@ -115,7 +140,7 @@ namespace pmacc
     template<unsigned T_dim>
     HDINLINE uint64_t IdProvider<T_dim>::getNewId()
     {
-        return static_cast<uint64_t>(nvidia::atomicAllInc(&idDetail::nextId));
+        return static_cast<uint64_t>(nvidia::atomicAllInc(&gpu_nextId));
     }
 
     template<unsigned T_dim>
@@ -168,18 +193,42 @@ namespace pmacc
     }
 
     template<unsigned T_dim>
-    void IdProvider<T_dim>::setNextId(uint64_t nextId)
+    void IdProvider<T_dim>::setNextId(uint64_t id)
     {
-        PMACC_KERNEL(idDetail::KernelSetNextId{})(1, 1)(nextId);
+        CUDA_CHECK(cudaGetLastError());
+        uint64_t* ptr=nullptr;
+        uint32_t rc = (uint32_t)cudaGetSymbolAddress((void**)&ptr, gpu_nextId);
+        std::cerr<<"symbol addr: "<<ptr<<" "<<rc<<std::endl;
+        CUDA_CHECK(cudaGetLastError());
+        //PMACC_KERNEL(idDetail::KernelSetNextId{})(1, 1)(id);
+        idDetail::CudaSetNextId<<<1,1>>>(id, ptr);
+         std::cerr<<"[kernel] setNextId"<<std::endl;
+        CUDA_CHECK(cudaGetLastError());
+          std::cerr<<"[last] setNextId"<<std::endl;
+        CUDA_CHECK(cudaDeviceSynchronize());
+        std::cerr<<"[-] setNextId"<<std::endl;
+        idDetail::CudaSetNextId<<<1,1>>>(id, ptr);
+         std::cerr<<"[kernel] setNextId1"<<std::endl;
+        CUDA_CHECK(cudaGetLastError());
+          std::cerr<<"[last] setNextId1"<<std::endl;
+        CUDA_CHECK(cudaDeviceSynchronize());
+        std::cerr<<"[-] setNextId1"<<std::endl;
     }
 
     template<unsigned T_dim>
     uint64_t IdProvider<T_dim>::getNewIdHost()
     {
+        std::cerr<<"[+] getNewIdHost"<<std::endl;
         HostDeviceBuffer<uint64_cu, 1> newIdBuf(DataSpace<1>(1));
-        PMACC_KERNEL(idDetail::KernelGetNewId{})(1, 1)(newIdBuf.getDeviceBuffer().getDataBox(), GetNewId());
+        //PMACC_KERNEL(idDetail::KernelGetNewId{})(1, 1)(newIdBuf.getDeviceBuffer().getDataBox());
+        uint64_t* ptr=nullptr;
+        uint32_t rc = (uint32_t)cudaGetSymbolAddress((void**)&ptr, gpu_nextId);
+        std::cerr<<"symbol get addr: "<<ptr<<" "<<rc<<std::endl;
+        idDetail::CudaGetNewId<<<1,1>>>(newIdBuf.getDeviceBuffer().getDataBox(), ptr);
+        CUDA_CHECK(cudaDeviceSynchronize());
         newIdBuf.deviceToHost();
         return static_cast<uint64_t>(newIdBuf.getHostBuffer().getDataBox()(0));
+        std::cerr<<"[-] getNewIdHost"<<std::endl;
     }
 
 }  // namespace pmacc

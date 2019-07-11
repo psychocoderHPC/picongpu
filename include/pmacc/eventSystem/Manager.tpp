@@ -31,7 +31,7 @@
 #include <set>
 #include <iostream>
 
-//#define DEBUG_EVENTS
+#define DEBUG_EVENTS
 
 namespace pmacc
 {

@@ -14,6 +14,7 @@
 
 #include <alpaka/core/Common.hpp>
 #include <alpaka/core/Unused.hpp>
+#include <iostream>
 
 namespace alpaka
 {
@@ -48,7 +49,9 @@ namespace alpaka
                     -> T *
                     {
                         alpaka::ignore_unused(alloc);
-                        return new T[sizeElems];
+                        auto tmp = new T[sizeElems];
+                       // std::cerr<<"alloc[] mem: "<<(int*)tmp<<std::endl;
+                        return tmp;
                     }
                 };
 
@@ -66,6 +69,7 @@ namespace alpaka
                         T const * const ptr)
                     -> void
                     {
+                       // std::cerr<<"free[] mem: "<<(int*)ptr<<std::endl;
                         alpaka::ignore_unused(alloc);
                         return delete[] ptr;
                     }

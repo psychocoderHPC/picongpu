@@ -57,13 +57,13 @@ public:
         if (useVectorAsBase)
         {
             this->sizeOnDevice = false;
-            createSizeOnDevice(this->sizeOnDevice);
+            DeviceBufferIntern::createSizeOnDevice(this->sizeOnDevice);
             createFakeData();
             this->data1D = true;
         }
         else
         {
-            createSizeOnDevice(this->sizeOnDevice);
+            DeviceBufferIntern::createSizeOnDevice(this->sizeOnDevice);
             createData();
             this->data1D = false;
         }
@@ -77,13 +77,15 @@ public:
     data(source.getCudaPitched()),
     useOtherMemory(true)
     {
-        createSizeOnDevice(sizeOnDevice);
+        DeviceBufferIntern::createSizeOnDevice(sizeOnDevice);
         this->data1D = false;
     }
 
     virtual ~DeviceBufferIntern()
     {
+#if 0
         __startOperation(ITask::TASK_CUDA);
+        cudaDeviceSynchronize();
 
         if (sizeOnDevice)
         {
@@ -94,6 +96,7 @@ public:
             CUDA_CHECK_NO_EXCEPT(cudaFree(data.ptr));
 
         }
+#endif
     }
 
     void reset(bool preserveData = true)
@@ -177,7 +180,7 @@ public:
     /*! Get current size of any dimension
      * @return count of current elements per dimension
      */
-    virtual size_t getCurrentSize()
+    size_t getCurrentSize() override final
     {
         if (sizeOnDevice)
         {
@@ -189,7 +192,7 @@ public:
         return DeviceBuffer<TYPE, DIM>::getCurrentSize();
     }
 
-    virtual void setCurrentSize(const size_t size)
+    void setCurrentSize(const size_t size) override final
     {
         Buffer<TYPE, DIM>::setCurrentSize(size);
 
@@ -227,7 +230,7 @@ public:
         return data.pitch;
     }
 
-    virtual void setValue(const TYPE& value)
+    void setValue(const TYPE& value) override final
     {
         Environment<>::get().Factory().createTaskSetValue(*this, value);
     };
@@ -303,7 +306,7 @@ private:
         {
             CUDA_CHECK(cudaMalloc((void**)&sizeOnDevicePtr, sizeof (size_t)));
         }
-        setCurrentSize(this->getDataSpace().productOfComponents());
+        DeviceBufferIntern::setCurrentSize(this->getDataSpace().productOfComponents());
     }
 
 private:

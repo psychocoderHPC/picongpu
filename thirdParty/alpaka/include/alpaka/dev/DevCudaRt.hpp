@@ -250,6 +250,7 @@ namespace alpaka
                     // Set the current device to wait for.
                     ALPAKA_CUDA_RT_CHECK(cudaSetDevice(
                         dev.m_iDevice));
+                    std::cerr<<"wait on device: "<<dev.m_iDevice<<std::endl;
                     ALPAKA_CUDA_RT_CHECK(cudaDeviceSynchronize());
                 }
             };

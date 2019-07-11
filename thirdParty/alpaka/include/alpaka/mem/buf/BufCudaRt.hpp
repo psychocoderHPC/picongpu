@@ -401,7 +401,21 @@ namespace alpaka
                                 &pitchBytes,
                                 static_cast<std::size_t>(widthBytes),
                                 static_cast<std::size_t>(height)));
+
+#if ALPAKA_DEBUG >= ALPAKA_DEBUG_FULL
+                        std::cout << __func__
+                            << "called  ew: " << width
+                            << " eh: " << height
+                            << " ewb: " << widthBytes
+                            << " ptr: " << memPtr
+                            << " pitch: " << pitchBytes
+                            << std::endl;
+#endif
                         ALPAKA_ASSERT(pitchBytes >= static_cast<std::size_t>(widthBytes) || (width * height) == 0);
+                        if(memPtr != nullptr)
+                        {
+                            ALPAKA_CUDA_RT_CHECK(cudaMemset(memPtr,0,1));
+                        }
 
 #if ALPAKA_DEBUG >= ALPAKA_DEBUG_FULL
                         std::cout << __func__

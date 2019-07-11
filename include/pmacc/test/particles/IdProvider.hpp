@@ -128,10 +128,10 @@ struct IdProviderTest
     {
         using namespace ::pmacc;
 
-        constexpr uint32_t numBlocks = 4;
-        constexpr uint32_t numIdsPerBlock = 64;
+        constexpr uint32_t numBlocks = 1;
+        constexpr uint32_t numIdsPerBlock = 1;
         constexpr uint32_t numThreads = numBlocks * numIdsPerBlock;
-        constexpr uint32_t numIdsPerThread = 2;
+        constexpr uint32_t numIdsPerThread = 1;
         constexpr uint32_t numIds = numThreads * numIdsPerThread;
 
         using IdProvider = IdProvider< T_dim >;

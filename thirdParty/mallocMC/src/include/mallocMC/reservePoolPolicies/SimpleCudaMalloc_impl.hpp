@@ -44,7 +44,12 @@ namespace ReservePoolPolicies{
     }
 
     static void resetMemPool(void* p){
-      MALLOCMC_CUDA_CHECKED_CALL(cudaFree(p));
+        if(p != nullptr)
+        {
+            MALLOCMC_CUDA_CHECKED_CALL(cudaDeviceSynchronize());
+            MALLOCMC_CUDA_CHECKED_CALL(cudaGetLastError());
+            MALLOCMC_CUDA_CHECKED_CALL(cudaFree(p));
+        }
     }
 
     static std::string classname(){

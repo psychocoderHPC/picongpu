@@ -441,6 +441,8 @@ namespace detail
 
     void EnvironmentContext::setDevice(int deviceNumber)
     {
+        cudaSetDevice(0);
+#if 0
         int num_gpus = 0; //number of gpus
         cudaGetDeviceCount(&num_gpus);
 #if (PMACC_CUDA_ENABLED == 1)
@@ -520,7 +522,7 @@ namespace detail
                 CUDA_CHECK(rc); /*error message*/
             }
         }
-
+#endif
         m_isDeviceSelected = true;
     }
 

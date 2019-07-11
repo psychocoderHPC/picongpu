@@ -26,6 +26,7 @@
 #include <boost/program_options/options_description.hpp>
 #include <boost/program_options/cmdline.hpp>
 #include <boost/program_options/variables_map.hpp>
+#include <pmacc/particles/IdProvider.hpp>
 
 #include <iostream>
 
@@ -130,6 +131,14 @@ int main( int argc, char **argv )
     /* start game of life simulation */
     gol::Simulation sim( ruleMask, steps, grid, gpus, endless );
     sim.init( );
+
+    using IdProvider = pmacc::IdProvider< 2 >;
+    IdProvider::init();
+        // Check initial state
+    typename IdProvider::State state = IdProvider::getState();
+    IdProvider::getNewIdHost();
+    IdProvider::setState(state);
+    
     sim.start( );
     sim.finalize( );
 

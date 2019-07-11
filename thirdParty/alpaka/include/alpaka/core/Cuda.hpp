@@ -108,6 +108,7 @@ namespace alpaka
                     {
                         cudaRtCheck(error, ("'" + std::string(cmd) + "' returned error ").c_str(), file, line);
                     }
+
                 }
             }
             //-----------------------------------------------------------------------------
