@@ -108,9 +108,7 @@ namespace alpaka
                     ALPAKA_DEBUG_MINIMAL_LOG_SCOPE;
 
                     // Set the current device.
-                    ALPAKA_CUDA_RT_CHECK(
-                        cudaSetDevice(
-                            dev.m_iDevice));
+
                     // Free the buffer.
                     ALPAKA_CUDA_RT_CHECK(
                       cudaFree(reinterpret_cast<void *>(memPtr)));
@@ -338,9 +336,7 @@ namespace alpaka
                         auto const widthBytes(width * static_cast<TIdx>(sizeof(TElem)));
 
                         // Set the current device.
-                        ALPAKA_CUDA_RT_CHECK(
-                            cudaSetDevice(
-                                dev.m_iDevice));
+
                         // Allocate the buffer on this device.
                         void * memPtr;
                         ALPAKA_CUDA_RT_CHECK(
@@ -389,9 +385,7 @@ namespace alpaka
                         auto const height(extent::getHeight(extent));
 
                         // Set the current device.
-                        ALPAKA_CUDA_RT_CHECK(
-                            cudaSetDevice(
-                                dev.m_iDevice));
+
                         // Allocate the buffer on this device.
                         void * memPtr;
                         std::size_t pitchBytes;
@@ -462,9 +456,7 @@ namespace alpaka
                                 static_cast<std::size_t>(extent::getDepth(extent))));
 
                         // Set the current device.
-                        ALPAKA_CUDA_RT_CHECK(
-                            cudaSetDevice(
-                                dev.m_iDevice));
+
                         // Allocate the buffer on this device.
                         cudaPitchedPtr cudaPitchedPtrVal;
                         ALPAKA_CUDA_RT_CHECK(
@@ -694,13 +686,14 @@ namespace alpaka
 
                         if(dev::getDev(buf) != dev)
                         {
+                            size_t pinsize = extent::getExtentProduct(mem::view::getPitchBytesVec(buf));
                             // cudaHostRegisterMapped:
                             //   Maps the allocation into the CUDA address space.The device pointer to the memory may be obtained by calling cudaHostGetDevicePointer().
                             //   This feature is available only on GPUs with compute capability greater than or equal to 1.1.
                             ALPAKA_CUDA_RT_CHECK(
                                 cudaHostRegister(
                                     const_cast<void *>(reinterpret_cast<void const *>(mem::view::getPtrNative(buf))),
-                                    extent::getExtentProduct(buf) * sizeof(elem::Elem<BufCpu<TElem, TDim, TIdx>>),
+                                    pinsize,
                                     cudaHostRegisterMapped));
                         }
                         // If it is already the same device, nothing has to be mapped.

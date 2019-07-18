@@ -135,7 +135,7 @@ namespace alpaka
                     std::size_t iDevice)
                 -> bool
                 {
-                    cudaError rc(cudaSetDevice(static_cast<int>(iDevice)));
+                    cudaError rc = cudaSuccess;
 
                     cudaStream_t queue = {};
                     // Create a dummy queue to check if the device is already used by an other process.

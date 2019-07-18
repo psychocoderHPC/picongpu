@@ -168,10 +168,7 @@ namespace alpaka
                     auto const dstNativePtr(reinterpret_cast<void *>(mem::view::getPtrNative(view)));
                     ALPAKA_ASSERT(extentWidth <= dstWidth);
 
-                    // Set the current device.
-                    ALPAKA_CUDA_RT_CHECK(
-                        cudaSetDevice(
-                            iDevice));
+
                     // Initiate the memory set.
                     ALPAKA_CUDA_RT_CHECK(
                         cudaMemsetAsync(
@@ -227,9 +224,7 @@ namespace alpaka
                     ALPAKA_ASSERT(extentWidth <= dstWidth);
 
                     // Set the current device.
-                    ALPAKA_CUDA_RT_CHECK(
-                        cudaSetDevice(
-                            iDevice));
+
                     // Initiate the memory set.
                     ALPAKA_CUDA_RT_CHECK(
                         cudaMemset(
@@ -289,9 +284,7 @@ namespace alpaka
                     ALPAKA_ASSERT(extentHeight <= dstHeight);
 
                     // Set the current device.
-                    ALPAKA_CUDA_RT_CHECK(
-                        cudaSetDevice(
-                            iDevice));
+
                     // Initiate the memory set.
                     ALPAKA_CUDA_RT_CHECK(
                         cudaMemset2DAsync(
@@ -353,10 +346,7 @@ namespace alpaka
                     ALPAKA_ASSERT(extentWidth <= dstWidth);
                     ALPAKA_ASSERT(extentHeight <= dstHeight);
 
-                    // Set the current device.
-                    ALPAKA_CUDA_RT_CHECK(
-                        cudaSetDevice(
-                            iDevice));
+
 
                     // Initiate the memory set.
                     ALPAKA_CUDA_RT_CHECK(
@@ -436,10 +426,7 @@ namespace alpaka
                             static_cast<size_t>(extentHeight),
                             static_cast<size_t>(extentDepth)));
 
-                    // Set the current device.
-                    ALPAKA_CUDA_RT_CHECK(
-                        cudaSetDevice(
-                            iDevice));
+
                     // Initiate the memory set.
                     ALPAKA_CUDA_RT_CHECK(
                         cudaMemset3DAsync(
@@ -517,10 +504,7 @@ namespace alpaka
                             static_cast<size_t>(extentHeight),
                             static_cast<size_t>(extentDepth)));
 
-                    // Set the current device.
-                    ALPAKA_CUDA_RT_CHECK(
-                        cudaSetDevice(
-                            iDevice));
+
                     // Initiate the memory set.
                     ALPAKA_CUDA_RT_CHECK(
                         cudaMemset3D(

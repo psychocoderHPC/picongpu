@@ -88,11 +88,10 @@ namespace pmacc
 
         void fastCopy(TYPE* src,TYPE* dst,  size_t size)
         {
-            CUDA_CHECK(cudaMemcpyAsync(dst,
+            CUDA_CHECK(cudaMemcpy(dst,
                                        src,
                                        size * sizeof (TYPE),
-                                       cudaMemcpyDeviceToHost,
-                                       this->getCudaStream()));
+                                       cudaMemcpyDeviceToHost));
         }
 
         HostBuffer<TYPE, DIM> *host;
@@ -117,11 +116,10 @@ namespace pmacc
         virtual void copy(DataSpace<DIM1> &devCurrentSize)
         {
 
-            CUDA_CHECK(cudaMemcpyAsync(this->host->getBasePointer(),
+            CUDA_CHECK(cudaMemcpy(this->host->getBasePointer(),
                                        this->device->getPointer(),
                                        devCurrentSize[0] * sizeof (TYPE),
-                                       cudaMemcpyDeviceToHost,
-                                       this->getCudaStream()));
+                                       cudaMemcpyDeviceToHost));
 
         }
 
@@ -141,14 +139,13 @@ namespace pmacc
 
         virtual void copy(DataSpace<DIM2> &devCurrentSize)
         {
-            CUDA_CHECK(cudaMemcpy2DAsync(this->host->getBasePointer(),
+            CUDA_CHECK(cudaMemcpy2D(this->host->getBasePointer(),
                                          this->host->getDataSpace()[0] * sizeof (TYPE), /*this is pitch*/
                                          this->device->getPointer(),
                                          this->device->getPitch(), /*this is pitch*/
                                          devCurrentSize[0] * sizeof (TYPE),
                                          devCurrentSize[1],
-                                         cudaMemcpyDeviceToHost,
-                                         this->getCudaStream()));
+                                         cudaMemcpyDeviceToHost));
 
         }
 
@@ -191,7 +188,7 @@ namespace pmacc
                                             devCurrentSize[2]);
             params.kind = cudaMemcpyDeviceToHost;
 
-            CUDA_CHECK(cudaMemcpy3DAsync(&params, this->getCudaStream()));
+            CUDA_CHECK(cudaMemcpy3D(&params));
 
         }
 

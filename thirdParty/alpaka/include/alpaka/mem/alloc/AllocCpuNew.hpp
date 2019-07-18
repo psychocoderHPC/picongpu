@@ -15,6 +15,7 @@
 #include <alpaka/core/Common.hpp>
 #include <alpaka/core/Unused.hpp>
 #include <iostream>
+#include <alpaka/core/Cuda.hpp>
 
 namespace alpaka
 {

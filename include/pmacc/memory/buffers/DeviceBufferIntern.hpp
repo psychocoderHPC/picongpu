@@ -83,7 +83,7 @@ public:
 
     virtual ~DeviceBufferIntern()
     {
-#if 0
+
         __startOperation(ITask::TASK_CUDA);
         cudaDeviceSynchronize();
 
@@ -96,7 +96,7 @@ public:
             CUDA_CHECK_NO_EXCEPT(cudaFree(data.ptr));
 
         }
-#endif
+
     }
 
     void reset(bool preserveData = true)

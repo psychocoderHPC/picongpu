@@ -63,10 +63,6 @@ namespace alpaka
                     {
                         ALPAKA_DEBUG_MINIMAL_LOG_SCOPE;
 
-                        // Set the current device.
-                        ALPAKA_CUDA_RT_CHECK(
-                            cudaSetDevice(
-                                m_dev.m_iDevice));
                         // - cudaStreamDefault: Default queue creation flag.
                         // - cudaStreamNonBlocking: Specifies that work running in the created queue may run concurrently with work in queue 0 (the NULL queue),
                         //   and that the created queue should perform no implicit synchronization with queue 0.
@@ -92,9 +88,7 @@ namespace alpaka
                         ALPAKA_DEBUG_MINIMAL_LOG_SCOPE;
 
                         // Set the current device. \TODO: Is setting the current device before cudaStreamDestroy required?
-                        ALPAKA_CUDA_RT_CHECK(
-                            cudaSetDevice(
-                                m_dev.m_iDevice));
+
                         // In case the device is still doing work in the queue when cudaStreamDestroy() is called, the function will return immediately
                         // and the resources associated with queue will be released automatically once the device has completed all work in queue.
                         // -> No need to synchronize here.

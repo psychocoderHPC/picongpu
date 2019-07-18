@@ -54,9 +54,7 @@ namespace alpaka
                         ALPAKA_DEBUG_MINIMAL_LOG_SCOPE;
 
                         // Set the current device.
-                        ALPAKA_CUDA_RT_CHECK(
-                            cudaSetDevice(
-                                m_dev.m_iDevice));
+
                         // Create the event on the current device with the specified flags. Valid flags include:
                         // - cudaEventDefault: Default event creation flag.
                         // - cudaEventBlockingSync : Specifies that event should use blocking synchronization.
@@ -82,8 +80,7 @@ namespace alpaka
                         ALPAKA_DEBUG_MINIMAL_LOG_SCOPE;
 
                         // Set the current device. \TODO: Is setting the current device before cudaEventDestroy required?
-                        ALPAKA_CUDA_RT_CHECK(cudaSetDevice(
-                            m_dev.m_iDevice));
+
                         // In case event has been recorded but has not yet been completed when cudaEventDestroy() is called, the function will return immediately
                         // and the resources associated with event will be released automatically once the device has completed event.
                         // -> No need to synchronize here.
@@ -317,10 +314,7 @@ namespace alpaka
                 {
                     ALPAKA_DEBUG_MINIMAL_LOG_SCOPE;
 
-                    // Set the current device.
-                    ALPAKA_CUDA_RT_CHECK(
-                        cudaSetDevice(
-                            dev.m_iDevice));
+
 
                     ALPAKA_CUDA_RT_CHECK(cudaStreamWaitEvent(
                         nullptr,

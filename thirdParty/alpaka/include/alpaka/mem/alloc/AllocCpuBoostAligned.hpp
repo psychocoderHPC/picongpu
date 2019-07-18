@@ -16,6 +16,7 @@
 #include <alpaka/core/Unused.hpp>
 
 #include <boost/align.hpp>
+#include <sys/mman.h>
 
 namespace alpaka
 {

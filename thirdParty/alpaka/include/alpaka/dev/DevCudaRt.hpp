@@ -115,10 +115,7 @@ namespace alpaka
                     dev::DevCudaRt const & dev)
                 -> std::size_t
                 {
-                    // Set the current device to wait for.
-                    ALPAKA_CUDA_RT_CHECK(
-                        cudaSetDevice(
-                            dev.m_iDevice));
+
 
                     std::size_t freeInternal(0u);
                     std::size_t totalInternal(0u);
@@ -145,9 +142,7 @@ namespace alpaka
                 -> std::size_t
                 {
                     // Set the current device to wait for.
-                    ALPAKA_CUDA_RT_CHECK(
-                        cudaSetDevice(
-                            dev.m_iDevice));
+
 
                     std::size_t freeInternal(0u);
                     std::size_t totalInternal(0u);
@@ -174,10 +169,7 @@ namespace alpaka
                 {
                     ALPAKA_DEBUG_FULL_LOG_SCOPE;
 
-                    // Set the current device to wait for.
-                    ALPAKA_CUDA_RT_CHECK(
-                        cudaSetDevice(
-                            dev.m_iDevice));
+
                     ALPAKA_CUDA_RT_CHECK(
                         cudaDeviceReset());
                 }
@@ -247,9 +239,7 @@ namespace alpaka
                 {
                     ALPAKA_DEBUG_FULL_LOG_SCOPE;
 
-                    // Set the current device to wait for.
-                    ALPAKA_CUDA_RT_CHECK(cudaSetDevice(
-                        dev.m_iDevice));
+
                     std::cerr<<"wait on device: "<<dev.m_iDevice<<std::endl;
                     ALPAKA_CUDA_RT_CHECK(cudaDeviceSynchronize());
                 }

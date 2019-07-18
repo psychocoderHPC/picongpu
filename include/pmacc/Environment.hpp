@@ -441,7 +441,9 @@ namespace detail
 
     void EnvironmentContext::setDevice(int deviceNumber)
     {
+#undef cudaSetDevice
         cudaSetDevice(0);
+        #define cudaSetDevice(...) cuplaSetDevice(__VA_ARGS__)
 #if 0
         int num_gpus = 0; //number of gpus
         cudaGetDeviceCount(&num_gpus);

@@ -65,9 +65,9 @@ namespace pmacc
          */
         virtual ~Buffer()
         {
-#if 0
+
             CUDA_CHECK_NO_EXCEPT(cudaFreeHost(current_size));
-#endif
+
         }
 
         /*! Get base pointer to memory

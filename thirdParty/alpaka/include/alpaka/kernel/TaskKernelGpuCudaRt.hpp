@@ -370,9 +370,7 @@ namespace alpaka
 #endif
 
                     // Set the current device.
-                    ALPAKA_CUDA_RT_CHECK(
-                        cudaSetDevice(
-                            queue.m_spQueueImpl->m_dev.m_iDevice));
+
                     // Enqueue the kernel execution.
                     // \NOTE: No const reference (const &) is allowed as the parameter type because the kernel launch language extension expects the arguments by value.
                     // This forces the type of a float argument given with std::forward to this function to be of type float instead of e.g. "float const & __ptr64" (MSVC).
@@ -494,9 +492,7 @@ namespace alpaka
 #endif
 
                     // Set the current device.
-                    ALPAKA_CUDA_RT_CHECK(
-                        cudaSetDevice(
-                            queue.m_spQueueImpl->m_dev.m_iDevice));
+
                     // Enqueue the kernel execution.
                     // \NOTE: No const reference (const &) is allowed as the parameter type because the kernel launch language extension expects the arguments by value.
                     // This forces the type of a float argument given with std::forward to this function to be of type float instead of e.g. "float const & __ptr64" (MSVC).

@@ -29,6 +29,7 @@
 #include <alpaka/meta/DependentFalseType.hpp>
 
 #include <memory>
+#include <sys/mman.h>
 
 namespace alpaka
 {
@@ -460,12 +461,21 @@ namespace alpaka
                     {
                         ALPAKA_DEBUG_MINIMAL_LOG_SCOPE;
 
+                        size_t pinsize = extent::getExtentProduct(buf) * sizeof(elem::Elem<buf::BufCpu<TElem, TDim, TIdx>>);
+
                         if(!mem::buf::isPinned(buf))
                         {
 #if defined(ALPAKA_ACC_GPU_CUDA_ENABLED) && BOOST_LANG_CUDA
                             if(buf.m_spBufCpuImpl->m_extentElements.prod() != 0)
                             {
-                                std::cerr<<"pin: "<<buf.m_spBufCpuImpl->getId()<<" "<<const_cast<void *>(reinterpret_cast<void const *>(mem::view::getPtrNative(buf)))<<std::endl;
+                                //size_t pinsize = extent::getExtentProduct(buf) * sizeof(elem::Elem<buf::BufCpu<TElem, TDim, TIdx>>);
+                                    //extent::getExtentProduct(mem::view::getPitchBytesVec(buf));
+                                /*extent::getExtentProduct(buf);
+                                pinsize /= extent::getWidth(buf);
+                                pinsize *= getPitchBytes(buf);*/
+                                std::cerr<<"pin: "<<buf.m_spBufCpuImpl->getId()<<" "<<const_cast<void *>(reinterpret_cast<void const *>(mem::view::getPtrNative(buf)))<<" byte: "<<pinsize<<" type: "<<
+                                    typeid(elem::Elem<buf::BufCpu<TElem, TDim, TIdx>>).name()<<"sizeof(): "<<sizeof(elem::Elem<buf::BufCpu<TElem, TDim, TIdx>>)
+                                    <<" ex: "<<extent::getExtentProduct(buf)<<std::endl;
                                 // - cudaHostRegisterDefault:
                                 //   See http://cgi.cs.indiana.edu/~nhusted/dokuwiki/doku.php?id=programming:cudaperformance1
                                 // - cudaHostRegisterPortable:
@@ -473,7 +483,7 @@ namespace alpaka
                                 ALPAKA_CUDA_RT_CHECK(
                                     cudaHostRegister(
                                         const_cast<void *>(reinterpret_cast<void const *>(mem::view::getPtrNative(buf))),
-                                        extent::getExtentProduct(buf) * sizeof(elem::Elem<buf::BufCpu<TElem, TDim, TIdx>>),
+                                        pinsize,
                                         cudaHostRegisterDefault));
 
                                 buf.m_spBufCpuImpl->m_bPinned = true;
@@ -523,9 +533,18 @@ namespace alpaka
                         {
 #if defined(ALPAKA_ACC_GPU_CUDA_ENABLED) && BOOST_LANG_CUDA
                             std::cerr<<"unpin "<<bufImpl.getId()<<" "<<const_cast<void *>(reinterpret_cast<void const *>(bufImpl.m_pMem))<<std::endl;
-                            ALPAKA_CUDA_RT_CHECK(
-                                cudaHostUnregister(
-                                    const_cast<void *>(reinterpret_cast<void const *>(bufImpl.m_pMem))));
+                            auto ptr = const_cast<void *>(reinterpret_cast<void const *>(bufImpl.m_pMem));
+                            cudaPointerAttributes attributes;
+                            ALPAKA_CUDA_RT_CHECK(cudaPointerGetAttributes(&attributes, ptr));
+printf("Memory xxx %i\n",attributes.device);
+                            if(attributes.memoryType==1)
+                            {
+                                ALPAKA_CUDA_RT_CHECK(
+                                    cudaHostUnregister(
+                                       ptr));
+                            }
+                            else
+                                printf("Memory type for d_data %i\n",attributes.memoryType);
 
                             bufImpl.m_bPinned = false;
 #else

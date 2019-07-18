@@ -107,7 +107,7 @@ int main()
         return 1;
     }
 
-    cudaSetDevice(0);
+    //cudaSetDevice(0);
     run();
     cudaDeviceReset();
 

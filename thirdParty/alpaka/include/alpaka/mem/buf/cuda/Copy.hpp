@@ -421,7 +421,7 @@ namespace alpaka
                                 return;
                             }
 
-                            ALPAKA_CUDA_RT_CHECK(cudaSetDevice(devSrc));
+
                             // NOTE: "until access is explicitly disabled using cudaDeviceDisablePeerAccess() or either device is reset using cudaDeviceReset()."
                             // We do not remove a device from the enabled device pairs on cudaDeviceReset.
                             // Note that access granted by this call is unidirectional and that in order to access memory on the current device from peerDevice, a separate symmetric call to cudaDeviceEnablePeerAccess() is required.
@@ -788,10 +788,7 @@ namespace alpaka
                     {
                         auto const & cudaMemCpyKind(task.m_cudaMemCpyKind);
 
-                        // Set the current device.
-                        ALPAKA_CUDA_RT_CHECK(
-                            cudaSetDevice(
-                                iDstDev));
+
                         // Initiate the memory copy.
                         ALPAKA_CUDA_RT_CHECK(
                             cudaMemcpyAsync(
@@ -856,9 +853,7 @@ namespace alpaka
                         auto const & cudaMemCpyKind(task.m_cudaMemCpyKind);
 
                         // Set the current device.
-                        ALPAKA_CUDA_RT_CHECK(
-                            cudaSetDevice(
-                                iDstDev));
+
                         // Initiate the memory copy.
                         ALPAKA_CUDA_RT_CHECK(
                             cudaMemcpy(
@@ -926,9 +921,7 @@ namespace alpaka
                         auto const & cudaMemCpyKind(task.m_cudaMemCpyKind);
 
                         // Set the current device.
-                        ALPAKA_CUDA_RT_CHECK(
-                            cudaSetDevice(
-                                iDstDev));
+
                         // Initiate the memory copy.
                         ALPAKA_CUDA_RT_CHECK(
                             cudaMemcpy2DAsync(
@@ -1001,10 +994,6 @@ namespace alpaka
 
                         auto const & cudaMemCpyKind(task.m_cudaMemCpyKind);
 
-                        // Set the current device.
-                        ALPAKA_CUDA_RT_CHECK(
-                            cudaSetDevice(
-                                iDstDev));
                         // Initiate the memory copy.
                         ALPAKA_CUDA_RT_CHECK(
                             cudaMemcpy2D(
@@ -1068,10 +1057,7 @@ namespace alpaka
                         cudaMemcpy3DParms const cudaMemCpy3DParms(
                             mem::view::cuda::detail::buildCudaMemcpy3DParms(
                                 task));
-                        // Set the current device.
-                        ALPAKA_CUDA_RT_CHECK(
-                            cudaSetDevice(
-                                iDstDev));
+
                         // Initiate the memory copy.
                         ALPAKA_CUDA_RT_CHECK(
                             cudaMemcpy3DAsync(
@@ -1130,10 +1116,7 @@ namespace alpaka
                         cudaMemcpy3DParms const cudaMemCpy3DParms(
                             mem::view::cuda::detail::buildCudaMemcpy3DParms(
                                 task));
-                        // Set the current device.
-                        ALPAKA_CUDA_RT_CHECK(
-                            cudaSetDevice(
-                                iDstDev));
+
                         // Initiate the memory copy.
                         ALPAKA_CUDA_RT_CHECK(
                             cudaMemcpy3D(
