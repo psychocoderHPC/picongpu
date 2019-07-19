@@ -28,6 +28,9 @@
 #include <pmacc/math/Vector.hpp>
 #include <pmacc/nvidia/rng/RNG.hpp>
 #include <pmacc/random/RNGProvider.hpp>
+#include <pmacc/random/distributions/Uniform.hpp>
+
+
 namespace picongpu
 {
 
@@ -42,12 +45,16 @@ namespace particles
     }
 
     template<
+        typename T_Acc,
+        typename T_RngHandle,
         typename T_SrcPar,
         typename T_DestPar
     >
-    DINLINE void collision( uint32_t rn, float_X s, float_X cellDensity, T_SrcPar& srcPar, T_DestPar& destPar)
+    DINLINE void collision( const T_Acc& acc, T_RngHandle& rngHandle, float_X s, float_X cellDensity, T_SrcPar& srcPar, T_DestPar& destPar)
     {
-        float_X rngValue = float_X(rn%8096)/8096._X;
+        using UniformFloat = pmacc::random::distributions::Uniform<float_X>;
+        auto rng = rngHandle.template applyDistribution< UniformFloat >();
+        float_X rngValue = rng(acc);
         auto srcParMom = srcPar[ momentum_ ];
         auto destParMom = destPar[ momentum_ ];
 
@@ -63,14 +70,14 @@ namespace particles
             typename T_Mapping,
             typename T_Acc,
             typename T_DeviceHeapHandle,
-            typename T_Rng
+            typename T_RngHandle
         >
         DINLINE void operator()(
             T_Acc const & acc,
             T_ParBox pb,
             T_Mapping const mapper,
             T_DeviceHeapHandle deviceHeapHandle,
-            T_Rng rng
+            T_RngHandle rngHandle
         ) const
         {
             using namespace pmacc::particles::operations;
@@ -117,7 +124,7 @@ namespace particles
             // offset of the superCell (in cells, without any guards) to the origin of the local domain
             DataSpace< simDim > const localSuperCellOffset =
             superCellIdx - mapper.getGuardingSuperCells( );
-            rng.init(
+            rngHandle.init(
                 localSuperCellOffset * SuperCellSize::toRT() +
                 DataSpaceOperations< simDim >::template map< SuperCellSize >( workerIdx )
             );
@@ -232,6 +239,8 @@ namespace particles
             __syncthreads();
 #endif
 
+            using UniformUint32_t = pmacc::random::distributions::Uniform<uint32_t>;
+            auto rng = rngHandle.template applyDistribution< UniformUint32_t >();
             //shuffle  indices list
             forEachFrameElem(
                 [&](
@@ -286,7 +295,7 @@ namespace particles
 #endif
                             auto srcPar = getParticle(pb, firstFrame, parListStart[ i ]);
                             auto destPar = getParticle(pb, firstFrame, parListStart[ i + 1 ]);
-                            collision(rng(acc), 0._X, 0._X, srcPar, destPar);
+                            collision(acc,rngHandle, 0._X, 0._X, srcPar, destPar);
                         }
                 }
             );
@@ -344,7 +353,6 @@ namespace particles
 
             /* random number generator */
             using RNGFactory = pmacc::random::RNGProvider<simDim, random::Generator>;
-            using Distribution = pmacc::random::distributions::Uniform<uint32_t>;
 
             PMACC_KERNEL( Collision< numWorkers >{ } )(
                 mapper.getGridDim(),
@@ -353,7 +361,7 @@ namespace particles
                 species->getDeviceParticlesBox( ),
                 mapper,
                 deviceHeap->getAllocatorHandle(),
-                RNGFactory::createRandom<Distribution>()
+                RNGFactory::createHandle()
             );
 
             dc.releaseData( FrameType::getName() );
