@@ -55,6 +55,7 @@
 #include "picongpu/particles/manipulators/manipulators.hpp"
 #include "picongpu/particles/filter/filter.hpp"
 #include "picongpu/particles/flylite/NonLTE.tpp"
+#include "picongpu/particles/collision/IntraSpecies.hpp"
 #include "picongpu/simulation/control/DomainAdjuster.hpp"
 #include "picongpu/simulation/stage/Bremsstrahlung.hpp"
 #include "picongpu/simulation/stage/CurrentBackground.hpp"
@@ -515,6 +516,9 @@ public:
     virtual void runOneStep(uint32_t currentStep)
     {
         using namespace simulation::stage;
+
+        particles::DoCollision<PIC_Electrons>()(deviceHeap);
+
         MomentumBackup{ }( currentStep );
         ParticleIonization{ *cellDescription }( currentStep );
         PopulationKinetics{ }( currentStep );
