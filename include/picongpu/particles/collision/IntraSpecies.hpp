@@ -30,13 +30,18 @@
 #include <pmacc/random/RNGProvider.hpp>
 #include <pmacc/random/distributions/Uniform.hpp>
 
+#include "picongpu/particles/filter/filter.def"
+#include "picongpu/particles/collision/IBinary.def"
+#include "picongpu/particles/collision/binary/MomentumSwap.hpp"
+
+
 
 namespace picongpu
 {
-
 namespace particles
 {
-
+namespace collision
+{
 namespace detail
 {
     struct ListEntry
@@ -186,24 +191,32 @@ namespace detail
         }
     }
 
-} // namespace detail
     template<
         typename T_Acc,
-        typename T_RngHandle,
-        typename T_SrcPar,
-        typename T_DestPar
+        typename T_RngHandle
     >
-    DINLINE void collision( const T_Acc& acc, T_RngHandle& rngHandle, float_X s, float_X cellDensity, T_SrcPar& srcPar, T_DestPar& destPar)
+    struct  CollisionContext
     {
-        using UniformFloat = pmacc::random::distributions::Uniform<float_X>;
-        auto rng = rngHandle.template applyDistribution< UniformFloat >();
-        float_X rngValue = rng(acc);
-        auto srcParMom = srcPar[ momentum_ ];
-        auto destParMom = destPar[ momentum_ ];
+        T_Acc const * m_acc;
+        mutable T_RngHandle* m_hRng;
 
-        srcPar[ momentum_ ] = srcParMom * rngValue + destParMom * ( 1.0_X * rngValue );
-        destPar[ momentum_ ] = destParMom * rngValue + srcParMom * ( 1.0_X * rngValue );
+        DINLINE CollisionContext(T_Acc const & acc, T_RngHandle & hRng) : m_acc(&acc), m_hRng(&hRng)
+        {
+
+        }
+
+    };
+
+    template<
+        typename T_Acc,
+        typename T_RngHandle
+    >
+    DINLINE CollisionContext< T_Acc, T_RngHandle> makeCollisionContext(T_Acc const & acc, T_RngHandle & hRng)
+    {
+        return CollisionContext< T_Acc, T_RngHandle>(acc, hRng);
     }
+
+} // namespace detail
 
     template< uint32_t T_numWorkers >
     struct Collision
@@ -213,14 +226,16 @@ namespace detail
             typename T_Mapping,
             typename T_Acc,
             typename T_DeviceHeapHandle,
-            typename T_RngHandle
+            typename T_RngHandle,
+            typename T_CollisionFunctor
         >
         DINLINE void operator()(
             T_Acc const & acc,
             T_ParBox pb,
             T_Mapping const mapper,
             T_DeviceHeapHandle deviceHeapHandle,
-            T_RngHandle rngHandle
+            T_RngHandle rngHandle,
+            T_CollisionFunctor const collisionFunctor
         ) const
         {
             using namespace pmacc::particles::operations;
@@ -328,6 +343,12 @@ namespace detail
                 }
             );
 
+            auto accFunctor = collisionFunctor(
+                acc,
+                localSuperCellOffset,
+                WorkerCfg< T_numWorkers >{ workerIdx }
+            );
+
             forEachFrameElem(
                 [&](
                     uint32_t const linearIdx,
@@ -339,17 +360,6 @@ namespace detail
                     // skip particle offset counter
                     uint32_t* parListStart = parCellList[ linearIdx ].ptrToIndicies;
 
-#if 0
-                    auto const fieldOffset = localDomainOffset +
-                        DataSpaceOperations< simDim >::map(
-                            SuperCellSize::toRT(),
-                            linearIdx
-                        ) +
-                        SuperCellSize::toRT() * GuardSize::toRT();
-
-                    float_X temperature = temperatureBox(fieldOffset );
-                    float_X cellDensity = densityBox(fieldOffset );
-#endif
                     if(numParPerCell != 0)
                         for(uint32_t i = 0; i < numParPerCell - 1u; i += 2)
                         {
@@ -359,7 +369,7 @@ namespace detail
 #endif
                             auto srcPar = getParticle(pb, firstFrame, parListStart[ i ]);
                             auto destPar = getParticle(pb, firstFrame, parListStart[ i + 1 ]);
-                            collision(acc,rngHandle, 0._X, 0._X, srcPar, destPar);
+                            accFunctor(detail::makeCollisionContext(acc,rngHandle), srcPar, destPar);
                         }
                 }
             );
@@ -389,19 +399,32 @@ namespace detail
         }
     };
 
-    template<typename T_SpeciesType>
+    template<
+        typename T_CollisionFunctor,
+        typename T_Species,
+        typename T_Filter = filter::All
+    >
     struct DoCollision
     {
-        using SpeciesType = pmacc::particles::meta::FindByNameOrType_t<
-            VectorAllSpecies,
-            T_SpeciesType
-        >;
-        using FrameType = typename SpeciesType::FrameType;
-
-        void operator()(const std::shared_ptr<DeviceHeap>& deviceHeap)
+        void operator()(const std::shared_ptr<DeviceHeap>& deviceHeap, uint32_t currentStep)
         {
+             using Species = pmacc::particles::meta::FindByNameOrType_t<
+                VectorAllSpecies,
+                T_Species
+            >;
+            using FrameType = typename Species::FrameType;
+
+            using CollisionFunctor = typename bmpl::apply1<
+                T_CollisionFunctor,
+                Species
+            >::type;
+            using FilteredCollisionFunctor = IBinary<
+                CollisionFunctor,
+                T_Filter
+            >;
+
             DataConnector &dc = Environment<>::get().DataConnector();
-            auto species = dc.get< SpeciesType >( FrameType::getName(), true );
+            auto species = dc.get< Species >( FrameType::getName(), true );
 
             AreaMapping<
                 CORE + BORDER,
@@ -422,12 +445,14 @@ namespace detail
                 species->getDeviceParticlesBox( ),
                 mapper,
                 deviceHeap->getAllocatorHandle(),
-                RNGFactory::createHandle()
+                RNGFactory::createHandle(),
+                FilteredCollisionFunctor(currentStep)
             );
 
             dc.releaseData( FrameType::getName() );
         }
     };
 
+} // namespace collision
 } // namespace particles
 } // namespace picongpu
