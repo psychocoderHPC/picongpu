@@ -32,7 +32,6 @@
 
 #include "picongpu/particles/filter/filter.def"
 #include "picongpu/particles/collision/IBinary.def"
-#include "picongpu/particles/collision/binary/MomentumSwap.hpp"
 
 
 
@@ -219,7 +218,7 @@ namespace detail
 } // namespace detail
 
     template< uint32_t T_numWorkers >
-    struct Collision
+    struct IntraCollision
     {
         template<
             typename T_ParBox,
@@ -404,7 +403,7 @@ namespace detail
         typename T_Species,
         typename T_Filter = filter::All
     >
-    struct DoCollision
+    struct DoIntraCollision
     {
         void operator()(const std::shared_ptr<DeviceHeap>& deviceHeap, uint32_t currentStep)
         {
@@ -414,8 +413,9 @@ namespace detail
             >;
             using FrameType = typename Species::FrameType;
 
-            using CollisionFunctor = typename bmpl::apply1<
+            using CollisionFunctor = typename bmpl::apply2<
                 T_CollisionFunctor,
+                Species,
                 Species
             >::type;
             using FilteredCollisionFunctor = IBinary<
@@ -438,7 +438,7 @@ namespace detail
             /* random number generator */
             using RNGFactory = pmacc::random::RNGProvider<simDim, random::Generator>;
 
-            PMACC_KERNEL( Collision< numWorkers >{ } )(
+            PMACC_KERNEL( IntraCollision< numWorkers >{ } )(
                 mapper.getGridDim(),
                 numWorkers
             )(

@@ -76,7 +76,7 @@ namespace acc
 
     struct MomentumSwap
     {
-        template< typename T_SpeciesType >
+        template< typename T_Species0, typename T_Species1 >
         struct apply
         {
             using type = MomentumSwap;
