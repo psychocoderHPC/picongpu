@@ -37,13 +37,156 @@ namespace picongpu
 namespace particles
 {
 
-    DINLINE void swap( uint32_t & v0, uint32_t & v1)
+namespace detail
+{
+    struct ListEntry
     {
-        uint32_t tmp = v0;
-        v0 = v1;
-        v1 = tmp;
+        uint32_t size;
+        uint32_t* ptrToIndicies;
+
+        template< typename T_DeviceHeapHandle >
+        DINLINE void init( T_DeviceHeapHandle & deviceHeapHandle, uint32_t numPar )
+        {
+            ptrToIndicies = nullptr;
+            if( numPar != 0u )
+            {
+                // printf("alloc %u: %u\n", linearIdx, (nppc[ linearIdx ] + 1) );
+#if( PMACC_CUDA_ENABLED == 1 )
+                int i = 0;
+                while( ptrToIndicies == nullptr )
+                {
+                    ptrToIndicies = (uint32_t*) deviceHeapHandle.malloc( sizeof(uint32_t) * numPar );
+                    if(i >=5)
+                        printf("no memory: %u\n",numPar);
+                    ++i;
+                }
+#else
+                ptrToIndicies = new uint32_t[ numPar ];
+#endif
+            }
+            //reset counter
+            size = 0u;
+        }
+
+        template< typename T_DeviceHeapHandle >
+        DINLINE void finalize( T_DeviceHeapHandle & deviceHeapHandle )
+        {
+            if(ptrToIndicies != nullptr)
+            {
+#if( PMACC_CUDA_ENABLED == 1 )
+                deviceHeapHandle.free( (void*) ptrToIndicies );
+                ptrToIndicies = nullptr;
+#else
+                delete( ptrToIndicies );
+#endif
+            }
+        }
+
+        // non collective
+        template< typename T_Acc, typename T_RngHandle >
+        DINLINE void shuffle( T_Acc const & acc, T_RngHandle & rngHandle)
+        {
+            using UniformUint32_t = pmacc::random::distributions::Uniform<uint32_t>;
+            auto rng = rngHandle.template applyDistribution< UniformUint32_t >();
+            // shuffle the particle lookup table
+            for(uint32_t i = size; i > 1; --i)
+            {
+                /* modulo is not perfect but okish,
+                 * because of the loop head mod zero is not possible
+                 */
+                int p = rng(acc) % i;
+                if( i - 1 != p )
+                    swap(ptrToIndicies[ i - 1 ], ptrToIndicies[ p ]);
+            }
+        }
+
+    private:
+        DINLINE void swap( uint32_t & v0, uint32_t & v1)
+        {
+            uint32_t tmp = v0;
+            v0 = v1;
+            v1 = tmp;
+        }
+    };
+
+    template< typename T_Acc, typename T_ForEach, typename T_ParBox, typename T_FramePtr, typename T_Array>
+    DINLINE void particlesCntHistogram(
+        T_Acc const & acc,
+        T_ForEach forEach,
+        T_ParBox & parBox,
+        T_FramePtr frame,
+        uint32_t const numParticlesInSupercell,
+        T_Array& nppc
+    )
+    {
+            using SuperCellSize = typename T_ParBox::FrameType::SuperCellSize;
+            constexpr uint32_t frameSize = pmacc::math::CT::volume< SuperCellSize >::type::value;
+
+            for(uint32_t i = 0; i < numParticlesInSupercell; i += frameSize)
+            {
+
+                forEach(
+                    [&](
+                        uint32_t const linearIdx,
+                        uint32_t const idx
+                    )
+                    {
+                        if( i + linearIdx < numParticlesInSupercell)
+                        {
+                            auto particle = frame[ linearIdx ];
+                            auto parLocalIndex = particle[ localCellIdx_ ];
+                            if(parLocalIndex < 256)
+                            {
+
+                                atomicAdd( &nppc[ parLocalIndex ], 1u);
+                            }
+#if 1
+                            else
+                                printf("nooooo %u\n",parLocalIndex);
+#endif
+                        }
+                    }
+                );
+                frame = parBox.getNextFrame( frame );
+            }
     }
 
+    template< typename T_Acc, typename T_ForEach, typename T_ParBox, typename T_FramePtr, typename T_EntryListArray>
+    DINLINE void updateLinkedList(
+        T_Acc const & acc,
+        T_ForEach forEach,
+        T_ParBox & parBox,
+        T_FramePtr frame,
+        uint32_t const numParticlesInSupercell,
+        T_EntryListArray & parCellList
+    )
+    {
+        using SuperCellSize = typename T_ParBox::FrameType::SuperCellSize;
+        constexpr uint32_t frameSize = pmacc::math::CT::volume< SuperCellSize >::type::value;
+        for(uint32_t i = 0; i < numParticlesInSupercell; i += frameSize)
+        {
+
+            forEach(
+                [&](
+                    uint32_t const linearIdx,
+                    uint32_t const idx
+                )
+                {
+                    uint32_t const parInSuperCellIdx = i + linearIdx;
+                    if( parInSuperCellIdx < numParticlesInSupercell )
+                    {
+                        auto particle = frame[ linearIdx ];
+                        auto parLocalIndex = particle[ localCellIdx_ ];
+                        uint32_t parOffset = atomicAdd( &parCellList[ parLocalIndex ].size , 1u );
+                        parCellList[ parLocalIndex ].ptrToIndicies[ parOffset ] = parInSuperCellIdx;
+                    }
+                }
+            );
+            frame = parBox.getNextFrame( frame );
+        }
+    }
+
+} // namespace detail
     template<
         typename T_Acc,
         typename T_RngHandle,
@@ -83,8 +226,8 @@ namespace particles
             using namespace pmacc::particles::operations;
             using namespace mappings::threads;
 
-            constexpr uint32_t frameSize = pmacc::math::CT::volume<typename T_Mapping::SuperCellSize>::type::value;
-            constexpr uint32_t dim = T_Mapping::Dim;
+            using SuperCellSize = typename T_ParBox::FrameType::SuperCellSize;
+            constexpr uint32_t frameSize = pmacc::math::CT::volume< SuperCellSize >::type::value;
             constexpr uint32_t numWorkers = T_numWorkers;
 
             using FramePtr = typename T_ParBox::FramePtr;
@@ -100,26 +243,21 @@ namespace particles
 
             PMACC_SMEM(
                 acc,
-                parListPtr,
+                parCellList,
                 memory::Array<
-                    uint32_t*,
+                    detail::ListEntry,
                     frameSize
                 >
             );
 
             uint32_t const workerIdx = threadIdx.x;
 
-            using MasterOnly = IdxConfig<
-                1,
-                numWorkers
-            >;
-
             using FrameDomCfg = IdxConfig<
                 frameSize,
                 numWorkers
             >;
 
-            DataSpace< dim > const superCellIdx = mapper.getSuperCellIndex( DataSpace< dim > ( blockIdx ) );
+            DataSpace< simDim > const superCellIdx = mapper.getSuperCellIndex( DataSpace< simDim > ( blockIdx ) );
 
             // offset of the superCell (in cells, without any guards) to the origin of the local domain
             DataSpace< simDim > const localSuperCellOffset =
@@ -148,36 +286,8 @@ namespace particles
 
             __syncthreads();
 
-            FramePtr frame = pb.getFirstFrame( superCellIdx );
-
-            // histogram
-            for(uint32_t i = 0; i < numParticlesInSupercell; i += frameSize)
-            {
-
-                forEachFrameElem(
-                    [&](
-                        uint32_t const linearIdx,
-                        uint32_t const idx
-                    )
-                    {
-                        if( i + linearIdx < numParticlesInSupercell)
-                        {
-                            auto particle = frame[ linearIdx ];
-                            auto parLocalIndex = particle[ localCellIdx_ ];
-                            if(parLocalIndex < 256)
-                            {
-
-                                atomicAdd( &nppc[ parLocalIndex ], 1u);
-                            }
-#if 1
-                            else
-                                printf("nooooo %u\n",parLocalIndex);
-#endif
-                        }
-                    }
-                );
-                frame = pb.getNextFrame( frame );
-            }
+            FramePtr firstFrame = pb.getFirstFrame( superCellIdx );
+            detail::particlesCntHistogram( acc, forEachFrameElem, pb, firstFrame, numParticlesInSupercell, nppc );
 
             __syncthreads();
 
@@ -185,62 +295,28 @@ namespace particles
             forEachFrameElem(
                 [&](
                     uint32_t const linearIdx,
-                    uint32_t const idx
+                    uint32_t const
                 )
                 {
-                   // printf("alloc %u: %u\n", linearIdx, (nppc[ linearIdx ] + 1) );
-                #if( PMACC_CUDA_ENABLED == 1 )
-                    parListPtr[ linearIdx ] = nullptr;
-                    while( parListPtr[ linearIdx ] == nullptr )
-                        parListPtr[ linearIdx ] = (uint32_t*) deviceHeapHandle.malloc( sizeof(uint32_t) * ( nppc[ linearIdx ] + 1 ) );
-                #else
-                    parListPtr[ linearIdx ] = new uint32_t[ nppc[ linearIdx ] + 1 ];
-                #endif
-                    //reset counter
-                    parListPtr[ linearIdx ][0] = 0u;
+                    parCellList[ linearIdx ].init( deviceHeapHandle,  nppc[ linearIdx ] );
                 }
             );
 
             __syncthreads();
 
-
-            frame = pb.getFirstFrame( superCellIdx );
-            // fill indices list
-            for(uint32_t i = 0; i < numParticlesInSupercell; i += frameSize)
-            {
-
-                forEachFrameElem(
-                    [&](
-                        uint32_t const linearIdx,
-                        uint32_t const idx
-                    )
-                    {
-                        if( i + linearIdx < numParticlesInSupercell )
-                        {
-                            auto particle = frame[ linearIdx ];
-                            auto parLocalIndex = particle[ localCellIdx_ ];
-                            uint32_t parOffset = atomicAdd( parListPtr[ parLocalIndex ], 1u );
-                            // start at first storage because index 0 is the offset counter
-                            parListPtr[ parLocalIndex ][ parOffset + 1 ] = i + linearIdx;
-                        }
-                    }
-                );
-                frame = pb.getNextFrame( frame );
-            }
+            detail::updateLinkedList( acc, forEachFrameElem, pb, firstFrame, numParticlesInSupercell, parCellList );
 
             __syncthreads();
 #if 1
             if(threadIdx.x == 0)
             {
                 for(int i=0;i<256;++i)
-                    if( nppc[ i ] != parListPtr[ i ][0])
-                        printf("ppc %i: %u == %u\n",i, nppc[ i ], parListPtr[ i ][0]);
+                    if( nppc[ i ] != parCellList[ i ].size)
+                        printf("ppc %i: %u == %u\n",i, nppc[ i ], parCellList[ i ].size);
             }
             __syncthreads();
 #endif
 
-            using UniformUint32_t = pmacc::random::distributions::Uniform<uint32_t>;
-            auto rng = rngHandle.template applyDistribution< UniformUint32_t >();
             //shuffle  indices list
             forEachFrameElem(
                 [&](
@@ -248,32 +324,20 @@ namespace particles
                     uint32_t const idx
                 )
                 {
-                    uint32_t const numParPerCell = nppc[ linearIdx ];
-                    uint32_t* parListStart = parListPtr[ linearIdx ] + 1;
-                    // shuffle the particle lookup table
-                    for(uint32_t i = numParPerCell; i > 0; --i)
-                    {
-                        /* modulo is not perfect but okish,
-                         * because of the loop head mod zero is not possible
-                         */
-                        int p = rng(acc) % i;
-                        if( i - 1 != p )
-                            swap(parListStart[ i - 1 ], parListStart[ p ]);
-                    }
+                    parCellList[ linearIdx ].shuffle( acc, rngHandle );
                 }
             );
 
-            auto firstFrame = pb.getFirstFrame( superCellIdx );
             forEachFrameElem(
                 [&](
                     uint32_t const linearIdx,
                     uint32_t const idx
                 )
                 {
-                    uint32_t const numParPerCell = nppc[ linearIdx ];
+                    uint32_t const numParPerCell = parCellList[ linearIdx ].size;
 
                     // skip particle offset counter
-                    uint32_t* parListStart = parListPtr[ linearIdx ] + 1;
+                    uint32_t* parListStart = parCellList[ linearIdx ].ptrToIndicies;
 
 #if 0
                     auto const fieldOffset = localDomainOffset +
@@ -300,18 +364,15 @@ namespace particles
                 }
             );
 
+            __syncthreads();
+
             forEachFrameElem(
                 [&](
                     uint32_t const linearIdx,
-                    uint32_t const idx
+                    uint32_t const
                 )
                 {
-#if( PMACC_CUDA_ENABLED == 1 )
-                    deviceHeapHandle.free( (void*) parListPtr[ linearIdx ] );
-#else
-                    delete(parListPtr[ linearIdx ]);
-#endif
-                    parListPtr[ linearIdx ] = nullptr;
+                    parCellList[ linearIdx ].finalize( deviceHeapHandle );
                 }
             );
 
