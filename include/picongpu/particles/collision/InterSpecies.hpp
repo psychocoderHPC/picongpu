@@ -294,34 +294,19 @@ namespace collision
     template<
         typename T_CollisionFunctor,
         typename T_Species0,
-        typename T_Species1,
-        typename T_Filter = filter::All
+        typename T_Species1
     >
     struct DoInterCollision
     {
         void operator()(const std::shared_ptr<DeviceHeap>& deviceHeap, uint32_t currentStep)
         {
-            using Species0 = pmacc::particles::meta::FindByNameOrType_t<
-                VectorAllSpecies,
-                T_Species0
-            >;
+            using Species0 = T_Species0;
             using FrameType0 = typename Species0::FrameType;
 
-            using Species1 = pmacc::particles::meta::FindByNameOrType_t<
-                VectorAllSpecies,
-                T_Species1
-            >;
+            using Species1 = T_Species1;
             using FrameType1 = typename Species1::FrameType;
 
-            using CollisionFunctor = typename bmpl::apply2<
-                T_CollisionFunctor,
-                Species0,
-                Species1
-            >::type;
-            using FilteredCollisionFunctor = IBinary<
-                CollisionFunctor,
-                T_Filter
-            >;
+            using CollisionFunctor = T_CollisionFunctor;
 
             DataConnector &dc = Environment<>::get().DataConnector();
             auto species0 = dc.get< Species0 >( FrameType0::getName(), true );
@@ -349,7 +334,7 @@ namespace collision
                 mapper,
                 deviceHeap->getAllocatorHandle(),
                 RNGFactory::createHandle(),
-                FilteredCollisionFunctor(currentStep)
+                CollisionFunctor(currentStep)
             );
 
             dc.releaseData( FrameType0::getName() );

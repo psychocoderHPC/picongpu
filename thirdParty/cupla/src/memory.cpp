@@ -149,7 +149,7 @@ cuplaMallocHost(
 
 #if defined(ALPAKA_ACC_GPU_CUDA_ENABLED)
     // only implemented if nvcc is used
-    ::alpaka::mem::buf::pin( buf );
+    //::alpaka::mem::buf::pin( buf );
 #endif
 
     // @toto catch errors
