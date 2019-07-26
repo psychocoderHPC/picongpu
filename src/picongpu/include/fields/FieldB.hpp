@@ -91,6 +91,8 @@ namespace picongpu
         DataBoxType getDeviceDataBox();
 
         GridBuffer<ValueType, simDim> &getGridBuffer();
+        GridBuffer<ValueType, simDim> &getGridBuffer2();
+        void sync( );
 
         SimulationDataId getUniqueId();
 
@@ -105,6 +107,7 @@ namespace picongpu
         void laserManipulation(uint32_t currentStep);
 
         GridBuffer<ValueType, simDim> *fieldB;
+        GridBuffer<ValueType, simDim> *fieldB2;
 
         FieldE *fieldE;
         LaserPhysics *laser;

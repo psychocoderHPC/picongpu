@@ -92,9 +92,9 @@ namespace traits
 
         HDINLINE VectorVector2D3V operator()() const
         {
-            const float2_X posJ_x( 0.5, 0.0 );
-            const float2_X posJ_y( 0.0, 0.5 );
-            const float2_X posJ_z( 0.0, 0.0 );
+            const float2_X posJ_x( 0.0, 0.5 );
+            const float2_X posJ_y( 0.5, 0.0 );
+            const float2_X posJ_z( 0.5, 0.5 );
 
             return VectorVector2D3V( posJ_x, posJ_y, posJ_z );
         }
@@ -115,9 +115,9 @@ namespace traits
 
         HDINLINE VectorVector3D3V operator()() const
         {
-            const float3_X posJ_x( 0.5, 0.0, 0.0 );
-            const float3_X posJ_y( 0.0, 0.5, 0.0 );
-            const float3_X posJ_z( 0.0, 0.0, 0.5 );
+            const float3_X posJ_x( 0.0, 0.5, 0.5 );
+            const float3_X posJ_y( 0.5, 0.0, 0.5 );
+            const float3_X posJ_z( 0.5, 0.5, 0.0 );
 
             return VectorVector3D3V( posJ_x, posJ_y, posJ_z );
         }
@@ -143,7 +143,7 @@ namespace traits
 
         HDINLINE ReturnType operator()() const
         {
-            return ReturnType( FieldPos::create(0.0) );
+            return ReturnType( FieldPos::create(0.0) ); //you can probably change here to 0.5 for the charge to be defined in the center of the cell
         }
     };
 } // traits

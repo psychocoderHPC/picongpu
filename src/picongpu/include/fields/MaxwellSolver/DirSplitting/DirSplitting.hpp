@@ -35,6 +35,8 @@
 #include <cuSTL/cursor/NestedCursor.hpp>
 #include <math/vector/TwistComponents.hpp>
 #include <math/vector/compile-time/TwistComponents.hpp>
+#include <cuSTL/cursor/navigator/compile-time/TwistAxesNavigator.hpp>
+#include <cuSTL/cursor/accessor/TwistAxesAccessor.hpp>
 
 namespace picongpu
 {
@@ -69,30 +71,130 @@ struct ConditionCheck<DirSplitting, T_Dummy>
 #endif
 };
 
+namespace result_of
+{
+
+template<typename T_SpaceTwist, typename T_ComponentTwist, typename T_Cursor>
+struct twistVectorForDirSplitting
+{
+    typedef PMacc::cursor::Cursor<PMacc::cursor::TwistAxesAccessor<T_Cursor, T_ComponentTwist>,
+                   PMacc::cursor::CT::TwistAxesNavigator<T_SpaceTwist>,
+                   T_Cursor> type;
+};
+
+} // result_of
+
+template<typename T_SpaceTwist, typename T_ComponentTwist, typename T_Cursor>
+HDINLINE
+typename result_of::twistVectorForDirSplitting<T_SpaceTwist, T_ComponentTwist, T_Cursor>::type
+twistVectorForDirSplitting(const T_Cursor& cursor)
+{
+    return typename result_of::twistVectorForDirSplitting<T_SpaceTwist, T_ComponentTwist, T_Cursor>::type(
+        PMacc::cursor::TwistAxesAccessor<T_Cursor, T_ComponentTwist>(),
+        PMacc::cursor::CT::TwistAxesNavigator<T_SpaceTwist>(),
+        cursor);
+}
+
 class DirSplitting : private ConditionCheck<fieldSolver::FieldSolver>
 {
 private:
-    template<typename OrientationTwist,typename CursorE, typename CursorB, typename GridSize>
-    void propagate(CursorE cursorE, CursorB cursorB, GridSize gridSize) const
+    template<uint32_t pass, typename SpaceTwist, typename OrientationTwist,typename JSpaceTwist,typename CursorE, typename CursorB, typename CursorJ, typename GridSize>
+    void propagate(CursorE cursorE, CursorB cursorB,CursorJ cursorJ,CursorE old_cursorE, CursorB old_cursorB, GridSize gridSize) const
     {
         using namespace cursor::tools;
         using namespace PMacc::math;
 
-        PMACC_AUTO(gridSizeTwisted, twistComponents<OrientationTwist>(gridSize));
+        typedef typename CT::shrinkTo<SpaceTwist,simDim>::type SpaceTwistSimDim;
+        PMACC_AUTO(gridSizeTwisted, twistComponents<
+            SpaceTwistSimDim
+        >(gridSize));
 
         /* twist components of the supercell */
-        typedef typename CT::TwistComponents<SuperCellSize, OrientationTwist>::type BlockDim;
+        typedef typename PMacc::math::CT::make_Vector<simDim,bmpl::integral_c<int,0> >::type ZeroVector;
+
+        typedef typename PMacc::math::CT::AssignIfInRange<
+            ZeroVector,
+            bmpl::integral_c<int,0>,
+            typename PMacc::math::CT::At<SuperCellSize,typename SpaceTwist::x>::type
+        >::type VectorWith_X;
+
+        typedef typename PMacc::math::CT::AssignIfInRange<
+            VectorWith_X,
+            bmpl::integral_c<int,1>,
+            typename PMacc::math::CT::At<SuperCellSize,typename SpaceTwist::y>::type
+        >::type VectorWith_XY;
+
+        typedef typename PMacc::math::CT::AssignIfInRange<
+            VectorWith_XY,
+            bmpl::integral_c<int,2>,
+            typename PMacc::math::CT::At<SuperCellSize,typename SpaceTwist::z>::type
+        >::type BlockDim;
+
+
+        PMacc::math::Size_t<simDim> zoneSize(gridSizeTwisted);
+        zoneSize.x()=BlockDim::x::value;
 
         algorithm::kernel::ForeachBlock<BlockDim> foreach;
-        foreach(zone::SphericZone<3>(PMacc::math::Size_t<3>(BlockDim::x::value, gridSizeTwisted.y(), gridSizeTwisted.z())),
-                cursor::make_NestedCursor(twistVectorFieldAxes<OrientationTwist>(cursorE)),
-                cursor::make_NestedCursor(twistVectorFieldAxes<OrientationTwist>(cursorB)),
-                DirSplittingKernel<BlockDim>((int)gridSizeTwisted.x()));
+        foreach(zone::SphericZone<simDim>(zoneSize),
+                cursor::make_NestedCursor(twistVectorForDirSplitting<SpaceTwistSimDim, OrientationTwist>(cursorE)),
+                cursor::make_NestedCursor(twistVectorForDirSplitting<SpaceTwistSimDim, OrientationTwist>(cursorB)),
+                cursor::make_NestedCursor(twistVectorForDirSplitting<SpaceTwistSimDim, OrientationTwist>(cursorJ)),
+                cursor::make_NestedCursor(twistVectorForDirSplitting<SpaceTwistSimDim, OrientationTwist>(old_cursorE)),
+                cursor::make_NestedCursor(twistVectorForDirSplitting<SpaceTwistSimDim, OrientationTwist>(old_cursorB)),
+                DirSplittingKernel<pass,BlockDim,JSpaceTwist>((int)gridSizeTwisted.x()));
+    }
+
+
+
+    template<typename SpaceTwist, typename OrientationTwist,int dir,typename CursorE, typename CursorB, typename CursorJ, typename GridSize>
+    void propagateX(CursorE cursorE, CursorB cursorB,CursorJ cursorJ,CursorE old_cursorE, CursorB old_cursorB, GridSize gridSize) const
+    {
+        using namespace cursor::tools;
+        using namespace PMacc::math;
+
+        typedef typename CT::shrinkTo<SpaceTwist,simDim>::type SpaceTwistSimDim;
+        PMACC_AUTO(gridSizeTwisted, twistComponents<
+            SpaceTwistSimDim
+        >(gridSize));
+
+        /* twist components of the supercell */
+        typedef typename PMacc::math::CT::make_Vector<simDim,bmpl::integral_c<int,0> >::type ZeroVector;
+
+        typedef typename PMacc::math::CT::AssignIfInRange<
+            ZeroVector,
+            bmpl::integral_c<int,0>,
+            typename PMacc::math::CT::At<SuperCellSize,typename SpaceTwist::x>::type
+        >::type VectorWith_X;
+
+        typedef typename PMacc::math::CT::AssignIfInRange<
+            VectorWith_X,
+            bmpl::integral_c<int,1>,
+            typename PMacc::math::CT::At<SuperCellSize,typename SpaceTwist::y>::type
+        >::type VectorWith_XY;
+
+        typedef typename PMacc::math::CT::AssignIfInRange<
+            VectorWith_XY,
+            bmpl::integral_c<int,2>,
+            typename PMacc::math::CT::At<SuperCellSize,typename SpaceTwist::z>::type
+        >::type BlockDim;
+
+
+        PMacc::math::Size_t<simDim> zoneSize(gridSizeTwisted);
+        //zoneSize.x()=BlockDim::x::value;
+
+        algorithm::kernel::ForeachBlock<BlockDim> foreach;
+        foreach(zone::SphericZone<simDim>(zoneSize),
+                cursor::make_NestedCursor(twistVectorForDirSplitting<SpaceTwistSimDim, OrientationTwist>(cursorE)),
+                cursor::make_NestedCursor(twistVectorForDirSplitting<SpaceTwistSimDim, OrientationTwist>(cursorB)),
+                cursor::make_NestedCursor(twistVectorForDirSplitting<SpaceTwistSimDim, OrientationTwist>(cursorJ)),
+                cursor::make_NestedCursor(twistVectorForDirSplitting<SpaceTwistSimDim, OrientationTwist>(old_cursorE)),
+                cursor::make_NestedCursor(twistVectorForDirSplitting<SpaceTwistSimDim, OrientationTwist>(old_cursorB)),
+                DirSplittingKernelX<BlockDim,dir>((int)gridSizeTwisted.x()));
     }
 public:
     DirSplitting(MappingDesc) {}
 
-    void update_beforeCurrent(uint32_t currentStep) const
+    void update_afterCurrent(uint32_t currentStep) const
     {
         typedef SuperCellSize GuardDim;
 
@@ -100,6 +202,26 @@ public:
 
         FieldE& fieldE = dc.getData<FieldE > (FieldE::getName(), true);
         FieldB& fieldB = dc.getData<FieldB > (FieldB::getName(), true);
+        FieldJ& fieldJ = dc.getData<FieldJ > (FieldJ::getName(), true);
+
+        using namespace cursor::tools;
+
+
+
+        if (laserProfile::INIT_TIME > float_X(0.0))
+            dc.getData<FieldE > (FieldE::getName(), true).laserManipulation(currentStep);
+
+        __setTransactionEvent(fieldE.asyncCommunication(__getTransactionEvent()));
+        __setTransactionEvent(fieldB.asyncCommunication(__getTransactionEvent()));
+
+/*  enable this to fill the double buffer with the same values like the original field
+        __startOperation(ITask::TASK_HOST);
+        __startOperation(ITask::TASK_CUDA);
+        fieldE.sync();
+        fieldB.sync();
+        fieldE.reset(currentStep);
+        fieldB.reset(currentStep);
+*/
 
         BOOST_AUTO(fieldE_coreBorder,
             fieldE.getGridBuffer().getDeviceBuffer().
@@ -110,46 +232,128 @@ public:
             cartBuffer().view(GuardDim().toRT(),
                               -GuardDim().toRT()));
 
-        using namespace cursor::tools;
-        using namespace PMacc::math;
+        BOOST_AUTO(old_fieldE_coreBorder,
+            fieldE.getGridBuffer2().getDeviceBuffer().
+                   cartBuffer().view(GuardDim().toRT(),
+                                     -GuardDim().toRT()));
+        BOOST_AUTO(old_fieldB_coreBorder,
+            fieldB.getGridBuffer2().getDeviceBuffer().
+            cartBuffer().view(GuardDim().toRT(),
+                              -GuardDim().toRT()));
 
-        PMacc::math::Size_t<3> gridSize = fieldE_coreBorder.size();
+        BOOST_AUTO(fieldJ_coreBorder,
+            fieldJ.getGridBuffer().getDeviceBuffer().
+            cartBuffer().view(GuardDim().toRT(),
+                              -GuardDim().toRT()));
 
+        typedef PMacc::math::CT::Int<0,1,2> Orientation_XJ;
+        typedef PMacc::math::CT::Int<0,1,2> Space_XJ;
+
+        PMacc::math::Size_t<simDim> gridSize = fieldE_coreBorder.size();
 
         typedef PMacc::math::CT::Int<0,1,2> Orientation_X;
-        propagate<Orientation_X>(
+        typedef PMacc::math::CT::Int<0,1,2> Space_X;
+        typedef PMacc::math::CT::Int<0,2,1> JDir_X;
+        propagate<1, Space_X,Orientation_X,JDir_X>(
                   fieldE_coreBorder.origin(),
                   fieldB_coreBorder.origin(),
+                  fieldJ_coreBorder.origin(),
+                  old_fieldE_coreBorder.origin(),
+                  old_fieldB_coreBorder.origin(),
                   gridSize);
 
+#if (SENTOKU==1) //prpagateX adds current
+        propagateX<Space_XJ,Orientation_XJ, 1>(
+                  fieldE_coreBorder.origin(),
+                  fieldB_coreBorder.origin(),
+                  fieldJ_coreBorder.origin(),
+                  old_fieldE_coreBorder.origin(),
+                  old_fieldB_coreBorder.origin(),
+                  gridSize);
+#endif
         __setTransactionEvent(fieldE.asyncCommunication(__getTransactionEvent()));
         __setTransactionEvent(fieldB.asyncCommunication(__getTransactionEvent()));
 
         typedef PMacc::math::CT::Int<1,2,0> Orientation_Y;
-        propagate<Orientation_Y>(
+        typedef PMacc::math::CT::Int<1,0,2> Space_Y;
+        typedef PMacc::math::CT::Int<0,1,2> JDir_Y;
+        propagate<1, Space_Y,Orientation_Y,JDir_Y>(
                   fieldE_coreBorder.origin(),
                   fieldB_coreBorder.origin(),
+                  fieldJ_coreBorder.origin(),
+                  old_fieldE_coreBorder.origin(),
+                  old_fieldB_coreBorder.origin(),
+                  gridSize);
+#if (SENTOKU==1)
+        propagateX<Space_XJ,Orientation_XJ, 0>(
+                  fieldE_coreBorder.origin(),
+                  fieldB_coreBorder.origin(),
+                  fieldJ_coreBorder.origin(),
+                  old_fieldE_coreBorder.origin(),
+                  old_fieldB_coreBorder.origin(),
+                  gridSize);
+#endif
+        __setTransactionEvent(fieldE.asyncCommunication(__getTransactionEvent()));
+        __setTransactionEvent(fieldB.asyncCommunication(__getTransactionEvent()));
+
+#if (SENTOKU==1)
+
+        propagateX<Space_XJ,Orientation_XJ, 2>(
+                  fieldE_coreBorder.origin(),
+                  fieldB_coreBorder.origin(),
+                  fieldJ_coreBorder.origin(),
+                  old_fieldE_coreBorder.origin(),
+                  old_fieldB_coreBorder.origin(),
+                  gridSize);
+
+
+        __setTransactionEvent(fieldE.asyncCommunication(__getTransactionEvent()));
+        __setTransactionEvent(fieldB.asyncCommunication(__getTransactionEvent()));
+#endif
+
+#if (SIMDIM==DIM3)
+        //! \todo: currently 3D: check this code if someone enable 3D
+        typedef PMacc::math::CT::Int<2,0,1> Orientation_Z;
+        typedef PMacc::math::CT::Int<2,0,1> Space_Z;
+        typedef PMacc::math::CT::Int<0,2,1> JDir_Z;
+        propagate<0,Space_Z,Orientation_Z,JDir_Z>(
+                  fieldE_coreBorder.origin(),
+                  fieldB_coreBorder.origin(),
+                  fieldJ_coreBorder.origin(),
+                  old_fieldE_coreBorder.origin(),
+                  old_fieldB_coreBorder.origin(),
                   gridSize);
 
         __setTransactionEvent(fieldE.asyncCommunication(__getTransactionEvent()));
         __setTransactionEvent(fieldB.asyncCommunication(__getTransactionEvent()));
+#endif
 
-        typedef PMacc::math::CT::Int<2,0,1> Orientation_Z;
-        propagate<Orientation_Z>(
-                  fieldE_coreBorder.origin(),
-                  fieldB_coreBorder.origin(),
-                  gridSize);
+        propagate<1, Space_Y,Orientation_Y,JDir_Y>(
+                fieldE_coreBorder.origin(),
+                fieldB_coreBorder.origin(),
+                fieldJ_coreBorder.origin(),
+                old_fieldE_coreBorder.origin(),
+                old_fieldB_coreBorder.origin(),
+                gridSize);
 
-        if (laserProfile::INIT_TIME > float_X(0.0))
-            dc.getData<FieldE > (FieldE::getName(), true).laserManipulation(currentStep);
+        __setTransactionEvent(fieldE.asyncCommunication(__getTransactionEvent()));
+        __setTransactionEvent(fieldB.asyncCommunication(__getTransactionEvent()));
+
+        propagate<1, Space_X,Orientation_X,JDir_X>(
+                fieldE_coreBorder.origin(),
+                fieldB_coreBorder.origin(),
+                fieldJ_coreBorder.origin(),
+                old_fieldE_coreBorder.origin(),
+                old_fieldB_coreBorder.origin(),
+                gridSize);
 
         __setTransactionEvent(fieldE.asyncCommunication(__getTransactionEvent()));
         __setTransactionEvent(fieldB.asyncCommunication(__getTransactionEvent()));
     }
 
-    void update_afterCurrent(uint32_t) const
+    void update_beforeCurrent(uint32_t) const
     {
-        DataConnector &dc = Environment<>::get().DataConnector();
+    /*    DataConnector &dc = Environment<>::get().DataConnector();
 
         FieldE& fieldE = dc.getData<FieldE > (FieldE::getName(), true);
         FieldB& fieldB = dc.getData<FieldB > (FieldB::getName(), true);
@@ -161,6 +365,7 @@ public:
 
         dc.releaseData(FieldE::getName());
         dc.releaseData(FieldB::getName());
+     * */
     }
 
     static PMacc::traits::StringProperty getStringProperties()

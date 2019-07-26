@@ -54,7 +54,7 @@ namespace picongpu
 /* WARNING: if you change field solver by hand please update your CELL_WIDTH_SI
  * in `gridConfig.param` to fulfill the convergence condition (CFL)
  */
-#define PARAM_FIELDSOLVER fieldSolverYee
+#define PARAM_FIELDSOLVER fieldSolverDirSplitting
 #endif
 namespace fieldSolver = PARAM_FIELDSOLVER;
 
