@@ -55,10 +55,8 @@
 #include "picongpu/particles/manipulators/manipulators.hpp"
 #include "picongpu/particles/filter/filter.hpp"
 #include "picongpu/particles/flylite/NonLTE.tpp"
-#include "picongpu/particles/collision/IntraSpecies.hpp"
-#include "picongpu/particles/collision/InterSpecies.hpp"
-#include "picongpu/particles/collision/binary/MomentumSwap.hpp"
 #include "picongpu/simulation/control/DomainAdjuster.hpp"
+#include "picongpu/simulation/stage/Collision.hpp"
 #include "picongpu/simulation/stage/Bremsstrahlung.hpp"
 #include "picongpu/simulation/stage/CurrentBackground.hpp"
 #include "picongpu/simulation/stage/CurrentDeposition.hpp"
@@ -519,24 +517,8 @@ public:
     {
         using namespace simulation::stage;
 
-        particles::collision::DoIntraCollision<
-            particles::collision::binary::MomentumSwap,
-            PIC_Electrons
-        >()(
-            deviceHeap,
-            currentStep
-        );
-#if 1
-        particles::collision::DoInterCollision<
-            particles::collision::binary::MomentumSwap,
-            PIC_Electrons,
-            PIC_Ions
-        >()(
-            deviceHeap,
-            currentStep
-        );
-#endif
         MomentumBackup{ }( currentStep );
+        Collision{ deviceHeap }( currentStep );
         ParticleIonization{ *cellDescription }( currentStep );
         PopulationKinetics{ }( currentStep );
         SynchrotronRadiation{

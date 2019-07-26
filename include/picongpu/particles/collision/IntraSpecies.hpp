@@ -30,10 +30,6 @@
 #include <pmacc/random/RNGProvider.hpp>
 #include <pmacc/random/distributions/Uniform.hpp>
 
-#include "picongpu/particles/filter/filter.def"
-#include "picongpu/particles/collision/IBinary.def"
-
-
 
 namespace picongpu
 {
@@ -335,7 +331,7 @@ namespace detail
             forEachFrameElem(
                 [&](
                     uint32_t const linearIdx,
-                    uint32_t const idx
+                    uint32_t const
                 )
                 {
                     parCellList[ linearIdx ].shuffle( acc, rngHandle );
@@ -351,7 +347,7 @@ namespace detail
             forEachFrameElem(
                 [&](
                     uint32_t const linearIdx,
-                    uint32_t const idx
+                    uint32_t const
                 )
                 {
                     uint32_t const numParPerCell = parCellList[ linearIdx ].size;
@@ -400,28 +396,16 @@ namespace detail
 
     template<
         typename T_CollisionFunctor,
-        typename T_Species,
-        typename T_Filter = filter::All
+        typename T_Species
     >
     struct DoIntraCollision
     {
         void operator()(const std::shared_ptr<DeviceHeap>& deviceHeap, uint32_t currentStep)
         {
-             using Species = pmacc::particles::meta::FindByNameOrType_t<
-                VectorAllSpecies,
-                T_Species
-            >;
+             using Species = T_Species;
             using FrameType = typename Species::FrameType;
 
-            using CollisionFunctor = typename bmpl::apply2<
-                T_CollisionFunctor,
-                Species,
-                Species
-            >::type;
-            using FilteredCollisionFunctor = IBinary<
-                CollisionFunctor,
-                T_Filter
-            >;
+            using CollisionFunctor = T_CollisionFunctor;
 
             DataConnector &dc = Environment<>::get().DataConnector();
             auto species = dc.get< Species >( FrameType::getName(), true );
@@ -446,7 +430,7 @@ namespace detail
                 mapper,
                 deviceHeap->getAllocatorHandle(),
                 RNGFactory::createHandle(),
-                FilteredCollisionFunctor(currentStep)
+                CollisionFunctor(currentStep)
             );
 
             dc.releaseData( FrameType::getName() );
