@@ -30,12 +30,33 @@ namespace picongpu
          *  unit: seconds */
         constexpr float_64 DELTA_T_SI = 1.39e-16;
 
+
         /** equals X
          *  unit: meter */
-        constexpr float_64 CELL_WIDTH_SI = 0.1772e-6;
+        #define DirSplitting 1
+#if (PARAM_FIELDSOLVER == 1)
+        /* THIS CODE PATH IS ONLY USED IF `PARAM_FIELDSOLVER` IS CHANGED IN
+         * `cmakeFlags` and the field solver there is set to fieldSolverDirSplitting
+         *
+         * Directional Splitting requires a fixed ratio between dt and dx
+         * and in addition cubic cells.
+         * conditions: dX == dt * c
+         *             dX == dY
+         *             dX == dZ
+         */
+        constexpr float_64 CELL_WIDTH_SI = DELTA_T_SI*SPEED_OF_LIGHT_SI;
+#else
+        /* cell size for Yee solver (must fulfill CFL)
+         * WARNING: if you change the field solver in `componentsConfig` you
+         * have to change the CELL_SIZE in this code path
+         */
+        constexpr float_64 CELL_WIDTH_SI = 0.4430e-7;
+#endif
+#undef DirSplitting
+
         /** equals Y - the laser & moving window propagation direction
          *  unit: meter */
-        constexpr float_64 CELL_HEIGHT_SI = 0.4430e-7;
+        constexpr float_64 CELL_HEIGHT_SI = CELL_WIDTH_SI;
         /** equals Z
          *  unit: meter */
         constexpr float_64 CELL_DEPTH_SI = CELL_WIDTH_SI;

@@ -54,6 +54,7 @@ FieldE::FieldE( MappingDesc cellDescription ) :
 SimulationFieldHelper<MappingDesc>( cellDescription )
 {
     fieldE = new GridBuffer<ValueType, simDim > ( cellDescription.getGridLayout( ) );
+    fieldE2 = new GridBuffer<ValueType, simDim > ( cellDescription.getGridLayout( ) );
     typedef typename pmacc::particles::traits::FilterByFlag
     <
         VectorAllSpecies,
@@ -124,6 +125,7 @@ SimulationFieldHelper<MappingDesc>( cellDescription )
 FieldE::~FieldE( )
 {
     __delete(fieldE);
+    __delete(fieldE2);
 }
 
 SimulationDataId FieldE::getUniqueId()
@@ -159,6 +161,21 @@ FieldE::DataBoxType FieldE::getHostDataBox( )
 GridBuffer<FieldE::ValueType, simDim> &FieldE::getGridBuffer( )
 {
     return *fieldE;
+}
+
+GridBuffer<FieldE::ValueType, simDim> &FieldE::getGridBuffer2( )
+{
+    return *fieldE2;
+}
+
+ void FieldE::sync( )
+{
+    __setTransactionEvent(
+        Environment<>::get( ).Factory( ).createTaskCopyDeviceToDevice(
+            fieldE->getDeviceBuffer( ),
+            fieldE2->getDeviceBuffer( ),
+            NULL )
+        );
 }
 
 GridLayout< simDim> FieldE::getGridLayout( )

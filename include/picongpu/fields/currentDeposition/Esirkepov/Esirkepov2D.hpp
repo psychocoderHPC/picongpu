@@ -50,8 +50,8 @@ struct Esirkepov<T_ParticleShape, DIM2>
     using ParticleAssign = typename T_ParticleShape::ChargeAssignment;
     static constexpr int supp = ParticleAssign::support;
 
-    static constexpr int currentLowerMargin = supp / 2 + 1 - (supp + 1) % 2;
-    static constexpr int currentUpperMargin = (supp + 1) / 2 + 1;
+    static constexpr int currentLowerMargin = supp / 2 + 1 - (supp + 1) % 2 + 1;
+    static constexpr int currentUpperMargin = (supp + 1) / 2 + 1 + 1;
     typedef typename pmacc::math::CT::make_Int<DIM2, currentLowerMargin>::type LowerMargin;
     typedef typename pmacc::math::CT::make_Int<DIM2, currentUpperMargin>::type UpperMargin;
 
@@ -71,8 +71,8 @@ struct Esirkepov<T_ParticleShape, DIM2>
         >::type::value >= currentUpperMargin
     );
 
-    static constexpr int begin = -currentLowerMargin + 1;
-    static constexpr int end = begin + supp;
+    static constexpr int begin = -currentLowerMargin + 1 + 1;
+    static constexpr int end = begin + supp + 1;
 
     float_X charge;
 
@@ -182,13 +182,16 @@ struct Esirkepov<T_ParticleShape, DIM2>
         T_Acc const & acc,
         const DataSpace<simDim>& leaveCell,
         CursorJ cursorJ,
-        const Line<float2_X>& line,
+        Line<float2_X> line,
         const float_X cellEdgeLength
     )
     {
         /* skip calculation if the particle is not moving in x direction */
         if(line.m_pos0[0] == line.m_pos1[0])
             return;
+
+        // move particle to the virtual coordiate system
+        line += float2_X(float2_X::create(0.5_X));
 
         /* We multiply with `cellEdgeLength` due to the fact that the attribute for the
          * in-cell particle `position` (and it's change in DELTA_T) is normalize to [0,1)
@@ -221,7 +224,7 @@ struct Esirkepov<T_ParticleShape, DIM2>
                          */
                         const float_X W = DS( line, i, 0 ) * tmp;
                         accumulated_J += W;
-                        atomicAdd( &( ( *cursorJ( i, j ) ).x() ), accumulated_J, ::alpaka::hierarchy::Threads{} );
+                        atomicAdd( &( ( *cursorJ( i, j - 1 ) ).x() ), accumulated_J, ::alpaka::hierarchy::Threads{} );
                     }
             }
 
@@ -235,12 +238,15 @@ struct Esirkepov<T_ParticleShape, DIM2>
         T_Acc const & acc,
         const DataSpace<simDim>& leaveCell,
         CursorJ cursorJ,
-        const Line<float2_X>& line,
+        Line<float2_X> line,
         const float_X v_z
     )
     {
         if( v_z == float_X( 0.0 ) )
             return;
+
+        // move particle to the virtual coordiate system
+        line += float2_X(float2_X::create(0.5_X));
 
         const float_X currentSurfaceDensityZ = this->charge * ( float_X( 1.0 ) / float_X( CELL_VOLUME ) ) * v_z;
 
@@ -260,7 +266,7 @@ struct Esirkepov<T_ParticleShape, DIM2>
                             ( float_X( 1.0 ) / float_X( 3.0 ) ) * dsi * dsj;
 
                         const float_X j_z = W * currentSurfaceDensityZ;
-                        atomicAdd( &( ( *cursorJ( i, j ) ).z() ), j_z, ::alpaka::hierarchy::Threads{} );
+                        atomicAdd( &( ( *cursorJ( i - 1, j - 1 ) ).z() ), j_z, ::alpaka::hierarchy::Threads{} );
                     }
             }
     }

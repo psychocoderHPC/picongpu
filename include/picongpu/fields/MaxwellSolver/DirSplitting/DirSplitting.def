@@ -44,12 +44,8 @@ namespace traits
         picongpu::FIELD_B
     >
     {
-        using LowerMargin = pmacc::math::CT::Int <
-            1,
-            1,
-            1
-        >;
-        using UpperMargin = LowerMargin;
+        using LowerMargin = mCT::shrinkTo<mCT::Int< 1, 1, 1 >, simDim>::type;
+        using UpperMargin = mCT::shrinkTo<mCT::Int< 1, 1, 1 >, simDim>::type;
     };
 
     template< typename T_CurrentInterpolation >
@@ -58,12 +54,8 @@ namespace traits
         picongpu::FIELD_E
     >
     {
-        using LowerMargin = pmacc::math::CT::Int <
-            1,
-            1,
-            1
-        >;
-        using UpperMargin = LowerMargin;
+        using LowerMargin = mCT::shrinkTo<mCT::Int< 1, 1, 1 >, simDim>::type;
+        using UpperMargin = mCT::shrinkTo<mCT::Int< 1, 1, 1 >, simDim>::type;
     };
 
 } //namespace traits

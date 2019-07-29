@@ -43,8 +43,8 @@ struct Esirkepov<T_ParticleShape, DIM3>
     using ParticleAssign = typename T_ParticleShape::ChargeAssignment;
     static constexpr int supp = ParticleAssign::support;
 
-    static constexpr int currentLowerMargin = supp / 2 + 1 - (supp + 1) % 2;
-    static constexpr int currentUpperMargin = (supp + 1) / 2 + 1;
+    static constexpr int currentLowerMargin = supp / 2 + 1 - (supp + 1) % 2 + 1;
+    static constexpr int currentUpperMargin = (supp + 1) / 2 + 1 + 1;
     typedef pmacc::math::CT::Int<currentLowerMargin, currentLowerMargin, currentLowerMargin> LowerMargin;
     typedef pmacc::math::CT::Int<currentUpperMargin, currentUpperMargin, currentUpperMargin> UpperMargin;
 
@@ -172,7 +172,7 @@ struct Esirkepov<T_ParticleShape, DIM3>
         T_Acc const & acc,
         const DataSpace<simDim>& leaveCell,
         CursorJ cursorJ,
-        const Line<float3_X>& line,
+        Line<float3_X> line,
         const float_X cellEdgeLength
     )
     {
@@ -180,8 +180,11 @@ struct Esirkepov<T_ParticleShape, DIM3>
         if(line.m_pos0[2] == line.m_pos1[2])
             return;
 
-        constexpr int begin = -currentLowerMargin + 1;
-        constexpr int end = begin + supp;
+        constexpr int begin = -currentLowerMargin + 1 + 1;
+        constexpr int end = begin + supp + 1;
+
+        // move particle to the virtual coordiate system
+        line += float3_X(float3_X::create(0.5_X));
 
         /* We multiply with `cellEdgeLength` due to the fact that the attribute for the
          * in-cell particle `position` (and it's change in DELTA_T) is normalize to [0,1)
@@ -230,7 +233,7 @@ struct Esirkepov<T_ParticleShape, DIM3>
                                  */
                                 const float_X W = DS( line, k, 2 ) * tmp;
                                 accumulated_J += W;
-                                atomicAdd( &( ( *cursorJ( i, j, k ) ).z() ), accumulated_J, ::alpaka::hierarchy::Threads{} );
+                                atomicAdd( &( ( *cursorJ( i-1, j-1, k ) ).z() ), accumulated_J, ::alpaka::hierarchy::Threads{} );
                             }
                     }
             }

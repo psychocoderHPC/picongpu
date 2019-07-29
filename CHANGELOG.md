@@ -1404,7 +1404,7 @@ support, please update your `.cfg` files with the new namings. Please visit
    - add method 'getPluginFromType()' to `PluginConnector` #1393
    - math:
      - add `abs`, `asin`, `acos`, `atan`, `log10`, `fmod`, `modf`, `floor` to algorithms::math #837 #1218 #1334 #1362 #1363 #1374 #1473
-     - `precisionCast<>` for `PMacc::math::Vector<>` #746
+     - `precisionCast<>` for `pmacc::math::Vector<>` #746
      - support for `boost::mpl::integral_c<>` in `math::CT::Vector<>` #802
      - add complex support #664
    - add `cuSTL/MapTo1DNavigator` #940

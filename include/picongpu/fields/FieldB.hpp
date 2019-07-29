@@ -83,6 +83,8 @@ namespace picongpu
         DataBoxType getDeviceDataBox();
 
         GridBuffer<ValueType, simDim> &getGridBuffer();
+        GridBuffer<ValueType, simDim> &getGridBuffer2();
+        void sync( );
 
         SimulationDataId getUniqueId();
 
@@ -95,6 +97,7 @@ namespace picongpu
         void absorbeBorder();
 
         GridBuffer<ValueType, simDim> *fieldB;
+        GridBuffer<ValueType, simDim> *fieldB2;
     };
 
 

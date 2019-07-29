@@ -35,7 +35,7 @@ namespace cudaBlock
 {
 
 #ifndef FOREACH_KERNEL_MAX_PARAMS
-#define FOREACH_KERNEL_MAX_PARAMS 4
+#define FOREACH_KERNEL_MAX_PARAMS 8
 #endif
 
 #define SHIFTACCESS_CURSOR(Z, N, _) c ## N [pos]

@@ -35,7 +35,7 @@ namespace kernel
 {
 
 #ifndef FOREACH_KERNEL_MAX_PARAMS
-#define FOREACH_KERNEL_MAX_PARAMS 4
+#define FOREACH_KERNEL_MAX_PARAMS 8
 #endif
 
 namespace detail

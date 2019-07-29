@@ -25,8 +25,9 @@
 #include "picongpu/fields/MaxwellSolver/Yee/Yee.def"
 #include "picongpu/fields/MaxwellSolver/YeePML/YeePML.def"
 #if (SIMDIM==3)
-#include "picongpu/fields/MaxwellSolver/Lehe/Lehe.def"
-#if( PMACC_CUDA_ENABLED == 1 )
-#   include "picongpu/fields/MaxwellSolver/DirSplitting/DirSplitting.def"
-#endif
+#   include "picongpu/fields/MaxwellSolver/Lehe/Lehe.def"
+#elif (SIMDIM == 2)
+#   if( PMACC_CUDA_ENABLED == 1 )
+#       include "picongpu/fields/MaxwellSolver/DirSplitting/DirSplitting.def"
+#   endif
 #endif

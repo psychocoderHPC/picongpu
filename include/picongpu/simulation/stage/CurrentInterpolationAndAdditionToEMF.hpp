@@ -72,6 +72,7 @@ namespace stage
             auto eRecvCurrent = fieldJ.asyncCommunication( __getTransactionEvent() );
             using CurrentInterpolation = fields::Solver::CurrentInterpolation;
             CurrentInterpolation currentInterpolation;
+#if 0
             using Margin = traits::GetMargin< CurrentInterpolation >;
             DataSpace< simDim > const currentRecvLower( Margin::LowerMargin().toRT() );
             DataSpace< simDim > const currentRecvUpper( Margin::UpperMargin().toRT() );
@@ -100,6 +101,13 @@ namespace stage
                     type::CORE + type::BORDER
                 >( currentInterpolation );
             }
+#else
+        __setTransactionEvent( eRecvCurrent );
+        fieldJ.addCurrentToEMF<
+            type::CORE + type::BORDER
+        >( currentInterpolation );
+#endif
+
             dc.releaseData( FieldJ::getName( ) );
         }
     };

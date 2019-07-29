@@ -59,6 +59,7 @@ SimulationFieldHelper<MappingDesc>( cellDescription )
 {
     /*#####create FieldB###############*/
     fieldB = new GridBuffer<ValueType, simDim > ( cellDescription.getGridLayout( ) );
+    fieldB2 = new GridBuffer<ValueType, simDim > ( cellDescription.getGridLayout( ) );
 
     typedef typename pmacc::particles::traits::FilterByFlag
     <
@@ -130,6 +131,7 @@ SimulationFieldHelper<MappingDesc>( cellDescription )
 FieldB::~FieldB( )
 {
     __delete(fieldB);
+    __delete(fieldB2);
 }
 
 SimulationDataId FieldB::getUniqueId()
@@ -177,6 +179,21 @@ GridBuffer<FieldB::ValueType, simDim> &FieldB::getGridBuffer( )
 {
 
     return *fieldB;
+}
+
+GridBuffer<FieldB::ValueType, simDim> &FieldB::getGridBuffer2( )
+{
+    return *fieldB2;
+}
+
+ void FieldB::sync( )
+{
+    __setTransactionEvent(
+        Environment<>::get( ).Factory( ).createTaskCopyDeviceToDevice(
+            fieldB->getDeviceBuffer( ),
+            fieldB2->getDeviceBuffer( ),
+            NULL )
+        );
 }
 
 void FieldB::reset( uint32_t )
