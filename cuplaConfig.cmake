@@ -109,30 +109,23 @@ OPTION(ALPAKA_ACC_CPU_BT_OMP4_ENABLE "Enable the OpenMP 4.0 CPU block and block 
 OPTION(ALPAKA_ACC_GPU_CUDA_ENABLE "Enable the CUDA GPU accelerator" OFF)
 OPTION(ALPAKA_ACC_GPU_HIP_ENABLE "Enable the HIP back-end (all other back-ends must be disabled)" OFF)
 
-
 set(cupla_ALPAKA_PROVIDER "intern" CACHE STRING "Select which alpaka is used")
 set_property(CACHE cupla_ALPAKA_PROVIDER PROPERTY STRINGS "intern;extern")
 mark_as_advanced(cupla_ALPAKA_PROVIDER)
 
 if(${cupla_ALPAKA_PROVIDER} STREQUAL "intern")
-    if(NOT EXISTS "${_cupla_ROOT_DIR}/alpaka/Findalpaka.cmake")
-        # Init the sub molules
-        execute_process (COMMAND git submodule init WORKING_DIRECTORY ${_cupla_ROOT_DIR})
-        # Update the sub modules
-        execute_process (COMMAND git submodule update WORKING_DIRECTORY ${_cupla_ROOT_DIR})
-    endif()
 
-    find_package(alpaka 
+    find_package(alpaka
         PATHS "${_cupla_ROOT_DIR}/alpaka"
-        NO_DEFAULT_PATH 
-        NO_CMAKE_ENVIRONMENT_PATH 
+        NO_DEFAULT_PATH
+        NO_CMAKE_ENVIRONMENT_PATH
         NO_CMAKE_PATH
         NO_SYSTEM_ENVIRONMENT_PATH
         NO_CMAKE_PACKAGE_REGISTRY
         NO_CMAKE_BUILDS_PATH
         NO_CMAKE_SYSTEM_PATH
         NO_CMAKE_SYSTEM_PACKAGE_REGISTRY
-        NO_CMAKE_FIND_ROOT_PATH   
+        NO_CMAKE_FIND_ROOT_PATH
     )
 else()
     find_package(alpaka HINTS $ENV{ALPAKA_ROOT})
@@ -140,8 +133,9 @@ endif()
 
 if(NOT alpaka_FOUND)
     message(WARNING "Required cupla dependency alpaka could not be found!")
-        set(_cupla_FOUND FALSE)
+    set(_cupla_FOUND FALSE)
 else()
+    # TODO: use imported targets instead of chain of variables
     list(APPEND _cupla_COMPILE_OPTIONS_PUBLIC ${alpaka_COMPILE_OPTIONS})
     list(APPEND _cupla_COMPILE_DEFINITIONS_PUBLIC ${alpaka_COMPILE_DEFINITIONS})
     list(APPEND _cupla_INCLUDE_DIRECTORIES_PUBLIC ${alpaka_INCLUDE_DIRS})
@@ -180,7 +174,7 @@ endif()
 # cupla.
 ################################################################################
 
-OPTION(CUPLA_STREAM_ASYNC_ENABLE "Enable asynchron streams" ON)
+option(CUPLA_STREAM_ASYNC_ENABLE "Enable asynchronous streams" ON)
 if(CUPLA_STREAM_ASYNC_ENABLE)
     list(APPEND _cupla_COMPILE_DEFINITIONS_PUBLIC "CUPLA_STREAM_ASYNC_ENABLED=1")
 else()
@@ -219,16 +213,26 @@ if(NOT TARGET cupla)
     # Even if there are no sources CMAKE has to know the language.
     set_target_properties("cupla" PROPERTIES LINKER_LANGUAGE CXX)
 
+    # properties
+    target_compile_features("cupla"
+        PUBLIC cxx_std_11
+        )
+    set_target_properties("cupla" PROPERTIES
+        CXX_EXTENSIONS OFF
+        CXX_STANDARD_REQUIRED ON
+        )
+
+
     # Compile options.
     message(STATUS "_cupla_COMPILE_OPTIONS_PUBLIC: ${_cupla_COMPILE_OPTIONS_PUBLIC}")
     list(
         LENGTH
-        _cupla_COMPILE_optionS_PUBLIC
-        _cupla_COMPILE_optionS_PUBLIC_LENGTH)
-    if("${_cupla_COMPILE_optionS_PUBLIC_LENGTH}")
-        TARGET_COMPILE_optionS(
+        _cupla_COMPILE_OPTIONS_PUBLIC
+        _cupla_COMPILE_OPTIONS_PUBLIC_LENGTH)
+    if("${_cupla_COMPILE_OPTIONS_PUBLIC_LENGTH}")
+        TARGET_COMPILE_OPTIONS(
             "cupla"
-            PUBLIC ${_cupla_COMPILE_optionS_PUBLIC})
+            PUBLIC ${_cupla_COMPILE_OPTIONS_PUBLIC})
     endif()
 
     # Compile definitions.
@@ -346,8 +350,8 @@ endif()
 
 # Handles the REQUIRED, QUIET and version-related arguments for find_package.
 # NOTE: We do not check for cupla_LIBRARIES and cupla_DEFINITIONS because they can be empty.
-INCLUDE(FindPackageHandleStandardArgs)
-find_package_HANDLE_STANDARD_ARGS(
+include(FindPackageHandleStandardArgs)
+find_package_handle_standard_args(
     "cupla"
     FOUND_VAR cupla_FOUND
     REQUIRED_VARS cupla_INCLUDE_DIR
