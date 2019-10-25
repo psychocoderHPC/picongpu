@@ -6,12 +6,12 @@
  * License, v. 2.0. If a copy of the MPL was not distributed with this
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
+
 #pragma once
 
 #ifdef ALPAKA_ACC_GPU_CUDA_ENABLED
 
-#include <alpaka/core/Common.hpp>
-#include <alpaka/core/Unused.hpp>
+#include <alpaka/core/BoostPredef.hpp>
 
 #if !BOOST_LANG_CUDA
     #error If ALPAKA_ACC_GPU_CUDA_ENABLED is set, the compiler has to support CUDA!
@@ -19,16 +19,18 @@
 
 #include <alpaka/math/sincos/Traits.hpp>
 
-#include <cuda_runtime.h>
-#include <type_traits>
+#include <alpaka/core/Unused.hpp>
 
+#include <cuda_runtime.h>
+
+#include <type_traits>
 
 namespace alpaka
 {
     namespace math
     {
         //#############################################################################
-        //! sincos.
+        //! The CUDA sincos.
         class SinCosCudaBuiltIn
         {
         public:
@@ -57,7 +59,7 @@ namespace alpaka
                 }
             };
 
-            //! sincos trait specialization.
+            //! The CUDA sin float specialization.
             template<>
             struct SinCos<
                 SinCosCudaBuiltIn,
