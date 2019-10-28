@@ -38,7 +38,7 @@ struct Fmod<float>
 
     HDINLINE result operator( )(result x, result y)
     {
-#if __CUDA_ARCH__
+#if ( __HIP_DEVICE_COMPILE__ == 1) //we are on gpu
         return ::fmodf(x, y);
 #else
         return std::fmod(x, y);

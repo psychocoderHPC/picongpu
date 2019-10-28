@@ -120,7 +120,7 @@ namespace picongpu
         HINLINE SimulationDataId getUniqueId();
 
         //! Get units of field components
-        HDINLINE static UnitValueType getUnit();
+        HINLINE static UnitValueType getUnit();
 
         /** Get unit representation as powers of the 7 base measures
          *

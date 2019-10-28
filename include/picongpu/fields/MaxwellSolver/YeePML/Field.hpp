@@ -220,7 +220,7 @@ namespace yeePML
         }
 
         //! Get units of field components
-        HDINLINE static UnitValueType getUnit( )
+        HINLINE static UnitValueType getUnit( )
         {
             return UnitValueType::create( UNIT_EFIELD );
         }
@@ -273,7 +273,7 @@ namespace yeePML
         }
 
         //! Get units of field components
-        HDINLINE static UnitValueType getUnit( )
+        HINLINE static UnitValueType getUnit( )
         {
             return UnitValueType::create( UNIT_BFIELD );
         }

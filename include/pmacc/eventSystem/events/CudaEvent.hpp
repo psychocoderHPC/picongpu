@@ -83,7 +83,10 @@ namespace pmacc
             return true;
         }
         else if(rc == cudaErrorNotReady)
+        {
+            cudaGetLastError();
             return false;
+        }
         else
             PMACC_PRINT_CUDA_ERROR_AND_THROW(rc, "Event query failed");
     }

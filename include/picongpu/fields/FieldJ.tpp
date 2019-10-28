@@ -194,7 +194,7 @@ SimulationDataId FieldJ::getUniqueId( )
     return getName( );
 }
 
-HDINLINE
+HINLINE
 FieldJ::UnitValueType
 FieldJ::getUnit( )
 {

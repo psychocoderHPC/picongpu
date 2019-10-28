@@ -49,7 +49,7 @@ namespace picongpu
 {
 using namespace pmacc;
 
-#if( PMACC_CUDA_ENABLED != 1 )
+#if( PMACC_CUDA_ENABLED != 1 && 0)
 /* dummy because we are not using mallocMC with cupla
  * DeviceHeap is defined in `mallocMC.param`
  */

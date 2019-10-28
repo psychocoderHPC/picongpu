@@ -26,7 +26,7 @@
 #pragma once
 
 #include "picongpu/param/dimension.param"
-#if( PMACC_CUDA_ENABLED == 1 )
+#if( PMACC_CUDA_ENABLED == 1 || 1)
 #   include "picongpu/param/mallocMC.param"
 #endif
 #include "picongpu/param/memory.param"

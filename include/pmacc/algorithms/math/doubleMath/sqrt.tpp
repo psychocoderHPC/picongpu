@@ -51,7 +51,7 @@ struct RSqrt<double>
 
     HDINLINE double operator( )(const double& value )
     {
-#if !defined(__CUDACC__)
+#if 0
         return 1.0/::sqrt(value);
 #else
         return ::rsqrt(value);

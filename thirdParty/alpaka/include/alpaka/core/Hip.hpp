@@ -62,6 +62,8 @@ namespace alpaka
                     std::cerr << sError << std::endl;
 #endif
                     ALPAKA_DEBUG_BREAK;
+                    // reset the error to allow user exception handling
+                    hipGetLastError();
                     throw std::runtime_error(sError);
                 }
             }
@@ -94,6 +96,11 @@ namespace alpaka
                     if(std::find(aIgnoredErrorCodes.cbegin(), aIgnoredErrorCodes.cend(), error) == aIgnoredErrorCodes.cend())
                     {
                         hipRtCheck(error, ("'" + std::string(cmd) + "' returned error ").c_str(), file, line);
+                    }
+                    else
+                    {
+                        // reset the error to allow user exception handling
+                        hipGetLastError();
                     }
                 }
             }

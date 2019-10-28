@@ -315,7 +315,7 @@ namespace picongpu
     }
 
     template<class FrameSolver >
-    HDINLINE FieldTmp::UnitValueType
+    HINLINE FieldTmp::UnitValueType
     FieldTmp::getUnit( )
     {
         return FrameSolver().getUnit();

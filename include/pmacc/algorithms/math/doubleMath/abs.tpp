@@ -40,7 +40,7 @@ struct Abs<double>
 
     HDINLINE double operator( )(double value)
     {
-#ifdef __CUDA_ARCH__
+#if ( __HIP_DEVICE_COMPILE__ == 1) //we are on gpu
       return ::fabs( value );
 #else
       /* \bug on cpu `::abs(double)` always return zero -> maybe this is the

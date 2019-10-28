@@ -52,7 +52,7 @@ struct ASin<float>
 
     HDINLINE float operator( )(const float& value)
     {
-#if __CUDA_ARCH__
+#if ( __HIP_DEVICE_COMPILE__ == 1) //we are on gpu
         return ::asinf( value );
 #else
         return ::asin( value );
@@ -78,7 +78,7 @@ struct ACos<float>
 
     HDINLINE float operator( )(const float& value)
     {
-#if __CUDA_ARCH__
+#if ( __HIP_DEVICE_COMPILE__ == 1) //we are on gpu
         return ::acosf( value );
 #else
         return ::acos( value );

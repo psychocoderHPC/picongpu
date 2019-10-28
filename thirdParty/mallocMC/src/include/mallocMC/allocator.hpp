@@ -153,7 +153,7 @@ namespace detail{
                 size
             );
             DevAllocator* devAllocatorPtr;
-            cudaMalloc(
+            hipMalloc(
                 ( void** ) &devAllocatorPtr,
                 sizeof( DevAllocator )
             );
@@ -176,7 +176,7 @@ namespace detail{
         MAMC_HOST
         void free()
         {
-            cudaFree( allocatorHandle.devAllocator );
+            hipFree( allocatorHandle.devAllocator );
             ReservePoolPolicy::resetMemPool( heapInfos.p );
             allocatorHandle.devAllocator = NULL;
             heapInfos.size = 0;

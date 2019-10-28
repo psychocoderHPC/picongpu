@@ -21,7 +21,7 @@
 //---------------------------------------HIP-----------------------------------
 // __HIPCC__ is defined by hipcc (if either __HCC__ or __CUDACC__ is defined)
 #if !defined(BOOST_LANG_HIP)
-  #if defined(__HIPCC__) && ( defined(__CUDACC__) || defined(__HCC__) )
+  #if defined(__HIPCC__) && ( defined(__CUDACC__) || defined(__HCC__) || 1 )
     #include <hip/hip_runtime.h>
     //HIP defines "abort()" as "{asm("trap;");}", which breaks some kernels
     #undef abort
@@ -52,7 +52,7 @@
 //-----------------------------------------------------------------------------
 // hcc HSA compiler detection
 #if !defined(BOOST_COMP_HCC)
-    #if defined(__HCC__)
+    #if defined(__HCC__) || 1
         #define BOOST_COMP_HCC BOOST_VERSION_NUMBER_AVAILABLE
     #else
         #define BOOST_COMP_HCC BOOST_VERSION_NUMBER_NOT_AVAILABLE

@@ -91,7 +91,7 @@
 #include <pmacc/meta/ForEach.hpp>
 #include "picongpu/particles/ParticlesFunctors.hpp"
 #include "picongpu/particles/InitFunctors.hpp"
-#if( PMACC_CUDA_ENABLED == 1 )
+#if( PMACC_CUDA_ENABLED == 1)
 #   include <pmacc/particles/memory/buffers/MallocMCBuffer.hpp>
 #endif
 #include <pmacc/particles/traits/FilterByFlag.hpp>
@@ -379,6 +379,8 @@ public:
         deviceHeap.reset(new DeviceHeap(0));
 #endif
 
+        deviceHeap.reset(new DeviceHeap(0));
+
         /* Allocate helper fields for FLYlite population kinetics for atomic physics
          * (histograms, rate matrix, etc.)
          */
@@ -413,7 +415,7 @@ public:
             throw std::runtime_error(msg.str());
         }
 
-#if( PMACC_CUDA_ENABLED == 1 )
+#if( PMACC_CUDA_ENABLED == 1 || 1)
         size_t heapSize = freeGpuMem - reservedGpuMemorySize;
 
         if( Environment<>::get().MemoryInfo().isSharedMemoryPool() )
@@ -424,10 +426,24 @@ public:
         else
             log<picLog::MEMORY > ("RAM is NOT shared between GPU and host.");
 
+        std::cerr<<"mallocMC destructive resize "<<heapSize<<std::endl;
         // initializing the heap for particles
         deviceHeap->destructiveResize(heapSize);
-        auto mallocMCBuffer = pmacc::memory::makeUnique< MallocMCBuffer<DeviceHeap> >( deviceHeap );
-        dc.consume( std::move( mallocMCBuffer ) );
+        std::cerr<<"mallocMC finish destructive resize "<<heapSize<<std::endl;
+
+        Environment<>::get().MemoryInfo().getMemoryInfo(&freeGpuMem);
+        heapSize = freeGpuMem - reservedGpuMemorySize;
+
+        if( Environment<>::get().MemoryInfo().isSharedMemoryPool() )
+        {
+            heapSize /= 2;
+            log<picLog::MEMORY > ("Shared RAM between GPU and host detected - using only half of the 'device' memory.");
+        }
+        else
+            log<picLog::MEMORY > ("RAM is NOT shared between GPU and host.");
+
+        //auto mallocMCBuffer = pmacc::memory::makeUnique< MallocMCBuffer<DeviceHeap> >( deviceHeap );
+        //dc.consume( std::move( mallocMCBuffer ) );
 #endif
         meta::ForEach< VectorAllSpecies, particles::LogMemoryStatisticsForSpecies<bmpl::_1> > logMemoryStatisticsForSpecies;
         logMemoryStatisticsForSpecies( deviceHeap );
@@ -436,8 +452,9 @@ public:
         log<picLog::MEMORY > ("free mem after all mem is allocated %1% MiB") % (freeGpuMem / 1024 / 1024);
 
         IdProvider<simDim>::init();
+        std::cerr<<"id init finished "<<std::endl;
 
-#if( PMACC_CUDA_ENABLED == 1 )
+#if( PMACC_CUDA_ENABLED == 1 || 1)
         /* add CUDA streams to the StreamController for concurrent execution */
         Environment<>::get().StreamController().addStreams(6);
 #endif
@@ -465,6 +482,7 @@ public:
         /* fill all objects registed in DataConnector */
         if (initialiserController)
         {
+            std::cerr<<"print info "<<std::endl;
             initialiserController->printInformation();
             if (this->restartRequested)
             {
@@ -502,8 +520,10 @@ public:
             else
             {
                 initialiserController->init();
+                std::cerr<<"start init species "<<std::endl;
                 meta::ForEach< particles::InitPipeline, particles::CallFunctor<bmpl::_1> > initSpecies;
                 initSpecies( step );
+                std::cerr<<"finished init species "<<std::endl;
             }
         }
 

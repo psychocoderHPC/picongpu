@@ -52,7 +52,7 @@ struct RSqrt<float>
 
     HDINLINE float operator( )(const float& value )
     {
-#if !defined(__CUDACC__)
+#if 0
         return 1.0f/::sqrtf(value);
 #else
         return ::rsqrtf(value);

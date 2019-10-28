@@ -39,12 +39,12 @@ namespace ReservePoolPolicies{
   struct SimpleCudaMalloc{
     static void* setMemPool(size_t memsize){
       void* pool = NULL;
-      MALLOCMC_CUDA_CHECKED_CALL(cudaMalloc(&pool, memsize));
+      MALLOCMC_CUDA_CHECKED_CALL(hipMalloc(&pool, memsize));
       return pool;
     }
 
     static void resetMemPool(void* p){
-      MALLOCMC_CUDA_CHECKED_CALL(cudaFree(p));
+      MALLOCMC_CUDA_CHECKED_CALL(hipFree(p));
     }
 
     static std::string classname(){

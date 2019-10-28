@@ -62,7 +62,7 @@ struct Log10<float>
 
     HDINLINE float operator( )(const float& value)
     {
-#if __CUDA_ARCH__
+#if ( __HIP_DEVICE_COMPILE__ == 1) //we are on gpu
         return ::log10f( value );
 #else
         return ::log10( value );

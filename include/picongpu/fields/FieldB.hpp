@@ -55,7 +55,7 @@ namespace picongpu
         using UnitValueType = promoteType< float_64, ValueType >::type;
 
         //! Get units of field components
-        HDINLINE static UnitValueType getUnit( );
+        HINLINE static UnitValueType getUnit( );
 
         /** Get unit representation as powers of the 7 base measures
          *

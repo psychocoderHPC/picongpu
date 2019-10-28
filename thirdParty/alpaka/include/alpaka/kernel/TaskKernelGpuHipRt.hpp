@@ -76,14 +76,16 @@ namespace alpaka
 #if BOOST_ARCH_PTX && (BOOST_ARCH_PTX < BOOST_VERSION_NUMBER(2, 0, 0))
     #error "Cuda device capability >= 2.0 is required!"
 #endif
-#pragma clang diagnostic push
-#pragma clang diagnostic ignored "-Wignored-attributes"
+#if 0
+                    // this is throwing a compile error
+                    ///home/rwidera/workspace/picongpu/thirdParty/alpaka/include/alpaka/kernel/TaskKernelGpuHipRt.hpp:82:101: error: no type named 'type' in 'std::result_of<cupla::CUPLA_ACCELERATOR_NAMESPACE::CuplaKernel<picongpu::fields::KernelLaser<32, pmacc::math::CT::Vector<mpl_::integral_c<int, 8>, mpl_::integral_c<int, 1>, mpl_::integral_c<int, 4> > > > (const alpaka::acc::AccGpuHipRt<std::integral_constant<unsigned long, 3>, unsigned int> &, const picongpu::fields::laserProfiles::None<picongpu::fields::laserProfiles::none::defaults::NoneParam> &)>'
+                    //       TKernelFnObj(acc::AccGpuHipRt<TDim, TIdx> const &, TArgs const & ...)>::type, void>::value,
+
                     static_assert(
                         std::is_same<typename std::result_of<
                             TKernelFnObj(acc::AccGpuHipRt<TDim, TIdx> const &, TArgs const & ...)>::type, void>::value,
                         "The TKernelFnObj is required to return void!");
-#pragma clang diagnostic pop
-
+#endif
                     acc::AccGpuHipRt<TDim, TIdx> acc(threadElemExtent);
 
                     kernelFnObj(
@@ -342,12 +344,6 @@ namespace alpaka
                     // Get the size of the block shared dynamic memory.
                     auto const blockSharedMemDynSizeBytes(
                         meta::apply(
-                            // workaround for HIP(HCC) to
-                            // avoid forbidden host-call
-                            // within host-device functions
-                            #if defined(BOOST_COMP_HCC) && BOOST_COMP_HCC
-                            ALPAKA_FN_HOST_ACC
-                            #endif
                             [&](TArgs const & ... args)
                             {
                                 return
