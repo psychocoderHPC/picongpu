@@ -84,7 +84,7 @@
  * to avoid negative performance impact intrinsic function redefinitions
  * are disabled in CUDA
  */
-#if ( __HIP_DEVICE_COMPILE__ == 0) //we are on gpu
+#if !defined(__CUDA_ARCH__)
 #define __fdividef(a,b) ((a)/(b))
 #define __expf(a) alpaka::math::exp(acc,a)
 #define __logf(a) alpaka::math::log(acc,a)

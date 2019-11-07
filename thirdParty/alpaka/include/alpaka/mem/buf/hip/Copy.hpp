@@ -922,7 +922,7 @@ namespace alpaka
                     auto const & iSrcDev(task.m_iSrcDevice);
 
                     // Create the struct describing the copy.
-                    hipMemcpy3DParms const hipMemCpy3DParms(
+                    hipMemcpy3DParms const value_hipMemCpy3DParms(
                         mem::view::hip::detail::buildHipMemcpy3DParms(
                             task));
                     // Set the current device.
@@ -941,8 +941,8 @@ namespace alpaka
                     // Initiate the memory copy.
                     // FIXME: hipMemcpy3DAsync not implemented yet by HIP. Use hipMemcpy3D for now.
                     ALPAKA_HIP_RT_CHECK(
-                        hipMemcpy3D(
-                            &hipMemCpy3DParms));
+                        hipMemcpy3DAsync(
+                            &value_hipMemCpy3DParms,queue.m_spQueueImpl->m_HipQueue));
                 }
             };
             //#############################################################################

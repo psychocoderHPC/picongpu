@@ -31,7 +31,7 @@ TEST_CASE("printDefines", "[core]")
 #if BOOST_COMP_NVCC
     std::cout << "BOOST_COMP_NVCC:" << BOOST_COMP_NVCC << std::endl;
 #endif
-#if BOOST_COMP_HCC
+#if defined(BOOST_COMP_HCC) || defined(BOOST_COMP_HIP)
     std::cout << "BOOST_COMP_HCC:" << BOOST_COMP_HCC << std::endl;
 #endif
 #if BOOST_COMP_CLANG

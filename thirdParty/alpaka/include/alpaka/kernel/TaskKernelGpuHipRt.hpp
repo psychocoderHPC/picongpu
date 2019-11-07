@@ -76,16 +76,18 @@ namespace alpaka
 #if BOOST_ARCH_PTX && (BOOST_ARCH_PTX < BOOST_VERSION_NUMBER(2, 0, 0))
     #error "Cuda device capability >= 2.0 is required!"
 #endif
-#if 0
-                    // this is throwing a compile error
-                    ///home/rwidera/workspace/picongpu/thirdParty/alpaka/include/alpaka/kernel/TaskKernelGpuHipRt.hpp:82:101: error: no type named 'type' in 'std::result_of<cupla::CUPLA_ACCELERATOR_NAMESPACE::CuplaKernel<picongpu::fields::KernelLaser<32, pmacc::math::CT::Vector<mpl_::integral_c<int, 8>, mpl_::integral_c<int, 1>, mpl_::integral_c<int, 4> > > > (const alpaka::acc::AccGpuHipRt<std::integral_constant<unsigned long, 3>, unsigned int> &, const picongpu::fields::laserProfiles::None<picongpu::fields::laserProfiles::none::defaults::NoneParam> &)>'
-                    //       TKernelFnObj(acc::AccGpuHipRt<TDim, TIdx> const &, TArgs const & ...)>::type, void>::value,
 
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wignored-attributes"
                     static_assert(
-                        std::is_same<typename std::result_of<
-                            TKernelFnObj(acc::AccGpuHipRt<TDim, TIdx> const &, TArgs const & ...)>::type, void>::value,
+                        std::is_same<
+                            decltype(kernelFnObj(
+                                alpaka::core::declval<acc::AccGpuHipRt<TDim, TIdx> const>(),
+                                args...)),
+                        void>::value,
                         "The TKernelFnObj is required to return void!");
-#endif
+#pragma clang diagnostic pop
+
                     acc::AccGpuHipRt<TDim, TIdx> acc(threadElemExtent);
 
                     kernelFnObj(
@@ -162,10 +164,10 @@ namespace alpaka
             ALPAKA_FN_HOST TaskKernelGpuHipRt(
                 TWorkDiv && workDiv,
                 TKernelFnObj const & kernelFnObj,
-                TArgs const & ... args) :
+                TArgs && ... args) :
                     workdiv::WorkDivMembers<TDim, TIdx>(std::forward<TWorkDiv>(workDiv)),
                     m_kernelFnObj(kernelFnObj),
-                    m_args(args...)
+                    m_args(std::forward<TArgs>(args)...)
             {
                 static_assert(
                     dim::Dim<typename std::decay<TWorkDiv>::type>::value == TDim::value,
@@ -188,7 +190,7 @@ namespace alpaka
             ALPAKA_FN_HOST_ACC ~TaskKernelGpuHipRt() = default;
 
             TKernelFnObj m_kernelFnObj;
-            std::tuple<TArgs...> m_args;
+            std::tuple<typename std::decay<TArgs>::type...> m_args;
         };
     }
 
@@ -344,7 +346,13 @@ namespace alpaka
                     // Get the size of the block shared dynamic memory.
                     auto const blockSharedMemDynSizeBytes(
                         meta::apply(
-                            [&](TArgs const & ... args)
+                            // workaround for HIP(HCC) to
+                            // avoid forbidden host-call
+                            // within host-device functions
+                            #if defined(BOOST_COMP_HCC) && BOOST_COMP_HCC
+                            ALPAKA_FN_HOST_ACC
+                            #endif
+                            [&](typename std::decay<TArgs>::type const & ... args)
                             {
                                 return
                                     kernel::getBlockSharedMemDynSizeBytes<
@@ -365,7 +373,7 @@ namespace alpaka
 #if ALPAKA_DEBUG >= ALPAKA_DEBUG_FULL
                     // Log the function attributes.
                     /*hipFuncAttributes funcAttrs;
-                    hipFuncGetAttributes(&funcAttrs, kernel::hip::detail::hipKernel<TDim, TIdx, TKernelFnObj, TArgs...>);
+                    hipFuncGetAttributes(&funcAttrs, kernel::hip::detail::hipKernel<TDim, TIdx, TKernelFnObj, typename std::decay<TArgs>::type...>);
                     std::cout << __func__
                         << " binaryVersion: " << funcAttrs.binaryVersion
                         << " constSizeBytes: " << funcAttrs.constSizeBytes << " B"
@@ -381,15 +389,12 @@ namespace alpaka
                     ALPAKA_HIP_RT_CHECK(
                         hipSetDevice(
                             queue.m_spQueueImpl->m_dev.m_iDevice));
-                    // Enqueue the kernel execution.
-                    // \NOTE: No const reference (const &) is allowed as the parameter type because the kernel launch language extension expects the arguments by value.
-                    // This forces the type of a float argument given with std::forward to this function to be of type float instead of e.g. "float const & __ptr64" (MSVC).
-                    // If not given by value, the kernel launch code does not copy the value but the pointer to the value location.
+
                     meta::apply(
-                        [&](TArgs ... args)
+                        [&](typename std::decay<TArgs>::type const & ... args)
                         {
                             hipLaunchKernelGGL(
-                                HIP_KERNEL_NAME(kernel::hip::detail::hipKernel< TDim, TIdx, TKernelFnObj, TArgs... >),
+                                HIP_KERNEL_NAME(kernel::hip::detail::hipKernel< TDim, TIdx, TKernelFnObj, typename std::decay<TArgs>::type... >),
                                 gridDim,
                                 blockDim,
                                 static_cast<std::uint32_t>(blockSharedMemDynSizeBytes),
@@ -397,7 +402,7 @@ namespace alpaka
                                 hipLaunchParm{},
                                 threadElemExtent,
                                 task.m_kernelFnObj,
-                                std::move(args)...
+                                args...
                             );
 
                         },
@@ -469,7 +474,7 @@ namespace alpaka
                     // Get the size of the block shared dynamic memory.
                     auto const blockSharedMemDynSizeBytes(
                         meta::apply(
-                            [&](TArgs const & ... args)
+                            [&](typename std::decay<TArgs>::type const & ... args)
                             {
                                 return
                                     kernel::getBlockSharedMemDynSizeBytes<
@@ -491,7 +496,7 @@ namespace alpaka
                     // hipFuncAttributes not ported from HIP to HIP.
                     // Log the function attributes.
                     /*hipFuncAttributes funcAttrs;
-                    hipFuncGetAttributes(&funcAttrs, kernel::hip::detail::hipKernel<TDim, TIdx, TKernelFnObj, TArgs...>);
+                    hipFuncGetAttributes(&funcAttrs, kernel::hip::detail::hipKernel<TDim, TIdx, TKernelFnObj, typename std::decay<TArgs>::type....>);
                     std::cout << __func__
                         << " binaryVersion: " << funcAttrs.binaryVersion
                         << " constSizeBytes: " << funcAttrs.constSizeBytes << " B"
@@ -507,15 +512,12 @@ namespace alpaka
                     ALPAKA_HIP_RT_CHECK(
                         hipSetDevice(
                             queue.m_spQueueImpl->m_dev.m_iDevice));
-                    // Enqueue the kernel execution.
-                    // \NOTE: No const reference (const &) is allowed as the parameter type because the kernel launch language extension expects the arguments by value.
-                    // This forces the type of a float argument given with std::forward to this function to be of type float instead of e.g. "float const & __ptr64" (MSVC).
-                    // If not given by value, the kernel launch code does not copy the value but the pointer to the value location.
+
                     meta::apply(
-                        [&](TArgs ... args)
+                        [&](typename std::decay<TArgs>::type const & ... args)
                         {
                             hipLaunchKernel(
-                                HIP_KERNEL_NAME(kernel::hip::detail::hipKernel< TDim, TIdx, TKernelFnObj, TArgs... >),
+                                HIP_KERNEL_NAME(kernel::hip::detail::hipKernel< TDim, TIdx, TKernelFnObj, typename std::decay<TArgs>::type... >),
                                 gridDim,
                                 blockDim,
                                 static_cast<std::size_t>(blockSharedMemDynSizeBytes),

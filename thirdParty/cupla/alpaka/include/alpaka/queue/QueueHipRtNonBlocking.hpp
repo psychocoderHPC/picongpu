@@ -106,7 +106,7 @@ namespace alpaka
                     dev::DevHipRt const m_dev;   //!< The device this queue is bound to.
                     hipStream_t m_HipQueue;
 
-#if BOOST_COMP_HCC  // NOTE: workaround for unwanted nonblocking hip streams for HCC (NVCC streams are blocking)
+#if defined(BOOST_COMP_HCC) || defined(BOOST_COMP_HIP)  // NOTE: workaround for unwanted nonblocking hip streams for HCC (NVCC streams are blocking)
                     int m_callees = 0;
                     std::mutex m_mutex;
 #endif
@@ -146,7 +146,7 @@ namespace alpaka
             }
             //-----------------------------------------------------------------------------
             ALPAKA_FN_HOST ~QueueHipRtNonBlocking() {
-#if BOOST_COMP_HCC  // NOTE: workaround for unwanted nonblocking hip streams for HCC (NVCC streams are blocking)
+#if defined(BOOST_COMP_HCC) || defined(BOOST_COMP_HIP)  // NOTE: workaround for unwanted nonblocking hip streams for HCC (NVCC streams are blocking)
                 // we are a non-blocking queue, so we have to wait here with its destruction until all spawned tasks have been processed
                 alpaka::wait::wait(*this);
 #endif
@@ -260,7 +260,7 @@ namespace alpaka
                 -> void
                 {
 
-#if BOOST_COMP_HCC  // NOTE: workaround for unwanted nonblocking hip streams for HCC (NVCC streams are blocking)
+#if defined(BOOST_COMP_HCC) || defined(BOOST_COMP_HIP)  // NOTE: workaround for unwanted nonblocking hip streams for HCC (NVCC streams are blocking)
                     {
                         // thread-safe callee incrementing
                         std::lock_guard<std::mutex> guard(queue.m_spQueueImpl->m_mutex);
@@ -283,12 +283,12 @@ namespace alpaka
                     std::thread t(
                         [pCallbackSynchronizationData,
                          task
-#if BOOST_COMP_HCC // NOTE: workaround for unwanted nonblocking hip streams for HCC (NVCC streams are blocking)
+#if defined(BOOST_COMP_HCC) || defined(BOOST_COMP_HIP) // NOTE: workaround for unwanted nonblocking hip streams for HCC (NVCC streams are blocking)
                          ,&queue // requires queue's destructor to wait for all tasks
 #endif
                         ](){
 
-#if BOOST_COMP_HCC // NOTE: workaround for unwanted nonblocking hip streams for HCC (NVCC streams are blocking)
+#if defined(BOOST_COMP_HCC) || defined(BOOST_COMP_HIP) // NOTE: workaround for unwanted nonblocking hip streams for HCC (NVCC streams are blocking)
                             // thread-safe task execution and callee decrementing
                             std::lock_guard<std::mutex> guard(queue.m_spQueueImpl->m_mutex);
 #endif
@@ -312,7 +312,7 @@ namespace alpaka
                                 pCallbackSynchronizationData->state = CallbackState::finished;
                             }
                             pCallbackSynchronizationData->m_event.notify_one();
-#if BOOST_COMP_HCC // NOTE: workaround for unwanted nonblocking hip streams for HCC (NVCC streams are blocking)
+#if defined(BOOST_COMP_HCC) || defined(BOOST_COMP_HIP) // NOTE: workaround for unwanted nonblocking hip streams for HCC (NVCC streams are blocking)
                             queue.m_spQueueImpl->m_callees -= 1;
 #endif
                         }
@@ -334,7 +334,7 @@ namespace alpaka
                 {
                     ALPAKA_DEBUG_MINIMAL_LOG_SCOPE;
 
-#if BOOST_COMP_HCC  // NOTE: workaround for unwanted nonblocking hip streams for HCC (NVCC streams are blocking)
+#if defined(BOOST_COMP_HCC) || defined(BOOST_COMP_HIP)  // NOTE: workaround for unwanted nonblocking hip streams for HCC (NVCC streams are blocking)
                     return (queue.m_spQueueImpl->m_callees==0);
 #else
 
@@ -369,7 +369,7 @@ namespace alpaka
                 {
                     ALPAKA_DEBUG_MINIMAL_LOG_SCOPE;
 
-#if BOOST_COMP_HCC  // NOTE: workaround for unwanted nonblocking hip streams for HCC (NVCC streams are blocking)
+#if defined(BOOST_COMP_HCC) || defined(BOOST_COMP_HIP)  // NOTE: workaround for unwanted nonblocking hip streams for HCC (NVCC streams are blocking)
                     while(queue.m_spQueueImpl->m_callees>0) {
                         std::this_thread::sleep_for(std::chrono::milliseconds(10u));
                     }
