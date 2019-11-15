@@ -25,11 +25,11 @@ module load boost/1.68.0
 # Other Software ##############################################################
 #
 module load zlib/1.2.11
-module load c-blosc/1.14.4
+#module load c-blosc/1.14.4
 
-module load adios/1.13.1-cuda100
-module load hdf5-parallel/1.8.20-cuda100
-module load libsplash/1.7.0-cuda100
+#module load adios/1.13.1-cuda100
+#module load hdf5-parallel/1.8.20-cuda100
+#module load libsplash/1.7.0-cuda100
 
 module load libpng/1.6.35
 module load pngwriter/0.7.0

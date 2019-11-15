@@ -125,6 +125,16 @@ struct TSC : public shared_TSC::TSC
             return result;
         }
 
+        HDINLINE float3_X shapeit( float_X const x )
+        {
+            auto const s0 = ff_2nd_radius( algorithms::math::abs( x ) );
+            auto const s1 = ff_1st_radius( algorithms::math::abs( x + 1.0_X ) );
+            return float3_X(
+                s0,
+                s1,
+                1.0_X - s0 - s1 // ff_2nd_radius( algorithms::math::abs( x + 2.0_X ) ) //1.0_X - s0 - s1
+            );
+        }
     };
 
 };

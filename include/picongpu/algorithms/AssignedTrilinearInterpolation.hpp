@@ -89,6 +89,10 @@ namespace picongpu
                 T_Cursor
             >::type;
 
+            auto const s_x = T_AssignmentFunction().shapeit(float_X( T_begin ) - pos.x());
+            auto const s_y = T_AssignmentFunction().shapeit(float_X( T_begin ) - pos.y());
+            auto const s_z = T_AssignmentFunction().shapeit(float_X( T_begin ) - pos.z());
+
             type result_z = type( 0.0 );
             for( int z = T_begin; z <= T_end; ++z )
             {
@@ -100,12 +104,12 @@ namespace picongpu
                         /* a form factor is the "amount of particle" that is affected by this cell
                          * so we have to sum over: cell_value * form_factor
                          */
-                        result_x += *cursor( x, y, z ) * T_AssignmentFunction()( float_X( x ) - pos.x() );
+                        result_x += *cursor( x, y, z ) * s_x[ x - T_begin ];
 
-                    result_y += result_x * T_AssignmentFunction()( float_X( y ) - pos.y() );
+                    result_y += result_x * s_y [ y - T_begin ];
                 }
 
-                result_z += result_y * T_AssignmentFunction()( float_X( z ) - pos.z() );
+                result_z += result_y * s_z[ z - T_begin ];
             }
             return result_z;
         }

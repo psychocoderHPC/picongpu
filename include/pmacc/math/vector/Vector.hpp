@@ -166,6 +166,16 @@ struct Vector : private T_Storage<T_Type, T_dim>, protected T_Accessor, protecte
         (*this)[2] = z;
     }
 
+    HDINLINE
+    Vector(const type x, const type y, const type z, const type w)
+    {
+        PMACC_CASSERT_MSG(math_Vector__constructor_is_only_allowed_for_DIM3,dim == 4);
+        (*this)[0] = x;
+        (*this)[1] = y;
+        (*this)[2] = z;
+        (*this)[3] = w;
+    }
+
     HDINLINE Vector(const This& other)
     {
         detail::CopyElementWise<Storage::isConst>()(*this,other);

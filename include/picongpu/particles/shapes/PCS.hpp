@@ -121,6 +121,19 @@ struct PCS : public shared_PCS::PCS
              */
         }
 
+        HDINLINE ::pmacc::math::Vector< float_X, 4 > shapeit( float_X const x )
+        {
+            auto const s0 = ff_2nd_radius( algorithms::math::abs( x ) );
+            auto const s1 = ff_1st_radius( algorithms::math::abs( x + 1.0_X ) );
+            auto const s2 = ff_1st_radius( algorithms::math::abs( x + 2.0_X ) );
+            return ::pmacc::math::Vector< float_X, 4 >(
+                s0,
+                s1,
+                s2,
+                1.0_X - s0 - s1 - s2
+            );
+        }
+
     };
 
 };
