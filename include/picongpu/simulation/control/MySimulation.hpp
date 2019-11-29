@@ -323,9 +323,6 @@ public:
 
         // create field solver
         this->myFieldSolver = new fields::Solver(*cellDescription);
-//fieldTmp is not required for SPEC benchmarks.
-#if !defined(SPEC)
-#endif
 
         // Initialize random number generator and synchrotron functions, if there are synchrotron or bremsstrahlung Photons
         using AllSynchrotronPhotonsSpecies = typename pmacc::particles::traits::FilterByFlag<
@@ -681,11 +678,15 @@ private:
         dataConnector.consume( std::move( fieldE ) );
         auto fieldJ = makeUnique< FieldJ >( *cellDescription );
         dataConnector.consume( std::move( fieldJ ) );
+
+//fieldTmp is not required for SPEC benchmarks.
+#if !defined(SPEC)
         for( uint32_t slot = 0; slot < fieldTmpNumSlots; ++slot)
         {
             auto fieldTmp = makeUnique< FieldTmp >( *cellDescription, slot );
             dataConnector.consume( std::move( fieldTmp ) );
         }
+#endif
     }
 
     /** Reset all fields
