@@ -41,7 +41,7 @@ namespace alpaka
     namespace math
     {
         //#############################################################################
-        //! The standard library cbrt.
+        //! The CUDA built in cbrt.
         class CbrtCudaBuiltIn
         {
         public:
@@ -51,7 +51,7 @@ namespace alpaka
         namespace traits
         {
             //#############################################################################
-            //! The standard library cbrt trait specialization.
+            //! The CUDA cbrt trait specialization.
             template<
                 typename TArg>
             struct Cbrt<
@@ -63,10 +63,25 @@ namespace alpaka
                 ALPAKA_FN_ACC_CUDA_ONLY static auto cbrt(
                     CbrtCudaBuiltIn const & /*cbrt*/,
                     TArg const & arg)
-                -> decltype(std::cbrt(arg))
+                -> decltype(::cbrt(arg))
                 {
                     //boost::ignore_unused(cbrt);
-                    return std::cbrt(arg);
+                    return ::cbrt(arg);
+                }
+            };
+
+            template<>
+            struct Cbrt<
+                CbrtCudaBuiltIn,
+                float>
+            {
+                __device__ static auto cbrt(
+                    CbrtCudaBuiltIn const & cbrt_ctx,
+                    float const & arg)
+                -> float
+                {
+                    alpaka::ignore_unused(cbrt_ctx);
+                    return ::cbrtf(arg);
                 }
             };
         }

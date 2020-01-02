@@ -42,7 +42,7 @@ namespace alpaka
     namespace math
     {
         //#############################################################################
-        //! The standard library ceil.
+        //! The CUDA built in ceil.
         class CeilCudaBuiltIn
         {
         public:
@@ -52,7 +52,7 @@ namespace alpaka
         namespace traits
         {
             //#############################################################################
-            //! The standard library ceil trait specialization.
+            //! The CUDA ceil trait specialization.
             template<
                 typename TArg>
             struct Ceil<
@@ -68,6 +68,21 @@ namespace alpaka
                 {
                     //boost::ignore_unused(ceil);
                     return ::ceil(arg);
+                }
+            };
+            //
+            template<>
+            struct Ceil<
+                CeilCudaBuiltIn,
+                float>
+            {
+                __device__ static auto ceil(
+                    CeilCudaBuiltIn const & ceil_ctx,
+                    float const & arg)
+                ->float
+                {
+                    alpaka::ignore_unused(ceil_ctx);
+                    return ::ceilf(arg);
                 }
             };
         }

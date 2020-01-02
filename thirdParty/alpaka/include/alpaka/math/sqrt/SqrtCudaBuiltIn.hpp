@@ -42,7 +42,7 @@ namespace alpaka
     namespace math
     {
         //#############################################################################
-        //! The standard library sqrt.
+        //! The CUDA sqrt.
         class SqrtCudaBuiltIn
         {
         public:
@@ -52,7 +52,7 @@ namespace alpaka
         namespace traits
         {
             //#############################################################################
-            //! The standard library sqrt trait specialization.
+            //! The CUDA sqrt trait specialization.
             template<
                 typename TArg>
             struct Sqrt<
@@ -70,6 +70,22 @@ namespace alpaka
                     return ::sqrt(arg);
                 }
             };
+            //! The CUDA sqrt float specialization.
+            template<>
+            struct Sqrt<
+                SqrtCudaBuiltIn,
+                float>
+            {
+                __device__ static auto sqrt(
+                    SqrtCudaBuiltIn const & sqrt_ctx,
+                    float const & arg)
+                -> float
+                {
+                    alpaka::ignore_unused(sqrt_ctx);
+                    return ::sqrtf(arg);
+                }
+            };
+
         }
     }
 }

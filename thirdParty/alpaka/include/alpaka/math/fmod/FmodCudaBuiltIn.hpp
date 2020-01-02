@@ -42,7 +42,7 @@ namespace alpaka
     namespace math
     {
         //#############################################################################
-        //! The standard library fmod.
+        //! The CUDA built in fmod.
         class FmodCudaBuiltIn
         {
         public:
@@ -52,7 +52,7 @@ namespace alpaka
         namespace traits
         {
             //#############################################################################
-            //! The standard library fmod trait specialization.
+            //! The CUDA fmod trait specialization.
             template<
                 typename Tx,
                 typename Ty>
@@ -71,7 +71,28 @@ namespace alpaka
                 -> decltype(::fmod(x, y))
                 {
                     //boost::ignore_unused(fmod);
-                    return ::fmod(x, y);
+                    return ::fmod(
+                        x,
+                        y);
+                }
+            };
+            //! The CUDA fmod float specialization.
+            template<>
+            struct Fmod<
+                FmodCudaBuiltIn,
+                float,
+                float>
+            {
+                __device__ static auto fmod(
+                    FmodCudaBuiltIn const & fmod_ctx,
+                    float const & x,
+                    float const & y)
+                -> float
+                {
+                    alpaka::ignore_unused(fmod_ctx);
+                    return ::fmodf(
+                        x,
+                        y);
                 }
             };
         }
