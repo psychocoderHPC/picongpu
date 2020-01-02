@@ -42,7 +42,7 @@ namespace alpaka
     namespace math
     {
         //#############################################################################
-        //! The standard library pow.
+        //! The CUDA built in pow.
         class PowCudaBuiltIn
         {
         public:
@@ -52,7 +52,7 @@ namespace alpaka
         namespace traits
         {
             //#############################################################################
-            //! The standard library pow trait specialization.
+            //! The CUDA pow trait specialization.
             template<
                 typename TBase,
                 typename TExp>
@@ -72,6 +72,23 @@ namespace alpaka
                 {
                     //boost::ignore_unused(pow);
                     return ::pow(base, exp);
+                }
+            };
+            //! The CUDA pow float specialization.
+            template<>
+            struct Pow<
+                PowCudaBuiltIn,
+                float,
+                float>
+            {
+                __device__ static auto pow(
+                    PowCudaBuiltIn const & pow_ctx,
+                    float const & base,
+                    float const & exp)
+                -> float
+                {
+                    alpaka::ignore_unused(pow_ctx);
+                    return ::powf(base, exp);
                 }
             };
         }

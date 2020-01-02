@@ -42,7 +42,7 @@ namespace alpaka
     namespace math
     {
         //#############################################################################
-        //! The standard library remainder.
+        //! The CUDA built in remainder.
         class RemainderCudaBuiltIn
         {
         public:
@@ -52,7 +52,7 @@ namespace alpaka
         namespace traits
         {
             //#############################################################################
-            //! The standard library remainder trait specialization.
+            //! The CUDA remainder trait specialization.
             template<
                 typename TArg>
             struct Remainder<
@@ -68,6 +68,25 @@ namespace alpaka
                 {
                     //boost::ignore_unused(remainder);
                     return ::remainder(arg);
+                }
+            };
+            //! The CUDA remainder float specialization.
+            template<>
+            struct Remainder<
+                RemainderCudaBuiltIn,
+                float,
+                float>
+            {
+                __device__ static auto remainder(
+                    RemainderCudaBuiltIn const & remainder_ctx,
+                    float const & x,
+                    float const & y)
+                -> float
+                {
+                    alpaka::ignore_unused(remainder_ctx);
+                    return ::remainderf(
+                        x,
+                        y);
                 }
             };
         }

@@ -42,7 +42,7 @@ namespace alpaka
     namespace math
     {
         //#############################################################################
-        //! The standard library rsqrt.
+        //! The CUDA rsqrt.
         class RsqrtCudaBuiltIn
         {
         public:
@@ -52,7 +52,7 @@ namespace alpaka
         namespace traits
         {
             //#############################################################################
-            //! The standard library rsqrt trait specialization.
+            //! The CUDA rsqrt trait specialization.
             template<
                 typename TArg>
             struct Rsqrt<
@@ -68,6 +68,21 @@ namespace alpaka
                 {
                     //boost::ignore_unused(rsqrt);
                     return ::rsqrt(arg);
+                }
+            };
+            //! The CUDA rsqrt float specialization.
+            template<>
+            struct Rsqrt<
+                RsqrtCudaBuiltIn,
+                float>
+            {
+                __device__ static auto rsqrt(
+                    RsqrtCudaBuiltIn const & rsqrt_ctx,
+                    float const & arg)
+                -> float
+                {
+                    alpaka::ignore_unused(rsqrt_ctx);
+                    return ::rsqrtf(arg);
                 }
             };
         }

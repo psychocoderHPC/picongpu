@@ -42,7 +42,7 @@ namespace alpaka
     namespace math
     {
         //#############################################################################
-        //! The standard library sin.
+        //! The CUDA sin.
         class SinCudaBuiltIn
         {
         public:
@@ -52,7 +52,7 @@ namespace alpaka
         namespace traits
         {
             //#############################################################################
-            //! The standard library sin trait specialization.
+            //! The CUDA sin trait specialization.
             template<
                 typename TArg>
             struct Sin<
@@ -68,6 +68,21 @@ namespace alpaka
                 {
                     //boost::ignore_unused(sin);
                     return ::sin(arg);
+                }
+            };
+            //! The CUDA sin float specialization.
+            template<>
+            struct Sin<
+                SinCudaBuiltIn,
+                float>
+            {
+                __device__ static auto sin(
+                    SinCudaBuiltIn const & sin_ctx,
+                    float const & arg)
+                -> float
+                {
+                    alpaka::ignore_unused(sin_ctx);
+                    return ::sinf(arg);
                 }
             };
         }
