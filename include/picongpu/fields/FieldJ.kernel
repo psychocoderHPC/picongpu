@@ -189,6 +189,7 @@ struct KernelComputeCurrent
             }
         );
 
+#if 1
         /* this memory is used by all virtual blocks */
         auto cachedJ = CachedBox::create<
             0u,
@@ -206,7 +207,10 @@ struct KernelComputeCurrent
 
         /* initialize shared memory with zeros */
         collectiveSet( acc, set, cachedJ );
-
+#else
+        DataSpace< simDim > const blockCell = block * SuperCellSize::toRT();
+        auto cachedJ = fieldJ.shift( blockCell );
+#endif
         __syncthreads();
 
         while( true )
@@ -269,7 +273,7 @@ struct KernelComputeCurrent
 
         /* we wait that all workers finish the loop */
         __syncthreads();
-
+#if 1
         nvidia::functors::Add add;
         DataSpace< simDim > const blockCell = block * SuperCellSize::toRT();
         ThreadCollective<
@@ -285,6 +289,7 @@ struct KernelComputeCurrent
             fieldJBlock,
             cachedJ
         );
+#endif
     }
 };
 

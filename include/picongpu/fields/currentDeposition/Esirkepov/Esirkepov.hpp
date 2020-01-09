@@ -155,6 +155,27 @@ struct Esirkepov<T_ParticleShape, DIM3>
         );
     }
 
+    template<typename T_Acc>
+    __device__
+    inline
+    float atomicAddRene(T_Acc const & acc,float* address, float val)
+    {
+        unsigned  int * address_as_ull(reinterpret_cast<unsigned int *>(address));
+        unsigned  int old = __atomic_load_n(address_as_ull, __ATOMIC_RELAXED);
+        unsigned  int assumed;
+        do
+        {
+            assumed = old;
+            old = atomicCAS(
+                address_as_ull,
+                assumed,
+                static_cast<unsigned int>(__float_as_uint(val + __uint_as_float(static_cast<unsigned int>(assumed)))));
+            // Note: uses integer comparison to avoid hang in case of NaN (since NaN != NaN)
+        }
+        while(assumed != old);
+        return __uint_as_float(static_cast<unsigned int>(old));
+    }
+
     /**
      * deposites current in z-direction
      *
@@ -230,7 +251,14 @@ struct Esirkepov<T_ParticleShape, DIM3>
                                  */
                                 const float_X W = DS( line, k, 2 ) * tmp;
                                 accumulated_J += W;
+#if BOOST_COMP_HIP
+                                // atomic emulation based on CUDA programming guide is faster
+                                // speedup factor for shared memory: 1.1 and for global: 1.25
+                                atomicAddRene(acc, &( ( *cursorJ( i, j, k ) ).z() ), accumulated_J);
+#else
                                 atomicAdd( &( ( *cursorJ( i, j, k ) ).z() ), accumulated_J, ::alpaka::hierarchy::Threads{} );
+#endif
+
                             }
                     }
             }

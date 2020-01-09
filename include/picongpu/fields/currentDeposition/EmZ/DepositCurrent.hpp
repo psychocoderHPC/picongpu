@@ -86,6 +86,26 @@ namespace emz
         {
             return ParticleAssign( )( gridPoint - line.m_pos1[d] ) - ParticleAssign( )( gridPoint - line.m_pos0[d] );
         }
+
+        template<typename T_Acc>
+        DINLINE
+        float_X atomicAddRene(T_Acc const & acc,float_X* address, const float_X val) const
+        {
+            unsigned  int * address_as_ull(reinterpret_cast<unsigned int *>(address));
+            unsigned  int old = __atomic_load_n(address_as_ull, __ATOMIC_RELAXED);
+            unsigned  int assumed;
+            do
+            {
+                assumed = old;
+                old = atomicCAS(
+                    address_as_ull,
+                    assumed,
+                    static_cast<unsigned int>(__float_as_uint(val + __uint_as_float(static_cast<unsigned int>(assumed)))));
+                // Note: uses integer comparison to avoid hang in case of NaN (since NaN != NaN)
+            }
+            while(assumed != old);
+            return __uint_as_float(static_cast<unsigned int>(old));
+        }
     };
 
     template<
@@ -190,11 +210,16 @@ namespace emz
                          */
                         const float_X W = this->DS( line, k, 2 ) * tmp;
                         accumulated_J += W;
+#if BOOST_COMP_HIP
+                        float_X* ptr = &( (*cursorJ( i, j, k ) ).z( ) );
+                        this->atomicAddRene(acc, ptr, accumulated_J);
+#else
                         atomicAdd(
                             &( (*cursorJ( i, j, k ) ).z( ) ),
                             accumulated_J,
                             ::alpaka::hierarchy::Threads{}
                         );
+#endif
                     }
                 }
             }

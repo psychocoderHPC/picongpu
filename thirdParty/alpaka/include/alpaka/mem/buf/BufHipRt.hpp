@@ -398,17 +398,6 @@ namespace alpaka
                                 hipSetDevice(
                                     dev.m_iDevice));
 
-
-                            // Allocate the buffer on this device.
-                            ALPAKA_HIP_RT_CHECK(
-                                hipMallocPitch(
-                                    &memPtr,
-                                    &pitchBytes,
-                                    static_cast<std::size_t>(widthBytes),
-                                    static_cast<std::size_t>(height)));
-                            ALPAKA_ASSERT(pitchBytes >= static_cast<std::size_t>(widthBytes) || (width * height) == 0);
-                        }
-
 #if ALPAKA_DEBUG >= ALPAKA_DEBUG_FULL
                         std::cout << __func__
                             << " ew: " << width
@@ -418,6 +407,27 @@ namespace alpaka
                             << " pitch: " << pitchBytes
                             << std::endl;
 #endif
+
+//       hipMallocPitch is broken on our developer system:  https://github.com/ROCm-Developer-Tools/HIP/issues/1797
+#if 1
+                            // Allocate the buffer on this device.
+                            ALPAKA_HIP_RT_CHECK(
+                                hipMallocPitch(
+                                    &memPtr,
+                                    &pitchBytes,
+                                    static_cast<std::size_t>(widthBytes),
+                                    static_cast<std::size_t>(height)));
+#else
+                            ALPAKA_HIP_RT_CHECK(
+                                hipMalloc(
+                                        &memPtr,
+                                        static_cast<std::size_t>(widthBytes)* static_cast<std::size_t>(height)));
+                            pitchBytes = static_cast<std::size_t>(widthBytes);
+#endif
+                            ALPAKA_ASSERT(pitchBytes >= static_cast<std::size_t>(widthBytes) || (width * height) == 0);
+                        }
+
+
                         return
                             mem::buf::BufHipRt<TElem, dim::DimInt<2u>, TIdx>(
                                 dev,

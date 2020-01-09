@@ -43,6 +43,121 @@ namespace alpaka
             {
                 namespace detail
                 {
+                    using vec3D = alpaka::vec::Vec<alpaka::dim::DimInt<3u>, size_t>;
+                    using vec2D = alpaka::vec::Vec<alpaka::dim::DimInt<2u>, size_t>;
+
+                    template<typename T>
+                    __global__ void hipMemcpy3DEmulatedKernelD2D(
+                        char * dstPtr, vec2D const dstPitch,
+                        char const * srcPtr, vec2D const srcPitch, vec3D const extent
+                    )
+                    {
+                        constexpr size_t X = 2;
+                        constexpr size_t Y = 1;
+                        constexpr size_t Z = 0;
+
+                        alpaka::vec::Vec<alpaka::dim::DimInt<3u>, uint32_t> tid(
+                            hipBlockDim_z * hipBlockIdx_z + hipThreadIdx_z,
+                            hipBlockDim_y * hipBlockIdx_y + hipThreadIdx_y,
+                            hipBlockDim_x * hipBlockIdx_x + hipThreadIdx_x);
+
+                        size_t bytePerBlock = sizeof(T) * hipBlockDim_x;
+                        size_t xBytes = hipGridDim_x * bytePerBlock;
+
+                        size_t peelLoopSteps = extent[X] / xBytes;
+                        bool needRemainder = (extent[X] % xBytes) != 0;
+
+                        dstPtr += tid[Z] * dstPitch[Z] + tid[Y] * dstPitch[Y];
+                        srcPtr += tid[Z] * srcPitch[Z] + tid[Y] * srcPitch[Y];
+
+                        for(size_t idx = 0; idx < peelLoopSteps; ++idx)
+                        {
+                            size_t const byteOffsetX = idx * xBytes + tid[X] * sizeof(T);
+                            T* dst = (T*)(dstPtr + byteOffsetX);
+                            T* src = (T*)(srcPtr + byteOffsetX);
+                            *dst = *src;
+                        }
+                        if(needRemainder)
+                        {
+                            size_t const byteOffsetX = peelLoopSteps * xBytes + tid[X] * sizeof(T);
+                            if(byteOffsetX < extent[X])
+                            {
+                                T* dst = (T*)(dstPtr + byteOffsetX);
+                                T* src = (T*)(srcPtr + byteOffsetX);
+                                *dst = *src;
+                            }
+                        }
+                    }
+
+                    inline size_t divUp(size_t x, size_t y)
+                    {
+                        return (x + y - 1u) / y;
+                    }
+
+                    inline hipError_t hipMemcpy3DEmulatedD2DAsync(hipMemcpy3DParms const * const p, hipStream_t stream)
+                    {
+                        // width and pointer are a multiple of 4 byte
+                        vec3D extent(p->extent.depth, p->extent.height, p->extent.width);
+                        vec2D dstPitch(p->dstPtr.pitch * p->dstPtr.ysize,p->dstPtr.pitch);
+                        vec2D srcPitch(p->srcPtr.pitch * p->srcPtr.ysize,p->srcPtr.pitch);
+                        vec3D dstOffset(p->dstPos.z,p->dstPos.y,p->dstPos.x);
+                        vec3D srcOffset(p->srcPos.z,p->srcPos.y,p->srcPos.x);
+
+                        char* srcPtr =
+                             (char*)p->srcPtr.ptr + srcOffset[0] * srcPitch[0] + srcOffset[1] * srcPitch[1] + srcOffset[2];
+                        char* dstPtr =
+                             (char*)p->dstPtr.ptr + dstOffset[0] * dstPitch[0] + dstOffset[1] * dstPitch[1] + dstOffset[2];
+
+                        bool use4Byte = ((uint64_t)srcPtr % 4) ==0 && ((uint64_t)dstPtr % 4) == 0 && (extent[2] % 4) == 0;
+
+                        if(use4Byte)
+                        {
+
+                            dim3 block(std::min(divUp(extent[2], 4u), size_t(256u)));
+                            dim3 grid(1,  extent[1], extent[0]);
+                            if(extent[1] * extent[0] < 100)
+                            {
+                                grid.x = divUp(divUp(extent[2], 4u), block.x);
+                            }
+
+                            hipLaunchKernelGGL(
+                                HIP_KERNEL_NAME(hipMemcpy3DEmulatedKernelD2D<int>),
+                                grid,
+                                block,
+                                0,
+                                stream,
+                                dstPtr,
+                                dstPitch,
+                                srcPtr,
+                                srcPitch,
+                                extent
+                            );
+                        }
+                        else
+                        {
+                            // byte wise copy due to not aligned memory or width
+                            dim3 block(std::min(extent[2], size_t(256u)));
+                            dim3 grid(1, extent[1], extent[0]);
+                            if(extent[1] * extent[0] < 100)
+                            {
+                                grid.x = divUp(extent[2], block.x);
+                            }
+                            hipLaunchKernelGGL(
+                                HIP_KERNEL_NAME(hipMemcpy3DEmulatedKernelD2D<char>),
+                                grid,
+                                block,
+                                0,
+                                stream,
+                                dstPtr,
+                                dstPitch,
+                                srcPtr,
+                                srcPitch,
+                                extent
+                            );
+                        }
+                        return hipGetLastError();
+                    };
+
                     //#############################################################################
                     //! The HIP memory copy trait.
                     template<
@@ -944,12 +1059,31 @@ namespace alpaka
                         // Checks if devices are connected via PCIe switch and enable P2P access then.
                         alpaka::mem::view::hip::detail::enablePeerAccessIfPossible(iSrcDev, iDstDev);
                     }
-
-                    // Initiate the memory copy.
+#ifdef __HIP_PLATFORM_NVCC__
                     ALPAKA_HIP_RT_CHECK(
-                        hipMemcpy3DAsync(
-                            &hipMemCpy3DParms,
-                            queue.m_spQueueImpl->m_HipQueue));
+                        hipMemcpy3D(
+                            &hipMemCpy3DParms));
+#else
+
+                    if(iDstDev == iSrcDev && task.m_hipMemCpyKind == hipMemcpyDeviceToDevice &&
+                       (hipMemCpy3DParms.extent.width != hipMemCpy3DParms.dstPtr.pitch ||
+                       hipMemCpy3DParms.extent.width != hipMemCpy3DParms.srcPtr.pitch))
+                    {
+                        // Initiate the memory copy.
+                        ALPAKA_HIP_RT_CHECK(
+                            alpaka::mem::view::hip::detail::hipMemcpy3DEmulatedD2DAsync(
+                                &hipMemCpy3DParms,
+                                queue.m_spQueueImpl->m_HipQueue));
+                    }
+                    else
+                    {
+                        // Initiate the memory copy.
+                        ALPAKA_HIP_RT_CHECK(
+                            hipMemcpy3DAsync(
+                                &hipMemCpy3DParms,
+                                queue.m_spQueueImpl->m_HipQueue));
+                    }
+#endif
                 }
             };
             //#############################################################################
@@ -997,14 +1131,33 @@ namespace alpaka
                         alpaka::mem::view::hip::detail::enablePeerAccessIfPossible(iSrcDev, iDstDev);
                     }
 
-                    // Initiate the memory copy.
+#ifdef __HIP_PLATFORM_NVCC__
                     ALPAKA_HIP_RT_CHECK(
-                        hipMemcpy3DAsync(
-                            &hipMemCpy3DParms,
-                            queue.m_spQueueImpl->m_HipQueue));
+                        hipMemcpy3D(
+                            &hipMemCpy3DParms));
 
+#else
+                    if(iDstDev == iSrcDev && task.m_hipMemCpyKind == hipMemcpyDeviceToDevice &&
+                       (hipMemCpy3DParms.extent.width != hipMemCpy3DParms.dstPtr.pitch ||
+                       hipMemCpy3DParms.extent.width != hipMemCpy3DParms.srcPtr.pitch))
+                    {
+                        // Initiate the memory copy.
+                        ALPAKA_HIP_RT_CHECK(
+                            alpaka::mem::view::hip::detail::hipMemcpy3DEmulatedD2DAsync(
+                                &hipMemCpy3DParms,
+                                queue.m_spQueueImpl->m_HipQueue));
+                    }
+                    else
+                    {
+                        // Initiate the memory copy.
+                        ALPAKA_HIP_RT_CHECK(
+                            hipMemcpy3DAsync(
+                                &hipMemCpy3DParms,
+                                queue.m_spQueueImpl->m_HipQueue));
+                    }
+#endif
                     ALPAKA_HIP_RT_CHECK( hipStreamSynchronize(
-                        queue.m_spQueueImpl->m_HipQueue));
+                            queue.m_spQueueImpl->m_HipQueue));
                 }
             };
         }
