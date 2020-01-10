@@ -74,6 +74,8 @@ namespace alpaka
                             &m_State);
                     }
 
+                    ALPAKA_FN_HOST_ACC ~Xor(){}
+
                 public:
                     hiprandStateXORWOW_t m_State;
                 };

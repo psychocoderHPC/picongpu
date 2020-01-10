@@ -75,7 +75,7 @@ namespace alpaka
                         ALPAKA_HIP_RT_CHECK(
                             hipStreamCreateWithFlags(
                                 &m_HipQueue,
-                                hipStreamNonBlocking));
+                                hipStreamDefault));
                     }
                     //-----------------------------------------------------------------------------
                     QueueHipRtBlockingImpl(QueueHipRtBlockingImpl const &) = delete;
@@ -106,7 +106,7 @@ namespace alpaka
                     dev::DevHipRt const m_dev;   //!< The device this queue is bound to.
                     hipStream_t m_HipQueue;
 
-#if BOOST_COMP_HCC  // NOTE: workaround for unwanted nonblocking hip streams for HCC (NVCC streams are blocking)
+#if defined(BOOST_COMP_HCC) || defined(BOOST_COMP_HIP)  // NOTE: workaround for unwanted nonblocking hip streams for HCC (NVCC streams are blocking)
                     int m_callees = 0;
                     std::mutex m_mutex;
 #endif
@@ -255,7 +255,7 @@ namespace alpaka
                     TTask const & task)
                 -> void
                 {
-#if BOOST_COMP_HCC  // NOTE: workaround for unwanted nonblocking hip streams for HCC (NVCC streams are blocking)
+#if defined(BOOST_COMP_HCC) || defined(BOOST_COMP_HIP)  // NOTE: workaround for unwanted nonblocking hip streams for HCC (NVCC streams are blocking)
                     {
                         // thread-safe callee incrementing
                         std::lock_guard<std::mutex> guard(queue.m_spQueueImpl->m_mutex);
@@ -279,12 +279,12 @@ namespace alpaka
                     std::thread t(
                         [pCallbackSynchronizationData,
                          task
-#if BOOST_COMP_HCC // NOTE: workaround for unwanted nonblocking hip streams for HCC (NVCC streams are blocking)
+#if defined(BOOST_COMP_HCC) || defined(BOOST_COMP_HIP) // NOTE: workaround for unwanted nonblocking hip streams for HCC (NVCC streams are blocking)
                          ,&queue
 #endif
                         ](){
 
-#if BOOST_COMP_HCC // NOTE: workaround for unwanted nonblocking hip streams for HCC (NVCC streams are blocking)
+#if defined(BOOST_COMP_HCC) || defined(BOOST_COMP_HIP) // NOTE: workaround for unwanted nonblocking hip streams for HCC (NVCC streams are blocking)
                             // thread-safe task execution and callee decrementing
                             std::lock_guard<std::mutex> guard(queue.m_spQueueImpl->m_mutex);
 #endif
@@ -309,7 +309,7 @@ namespace alpaka
                             }
                             pCallbackSynchronizationData->m_event.notify_one();
 
-#if BOOST_COMP_HCC  // NOTE: workaround for unwanted nonblocking hip streams for HCC (NVCC streams are blocking)
+#if defined(BOOST_COMP_HCC) || defined(BOOST_COMP_HIP)  // NOTE: workaround for unwanted nonblocking hip streams for HCC (NVCC streams are blocking)
                             queue.m_spQueueImpl->m_callees -= 1;
 #endif
                         }
@@ -333,7 +333,7 @@ namespace alpaka
 
                     // see: https://github.com/ROCm-Developer-Tools/HIP/blob/roc-1.9.x/tests/src/runtimeApi/stream/hipStreamWaitEvent.cpp
 
-#if BOOST_COMP_HCC  // NOTE: workaround for unwanted nonblocking hip streams for HCC (NVCC streams are blocking)
+#if defined(BOOST_COMP_HCC) || defined(BOOST_COMP_HIP)  // NOTE: workaround for unwanted nonblocking hip streams for HCC (NVCC streams are blocking)
                     return (queue.m_spQueueImpl->m_callees==0);
 #else
                     // Query is allowed even for queues on non current device.
@@ -367,7 +367,7 @@ namespace alpaka
                 {
                     ALPAKA_DEBUG_MINIMAL_LOG_SCOPE;
 
-#if BOOST_COMP_HCC  // NOTE: workaround for unwanted nonblocking hip streams for HCC (NVCC streams are blocking)
+#if defined(BOOST_COMP_HCC) || defined(BOOST_COMP_HIP)  // NOTE: workaround for unwanted nonblocking hip streams for HCC (NVCC streams are blocking)
                     while(queue.m_spQueueImpl->m_callees>0) {
                         std::this_thread::sleep_for(std::chrono::milliseconds(10u));
                     }

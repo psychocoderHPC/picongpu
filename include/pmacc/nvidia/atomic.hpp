@@ -23,7 +23,7 @@
 
 
 #include "pmacc/types.hpp"
-#if( PMACC_CUDA_ENABLED == 1 )
+#if( BOOST_LANG_CUDA )
 #   include "pmacc/nvidia/warp.hpp"
 #endif
 #include <boost/type_traits.hpp>
@@ -157,8 +157,8 @@ template<typename T>
 HDINLINE
 T atomicAllInc(T *ptr)
 {
-#ifdef __CUDA_ARCH__
-    return atomicAllInc(alpaka::atomic::AtomicCudaBuiltIn(), ptr, ::alpaka::hierarchy::Grids());
+#if defined( __CUDA_ARCH__) || BOOST_COMP_HIP
+    return atomicAllInc(alpaka::atomic::AtomicHipBuiltIn(), ptr, ::alpaka::hierarchy::Grids());
 #else
     // assume that we can use the standard library atomics if we are not on gpu
     return atomicAllInc(alpaka::atomic::AtomicStdLibLock<16>(), ptr, ::alpaka::hierarchy::Grids());
@@ -187,10 +187,10 @@ atomicAllExch(const T_Acc& acc, T_Type* ptr, const T_Type value, const T_Hierarc
 #   if(__CUDACC_VER_MAJOR__ >= 9)
     const int mask = __activemask();
 #   else
-    const int mask = __ballot(1);
+    const uint64_t mask = __ballot64(1);
 #   endif
     // select the leader
-    const int leader = __ffs(mask) - 1;
+    const uint64_t leader = __ffsll(mask) - 1;
     // leader does the update
     if (getLaneId() == leader)
 #endif

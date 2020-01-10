@@ -36,7 +36,7 @@ identifier(pmacc_void);
 identifier(pmacc_isAlias);
 } //namespace pmacc
 
-#ifdef __CUDACC__
+#if defined(__CUDACC__) || BOOST_COMP_HIP
 #   define PMACC_alias_CUDA(name,id)                                          \
         namespace PMACC_JOIN(device_placeholder,id){                          \
             /* This variable exists only for template parameter deduction, its

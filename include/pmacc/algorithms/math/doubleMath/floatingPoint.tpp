@@ -63,7 +63,7 @@ struct Float2int_ru<double>
 
     HDINLINE result operator( )(double value)
     {
-#if __CUDA_ARCH__
+#if( defined(__CUDA_ARCH__) || __HIP_DEVICE_COMPILE__ == 1 ) //we are on gpu
         return ::__double2int_ru( value );
 #else
         return static_cast<int>(ceil(value));
@@ -78,7 +78,7 @@ struct Float2int_rd<double>
 
     HDINLINE result operator( )(double value)
     {
-#if __CUDA_ARCH__
+#if( defined(__CUDA_ARCH__) || __HIP_DEVICE_COMPILE__ == 1 ) //we are on gpu
         return ::__double2int_rd( value );
 #else
         return static_cast<int>(floor(value));
@@ -93,7 +93,7 @@ struct Float2int_rn<double>
 
     HDINLINE result operator( )(double value)
     {
-#if __CUDA_ARCH__
+#if( defined(__CUDA_ARCH__) || __HIP_DEVICE_COMPILE__ == 1 ) //we are on gpu
         return ::__double2int_rn( value );
 #else
         if(value < 0.0)

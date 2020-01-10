@@ -57,8 +57,8 @@ namespace ScatterKernelDetail{
 
   template < typename T_Allocator >
   __global__ void getAvailableSlotsKernel(T_Allocator* heap, size_t slotSize, unsigned* slots){
-    int gid       = threadIdx.x + blockIdx.x*blockDim.x;
-    int nWorker   = gridDim.x * blockDim.x;
+    int gid       = hipThreadIdx_x + hipBlockIdx_x* hipBlockDim_x;
+    int nWorker   = hipGridDim_x * hipBlockDim_x;
     unsigned temp = heap->getAvailaibleSlotsDeviceFunction(slotSize, gid, nWorker);
     if(temp) atomicAdd(slots, temp);
   }
@@ -617,16 +617,17 @@ namespace ScatterKernelDetail{
 
         //only one thread per warp can acquire the mutex
         void* res = 0;
-        for(
 #if(__CUDACC_VER_MAJOR__ >= 9)
-          unsigned int __mask = __activemask(),
+        unsigned int __mask = __activemask();
 #else
-          unsigned int __mask = __ballot(1),
+        auto __mask = __ballot64(1);
 #endif
-          __num = __popc(__mask),
-          __lanemask = mallocMC::lanemask_lt(),
-          __local_id = __popc(__lanemask & __mask),
-          __active = 0;
+        auto __num = __popcll(__mask);
+        auto __lanemask = mallocMC::lanemask_lt();// 64 bit
+        auto __local_id = __popcll(__lanemask & __mask); // 64 bit
+
+        for(
+          uint32 __active = 0;
           __active < __num;
           ++__active
         )
@@ -714,10 +715,10 @@ namespace ScatterKernelDetail{
        */
       __device__ void initDeviceFunction(void* memory, size_t memsize)
       {
-        uint32 linid = threadIdx.x + blockDim.x*(threadIdx.y + threadIdx.z*blockDim.y);
-        uint32 threads = blockDim.x*blockDim.y*blockDim.z;
-        uint32 linblockid = blockIdx.x + gridDim.x*(blockIdx.y + blockIdx.z*gridDim.y);
-        uint32 blocks =  gridDim.x*gridDim.y*gridDim.z;
+        uint32 linid = hipThreadIdx_x + hipBlockDim_x*(hipThreadIdx_y + threadIdx.z*hipBlockDim_y);
+        uint32 threads = hipBlockDim_x*hipBlockDim_y*hipBlockDim_z;
+        uint32 linblockid = hipBlockIdx_x + hipGridDim_x*(hipBlockIdx_y + hipBlockIdx_z*hipGridDim_y);
+        uint32 blocks =  hipGridDim_x*hipGridDim_y*hipGridDim_z;
         linid = linid + linblockid*threads;
 
         uint32 numregions = ((unsigned long long)memsize)/( ((unsigned long long)regionsize)*(sizeof(PTE)+pagesize)+sizeof(uint32));
@@ -799,7 +800,17 @@ namespace ScatterKernelDetail{
             "Maybe you are using an incompatible ReservePoolPolicy or AlignmentPolicy."
           );
         }
-        ScatterKernelDetail::initKernel<<<1,256>>>(heap, pool, memsize);
+        //ScatterKernelDetail::initKernel<<<1,256>>>(heap, pool, memsize);
+        hipLaunchKernelGGL(
+           HIP_KERNEL_NAME(ScatterKernelDetail::initKernel),
+           1,
+           256,
+           0,
+           0,
+           heap,
+           pool,
+           memsize
+       );
         return heap;
       }
 
@@ -906,13 +917,23 @@ namespace ScatterKernelDetail{
       static unsigned getAvailableSlotsHost(size_t const slotSize, T_DeviceAllocator* heap){
         unsigned h_slots = 0;
         unsigned* d_slots;
-        cudaMalloc((void**) &d_slots, sizeof(unsigned));
-        cudaMemcpy(d_slots, &h_slots, sizeof(unsigned), cudaMemcpyHostToDevice);
+        hipMalloc((void**) &d_slots, sizeof(unsigned));
+        hipMemcpy(d_slots, &h_slots, sizeof(unsigned), hipMemcpyHostToDevice);
 
-        ScatterKernelDetail::getAvailableSlotsKernel<<<64,256>>>(heap, slotSize, d_slots);
+        //ScatterKernelDetail::getAvailableSlotsKernel<<<64,256>>>(heap, slotSize, d_slots);
+        hipLaunchKernelGGL(
+           HIP_KERNEL_NAME(ScatterKernelDetail::getAvailableSlotsKernel),
+           64,
+           256,
+           0,
+           0,
+           heap,
+           slotSize,
+           d_slots
+       );
 
-        cudaMemcpy(&h_slots, d_slots, sizeof(unsigned), cudaMemcpyDeviceToHost);
-        cudaFree(d_slots);
+        hipMemcpy(&h_slots, d_slots, sizeof(unsigned), hipMemcpyDeviceToHost);
+        hipFree(d_slots);
         return h_slots;
       }
 
@@ -938,7 +959,7 @@ namespace ScatterKernelDetail{
 #if(__CUDACC_VER_MAJOR__ >= 9)
         uint32 activeThreads  = __popc(__activemask());
 #else
-        uint32 activeThreads  = __popc(__ballot(true));
+        uint32 activeThreads  = __popcll(__ballot64(1));
 #endif
         __shared__ uint32 activePerWarp[MaxThreadsPerBlock::value / WarpSize::value]; //maximum number of warps in a block
         __shared__ unsigned warpResults[MaxThreadsPerBlock::value / WarpSize::value];
@@ -949,7 +970,7 @@ namespace ScatterKernelDetail{
         if(slotSize>0) linearId = atomicAdd(&activePerWarp[wId], 1);
         else return 0;
 
-        //printf("Block %d, id %d: activeThreads=%d linearId=%d\n",blockIdx.x,threadIdx.x,activeThreads,linearId);
+        //printf("Block %d, id %d: activeThreads=%d linearId=%d\n",hipBockIdx_x,threadIdx.x,activeThreads,linearId);
         unsigned temp = getAvailaibleSlotsDeviceFunction(slotSize, linearId, activeThreads);
         if(temp) atomicAdd(&warpResults[wId], temp);
         __threadfence_block();
