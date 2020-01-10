@@ -22,7 +22,7 @@
 
 #pragma once
 
-#if( PMACC_CUDA_ENABLED == 1 )
+#if( PMACC_CUDA_ENABLED == 1 || BOOST_COMP_HIP)
 #   include <mallocMC/mallocMC.hpp>
 #endif
 #include "pmacc/particles/frame_types.hpp"
@@ -96,7 +96,7 @@ public:
         const int maxTries = 13; //magic number is not performance critical
         for ( int numTries = 0; numTries < maxTries; ++numTries )
         {
-#if( PMACC_CUDA_ENABLED == 1 )
+#if( PMACC_CUDA_ENABLED == 1 || BOOST_COMP_HIP)
             tmp = (FrameType*) m_deviceHeapHandle.malloc( sizeof (FrameType) );
 #else
             tmp = new FrameType;
@@ -106,7 +106,7 @@ public:
                 /* disable all particles since we can not assume that newly allocated memory contains zeros */
                 for ( int i = 0; i < (int) math::CT::volume<typename FrameType::SuperCellSize>::type::value; ++i )
                     ( *tmp )[i][multiMask_] = 0;
-#if( PMACC_CUDA_ENABLED == 1 )
+#if( PMACC_CUDA_ENABLED == 1 || BOOST_COMP_HIP)
                 /* takes care that changed values are visible to all threads inside this block*/
                 __threadfence_block( );
 #endif
@@ -114,10 +114,12 @@ public:
             }
             else
             {
+#ifndef BOOST_COMP_HIP
                 printf( "%s: mallocMC out of memory (try %i of %i)\n",
                         (numTries + 1) == maxTries ? "ERROR" : "WARNING",
                         numTries + 1,
                         maxTries );
+#endif
             }
         }
 
@@ -131,7 +133,7 @@ public:
      */
     DINLINE void removeFrame( FramePtr& frame )
     {
-#if( PMACC_CUDA_ENABLED == 1 )
+#if( PMACC_CUDA_ENABLED == 1 || BOOST_COMP_HIP)
         m_deviceHeapHandle.free( (void*) frame.ptr );
 #else
         delete(frame.ptr);
@@ -142,7 +144,7 @@ public:
     HDINLINE
     FramePtr mapPtr( const FramePtr& devPtr ) const
     {
-#ifndef __CUDA_ARCH__
+#if( !defined(__CUDA_ARCH__) && __HIP_DEVICE_COMPILE__ == 0 )
         int64_t useOffset = hostMemoryOffset * static_cast<int64_t> (devPtr.ptr != 0);
         return FramePtr( reinterpret_cast<FrameType*> (
                                                        reinterpret_cast<char*> (devPtr.ptr) - useOffset
@@ -216,7 +218,7 @@ public:
 
         frame->previousFrame = FramePtr( );
         frame->nextFrame = FramePtr( *firstFrameNativPtr );
-#if( PMACC_CUDA_ENABLED == 1 )
+#if( PMACC_CUDA_ENABLED == 1 || BOOST_COMP_HIP)
         /* - takes care that `next[index]` is visible to all threads on the gpu
          * - this is needed because later on in this method we change `previous`
          *   of an other frame, this must be done in order!
@@ -264,7 +266,7 @@ public:
 
         frame->nextFrame = FramePtr( );
         frame->previousFrame = FramePtr( *lastFrameNativPtr );
-#if( PMACC_CUDA_ENABLED == 1 )
+#if( PMACC_CUDA_ENABLED == 1 || BOOST_COMP_HIP)
         /* - takes care that `next[index]` is visible to all threads on the gpu
          * - this is needed because later on in this method we change `next`
          *   of an other frame, this must be done in order!

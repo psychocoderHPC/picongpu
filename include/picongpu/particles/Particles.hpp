@@ -49,7 +49,7 @@ namespace picongpu
 {
 using namespace pmacc;
 
-#if( PMACC_CUDA_ENABLED != 1 )
+#if( PMACC_CUDA_ENABLED != 1 && 0)
 /* dummy because we are not using mallocMC with cupla
  * DeviceHeap is defined in `mallocMC.param`
  */
@@ -170,7 +170,7 @@ public:
         T_SrcFilterFunctor& srcFilterFunctor
     );
 
-    SimulationDataId getUniqueId();
+    SimulationDataId getUniqueId() override;
 
     /* sync device data to host
      *
@@ -178,9 +178,9 @@ public:
      *            - the shared (between all species) mallocMC buffer must be copied once
      *              by the user
      */
-    void synchronize();
+    void synchronize() override;
 
-    void syncToDevice();
+    void syncToDevice() override;
 
     static pmacc::traits::StringProperty getStringProperties()
     {

@@ -50,20 +50,20 @@ namespace CUDA
   class error : public std::runtime_error
   {
   private:
-    static std::string genErrorString(cudaError errorValue, const char* file, int line)
+    static std::string genErrorString(hipError_t errorValue, const char* file, int line)
     {
       std::ostringstream msg;
-      msg << file << '(' << line << "): error: " << cudaGetErrorString(errorValue);
+      msg << file << '(' << line << "): error: " << hipGetErrorString(errorValue);
       return msg.str();
     }
   public:
-    error(cudaError errorValue, const char* file, int line)
+    error(hipError_t errorValue, const char* file, int line)
       : runtime_error(genErrorString(errorValue, file, line))
     {
     }
 
-    error(cudaError errorValue)
-      : runtime_error(cudaGetErrorString(errorValue))
+    error(hipError_t errorValue)
+      : runtime_error(hipGetErrorString(errorValue))
     {
     }
 
@@ -73,21 +73,21 @@ namespace CUDA
     }
   };
 
-  inline void checkError(cudaError errorValue, const char* file, int line)
+  inline void checkError(hipError_t errorValue, const char* file, int line)
   {
-    if (errorValue != cudaSuccess)
+    if (errorValue != hipSuccess)
       throw CUDA::error(errorValue, file, line);
   }
 
   inline void checkError(const char* file, int line)
   {
-    checkError(cudaGetLastError(), file, line);
+    checkError(hipGetLastError(), file, line);
   }
 
   inline void checkError()
   {
-    cudaError errorValue = cudaGetLastError();
-    if (errorValue != cudaSuccess)
+    hipError_t errorValue = hipGetLastError();
+    if (errorValue != hipSuccess)
       throw CUDA::error(errorValue);
   }
 
@@ -114,13 +114,20 @@ namespace mallocMC
 
   typedef mallocMC::__PointerEquivalent<sizeof(char*)>::type PointerEquivalent;
 
-
+// https://github.com/ROCm-Developer-Tools/HIP/blob/master/include/hip/hcc_detail/device_functions.h
+#ifdef __HIP__
+  MAMC_ACCELERATOR inline boost::uint32_t laneid()
+  {
+    return __lane_id();
+  }
+#else
   MAMC_ACCELERATOR inline boost::uint32_t laneid()
   {
     boost::uint32_t mylaneid;
     asm("mov.u32 %0, %%laneid;" : "=r" (mylaneid));
     return mylaneid;
   }
+#endif
 
   /** warp index within a multiprocessor
    *
@@ -129,71 +136,48 @@ namespace mallocMC
    *
    * @return current index of the warp
    */
+#ifdef __HIP__
+  MAMC_ACCELERATOR inline boost::uint32_t warpid()
+  {
+      return 0;
+  }
+#else
   MAMC_ACCELERATOR inline boost::uint32_t warpid()
   {
     boost::uint32_t mywarpid;
     asm("mov.u32 %0, %%warpid;" : "=r" (mywarpid));
     return mywarpid;
   }
+#endif
 
-  /** maximum number of warps on a multiprocessor
-   *
-   * @return maximum number of warps on a multiprocessor
-   */
-  MAMC_ACCELERATOR inline boost::uint32_t nwarpid()
+#ifdef __HIP__
+  MAMC_ACCELERATOR inline boost::uint32_t smid()
   {
-    boost::uint32_t mynwarpid;
-    asm("mov.u32 %0, %%nwarpid;" : "=r" (mynwarpid));
-    return mynwarpid;
+    return __smid();
   }
-
+#else
   MAMC_ACCELERATOR inline boost::uint32_t smid()
   {
     boost::uint32_t mysmid;
     asm("mov.u32 %0, %%smid;" : "=r" (mysmid));
     return mysmid;
   }
+#endif
 
-  MAMC_ACCELERATOR inline boost::uint32_t nsmid()
+#ifdef __HIP__
+  MAMC_ACCELERATOR inline boost::uint64_t lanemask_lt()
   {
-    boost::uint32_t mynsmid;
-    asm("mov.u32 %0, %%nsmid;" : "=r" (mynsmid));
-    return mynsmid;
+      return __lanemask_lt();
   }
-  MAMC_ACCELERATOR inline boost::uint32_t lanemask()
-  {
-    boost::uint32_t lanemask;
-    asm("mov.u32 %0, %%lanemask_eq;" : "=r" (lanemask));
-    return lanemask;
-  }
-
-  MAMC_ACCELERATOR inline boost::uint32_t lanemask_le()
-  {
-    boost::uint32_t lanemask;
-    asm("mov.u32 %0, %%lanemask_le;" : "=r" (lanemask));
-    return lanemask;
-  }
-
+#else
   MAMC_ACCELERATOR inline boost::uint32_t lanemask_lt()
   {
     boost::uint32_t lanemask;
     asm("mov.u32 %0, %%lanemask_lt;" : "=r" (lanemask));
     return lanemask;
   }
+#endif
 
-  MAMC_ACCELERATOR inline boost::uint32_t lanemask_ge()
-  {
-    boost::uint32_t lanemask;
-    asm("mov.u32 %0, %%lanemask_ge;" : "=r" (lanemask));
-    return lanemask;
-  }
-
-  MAMC_ACCELERATOR inline boost::uint32_t lanemask_gt()
-  {
-    boost::uint32_t lanemask;
-    asm("mov.u32 %0, %%lanemask_gt;" : "=r" (lanemask));
-    return lanemask;
-  }
 
   template<class T>
   MAMC_HOST MAMC_ACCELERATOR inline T divup(T a, T b) { return (a + b - 1)/b; }
@@ -215,7 +199,7 @@ namespace mallocMC
   struct WarpSize
   {
     // valid for sm_2.X - sm_7.5
-    BOOST_STATIC_CONSTEXPR uint32_t value = 32;
+    BOOST_STATIC_CONSTEXPR uint32_t value = 64;
   };
 
   /** warp id within a cuda block
@@ -228,9 +212,9 @@ namespace mallocMC
   MAMC_ACCELERATOR inline boost::uint32_t warpid_withinblock()
   {
     return (
-      threadIdx.z * blockDim.y * blockDim.x +
-      threadIdx.y * blockDim.x +
-      threadIdx.x
+      hipThreadIdx_z * hipBlockDim_y * hipBlockDim_x +
+      hipThreadIdx_y * hipBlockDim_x +
+      hipThreadIdx_x
     ) / WarpSize::value;
   }
 }

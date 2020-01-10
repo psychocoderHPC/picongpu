@@ -104,7 +104,7 @@ namespace random
          * Returns the default id for this type
          */
         static std::string getName();
-        SimulationDataId getUniqueId();
+        SimulationDataId getUniqueId() final;
         void synchronize();
 
         /**

@@ -443,7 +443,7 @@ namespace detail
     {
         int num_gpus = 0; //number of gpus
         cudaGetDeviceCount(&num_gpus);
-#if (PMACC_CUDA_ENABLED == 1)
+#if (PMACC_CUDA_ENABLED == 1|| BOOST_COMP_HIP)
         //##ERROR handling
         if (num_gpus < 1) //check if cuda device is found
         {
@@ -465,9 +465,9 @@ namespace detail
             const int tryDeviceId = (deviceOffset + deviceNumber) % num_gpus;
 
             log<ggLog::CUDA_RT>("Trying to allocate device %1%.") % tryDeviceId;
-#if (PMACC_CUDA_ENABLED == 1)
-            cudaDeviceProp devProp;
-            CUDA_CHECK((cuplaError_t)cudaGetDeviceProperties(&devProp, tryDeviceId));
+#if (PMACC_CUDA_ENABLED == 1|| BOOST_COMP_HIP)
+            hipDeviceProp_t devProp;
+            CUDA_CHECK((cuplaError_t)hipGetDeviceProperties(&devProp, tryDeviceId));
 
             /* If the cuda gpu compute mode is 'default'
              * (https://docs.nvidia.com/cuda/cuda-c-programming-guide/#compute-modes)
@@ -475,7 +475,7 @@ namespace detail
              * The index used to select a device is based on the local MPI rank so
              * that each rank tries a different device.
              */
-            if (devProp.computeMode == cudaComputeModeDefault)
+            if (devProp.computeMode == hipComputeModeDefault)
             {
                 maxTries = 1;
                 log<ggLog::CUDA_RT>("Device %1% is running in default mode.") % tryDeviceId;
