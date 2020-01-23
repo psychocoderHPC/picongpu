@@ -96,6 +96,7 @@ namespace alpaka
 
                     inline hipError_t hipMemcpy3DEmulatedD2DAsync(hipMemcpy3DParms const * const p, hipStream_t stream)
                     {
+                        // width and pointer are a multiple of 4 byte
                         vec3D extent(p->extent.depth, p->extent.height, p->extent.width);
                         vec2D dstPitch(p->dstPtr.pitch * p->dstPtr.ysize,p->dstPtr.pitch);
                         vec2D srcPitch(p->srcPtr.pitch * p->srcPtr.ysize,p->srcPtr.pitch);
@@ -119,8 +120,6 @@ namespace alpaka
                                 grid.x = divUp(divUp(extent[2], 4u), block.x);
                             }
 
-                          //  std::cout<<"copy 4" << extent<< "pitch" <<dstPitch<< "grid ("<<grid.x<<","<<grid.y<<","<<grid.z<<")"
-                           //     << "block ("<<block.x<<","<<block.y<<","<<block.z<<")"<< std::endl;
                             hipLaunchKernelGGL(
                                 HIP_KERNEL_NAME(hipMemcpy3DEmulatedKernelD2D<int>),
                                 grid,
@@ -136,7 +135,7 @@ namespace alpaka
                         }
                         else
                         {
-                            std::cout<<"copy 1" << extent<< std::endl;
+                            // byte wise copy due to not aligned memory or width
                             dim3 block(std::min(extent[2], size_t(256u)));
                             dim3 grid(1, extent[1], extent[0]);
                             if(extent[1] * extent[0] < 100)
@@ -1066,7 +1065,9 @@ namespace alpaka
                             &hipMemCpy3DParms));
 #else
 
-                    if(iDstDev == iSrcDev && task.m_hipMemCpyKind == hipMemcpyDeviceToDevice)
+                    if(iDstDev == iSrcDev && task.m_hipMemCpyKind == hipMemcpyDeviceToDevice &&
+                       (hipMemCpy3DParms.extent.width != hipMemCpy3DParms.dstPtr.pitch ||
+                       hipMemCpy3DParms.extent.width != hipMemCpy3DParms.srcPtr.pitch))
                     {
                         // Initiate the memory copy.
                         ALPAKA_HIP_RT_CHECK(
@@ -1136,7 +1137,9 @@ namespace alpaka
                             &hipMemCpy3DParms));
 
 #else
-                    if(iDstDev == iSrcDev && task.m_hipMemCpyKind == hipMemcpyDeviceToDevice)
+                    if(iDstDev == iSrcDev && task.m_hipMemCpyKind == hipMemcpyDeviceToDevice &&
+                       (hipMemCpy3DParms.extent.width != hipMemCpy3DParms.dstPtr.pitch ||
+                       hipMemCpy3DParms.extent.width != hipMemCpy3DParms.srcPtr.pitch))
                     {
                         // Initiate the memory copy.
                         ALPAKA_HIP_RT_CHECK(
