@@ -107,7 +107,7 @@ namespace DistributionPolicies{
 #if(__CUDACC_VER_MAJOR__ >= 9)
         threadcount = __popc(__ballot_sync(__activemask(), coalescible));
 #else
-        threadcount = __popc(__ballot(coalescible));
+        threadcount = __popcll(__ballot64(coalescible));
 #endif
         if (coalescible && threadcount > 1)
         {
