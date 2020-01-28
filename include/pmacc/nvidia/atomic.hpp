@@ -23,7 +23,7 @@
 
 
 #include "pmacc/types.hpp"
-#if( BOOST_LANG_CUDA )
+#if( BOOST_LANG_CUDA || BOOST_COMP_HIP)
 #   include "pmacc/nvidia/warp.hpp"
 #endif
 #include <boost/type_traits.hpp>
@@ -48,7 +48,7 @@ namespace nvidia
             }
         };
 
-#if PMACC_CUDA_ARCH >= 300
+#if PMACC_CUDA_ARCH >= 300 || BOOST_COMP_HIP
        /**
          * Trait that returns whether an optimized version of AtomicAllInc
          * exists for Kepler architectures (and up)
@@ -91,19 +91,34 @@ namespace nvidia
                 /* Get a bitmask with 1 for each thread in the warp, that executes this */
 #if(__CUDACC_VER_MAJOR__ >= 9)
                 const int mask = __activemask();
-#else
-                const int mask = __ballot(1);
-#endif
                 /* select the leader */
                 const int leader = __ffs(mask) - 1;
+#elif BOOST_COMP_HIP
+                const uint64_t mask = __ballot64(1);
+                /* select the leader */
+                const int leader = __ffsll(static_cast<unsigned long long int>(mask)) - 1;
+#else
+                const int mask = __ballot(1);
+                /* select the leader */
+                const int leader = __ffs(mask) - 1;
+#endif
+
                 T_Type result;
                 const int laneId = getLaneId();
                 /* Get the start value for this warp */
+#if BOOST_COMP_HIP
+                if (laneId == leader)
+                    result = ::alpaka::atomic::atomicOp<::alpaka::atomic::op::Add>(acc,ptr, static_cast<T_Type>(__popcll(mask)), hierarchy);
+                result = warpBroadcast(result, leader);
+                /* Add offset per thread */
+                return result + static_cast<T_Type>(__popcll(mask & ((1llu << laneId) - 1llu)));
+#else
                 if (laneId == leader)
                     result = ::alpaka::atomic::atomicOp<::alpaka::atomic::op::Add>(acc,ptr, static_cast<T_Type>(__popc(mask)), hierarchy);
                 result = warpBroadcast(result, leader);
                 /* Add offset per thread */
                 return result + static_cast<T_Type>(__popc(mask & ((1 << laneId) - 1)));
+#endif
             }
         };
 
@@ -150,7 +165,7 @@ template<typename T, typename T_Acc, typename T_Hierarchy>
 HDINLINE
 T atomicAllInc(const T_Acc& acc, T *ptr, const T_Hierarchy& hierarchy)
 {
-    return detail::AtomicAllInc<T, (PMACC_CUDA_ARCH >= 300) >()(acc, ptr, hierarchy);
+    return detail::AtomicAllInc<T, (PMACC_CUDA_ARCH >= 300 || BOOST_COMP_HIP) >()(acc, ptr, hierarchy);
 }
 
 template<typename T>
@@ -183,14 +198,20 @@ template<typename T_Type, typename T_Acc, typename T_Hierarchy>
 DINLINE void
 atomicAllExch(const T_Acc& acc, T_Type* ptr, const T_Type value, const T_Hierarchy& hierarchy)
 {
-#if (__CUDA_ARCH__ >= 200)
+#if (__CUDA_ARCH__ >= 200 || BOOST_COMP_HIP)
 #   if(__CUDACC_VER_MAJOR__ >= 9)
     const int mask = __activemask();
-#   else
-    const int mask = __ballot(1);
-#   endif
     // select the leader
     const int leader = __ffs(mask) - 1;
+#   elif BOOST_COMP_HIP
+    const uint64_t mask = __ballot64(1);
+    // select the leader
+    const int leader = __ffsll(static_cast<unsigned long long int>(mask)) - 1;
+#   else
+    const int mask = __ballot(1);
+    // select the leader
+    const int leader = __ffs(mask) - 1;
+#   endif
     // leader does the update
     if (getLaneId() == leader)
 #endif

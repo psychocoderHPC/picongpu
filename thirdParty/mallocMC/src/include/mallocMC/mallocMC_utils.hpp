@@ -138,9 +138,17 @@ namespace mallocMC
    * @return current index of the warp
    */
 #ifdef __HIP__
+  // get wave id https://github.com/ROCm-Developer-Tools/HIP/blob/f72a669487dd352e45321c4b3038f8fe2365c236/include/hip/hcc_detail/device_functions.h#L974-L1024
+  __device__
+  inline
+  boost::uint32_t wave_id(void)
+  {
+      return __builtin_amdgcn_s_getreg(
+              GETREG_IMMED(3, 0, 4));
+  }
   MAMC_ACCELERATOR inline boost::uint32_t warpid()
   {
-      return 0;
+      return wave_id();
   }
 #else
   MAMC_ACCELERATOR inline boost::uint32_t warpid()
