@@ -77,6 +77,12 @@ SET(_ALPAKA_FOUND TRUE)
 # Add module search path
 SET(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${_ALPAKA_ROOT_DIR}/cmake/modules/")
 
+option(ALPAKA_EMU_MEMCPY3D "Emulate hipMemcpy3D(async) with a kernel" ON)
+
+if(ALPAKA_EMU_MEMCPY3D)
+    add_definitions(-DALPAKA_EMU_MEMCPY3D=1)
+endif()
+
 #-------------------------------------------------------------------------------
 # Options.
 SET(ALPAKA_ACC_CPU_B_SEQ_T_SEQ_ENABLE_DEFAULT ON)
@@ -855,7 +861,7 @@ IF(ALPAKA_ACC_GPU_HIP_ENABLE)
                 LIST(APPEND _ALPAKA_LINK_LIBRARIES_PUBLIC "${HIP_RAND_LIBRARY}")
             ENDIF() # nvcc
 
-            IF(ALPAKA_HIP_PLATFORM MATCHES "hcc")
+            IF(ALPAKA_HIP_PLATFORM MATCHES "hcc" OR ALPAKA_HIP_PLATFORM MATCHES "clang")
 
                 # random numbers library ( HIP(HCC) ) /rocrand
                 FIND_PATH(ROC_RAND_INC
@@ -1007,7 +1013,7 @@ IF(ALPAKA_ACC_GPU_HIP_ENABLE)
         LIST(REMOVE_ITEM _ALPAKA_LINK_FLAGS_PUBLIC "${OpenMP_CXX_FLAGS}")
         LIST(APPEND _ALPAKA_LINK_FLAGS_PUBLIC "-Xcompiler ${OpenMP_CXX_FLAGS}")
     ENDIF()
-    IF(ALPAKA_HIP_PLATFORM MATCHES "hcc")
+    IF(ALPAKA_HIP_PLATFORM MATCHES "hcc" OR ALPAKA_HIP_PLATFORM MATCHES "clang")
         # GFX600, GFX601, GFX700, GFX701, GFX702, GFX703, GFX704, GFX801, GFX802, GFX803, GFX810, GFX900, GFX902
         SET(_ALPAKA_LINK_LIBRARIES_PUBLIC "${_ALPAKA_LINK_LIBRARIES_PUBLIC}" "--amdgpu-target=gfx803 --amdgpu-target=gfx900 --amdgpu-target=gfx906")
     ENDIF()

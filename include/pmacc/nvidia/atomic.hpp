@@ -23,7 +23,7 @@
 
 
 #include "pmacc/types.hpp"
-#if( PMACC_CUDA_ENABLED == 1 )
+#if( BOOST_LANG_CUDA )
 #   include "pmacc/nvidia/warp.hpp"
 #endif
 #include <boost/type_traits.hpp>
@@ -157,8 +157,8 @@ template<typename T>
 HDINLINE
 T atomicAllInc(T *ptr)
 {
-#ifdef __CUDA_ARCH__
-    return atomicAllInc(alpaka::atomic::AtomicCudaBuiltIn(), ptr, ::alpaka::hierarchy::Grids());
+#if defined( __CUDA_ARCH__) || BOOST_COMP_HIP
+    return atomicAllInc(alpaka::atomic::AtomicHipBuiltIn(), ptr, ::alpaka::hierarchy::Grids());
 #else
     // assume that we can use the standard library atomics if we are not on gpu
     return atomicAllInc(alpaka::atomic::AtomicStdLibLock<16>(), ptr, ::alpaka::hierarchy::Grids());
@@ -197,6 +197,25 @@ atomicAllExch(const T_Acc& acc, T_Type* ptr, const T_Type value, const T_Hierarc
         ::alpaka::atomic::atomicOp<::alpaka::atomic::op::Exch>(acc, ptr, value, hierarchy);
 }
 
+template<typename T_Acc, typename T_Hierarchy>
+DINLINE float
+atomicAddEmulated(T_Acc const & acc, float* address, float const val, const T_Hierarchy&)
+{
+    unsigned  int * address_as_ull(reinterpret_cast<unsigned int *>(address));
+    unsigned  int old = __atomic_load_n(address_as_ull, __ATOMIC_RELAXED);
+    unsigned  int assumed;
+    do
+    {
+        assumed = old;
+        old = atomicCAS(
+            address_as_ull,
+            assumed,
+            static_cast<unsigned int>(__float_as_uint(val + __uint_as_float(static_cast<unsigned int>(assumed)))));
+        // Note: uses integer comparison to avoid hang in case of NaN (since NaN != NaN)
+    }
+    while(assumed != old);
+    return __uint_as_float(static_cast<unsigned int>(old));
+}
 
 } //namespace nvidia
 } //namespace pmacc

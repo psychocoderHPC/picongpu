@@ -24,10 +24,10 @@
 #include "pmacc/types.hpp"
 #include "pmacc/static_assert.hpp"
 
-#if( PMACC_CUDA_ENABLED != 1 )
+#if( PMACC_CUDA_ENABLED != 1  && !BOOST_COMP_HIP )
 #   include "pmacc/random/methods/AlpakaRand.hpp"
 #else
-#   include <curand_kernel.h>
+#   include <hiprand_kernel.h>
 #endif
 
 
@@ -38,7 +38,8 @@ namespace random
 namespace methods
 {
 
-#if( PMACC_CUDA_ENABLED != 1 )
+// for hip use our random generator
+#if( PMACC_CUDA_ENABLED != 1  && !BOOST_COMP_HIP)
     //! fallback to alpaka RNG if a cpu accelerator is used
     template< typename T_Acc = cupla::Acc>
     using XorMin = AlpakaRand< T_Acc >;
@@ -63,14 +64,17 @@ namespace methods
             HDINLINE StateType( )
             { }
 
-            DINLINE StateType( curandStateXORWOW_t const & other ): d( other.d )
+            DINLINE StateType( hiprandStateXORWOW_t const & other )
             {
+                // @todo fix me this is a very dirty cast
+                const auto * tmp_state = reinterpret_cast<const rocrand_device::xorwow_engine::xorwow_state*>(&other);
+                d = tmp_state->d;
                 PMACC_STATIC_ASSERT_MSG(
-                    sizeof( v ) == sizeof( other.v ),
+                    sizeof( v ) == sizeof( tmp_state->x ),
                     Unexpected_sizes
                 );
                 for( unsigned i = 0; i < sizeof( v ) / sizeof( v[ 0 ] ); i++ )
-                    v[ i ] = other.v[ i ];
+                    v[ i ] = tmp_state->x[ i ];
             }
         };
 
@@ -82,8 +86,8 @@ namespace methods
             uint32_t subsequence = 0
         ) const
         {
-            curandStateXORWOW_t tmpState;
-            curand_init(
+            hiprandStateXORWOW_t tmpState;
+            hiprand_init(
                 seed,
                 subsequence,
                 0,

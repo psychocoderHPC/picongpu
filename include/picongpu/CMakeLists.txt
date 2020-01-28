@@ -233,6 +233,11 @@ set(PIC_VERBOSE "1" CACHE STRING
 add_definitions(-DPIC_VERBOSE_LVL=${PIC_VERBOSE})
 
 
+option(PIC_EMU_ATOMICADD "Emulate atomicAdd for float" ON)
+
+if(PIC_EMU_ATOMICADD)
+    add_definitions(-DPIC_EMU_ATOMICADD=1)
+endif()
 ################################################################################
 # ADIOS
 ################################################################################

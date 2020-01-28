@@ -107,10 +107,7 @@ namespace alpaka
                     dev::DevHipRt const m_dev;   //!< The device this queue is bound to.
                     hipStream_t m_HipQueue;
 
-#if BOOST_COMP_HCC  // NOTE: workaround for unwanted nonblocking hip streams for HCC (NVCC streams are blocking)
-                    int m_callees = 0;
-                    std::mutex m_mutex;
-#endif
+
                 };
             }
         }
@@ -147,10 +144,8 @@ namespace alpaka
             }
             //-----------------------------------------------------------------------------
             ALPAKA_FN_HOST ~QueueHipRtNonBlocking() {
-#if BOOST_COMP_HCC  // NOTE: workaround for unwanted nonblocking hip streams for HCC (NVCC streams are blocking)
-                // we are a non-blocking queue, so we have to wait here with its destruction until all spawned tasks have been processed
+
                 alpaka::wait::wait(*this);
-#endif
             }
 
         public:
@@ -270,65 +265,13 @@ namespace alpaka
                                 "Callbacks are not supported for HIP-clang");
 #endif
 
-#if BOOST_COMP_HCC  // NOTE: workaround for unwanted nonblocking hip streams for HCC (NVCC streams are blocking)
-                    {
-                        // thread-safe callee incrementing
-                        std::lock_guard<std::mutex> guard(queue.m_spQueueImpl->m_mutex);
-                        queue.m_spQueueImpl->m_callees += 1;
-                    }
-#endif
-                    auto pCallbackSynchronizationData = std::make_shared<CallbackSynchronizationData>();
-                    // test example: https://github.com/ROCm-Developer-Tools/HIP/blob/roc-1.9.x/tests/src/runtimeApi/stream/hipStreamAddCallback.cpp
-                    ALPAKA_HIP_RT_CHECK(hipStreamAddCallback(
-                        queue.m_spQueueImpl->m_HipQueue,
-                        hipRtCallback,
-                        pCallbackSynchronizationData.get(),
-                        0u));
+                    ALPAKA_HIP_RT_CHECK( hipStreamSynchronize(
+                            queue.m_spQueueImpl->m_HipQueue));
+                    task();
+                    ALPAKA_HIP_RT_CHECK( hipStreamSynchronize(
+                            queue.m_spQueueImpl->m_HipQueue));
 
-                    // We start a new std::thread which stores the task to be executed.
-                    // This circumvents the limitation that it is not possible to call HIP methods within the HIP callback thread.
-                    // The HIP thread signals the std::thread when it is ready to execute the task.
-                    // The HIP thread is waiting for the std::thread to signal that it is finished executing the task
-                    // before it executes the next task in the queue (HIP stream).
-                    std::thread t(
-                        [pCallbackSynchronizationData,
-                         task
-#if BOOST_COMP_HCC // NOTE: workaround for unwanted nonblocking hip streams for HCC (NVCC streams are blocking)
-                         ,&queue // requires queue's destructor to wait for all tasks
-#endif
-                        ](){
 
-#if BOOST_COMP_HCC // NOTE: workaround for unwanted nonblocking hip streams for HCC (NVCC streams are blocking)
-                            // thread-safe task execution and callee decrementing
-                            std::lock_guard<std::mutex> guard(queue.m_spQueueImpl->m_mutex);
-#endif
-
-                            // If the callback has not yet been called, we wait for it.
-                            {
-                                std::unique_lock<std::mutex> lock(pCallbackSynchronizationData->m_mutex);
-                                if(pCallbackSynchronizationData->state != CallbackState::notified)
-                                {
-                                    pCallbackSynchronizationData->m_event.wait(
-                                        lock,
-                                        [pCallbackSynchronizationData](){
-                                            return pCallbackSynchronizationData->state == CallbackState::notified;
-                                        }
-                                    );
-                                }
-
-                                task();
-
-                                // Notify the waiting HIP thread.
-                                pCallbackSynchronizationData->state = CallbackState::finished;
-                            }
-                            pCallbackSynchronizationData->m_event.notify_one();
-#if BOOST_COMP_HCC // NOTE: workaround for unwanted nonblocking hip streams for HCC (NVCC streams are blocking)
-                            queue.m_spQueueImpl->m_callees -= 1;
-#endif
-                        }
-                    );
-
-                    t.detach();
                 }
             };
             //#############################################################################
@@ -344,9 +287,6 @@ namespace alpaka
                 {
                     ALPAKA_DEBUG_MINIMAL_LOG_SCOPE;
 
-#if BOOST_COMP_HCC  // NOTE: workaround for unwanted nonblocking hip streams for HCC (NVCC streams are blocking)
-                    return (queue.m_spQueueImpl->m_callees==0);
-#else
 
                     // Query is allowed even for queues on non current device.
                     hipError_t ret = hipSuccess;
@@ -355,7 +295,6 @@ namespace alpaka
                             queue.m_spQueueImpl->m_HipQueue),
                         hipErrorNotReady);
                     return (ret == hipSuccess);
-#endif
                 }
             };
         }
@@ -379,15 +318,11 @@ namespace alpaka
                 {
                     ALPAKA_DEBUG_MINIMAL_LOG_SCOPE;
 
-#if BOOST_COMP_HCC  // NOTE: workaround for unwanted nonblocking hip streams for HCC (NVCC streams are blocking)
-                    while(queue.m_spQueueImpl->m_callees>0) {
-                        std::this_thread::sleep_for(std::chrono::milliseconds(10u));
-                    }
-#else
+
                     // Sync is allowed even for queues on non current device.
                     ALPAKA_HIP_RT_CHECK( hipStreamSynchronize(
                             queue.m_spQueueImpl->m_HipQueue));
-#endif
+
                 }
             };
         }

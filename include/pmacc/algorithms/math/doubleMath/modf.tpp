@@ -38,7 +38,7 @@ struct Modf<double>
 
     HDINLINE double operator()(double value, double* intpart)
     {
-#if __CUDA_ARCH__
+#if( defined(__CUDA_ARCH__) || __HIP_DEVICE_COMPILE__ == 1 ) //we are on gpu
         return ::modf(value, intpart);
 #else
         return std::modf(value, intpart);
