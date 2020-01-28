@@ -230,7 +230,14 @@ struct Esirkepov<T_ParticleShape, DIM3>
                                  */
                                 const float_X W = DS( line, k, 2 ) * tmp;
                                 accumulated_J += W;
-                                cupla::atomicAdd(acc, &( ( *cursorJ( i, j, k ) ).z() ), accumulated_J, ::alpaka::hierarchy::Threads{} );
+#if PIC_EMU_ATOMICADD && BOOST_COMP_HIP
+                                // atomic emulation based on CUDA programming guide is faster
+                                // speedup factor for shared memory: 1.1 and for global: 1.25
+                                nvidia::atomicAddEmulated(acc, &( ( *cursorJ( i, j, k ) ).z() ), accumulated_J, ::alpaka::hierarchy::Threads{});
+#else
+                                cupla::atomicAdd( &( ( *cursorJ( i, j, k ) ).z() ), accumulated_J, ::alpaka::hierarchy::Threads{} );
+#endif
+
                             }
                     }
             }

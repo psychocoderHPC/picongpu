@@ -61,7 +61,7 @@ cmake_minimum_required(VERSION 2.8.12.2)
 
 # dependencies ################################################################
 #
-find_package(CUDA 5.0 REQUIRED)
+#find_package(CUDA 5.0 REQUIRED)
 find_package(Boost 1.48.0 REQUIRED)
 
 
@@ -166,9 +166,9 @@ if(mallocMC_ROOT_DIR)
 
             # set separable compilation #############################################
             #
-            if(mallocMC_${COMPONENT}_FOUND)
-                set(CUDA_SEPARABLE_COMPILATION ON PARENT_SCOPE)
-            endif(mallocMC_${COMPONENT}_FOUND)
+            #if(mallocMC_${COMPONENT}_FOUND)
+            #    set(CUDA_SEPARABLE_COMPILATION ON PARENT_SCOPE)
+            #endif(mallocMC_${COMPONENT}_FOUND)
 
             mark_as_advanced(mallocMC_${COMPONENT}_INCLUDE_DIR mallocMC_${COMPONENT}_LIBRARY)
         endif(${COMPONENT} STREQUAL "halloc")
