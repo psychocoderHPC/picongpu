@@ -233,7 +233,7 @@ void FieldJ::assign( ValueType value )
 template<uint32_t T_area, class T_Species>
 void FieldJ::computeCurrent( T_Species & species, uint32_t )
 {
-#if BOOST_COMP_HIP
+#if BOOST_COMP_HIP && !defined(PIC_DISABLE_COMPUTE_CURRENT_THREAD_LIMITER)
     // wrong results more than 256 threads are used
     constexpr int workerMultiplier = 1;
 #else
