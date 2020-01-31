@@ -24,7 +24,7 @@
 #include "pmacc/types.hpp"
 #include "pmacc/static_assert.hpp"
 
-#if( PMACC_CUDA_ENABLED != 1  && !BOOST_COMP_HIP )
+#if( !BOOST_LANG_CUDA && !BOOST_COMP_HIP)
 #   include "pmacc/random/methods/AlpakaRand.hpp"
 #else
 #   include <hiprand_kernel.h>
@@ -39,7 +39,7 @@ namespace methods
 {
 
 // for hip use our random generator
-#if( PMACC_CUDA_ENABLED != 1  && !BOOST_COMP_HIP)
+#if( !BOOST_LANG_CUDA && !BOOST_COMP_HIP)
     //! fallback to alpaka RNG if a cpu accelerator is used
     template< typename T_Acc = cupla::Acc>
     using XorMin = AlpakaRand< T_Acc >;
@@ -63,7 +63,7 @@ namespace methods
 
             HDINLINE StateType( )
             { }
-
+#if BOOST_COMP_HIP
             DINLINE StateType( hiprandStateXORWOW_t const & other )
             {
                 // @todo fix me this is a very dirty cast
@@ -76,8 +76,21 @@ namespace methods
                 for( unsigned i = 0; i < sizeof( v ) / sizeof( v[ 0 ] ); i++ )
                     v[ i ] = tmp_state->x[ i ];
             }
+#elif BOOST_LANG_CUDA
+            DINLINE StateType( curandStateXORWOW_t const & other ): d( other.d )
+            {
+                PMACC_STATIC_ASSERT_MSG(
+                    sizeof( v ) == sizeof( other.v ),
+                    Unexpected_sizes
+                );
+                for( unsigned i = 0; i < sizeof( v ) / sizeof( v[ 0 ] ); i++ )
+                    v[ i ] = other.v[ i ];
+            }
+
+#endif
         };
 
+#if BOOST_COMP_HIP
         DINLINE void
         init(
             T_Acc const & acc,
@@ -95,7 +108,25 @@ namespace methods
             );
             state = tmpState;
         }
-
+#elif BOOST_LANG_CUDA
+        DINLINE void
+        init(
+            T_Acc const & acc,
+            StateType & state,
+            uint32_t seed,
+            uint32_t subsequence = 0
+        ) const
+        {
+            curandStateXORWOW_t tmpState;
+            curand_init(
+                seed,
+                subsequence,
+                0,
+                &tmpState
+            );
+            state = tmpState;
+        }
+#endif
         DINLINE uint32_t
         get32Bits(
             T_Acc const & acc,
