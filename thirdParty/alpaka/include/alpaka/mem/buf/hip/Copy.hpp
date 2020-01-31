@@ -1060,7 +1060,7 @@ namespace alpaka
                         // Checks if devices are connected via PCIe switch and enable P2P access then.
                         alpaka::mem::view::hip::detail::enablePeerAccessIfPossible(iSrcDev, iDstDev);
                     }
-#if __HIP_PLATFORM_NVCC__ || !ALPAKA_EMU_MEMCPY3D
+#if defined(__HIP_PLATFORM_NVCC__) || !ALPAKA_EMU_MEMCPY3D
                         // Initiate the memory copy.
                         ALPAKA_HIP_RT_CHECK(
                             hipMemcpy3DAsync(
@@ -1134,7 +1134,7 @@ namespace alpaka
                         alpaka::mem::view::hip::detail::enablePeerAccessIfPossible(iSrcDev, iDstDev);
                     }
 
-#if __HIP_PLATFORM_NVCC__ || !ALPAKA_EMU_MEMCPY3D
+#if defined(__HIP_PLATFORM_NVCC__) || !ALPAKA_EMU_MEMCPY3D
                     // Initiate the memory copy.
                     ALPAKA_HIP_RT_CHECK(
                         hipMemcpy3DAsync(
