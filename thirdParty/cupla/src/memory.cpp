@@ -154,7 +154,7 @@ cuplaMallocHost(
         cupla::AlpakaDim<1u>
     >::get().alloc( extent );
 
-#if(defined(ALPAKA_ACC_GPU_CUDA_ENABLED) || BOOST_COMP_HIP)
+#if(ALPAKA_ACC_GPU_CUDA_ENABLED || ALPAKA_ACC_GPU_HIP_ENABLED)
     // only implemented if nvcc is used
     ::alpaka::mem::buf::pin( buf );
 #endif
