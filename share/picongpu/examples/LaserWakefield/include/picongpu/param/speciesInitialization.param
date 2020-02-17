@@ -42,7 +42,7 @@ namespace particles
     using InitPipeline = bmpl::vector<
 #if( PARAM_IONIZATION == 0 )
         CreateDensity<
-            densityProfiles::Gaussian,
+            densityProfiles::LoadPng_e,
             startPosition::Random2ppc,
             PIC_Electrons
         >

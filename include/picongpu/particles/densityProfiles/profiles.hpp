@@ -28,6 +28,10 @@
 #include "picongpu/particles/densityProfiles/SphereFlanksImpl.hpp"
 #include "picongpu/particles/densityProfiles/EveryNthCellImpl.hpp"
 
+#if( PIC_ENABLE_PNG == 1 )
+#   include "picongpu/particles/densityProfiles/FromPNGImpl.hpp"
+#endif
+
 #if( ENABLE_HDF5 == 1 )
 #    include "picongpu/particles/densityProfiles/FromHDF5Impl.hpp"
 #endif

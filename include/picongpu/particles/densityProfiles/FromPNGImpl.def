@@ -1,4 +1,4 @@
-/* Copyright 2014-2020 Axel Huebl, Rene Widera
+/** Copyright 2014-2019 Rene Widera
  *
  * This file is part of PIConGPU.
  *
@@ -17,15 +17,16 @@
  * If not, see <http://www.gnu.org/licenses/>.
  */
 
-#pragma once
 
-#ifndef PARAM_DIMENSION
-#define PARAM_DIMENSION DIM2
-#endif
+ #pragma once
 
-#define SIMDIM PARAM_DIMENSION
-
-namespace picongpu
+ namespace picongpu
 {
-    constexpr uint32_t simDim = SIMDIM;
-} // namespace picongpu
+
+ namespace densityProfiles
+{
+    template<typename T_ParamClass>
+    struct FromPNGImpl;
+
+} //namespace densityProfiles
+} //namespace picongpu

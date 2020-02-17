@@ -58,7 +58,7 @@ using UsedField2Particle = FieldToParticleInterpolation< UsedParticleShape, Assi
  *   without optimization (~4x slower and needs more shared memory)
  */
 #ifndef PARAM_CURRENTSOLVER
-#define PARAM_CURRENTSOLVER Esirkepov
+#define PARAM_CURRENTSOLVER EmZ
 #endif
 using UsedParticleCurrentSolver = currentSolver::PARAM_CURRENTSOLVER< UsedParticleShape >;
 

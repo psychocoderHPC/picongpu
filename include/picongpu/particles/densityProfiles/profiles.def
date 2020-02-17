@@ -28,3 +28,4 @@
 #include "picongpu/particles/densityProfiles/SphereFlanksImpl.def"
 #include "picongpu/particles/densityProfiles/EveryNthCellImpl.def"
 #include "picongpu/particles/densityProfiles/FromHDF5Impl.def"
+#include "picongpu/particles/densityProfiles/FromPNGImpl.def"

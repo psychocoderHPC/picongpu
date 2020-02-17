@@ -80,5 +80,13 @@ namespace densityProfiles
 
     /* definition of density with Gaussian profile */
     using Gaussian = GaussianImpl< GaussianParameter >;
+
+    struct ElectronFile
+    {
+       // filter name
+       static constexpr char const * filename = "../e.png";
+    };
+
+    using LoadPng_e = FromPNGImpl<ElectronFile>;
 }
 }
