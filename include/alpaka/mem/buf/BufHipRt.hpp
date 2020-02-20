@@ -26,7 +26,9 @@
 #include <alpaka/dim/DimIntegralConst.hpp>
 #include <alpaka/mem/buf/Traits.hpp>
 
+#include <functional>
 #include <memory>
+#include <type_traits>
 
 namespace alpaka
 {
@@ -205,7 +207,7 @@ namespace alpaka
             struct GetExtent<
                 TIdxIntegralConst,
                 mem::buf::BufHipRt<TElem, TDim, TIdx>,
-                typename std::enable_if<(TDim::value > TIdxIntegralConst::value)>::type>
+                std::enable_if_t<(TDim::value > TIdxIntegralConst::value)>>
             {
                 //-----------------------------------------------------------------------------
                 ALPAKA_FN_HOST static auto getExtent(
@@ -453,7 +455,7 @@ namespace alpaka
                                 static_cast<std::size_t>(extent::getHeight(extent)),
                                 static_cast<std::size_t>(extent::getDepth(extent))));
 
-                        hipPitchedPtr hipPitchedPtrVal = {0};
+                        hipPitchedPtr hipPitchedPtrVal;
 
                         //FIXME: hcc cannot handle zero-size input
                         if(hipExtentVal.width!=0

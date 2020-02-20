@@ -23,11 +23,16 @@
     #include <alpaka/core/Cuda.hpp>
 #endif
 
+#if defined(ALPAKA_ACC_GPU_HIP_ENABLED) && BOOST_LANG_HIP
+    #include <alpaka/core/Hip.hpp>
+#endif
+
 #include <alpaka/mem/alloc/AllocCpuBoostAligned.hpp>
 
 #include <alpaka/meta/DependentFalseType.hpp>
 
 #include <memory>
+#include <type_traits>
 
 namespace alpaka
 {
@@ -248,7 +253,7 @@ namespace alpaka
             struct GetExtent<
                 TIdxIntegralConst,
                 mem::buf::BufCpu<TElem, TDim, TIdx>,
-                typename std::enable_if<(TDim::value > TIdxIntegralConst::value)>::type>
+                std::enable_if_t<(TDim::value > TIdxIntegralConst::value)>>
             {
                 //-----------------------------------------------------------------------------
                 ALPAKA_FN_HOST static auto getExtent(

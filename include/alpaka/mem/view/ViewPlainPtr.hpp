@@ -16,6 +16,8 @@
 #include <alpaka/dev/DevCudaRt.hpp>
 #include <alpaka/dev/DevHipRt.hpp>
 
+#include <type_traits>
+
 namespace alpaka
 {
     namespace mem
@@ -205,7 +207,7 @@ namespace alpaka
             struct GetExtent<
                 TIdxIntegralConst,
                 mem::view::ViewPlainPtr<TDev, TElem, TDim, TIdx>,
-                typename std::enable_if<(TDim::value > TIdxIntegralConst::value)>::type>
+                std::enable_if_t<(TDim::value > TIdxIntegralConst::value)>>
             {
                 ALPAKA_NO_HOST_ACC_WARNING
                 ALPAKA_FN_HOST_ACC
@@ -259,7 +261,7 @@ namespace alpaka
                 struct GetPitchBytes<
                     TIdxIntegralConst,
                     mem::view::ViewPlainPtr<TDev, TElem, TDim, TIdx>,
-                    typename std::enable_if<TIdxIntegralConst::value < TDim::value>::type>
+                    std::enable_if_t<TIdxIntegralConst::value < TDim::value>>
                 {
                     ALPAKA_FN_HOST static auto getPitchBytes(
                         mem::view::ViewPlainPtr<TDev, TElem, TDim, TIdx> const & view)
@@ -283,9 +285,6 @@ namespace alpaka
                         TElem * pMem,
                         dev::DevCpu const & dev,
                         TExtent const & extent)
-#ifdef BOOST_NO_CXX14_RETURN_TYPE_DEDUCTION
-                    -> alpaka::mem::view::ViewPlainPtr<dev::DevCpu, TElem, alpaka::dim::Dim<TExtent>, alpaka::idx::Idx<TExtent>>
-#endif
                     {
                         return
                             alpaka::mem::view::ViewPlainPtr<
@@ -314,9 +313,6 @@ namespace alpaka
                         TElem * pMem,
                         dev::DevCudaRt const & dev,
                         TExtent const & extent)
-#ifdef BOOST_NO_CXX14_RETURN_TYPE_DEDUCTION
-                    -> alpaka::mem::view::ViewPlainPtr<dev::DevCudaRt, TElem, alpaka::dim::Dim<TExtent>, alpaka::idx::Idx<TExtent>>
-#endif
                     {
                         TElem* pMemAcc(nullptr);
                         ALPAKA_CUDA_RT_CHECK(
@@ -351,9 +347,6 @@ namespace alpaka
                         TElem * pMem,
                         dev::DevHipRt const & dev,
                         TExtent const & extent)
-#ifdef BOOST_NO_CXX14_RETURN_TYPE_DEDUCTION
-                    -> alpaka::mem::view::ViewPlainPtr<dev::DevHipRt, TElem, alpaka::dim::Dim<TExtent>, alpaka::idx::Idx<TExtent>>
-#endif
                     {
                         TElem* pMemAcc(nullptr);
 #ifdef __HIP_PLATFORM_NVCC__

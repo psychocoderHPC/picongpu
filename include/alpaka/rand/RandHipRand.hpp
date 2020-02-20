@@ -74,6 +74,8 @@ namespace alpaka
                             &m_State);
                     }
 
+                    ALPAKA_FN_HOST_ACC ~Xor(){}
+
                 public:
                     hiprandStateXORWOW_t m_State;
                 };
@@ -235,8 +237,8 @@ namespace alpaka
                 struct CreateNormalReal<
                     RandHipRand,
                     T,
-                    typename std::enable_if<
-                        std::is_floating_point<T>::value>::type>
+                    std::enable_if_t<
+                        std::is_floating_point<T>::value>>
                 {
                     //-----------------------------------------------------------------------------
 
@@ -254,8 +256,8 @@ namespace alpaka
                 struct CreateUniformReal<
                     RandHipRand,
                     T,
-                    typename std::enable_if<
-                        std::is_floating_point<T>::value>::type>
+                    std::enable_if_t<
+                        std::is_floating_point<T>::value>>
                 {
                     //-----------------------------------------------------------------------------
 
@@ -273,8 +275,8 @@ namespace alpaka
                 struct CreateUniformUint<
                     RandHipRand,
                     T,
-                    typename std::enable_if<
-                        std::is_integral<T>::value>::type>
+                    std::enable_if_t<
+                        std::is_integral<T>::value>>
                 {
                     //-----------------------------------------------------------------------------
 

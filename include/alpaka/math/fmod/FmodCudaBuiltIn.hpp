@@ -46,15 +46,14 @@ namespace alpaka
                 FmodCudaBuiltIn,
                 Tx,
                 Ty,
-                typename std::enable_if<
+                std::enable_if_t<
                     std::is_floating_point<Tx>::value
-                    && std::is_floating_point<Ty>::value>::type>
+                    && std::is_floating_point<Ty>::value>>
             {
                 __device__ static auto fmod(
                     FmodCudaBuiltIn const & fmod_ctx,
                     Tx const & x,
                     Ty const & y)
-                -> decltype(::fmod(x, y))
                 {
                     alpaka::ignore_unused(fmod_ctx);
                     return ::fmod(

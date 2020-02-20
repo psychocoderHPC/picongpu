@@ -44,13 +44,12 @@ namespace alpaka
             struct Abs<
                 AbsCudaBuiltIn,
                 TArg,
-                typename std::enable_if<
-                    std::is_floating_point<TArg>::value>::type>
+                std::enable_if_t<
+                    std::is_floating_point<TArg>::value>>
             {
                 __device__ static auto abs(
                     AbsCudaBuiltIn const & abs_ctx,
                     TArg const & arg)
-                -> decltype(::abs(arg))
                 {
                     alpaka::ignore_unused(abs_ctx);
                     return ::abs(arg);
@@ -65,7 +64,6 @@ namespace alpaka
                 __device__ static auto abs(
                     AbsCudaBuiltIn const & abs_ctx,
                     double const & arg)
-                -> decltype(::fabs(arg))
                 {
                     alpaka::ignore_unused(abs_ctx);
                     return ::fabs(arg);

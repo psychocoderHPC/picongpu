@@ -66,9 +66,6 @@ namespace alpaka
         template<
             typename TPltf>
         ALPAKA_FN_HOST auto getDevCount()
-#ifdef BOOST_NO_CXX14_RETURN_TYPE_DEDUCTION
-        -> decltype(traits::GetDevCount<TPltf>::getDevCount())
-#endif
         {
             return
                 traits::GetDevCount<
@@ -82,9 +79,6 @@ namespace alpaka
             typename TPltf>
         ALPAKA_FN_HOST auto getDevByIdx(
             std::size_t const & devIdx)
-#ifdef BOOST_NO_CXX14_RETURN_TYPE_DEDUCTION
-        -> decltype(traits::GetDevByIdx<TPltf>::getDevByIdx(devIdx))
-#endif
         {
             return
                 traits::GetDevByIdx<
@@ -121,7 +115,7 @@ namespace alpaka
             struct QueueType<
                 TPltf,
                 TProperty,
-                typename std::enable_if<concepts::ImplementsConcept<pltf::ConceptPltf, TPltf>::value>::type
+                std::enable_if_t<concepts::ImplementsConcept<pltf::ConceptPltf, TPltf>::value>
             >
             {
                 using type = typename QueueType<

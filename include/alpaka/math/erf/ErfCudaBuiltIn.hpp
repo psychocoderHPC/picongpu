@@ -44,13 +44,12 @@ namespace alpaka
             struct Erf<
                 ErfCudaBuiltIn,
                 TArg,
-                typename std::enable_if<
-                    std::is_floating_point<TArg>::value>::type>
+                std::enable_if_t<
+                    std::is_floating_point<TArg>::value>>
             {
                 __device__ static auto erf(
                     ErfCudaBuiltIn const & erf_ctx,
                     TArg const & arg)
-                -> decltype(::erf(arg))
                 {
                     alpaka::ignore_unused(erf_ctx);
                     return ::erf(arg);

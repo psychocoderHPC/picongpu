@@ -54,15 +54,14 @@ namespace alpaka
                 MaxHipBuiltIn,
                 Tx,
                 Ty,
-                typename std::enable_if<
+                std::enable_if_t<
                     std::is_integral<Tx>::value
-                    && std::is_integral<Ty>::value>::type>
+                    && std::is_integral<Ty>::value>>
             {
                 __device__ static auto max(
                     MaxHipBuiltIn const & max_ctx,
                     Tx const & x,
                     Ty const & y)
-                -> decltype(::max(x, y))
                 {
                     alpaka::ignore_unused(max_ctx);
                     return ::max(x, y);
@@ -77,17 +76,16 @@ namespace alpaka
                 MaxHipBuiltIn,
                 Tx,
                 Ty,
-                typename std::enable_if<
+                std::enable_if_t<
                     std::is_arithmetic<Tx>::value
                     && std::is_arithmetic<Ty>::value
                     && !(std::is_integral<Tx>::value
-                        && std::is_integral<Ty>::value)>::type>
+                        && std::is_integral<Ty>::value)>>
             {
                 __device__ static auto max(
                     MaxHipBuiltIn const & max_ctx,
                     Tx const & x,
                     Ty const & y)
-                -> decltype(::fmax(x, y))
                 {
                     alpaka::ignore_unused(max_ctx);
                     return ::fmax(x, y);
