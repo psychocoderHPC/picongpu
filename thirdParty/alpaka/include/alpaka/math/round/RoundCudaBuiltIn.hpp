@@ -44,13 +44,12 @@ namespace alpaka
             struct Round<
                 RoundCudaBuiltIn,
                 TArg,
-                typename std::enable_if<
-                    std::is_floating_point<TArg>::value>::type>
+                std::enable_if_t<
+                    std::is_floating_point<TArg>::value>>
             {
                 __device__ static auto round(
                     RoundCudaBuiltIn const & round_ctx,
                     TArg const & arg)
-                -> decltype(::round(arg))
                 {
                     alpaka::ignore_unused(round_ctx);
                     return ::round(arg);
@@ -63,8 +62,8 @@ namespace alpaka
             struct Lround<
                 RoundCudaBuiltIn,
                 TArg,
-                typename std::enable_if<
-                    std::is_floating_point<TArg>::value>::type>
+                std::enable_if_t<
+                    std::is_floating_point<TArg>::value>>
             {
                 __device__ static auto lround(
                     RoundCudaBuiltIn const & lround_ctx,
@@ -82,8 +81,8 @@ namespace alpaka
             struct Llround<
                 RoundCudaBuiltIn,
                 TArg,
-                typename std::enable_if<
-                    std::is_floating_point<TArg>::value>::type>
+                std::enable_if_t<
+                    std::is_floating_point<TArg>::value>>
             {
                 __device__ static auto llround(
                     RoundCudaBuiltIn const & llround_ctx,

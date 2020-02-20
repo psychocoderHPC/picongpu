@@ -44,13 +44,12 @@ namespace alpaka
             struct Ceil<
                 CeilCudaBuiltIn,
                 TArg,
-                typename std::enable_if<
-                    std::is_floating_point<TArg>::value>::type>
+                std::enable_if_t<
+                    std::is_floating_point<TArg>::value>>
             {
                 __device__ static auto ceil(
                     CeilCudaBuiltIn const & ceil_ctx,
                     TArg const & arg)
-                -> decltype(::ceil(arg))
                 {
                     alpaka::ignore_unused(ceil_ctx);
                     return ::ceil(arg);

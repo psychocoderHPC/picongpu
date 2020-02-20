@@ -56,15 +56,14 @@ namespace alpaka
                 MinHipBuiltIn,
                 Tx,
                 Ty,
-                typename std::enable_if<
+                std::enable_if_t<
                     std::is_integral<Tx>::value
-                    && std::is_integral<Ty>::value>::type>
+                    && std::is_integral<Ty>::value>>
             {
                 __device__ static auto min(
                     MinHipBuiltIn const & min_ctx,
                     Tx const & x,
                     Ty const & y)
-                -> decltype(::min(x, y))
                 {
                     alpaka::ignore_unused(min_ctx);
                     return ::min(x, y);
@@ -79,17 +78,16 @@ namespace alpaka
                 MinHipBuiltIn,
                 Tx,
                 Ty,
-                typename std::enable_if<
+                std::enable_if_t<
                     std::is_arithmetic<Tx>::value
                     && std::is_arithmetic<Ty>::value
                     && !(std::is_integral<Tx>::value
-                        && std::is_integral<Ty>::value)>::type>
+                        && std::is_integral<Ty>::value)>>
             {
                 __device__ static auto min(
                     MinHipBuiltIn const & min_ctx,
                     Tx const & x,
                     Ty const & y)
-                -> decltype(::fmin(x, y))
                 {
                     alpaka::ignore_unused(min_ctx);
                     return ::fmin(x, y);

@@ -10,6 +10,7 @@
 #pragma once
 
 #include <alpaka/alpaka.hpp>
+#include <alpaka/core/Unused.hpp>
 
 #include <mutex>
 #include <condition_variable>
@@ -528,24 +529,15 @@ namespace alpaka
                 {
                     //-----------------------------------------------------------------------------
                     ALPAKA_FN_HOST static auto isSupported(
-#if BOOST_LANG_CUDA >= BOOST_VERSION_NUMBER(9, 0, 0)
                         alpaka::dev::DevCudaRt const & dev)
-#else
-                        alpaka::dev::DevCudaRt const &)
-#endif
                     -> bool
                     {
-#if BOOST_LANG_CUDA >= BOOST_VERSION_NUMBER(9, 0, 0)
                         int result = 0;
                         cuDeviceGetAttribute(
                             &result,
                             CU_DEVICE_ATTRIBUTE_CAN_USE_STREAM_MEM_OPS,
                             dev.m_iDevice);
                         return result != 0;
-#else
-                        // In CUDA 8.0 there is no way to find out if those operations are really supported.
-                        return false;
-#endif
                     }
                 };
             }
@@ -934,7 +926,7 @@ namespace alpaka
                     //   on host updates may hang. This includes synchronization between the host and
                     //   the device build upon value-based CUDA queue synchronization APIs such as
                     //   cuStreamWaitValue32() and cuStreamWriteValue32().
-                    int32_t hostMem=0;
+                    uint32_t hostMem=0;
 #if ALPAKA_DEBUG >= ALPAKA_DEBUG_MINIMAL
                     std::cerr << "[Workaround] polling of device-located value in stream, as hipStreamWaitValue32 is not available.\n";
 #endif
@@ -959,6 +951,7 @@ namespace alpaka
                     test::event::EventHostManualTriggerHip & event)
                 -> void
                 {
+                    alpaka::ignore_unused(queue);
                     ALPAKA_DEBUG_MINIMAL_LOG_SCOPE;
 
                     // Copy the shared pointer to ensure that the event implementation is alive as long as it is enqueued.

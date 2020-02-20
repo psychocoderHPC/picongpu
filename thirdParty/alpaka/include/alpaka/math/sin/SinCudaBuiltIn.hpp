@@ -44,13 +44,12 @@ namespace alpaka
             struct Sin<
                 SinCudaBuiltIn,
                 TArg,
-                typename std::enable_if<
-                    std::is_floating_point<TArg>::value>::type>
+                std::enable_if_t<
+                    std::is_floating_point<TArg>::value>>
             {
                 __device__ static auto sin(
                     SinCudaBuiltIn const & sin_ctx,
                     TArg const & arg)
-                -> decltype(::sin(arg))
                 {
                     alpaka::ignore_unused(sin_ctx);
                     return ::sin(arg);

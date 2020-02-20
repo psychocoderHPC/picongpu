@@ -52,13 +52,12 @@ namespace alpaka
             struct Asin<
                 AsinHipBuiltIn,
                 TArg,
-                typename std::enable_if<
-                    std::is_floating_point<TArg>::value>::type>
+                std::enable_if_t<
+                    std::is_floating_point<TArg>::value>>
             {
                 __device__ static auto asin(
                     AsinHipBuiltIn const & asin_ctx,
                     TArg const & arg)
-                -> decltype(::asin(arg))
                 {
                     alpaka::ignore_unused(asin_ctx);
                     return ::asin(arg);

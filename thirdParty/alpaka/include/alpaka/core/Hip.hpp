@@ -22,7 +22,6 @@
 #include <alpaka/extent/Traits.hpp>
 #include <alpaka/idx/Traits.hpp>
 #include <alpaka/vec/Vec.hpp>
-#include <alpaka/meta/IntegerSequence.hpp>
 #include <alpaka/meta/Metafunctions.hpp>
 
 #include <hip/hip_runtime.h>
@@ -69,15 +68,7 @@ namespace alpaka
             //! HIP runtime API error checking with log and exception, ignoring specific error values
             // NOTE: All ignored errors have to be convertible to hipError_t.
             template<
-                typename... TErrors/*,
-                typename = typename std::enable_if<
-                    meta::Conjunction<
-                        std::true_type,
-                        std::is_convertible<
-                            TErrors,
-                            hipError_t
-                        >...
-                    >::value>::type*/>
+                typename... TErrors>
             ALPAKA_FN_HOST auto hipRtCheckIgnore(
                 hipError_t const & error,
                 char const * cmd,
@@ -88,8 +79,7 @@ namespace alpaka
             {
                 if(error != hipSuccess)
                 {
-                    // https://stackoverflow.com/questions/18792731/can-we-omit-the-double-braces-for-stdarray-in-c14/18792782#18792782
-                    std::array<hipError_t, sizeof...(ignoredErrorCodes)> const aIgnoredErrorCodes{{ignoredErrorCodes...}};
+                    std::array<hipError_t, sizeof...(ignoredErrorCodes)> const aIgnoredErrorCodes{ignoredErrorCodes...};
                     // If the error code is not one of the ignored ones.
                     if(std::find(aIgnoredErrorCodes.cbegin(), aIgnoredErrorCodes.cend(), error) == aIgnoredErrorCodes.cend())
                     {
@@ -221,7 +211,7 @@ namespace alpaka
                 typename T>
             struct DimType<
                 T,
-                typename std::enable_if<
+                std::enable_if_t<
                     std::is_same<T, char1>::value
                     || std::is_same<T, double1>::value
                     || std::is_same<T, float1>::value
@@ -229,7 +219,7 @@ namespace alpaka
                     || std::is_same<T, long1>::value
                     || std::is_same<T, longlong1>::value
                     || std::is_same<T, short1>::value
-                >::type>
+                >>
             {
                 using type = dim::DimInt<1u>;
             };
@@ -237,13 +227,13 @@ namespace alpaka
                 typename T>
             struct DimType<
                 T,
-                typename std::enable_if<
+                std::enable_if_t<
                     std::is_same<T, uchar1>::value
                     || std::is_same<T, uint1>::value
                     || std::is_same<T, ulong1>::value
                     || std::is_same<T, ulonglong1>::value
                     || std::is_same<T, ushort1>::value
-                >::type>
+                >>
             {
                 using type = dim::DimInt<1u>;
             };
@@ -253,7 +243,7 @@ namespace alpaka
                 typename T>
             struct DimType<
                 T,
-                typename std::enable_if<
+                std::enable_if_t<
                     std::is_same<T, char2>::value
                     || std::is_same<T, double2>::value
                     || std::is_same<T, float2>::value
@@ -261,7 +251,7 @@ namespace alpaka
                     || std::is_same<T, long2>::value
                     || std::is_same<T, longlong2>::value
                     || std::is_same<T, short2>::value
-                >::type>
+                >>
             {
                 using type = dim::DimInt<2u>;
             };
@@ -269,13 +259,13 @@ namespace alpaka
                 typename T>
             struct DimType<
                 T,
-                typename std::enable_if<
+                std::enable_if_t<
                     std::is_same<T, uchar2>::value
                     || std::is_same<T, uint2>::value
                     || std::is_same<T, ulong2>::value
                     || std::is_same<T, ulonglong2>::value
                     || std::is_same<T, ushort2>::value
-                >::type>
+                >>
             {
                 using type = dim::DimInt<2u>;
             };
@@ -285,7 +275,7 @@ namespace alpaka
                 typename T>
             struct DimType<
                 T,
-                typename std::enable_if<
+                std::enable_if_t<
                     std::is_same<T, char3>::value
                     || std::is_same<T, dim3>::value
                     || std::is_same<T, double3>::value
@@ -294,7 +284,7 @@ namespace alpaka
                     || std::is_same<T, long3>::value
                     || std::is_same<T, longlong3>::value
                     || std::is_same<T, short3>::value
-                >::type>
+                >>
             {
                 using type = dim::DimInt<3u>;
             };
@@ -302,13 +292,13 @@ namespace alpaka
                 typename T>
             struct DimType<
                 T,
-                typename std::enable_if<
+                std::enable_if_t<
                     std::is_same<T, uchar3>::value
                     || std::is_same<T, uint3>::value
                     || std::is_same<T, ulong3>::value
                     || std::is_same<T, ulonglong3>::value
                     || std::is_same<T, ushort3>::value
-                >::type>
+                >>
             {
                 using type = dim::DimInt<3u>;
             };
@@ -318,7 +308,7 @@ namespace alpaka
                 typename T>
             struct DimType<
                 T,
-                typename std::enable_if<
+                std::enable_if_t<
                     std::is_same<T, char4>::value
                     || std::is_same<T, double4>::value
                     || std::is_same<T, float4>::value
@@ -326,7 +316,7 @@ namespace alpaka
                     || std::is_same<T, long4>::value
                     || std::is_same<T, longlong4>::value
                     || std::is_same<T, short4>::value
-                >::type>
+                >>
             {
                 using type = dim::DimInt<4u>;
             };
@@ -334,13 +324,13 @@ namespace alpaka
                 typename T>
             struct DimType<
                 T,
-                typename std::enable_if<
+                std::enable_if_t<
                     std::is_same<T, uchar4>::value
                     || std::is_same<T, uint4>::value
                     || std::is_same<T, ulong4>::value
                     || std::is_same<T, ulonglong4>::value
                     || std::is_same<T, ushort4>::value
-                >::type>
+                >>
             {
                 using type = dim::DimInt<4u>;
             };
@@ -356,8 +346,8 @@ namespace alpaka
                 typename T>
             struct ElemType<
                 T,
-                typename std::enable_if<
-                    hip::traits::IsHipBuiltInType<T>::value>::type>
+                std::enable_if_t<
+                    hip::traits::IsHipBuiltInType<T>::value>>
             {
                 using type = decltype(std::declval<T>().x);
             };
@@ -374,14 +364,13 @@ namespace alpaka
             struct GetExtent<
                 dim::DimInt<dim::Dim<TExtent>::value - 1u>,
                 TExtent,
-                typename std::enable_if<
+                std::enable_if_t<
                     hip::traits::IsHipBuiltInType<TExtent>::value
-                    && (dim::Dim<TExtent>::value >= 1)>::type>
+                    && (dim::Dim<TExtent>::value >= 1)>>
             {
                 ALPAKA_NO_HOST_ACC_WARNING
                 ALPAKA_FN_HOST_ACC static auto getExtent(
                     TExtent const & extent)
-                -> decltype(extent.x)
                 {
                     return extent.x;
                 }
@@ -393,14 +382,13 @@ namespace alpaka
             struct GetExtent<
                 dim::DimInt<dim::Dim<TExtent>::value - 2u>,
                 TExtent,
-                typename std::enable_if<
+                std::enable_if_t<
                     hip::traits::IsHipBuiltInType<TExtent>::value
-                    && (dim::Dim<TExtent>::value >= 2)>::type>
+                    && (dim::Dim<TExtent>::value >= 2)>>
             {
                 ALPAKA_NO_HOST_ACC_WARNING
                 ALPAKA_FN_HOST_ACC static auto getExtent(
                     TExtent const & extent)
-                -> decltype(extent.y)
                 {
                     return extent.y;
                 }
@@ -412,14 +400,13 @@ namespace alpaka
             struct GetExtent<
                 dim::DimInt<dim::Dim<TExtent>::value - 3u>,
                 TExtent,
-                typename std::enable_if<
+                std::enable_if_t<
                     hip::traits::IsHipBuiltInType<TExtent>::value
-                    && (dim::Dim<TExtent>::value >= 3)>::type>
+                    && (dim::Dim<TExtent>::value >= 3)>>
             {
                 ALPAKA_NO_HOST_ACC_WARNING
                 ALPAKA_FN_HOST_ACC static auto getExtent(
                     TExtent const & extent)
-                -> decltype(extent.z)
                 {
                     return extent.z;
                 }
@@ -431,14 +418,13 @@ namespace alpaka
             struct GetExtent<
                 dim::DimInt<dim::Dim<TExtent>::value - 4u>,
                 TExtent,
-                typename std::enable_if<
+                std::enable_if_t<
                     hip::traits::IsHipBuiltInType<TExtent>::value
-                    && (dim::Dim<TExtent>::value >= 4)>::type>
+                    && (dim::Dim<TExtent>::value >= 4)>>
             {
                 ALPAKA_NO_HOST_ACC_WARNING
                 ALPAKA_FN_HOST_ACC static auto getExtent(
                     TExtent const & extent)
-                -> decltype(extent.w)
                 {
                     return extent.w;
                 }
@@ -452,9 +438,9 @@ namespace alpaka
                 dim::DimInt<dim::Dim<TExtent>::value - 1u>,
                 TExtent,
                 TExtentVal,
-                typename std::enable_if<
+                std::enable_if_t<
                     hip::traits::IsHipBuiltInType<TExtent>::value
-                    && (dim::Dim<TExtent>::value >= 1)>::type>
+                    && (dim::Dim<TExtent>::value >= 1)>>
             {
                 ALPAKA_NO_HOST_ACC_WARNING
                 ALPAKA_FN_HOST_ACC static auto setExtent(
@@ -474,9 +460,9 @@ namespace alpaka
                 dim::DimInt<dim::Dim<TExtent>::value - 2u>,
                 TExtent,
                 TExtentVal,
-                typename std::enable_if<
+                std::enable_if_t<
                     hip::traits::IsHipBuiltInType<TExtent>::value
-                    && (dim::Dim<TExtent>::value >= 2)>::type>
+                    && (dim::Dim<TExtent>::value >= 2)>>
             {
                 ALPAKA_NO_HOST_ACC_WARNING
                 ALPAKA_FN_HOST_ACC static auto setExtent(
@@ -496,9 +482,9 @@ namespace alpaka
                 dim::DimInt<dim::Dim<TExtent>::value - 3u>,
                 TExtent,
                 TExtentVal,
-                typename std::enable_if<
+                std::enable_if_t<
                     hip::traits::IsHipBuiltInType<TExtent>::value
-                    && (dim::Dim<TExtent>::value >= 3)>::type>
+                    && (dim::Dim<TExtent>::value >= 3)>>
             {
                 ALPAKA_NO_HOST_ACC_WARNING
                 ALPAKA_FN_HOST_ACC static auto setExtent(
@@ -518,9 +504,9 @@ namespace alpaka
                 dim::DimInt<dim::Dim<TExtent>::value - 4u>,
                 TExtent,
                 TExtentVal,
-                typename std::enable_if<
+                std::enable_if_t<
                     hip::traits::IsHipBuiltInType<TExtent>::value
-                    && (dim::Dim<TExtent>::value >= 4)>::type>
+                    && (dim::Dim<TExtent>::value >= 4)>>
             {
                 ALPAKA_NO_HOST_ACC_WARNING
                 ALPAKA_FN_HOST_ACC static auto setExtent(
@@ -544,14 +530,13 @@ namespace alpaka
             struct GetOffset<
                 dim::DimInt<dim::Dim<TOffsets>::value - 1u>,
                 TOffsets,
-                typename std::enable_if<
+                std::enable_if_t<
                     hip::traits::IsHipBuiltInType<TOffsets>::value
-                    && (dim::Dim<TOffsets>::value >= 1)>::type>
+                    && (dim::Dim<TOffsets>::value >= 1)>>
             {
                 ALPAKA_NO_HOST_ACC_WARNING
                 ALPAKA_FN_HOST_ACC static auto getOffset(
                     TOffsets const & offsets)
-                -> decltype(offsets.x)
                 {
                     return offsets.x;
                 }
@@ -563,14 +548,13 @@ namespace alpaka
             struct GetOffset<
                 dim::DimInt<dim::Dim<TOffsets>::value - 2u>,
                 TOffsets,
-                typename std::enable_if<
+                std::enable_if_t<
                     hip::traits::IsHipBuiltInType<TOffsets>::value
-                    && (dim::Dim<TOffsets>::value >= 2)>::type>
+                    && (dim::Dim<TOffsets>::value >= 2)>>
             {
                 ALPAKA_NO_HOST_ACC_WARNING
                 ALPAKA_FN_HOST_ACC static auto getOffset(
                     TOffsets const & offsets)
-                -> decltype(offsets.y)
                 {
                     return offsets.y;
                 }
@@ -582,14 +566,13 @@ namespace alpaka
             struct GetOffset<
                 dim::DimInt<dim::Dim<TOffsets>::value - 3u>,
                 TOffsets,
-                typename std::enable_if<
+                std::enable_if_t<
                     hip::traits::IsHipBuiltInType<TOffsets>::value
-                    && (dim::Dim<TOffsets>::value >= 3)>::type>
+                    && (dim::Dim<TOffsets>::value >= 3)>>
             {
                 ALPAKA_NO_HOST_ACC_WARNING
                 ALPAKA_FN_HOST_ACC static auto getOffset(
                     TOffsets const & offsets)
-                -> decltype(offsets.z)
                 {
                     return offsets.z;
                 }
@@ -601,14 +584,13 @@ namespace alpaka
             struct GetOffset<
                 dim::DimInt<dim::Dim<TOffsets>::value - 4u>,
                 TOffsets,
-                typename std::enable_if<
+                std::enable_if_t<
                     hip::traits::IsHipBuiltInType<TOffsets>::value
-                    && (dim::Dim<TOffsets>::value >= 4)>::type>
+                    && (dim::Dim<TOffsets>::value >= 4)>>
             {
                 ALPAKA_NO_HOST_ACC_WARNING
                 ALPAKA_FN_HOST_ACC static auto getOffset(
                     TOffsets const & offsets)
-                -> decltype(offsets.w)
                 {
                     return offsets.w;
                 }
@@ -622,9 +604,9 @@ namespace alpaka
                 dim::DimInt<dim::Dim<TOffsets>::value - 1u>,
                 TOffsets,
                 TOffset,
-                typename std::enable_if<
+                std::enable_if_t<
                     hip::traits::IsHipBuiltInType<TOffsets>::value
-                    && (dim::Dim<TOffsets>::value >= 1)>::type>
+                    && (dim::Dim<TOffsets>::value >= 1)>>
             {
                 ALPAKA_NO_HOST_ACC_WARNING
                 ALPAKA_FN_HOST_ACC static auto setOffset(
@@ -644,9 +626,9 @@ namespace alpaka
                 dim::DimInt<dim::Dim<TOffsets>::value - 2u>,
                 TOffsets,
                 TOffset,
-                typename std::enable_if<
+                std::enable_if_t<
                     hip::traits::IsHipBuiltInType<TOffsets>::value
-                    && (dim::Dim<TOffsets>::value >= 2)>::type>
+                    && (dim::Dim<TOffsets>::value >= 2)>>
             {
                 ALPAKA_NO_HOST_ACC_WARNING
                 ALPAKA_FN_HOST_ACC static auto setOffset(
@@ -666,9 +648,9 @@ namespace alpaka
                 dim::DimInt<dim::Dim<TOffsets>::value - 3u>,
                 TOffsets,
                 TOffset,
-                typename std::enable_if<
+                std::enable_if_t<
                     hip::traits::IsHipBuiltInType<TOffsets>::value
-                    && (dim::Dim<TOffsets>::value >= 3)>::type>
+                    && (dim::Dim<TOffsets>::value >= 3)>>
             {
                 ALPAKA_NO_HOST_ACC_WARNING
                 ALPAKA_FN_HOST_ACC static auto setOffset(
@@ -688,9 +670,9 @@ namespace alpaka
                 dim::DimInt<dim::Dim<TOffsets>::value - 4u>,
                 TOffsets,
                 TOffset,
-                typename std::enable_if<
+                std::enable_if_t<
                     hip::traits::IsHipBuiltInType<TOffsets>::value
-                    && (dim::Dim<TOffsets>::value >= 4)>::type>
+                    && (dim::Dim<TOffsets>::value >= 4)>>
             {
                 ALPAKA_NO_HOST_ACC_WARNING
                 ALPAKA_FN_HOST_ACC static auto setOffset(
@@ -713,8 +695,8 @@ namespace alpaka
                 typename TIdx>
             struct IdxType<
                 TIdx,
-                typename std::enable_if<
-                    hip::traits::IsHipBuiltInType<TIdx>::value>::type>
+                std::enable_if_t<
+                    hip::traits::IsHipBuiltInType<TIdx>::value>>
             {
                 using type = std::size_t;
             };

@@ -54,15 +54,14 @@ namespace alpaka
                 PowHipBuiltIn,
                 TBase,
                 TExp,
-                typename std::enable_if<
+                std::enable_if_t<
                     std::is_floating_point<TBase>::value
-                    && std::is_floating_point<TExp>::value>::type>
+                    && std::is_floating_point<TExp>::value>>
             {
                 __device__ static auto pow(
                     PowHipBuiltIn const & pow_ctx,
                     TBase const & base,
                     TExp const & exp)
-                -> decltype(::pow(base, exp))
                 {
                     alpaka::ignore_unused(pow_ctx);
                     return ::pow(base, exp);

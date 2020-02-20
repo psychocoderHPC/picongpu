@@ -52,13 +52,12 @@ namespace alpaka
             struct Tan<
                 TanHipBuiltIn,
                 TArg,
-                typename std::enable_if<
-                    std::is_floating_point<TArg>::value>::type>
+                std::enable_if_t<
+                    std::is_floating_point<TArg>::value>>
             {
                 __device__ static auto tan(
                     TanHipBuiltIn const & tan_ctx,
                     TArg const & arg)
-                -> decltype(::tan(arg))
                 {
                     alpaka::ignore_unused(tan_ctx);
                     return ::tan(arg);

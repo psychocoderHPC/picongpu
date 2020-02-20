@@ -44,13 +44,12 @@ namespace alpaka
             struct Floor<
                 FloorCudaBuiltIn,
                 TArg,
-                typename std::enable_if<
-                    std::is_floating_point<TArg>::value>::type>
+                std::enable_if_t<
+                    std::is_floating_point<TArg>::value>>
             {
                 __device__ static auto floor(
                     FloorCudaBuiltIn const & floor_ctx,
                     TArg const & arg)
-                -> decltype(::floor(arg))
                 {
                     alpaka::ignore_unused(floor_ctx);
                     return ::floor(arg);

@@ -106,8 +106,6 @@ namespace alpaka
                 public:
                     dev::DevHipRt const m_dev;   //!< The device this queue is bound to.
                     hipStream_t m_HipQueue;
-
-
                 };
             }
         }
@@ -143,10 +141,7 @@ namespace alpaka
                 return !((*this) == rhs);
             }
             //-----------------------------------------------------------------------------
-            ALPAKA_FN_HOST ~QueueHipRtNonBlocking() {
-
-                alpaka::wait::wait(*this);
-            }
+            ALPAKA_FN_HOST ~QueueHipRtNonBlocking() = default;
 
         public:
             std::shared_ptr<hip::detail::QueueHipRtNonBlockingImpl> m_spQueueImpl;
@@ -255,23 +250,44 @@ namespace alpaka
                     TTask const & task)
                 -> void
                 {
-#if BOOST_COMP_HIP
-                    // NOTE: hip callbacks are not blocking the stream.
-                    // The workaround used for HIP(hcc) would avoid the usage in a workflow with
-                    // many stream/event synchronizations (e.g. PIConGPU).
-                    // @todo remove this assert when hipStreamAddCallback is fixed
-                    static_assert(
-                                meta::DependentFalseType<TTask>::value,
-                                "Callbacks are not supported for HIP-clang");
-#endif
+                    auto pCallbackSynchronizationData = std::make_shared<CallbackSynchronizationData>();
+                    // test example: https://github.com/ROCm-Developer-Tools/HIP/blob/roc-1.9.x/tests/src/runtimeApi/stream/hipStreamAddCallback.cpp
+                    ALPAKA_HIP_RT_CHECK(hipStreamAddCallback(
+                        queue.m_spQueueImpl->m_HipQueue,
+                        hipRtCallback,
+                        pCallbackSynchronizationData.get(),
+                        0u));
 
-                    ALPAKA_HIP_RT_CHECK( hipStreamSynchronize(
-                            queue.m_spQueueImpl->m_HipQueue));
-                    task();
-                    ALPAKA_HIP_RT_CHECK( hipStreamSynchronize(
-                            queue.m_spQueueImpl->m_HipQueue));
+                    // We start a new std::thread which stores the task to be executed.
+                    // This circumvents the limitation that it is not possible to call HIP methods within the HIP callback thread.
+                    // The HIP thread signals the std::thread when it is ready to execute the task.
+                    // The HIP thread is waiting for the std::thread to signal that it is finished executing the task
+                    // before it executes the next task in the queue (HIP stream).
+                    std::thread t(
+                        [pCallbackSynchronizationData, task](){
+                            // If the callback has not yet been called, we wait for it.
+                            {
+                                std::unique_lock<std::mutex> lock(pCallbackSynchronizationData->m_mutex);
+                                if(pCallbackSynchronizationData->state != CallbackState::notified)
+                                {
+                                    pCallbackSynchronizationData->m_event.wait(
+                                        lock,
+                                        [pCallbackSynchronizationData](){
+                                            return pCallbackSynchronizationData->state == CallbackState::notified;
+                                        }
+                                    );
+                                }
 
+                                task();
 
+                                // Notify the waiting HIP thread.
+                                pCallbackSynchronizationData->state = CallbackState::finished;
+                            }
+                            pCallbackSynchronizationData->m_event.notify_one();
+                        }
+                    );
+
+                    t.detach();
                 }
             };
             //#############################################################################
@@ -286,7 +302,6 @@ namespace alpaka
                 -> bool
                 {
                     ALPAKA_DEBUG_MINIMAL_LOG_SCOPE;
-
 
                     // Query is allowed even for queues on non current device.
                     hipError_t ret = hipSuccess;
@@ -318,11 +333,9 @@ namespace alpaka
                 {
                     ALPAKA_DEBUG_MINIMAL_LOG_SCOPE;
 
-
                     // Sync is allowed even for queues on non current device.
                     ALPAKA_HIP_RT_CHECK( hipStreamSynchronize(
                             queue.m_spQueueImpl->m_HipQueue));
-
                 }
             };
         }

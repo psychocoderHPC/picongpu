@@ -44,13 +44,12 @@ namespace alpaka
             struct Trunc<
                 TruncCudaBuiltIn,
                 TArg,
-                typename std::enable_if<
-                    std::is_floating_point<TArg>::value>::type>
+                std::enable_if_t<
+                    std::is_floating_point<TArg>::value>>
             {
                 __device__ static auto trunc(
                     TruncCudaBuiltIn const & trunc_ctx,
                     TArg const & arg)
-                -> decltype(::trunc(arg))
                 {
                     alpaka::ignore_unused(trunc_ctx);
                     return ::trunc(arg);

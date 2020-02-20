@@ -52,13 +52,12 @@ namespace alpaka
             struct Log<
                 LogHipBuiltIn,
                 TArg,
-                typename std::enable_if<
-                    std::is_floating_point<TArg>::value>::type>
+                std::enable_if_t<
+                    std::is_floating_point<TArg>::value>>
             {
                 __device__ static auto log(
                     LogHipBuiltIn const & log_ctx,
                     TArg const & arg)
-                -> decltype(::log(arg))
                 {
                     alpaka::ignore_unused(log_ctx);
                     return ::log(arg);

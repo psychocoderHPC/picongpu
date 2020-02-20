@@ -46,15 +46,14 @@ namespace alpaka
                 Atan2CudaBuiltIn,
                 Ty,
                 Tx,
-                typename std::enable_if<
+                std::enable_if_t<
                     std::is_floating_point<Ty>::value
-                    && std::is_floating_point<Tx>::value>::type>
+                    && std::is_floating_point<Tx>::value>>
             {
                 __device__ static auto atan2(
                     Atan2CudaBuiltIn const & atan2_ctx,
                     Ty const & y,
                     Tx const & x)
-                -> decltype(::atan2(y, x))
                 {
                     alpaka::ignore_unused(atan2_ctx);
                     return ::atan2(y, x);

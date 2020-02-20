@@ -52,13 +52,12 @@ namespace alpaka
             struct Cbrt<
                 CbrtHipBuiltIn,
                 TArg,
-                typename std::enable_if<
-                    std::is_arithmetic<TArg>::value>::type>
+                std::enable_if_t<
+                    std::is_arithmetic<TArg>::value>>
             {
                 __device__ static auto cbrt(
                     CbrtHipBuiltIn const & cbrt_ctx,
                     TArg const & arg)
-                -> decltype(::cbrt(arg))
                 {
                     alpaka::ignore_unused(cbrt_ctx);
                     return ::cbrt(arg);

@@ -52,14 +52,13 @@ namespace alpaka
             struct Acos<
                 AcosHipBuiltIn,
                 TArg,
-                typename std::enable_if<
-                    std::is_floating_point<TArg>::value>::type>
+                std::enable_if_t<
+                    std::is_floating_point<TArg>::value>>
             {
                 ALPAKA_NO_HOST_ACC_WARNING
                 __device__ static auto acos(
                     AcosHipBuiltIn const & acos_ctx,
                     TArg const & arg)
-                -> decltype(::acos(arg))
                 {
                     alpaka::ignore_unused(acos_ctx);
                     return ::acos(arg);
