@@ -86,8 +86,6 @@ namespace densityProfiles
             int const pngWidth = png.getwidth();
             int const pngHeight = png.getheight();
 
-            std::cout<<pngWidth<<"x"<<pngHeight<<" goff.y()"<<globalDomOffset.y()<<std::endl;
-
             DataSpace< simDim > guards = fieldBuffer.getGridLayout().getGuard();
             /* get the databox of the host buffer */
             auto dataBox = fieldBuffer.getHostBuffer().getDataBox().shift(guards);
@@ -107,9 +105,6 @@ namespace densityProfiles
                         pngWidth - ( lOffset.x() + x + globalDomOffset.x() ),
                         pngHeight - ( lOffset.y() + y + globalDomOffset.y() )
                     );
-
-                    if(x==0)
-                        std::cout<<"co: "<<imgCoordinate.x()<<","<<globalDomOffset.y()<<std::endl;
 
                     if(
                         imgCoordinate.x() > 0 && imgCoordinate.x() <= pngWidth &&
