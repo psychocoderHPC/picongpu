@@ -87,11 +87,11 @@ namespace picongpu
     struct DefaultExchangeMemCfg
     {
         // memory used for a direction
-        static constexpr uint32_t BYTES_EXCHANGE_X = 4 * 1024 * 1024; // 4 MiB
-        static constexpr uint32_t BYTES_EXCHANGE_Y = 4 * 1024 * 1024; // 4 MiB
-        static constexpr uint32_t BYTES_EXCHANGE_Z = 4 * 1024 * 1024; // 4 MiB
-        static constexpr uint32_t BYTES_EDGES =  64 * 1024; // 64 kiB
-        static constexpr uint32_t BYTES_CORNER = 12 * 1024; // 12 kiB
+        static constexpr uint32_t BYTES_EXCHANGE_X = 8 * 1024 * 1024; // 4 MiB
+        static constexpr uint32_t BYTES_EXCHANGE_Y = 8 * 1024 * 1024; // 4 MiB
+        static constexpr uint32_t BYTES_EXCHANGE_Z = 8 * 1024 * 1024; // 4 MiB
+        static constexpr uint32_t BYTES_EDGES =  256 * 1024; // 64 kiB
+        static constexpr uint32_t BYTES_CORNER = 64 * 1024; // 12 kiB
     };
 
     /** number of scalar fields that are reserved as temporary fields */
