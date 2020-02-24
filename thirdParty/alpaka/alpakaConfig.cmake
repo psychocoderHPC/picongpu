@@ -688,13 +688,13 @@ IF(ALPAKA_ACC_GPU_HIP_ENABLE)
     LIST(APPEND _ALPAKA_COMPILE_OPTIONS_PUBLIC "--cuda-gpu-arch=gfx906")
     LIST(APPEND _ALPAKA_COMPILE_OPTIONS_PUBLIC "-O3")
     LIST(APPEND _ALPAKA_COMPILE_OPTIONS_PUBLIC "-xhip")
-    LIST(APPEND _ALPAKA_COMPILE_OPTIONS_PUBLIC "--hip-device-lib-path=/opt/rocm/lib")
+    LIST(APPEND _ALPAKA_COMPILE_OPTIONS_PUBLIC "--hip-device-lib-path=$ENV{HIP_PATH}/llvm/lib")
     LIST(APPEND _ALPAKA_COMPILE_OPTIONS_PUBLIC "-std=c++14")
     LIST(APPEND _ALPAKA_COMPILE_OPTIONS_PUBLIC "-I/opt/rocm/hsa/include")
-    LIST(APPEND _ALPAKA_COMPILE_OPTIONS_PUBLIC "-I/opt/rocm/hip/include")
+    LIST(APPEND _ALPAKA_COMPILE_OPTIONS_PUBLIC "-I$ENV{HIP_PATH}/include")
     LIST(APPEND _ALPAKA_COMPILE_OPTIONS_PUBLIC "-I/opt/rocm/hiprand/include")
     LIST(APPEND _ALPAKA_COMPILE_OPTIONS_PUBLIC "-I/opt/rocm/rocrand/include")
-    LIST(APPEND _ALPAKA_COMPILE_OPTIONS_PUBLIC -cxx-isystem /opt/rocm/llvm/lib/clang/10.0.0/include/)
+    LIST(APPEND _ALPAKA_COMPILE_OPTIONS_PUBLIC -cxx-isystem $ENV{HIP_PATH}/llvm/lib/clang/10.0.0/include/)
   
 ENDIF() # HIP
 
@@ -760,7 +760,7 @@ SET(_ALPAKA_LINK_LIBRARY)
 
 
 # GFX600, GFX601, GFX700, GFX701, GFX702, GFX703, GFX704, GFX801, GFX802, GFX803, GFX810, GFX900, GFX902
-SET(_ALPAKA_LINK_LIBRARIES_PUBLIC "${_ALPAKA_LINK_LIBRARIES_PUBLIC}" "--cuda-gpu-arch=gfx906  -L/opt/rocm/hip/lib -lhip_hcc --cuda-gpu-arch=gfx906 -lgcc_s -lgcc -lpthread -lm")
+SET(_ALPAKA_LINK_LIBRARIES_PUBLIC "${_ALPAKA_LINK_LIBRARIES_PUBLIC}" "--cuda-gpu-arch=gfx906  -L$ENV{HIP_PATH}/lib -lhip_hcc --cuda-gpu-arch=gfx906 -lgcc_s -lgcc -lpthread -lm")
 
 
 # Add all the source and include files in all recursive subdirectories and group them accordingly.
