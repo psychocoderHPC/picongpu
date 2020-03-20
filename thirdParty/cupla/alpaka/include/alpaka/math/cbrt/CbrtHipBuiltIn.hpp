@@ -25,7 +25,7 @@
     #include <cuda_runtime_api.h>
 #else
     #if BOOST_COMP_HCC
-        #include <math_functions.h>
+        #include <hip/math_functions.h>
     #else
         #include <math_functions.hpp>
     #endif
