@@ -33,6 +33,7 @@
 #include "pmacc/pluginSystem/IPlugin.hpp"
 #include "pmacc/pluginSystem/containsStep.hpp"
 #include "pmacc/pluginSystem/toTimeSlice.hpp"
+#include "pmacc/simulationControl/PerfData.hpp"
 
 #include <boost/filesystem.hpp>
 #include <iostream>
@@ -41,6 +42,13 @@
 #include <string>
 #include <vector>
 
+#ifndef PMACC_NVPROF_SUPPORT_ENABLED
+#   define PMACC_NVPROF_SUPPORT_ENABLED 0
+#endif
+
+#if( PMACC_NVPROF_SUPPORT_ENABLED == 1)
+#   include <cuda_profiler_api.h>
+#endif
 
 namespace pmacc
 {
@@ -228,14 +236,21 @@ public:
     {
         if(useMpiDirect)
             Environment<>::get().enableMpiDirect();
+            
+        if(getGridController().getGlobalRank() == 0)
+            PerfData::inst().activate();
 
-        init();
+        double const startSimInit = PerfData::inst().getTime();
+        init( );
+        double const endSimInit = PerfData::inst().getTime();
+        PerfData::inst().pushRegions( "pmacc-simulation-init", endSimInit - startSimInit);
 
         // translate checkpointPeriod string into checkpoint intervals
         seqCheckpointPeriod = pluginSystem::toTimeSlice( checkpointPeriod );
 
         for (uint32_t nthSoftRestart = 0; nthSoftRestart <= softRestarts; ++nthSoftRestart)
         {
+            double const startSimFill = PerfData::inst().getTime();
             resetAll(0);
             uint32_t currentStep = fillSimulation();
             Environment<>::get().SimulationDescription().setCurrentStep( currentStep );
@@ -258,16 +273,34 @@ public:
              */
             movingWindowCheck(currentStep);
 
+            Environment<>::get().globalSync();
+            double const endSimFill = PerfData::inst().getTime();
+            PerfData::inst().pushRegions( "pmacc-simulation-fill", endSimFill - startSimFill);
+
+            double const startSimInitDump = PerfData::inst().getTime();
             /* dump initial step if simulation starts without restart */
             if (!restartRequested)
             {
                 dumpOneStep(currentStep);
             }
 
+
             /* dump 0% output */
             dumpTimes(tSimCalculation, tRound, roundAvg, currentStep);
+            double const endSimInitDump = PerfData::inst().getTime();
+            Environment<>::get().globalSync();
+            PerfData::inst().pushRegions( "pmacc-simulation-initDump", endSimInitDump - startSimInitDump);
 
+#if( PMACC_NVPROF_SUPPORT_ENABLED == 1)
+            cudaProfilerStart();
+#endif
 
+            double accumulatedTimesteps = 0.0;
+            double accumulatedTimestepsPlugins = 0.0;
+            constexpr uint32_t perfAverageSteps = 50;
+
+            Environment<>::get().Manager().waitForAllTasks();
+            double const startSimBody = PerfData::inst().getTime();
             /** \todo currently we assume this is the only point in the simulation
              *        that is allowed to manipulate `currentStep`. Else, one needs to
              *        add and act on changed values via
@@ -275,10 +308,25 @@ public:
              */
             while (currentStep < Environment<>::get().SimulationDescription().getRunSteps())
             {
+                double const startTimeStep = PerfData::inst().getTime();
+
                 tRound.toggleStart();
                 runOneStep(currentStep);
                 tRound.toggleEnd();
                 roundAvg += tRound.getInterval();
+
+                // local sync point for better averages
+                if( currentStep % perfAverageSteps == (perfAverageSteps - 1) )
+                    Environment<>::get().Manager().waitForAllTasks();
+
+                double const stopTimeStep = PerfData::inst().getTime();
+                accumulatedTimesteps += stopTimeStep - startTimeStep;
+                if( currentStep % perfAverageSteps == (perfAverageSteps - 1) )
+                {
+                    double const avgTimeStep = accumulatedTimesteps / static_cast< double >( perfAverageSteps );
+                    PerfData::inst().pushRegions( "pmacc-simulation-timestep-avg", avgTimeStep, currentStep + 1 );
+                    accumulatedTimesteps = 0.0;
+                }
 
                 /* NEXT TIMESTEP STARTS HERE */
                 currentStep++;
@@ -286,13 +334,36 @@ public:
                 /* output times after a round */
                 dumpTimes(tSimCalculation, tRound, roundAvg, currentStep);
 
+                //sliding is part of the timestep
+                double const startSlide = PerfData::inst().getTime();
                 movingWindowCheck(currentStep);
+                double const endSlide = PerfData::inst().getTime();
+                accumulatedTimesteps += endSlide - startSlide;
+
+                double const startDump = PerfData::inst().getTime();
                 /* dump at the beginning of the simulated step */
                 dumpOneStep(currentStep);
+                // local sync point for better averages
+                if( currentStep % perfAverageSteps == 0 )
+                    Environment<>::get().Manager().waitForAllTasks();
+                double const endDump = PerfData::inst().getTime();
+                accumulatedTimestepsPlugins += endDump - startDump;
+                if( currentStep % perfAverageSteps == 0 )
+                {
+                    double const avgTimeStep = accumulatedTimesteps / static_cast< double >( perfAverageSteps );
+                    PerfData::inst().pushRegions( "pmacc-simulation-plugins-avg", avgTimeStep, currentStep );
+                    accumulatedTimestepsPlugins = 0.0;
+                }
             }
 
+#if( PMACC_NVPROF_SUPPORT_ENABLED == 1)
+            cudaProfilerStop();
+#endif
+
             // simulatation end
-            Environment<>::get().Manager().waitForAllTasks();
+            Environment<>::get().globalSync();
+            double const endSimBody = PerfData::inst().getTime();
+            PerfData::inst().pushRegions( "pmacc-simulation-body", endSimBody -startSimBody, currentStep );
 
             tSimCalculation.toggleEnd();
 

@@ -38,6 +38,7 @@
 #include "pmacc/Environment.def"
 #include "pmacc/communication/manager_common.hpp"
 #include "pmacc/assert.hpp"
+#include "pmacc/simulationControl/PerfData.hpp"
 
 #include <mpi.h>
 
@@ -156,6 +157,12 @@ namespace detail
     {
         Environment()
         {
+        }
+
+        void globalSync()
+        {
+            Manager().waitForAllTasks();
+            MPI_CHECK(MPI_Barrier(MPI_COMM_WORLD));
         }
 
         /** cleanup the environment */
@@ -442,10 +449,15 @@ namespace detail
 
     void EnvironmentContext::init()
     {
+        double const startMpiInit = PerfData::inst().getTime();
+
         m_isMpiInitialized = true;
 
         // MPI_Init with NULL is allowed since MPI 2.0
         MPI_CHECK(MPI_Init(NULL,NULL));
+
+        double const endMpiInit = PerfData::inst().getTime();
+        PerfData::inst().pushRegions( "plain-mpi-init", endMpiInit - startMpiInit);
     }
 
     void EnvironmentContext::finalize()
@@ -460,7 +472,10 @@ namespace detail
              * The gpu context is freed by the `StreamController`, because
              * MPI and CUDA are independent.
              */
+            double const startMpiFinalize = pmacc::PerfData::inst().getTime();
             MPI_CHECK(MPI_Finalize());
+            double const endMpiFinalize = PerfData::inst().getTime();
+            pmacc::PerfData::inst().pushRegions( "plain-mpi-finalize", endMpiFinalize - startMpiFinalize);
         }
     }
 

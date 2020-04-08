@@ -98,6 +98,7 @@
 #include <pmacc/particles/traits/FilterByIdentifier.hpp>
 #include "picongpu/particles/traits/HasIonizersWithRNG.hpp"
 #include <pmacc/particles/IdProvider.hpp>
+#include <pmacc/simulationControl/PerfData.hpp>
 
 #include <boost/mpl/int.hpp>
 #include <memory>
@@ -340,6 +341,9 @@ public:
             std::to_string( userSeed )
         );
 
+        Environment<>::get().Manager().waitForAllTasks();
+        double const startRngInit = PerfData::inst().getTime();
+
         using RNGFactory = pmacc::random::RNGProvider< simDim, random::Generator >;
         auto rngFactory = pmacc::memory::makeUnique< RNGFactory >(
             Environment<simDim>::get().SubGrid().getLocalDomain().size
@@ -355,6 +359,10 @@ public:
         pmacc::GridController<simDim>& gridCon = pmacc::Environment<simDim>::get().GridController();
         rngFactory->init( gridCon.getScalarPosition() ^ seed );
         dc.consume( std::move( rngFactory ) );
+
+        Environment<>::get().Manager().waitForAllTasks();
+        double const endRngInit = PerfData::inst().getTime();
+        PerfData::inst().pushRegions( "pic-init-rng", endRngInit - startRngInit );
 
         // Initialize synchrotron functions, if there are synchrotron photon species
         if(!bmpl::empty<AllSynchrotronPhotonsSpecies>::value)
@@ -502,8 +510,15 @@ public:
             else
             {
                 initialiserController->init();
+                Environment<>::get().Manager().waitForAllTasks();
+                double const startFillSpecies = PerfData::inst().getTime();
                 meta::ForEach< particles::InitPipeline, particles::CallFunctor<bmpl::_1> > initSpecies;
+
                 initSpecies( step );
+
+                Environment<>::get().Manager().waitForAllTasks();
+                double const endFillSpecies = PerfData::inst().getTime();
+                PerfData::inst().pushRegions( "pic-fill-species", endFillSpecies - startFillSpecies );
             }
         }
 

@@ -222,6 +222,15 @@ if(PMACC_CPU_ARCH AND PMACC_CPU_ARCH_TEMPLATE)
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} ${PMACC_CPU_ARCH_STRING}")
 endif()
 
+################################################################################
+# nvprof support
+################################################################################
+
+option(PMACC_NVPROF_ENABLE "Create PMacc with nvprof support" OFF)
+if(PMACC_NVPROF_ENABLE)
+    message(STATUS "Building with nvprof support")
+    set(PMacc_DEFINITIONS ${PMacc_DEFINITIONS} -DPMACC_NVPROF_SUPPORT_ENABLED=1)
+endif()
 
 ################################################################################
 # VampirTrace

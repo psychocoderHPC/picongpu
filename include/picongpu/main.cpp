@@ -21,6 +21,7 @@
 #include "picongpu/ArgsParser.hpp"
 #include <pmacc/Environment.hpp>
 #include <pmacc/types.hpp>
+#include <pmacc/simulationControl/PerfData.hpp>
 
 #include <picongpu/simulation_defines.hpp>
 
@@ -40,6 +41,8 @@ namespace
      */
     int runSimulation( int argc, char **argv )
     {
+        double const startProgram = pmacc::PerfData::inst().getTime();
+
         using namespace picongpu;
 
         simulation_starter::SimStarter sim;
@@ -52,17 +55,32 @@ namespace
                 errorCode = EXIT_FAILURE;
                 break;
             case ArgsParser::Status::success:
+            {
+                double const startSimLoad = pmacc::PerfData::inst().getTime();
                 sim.load( );
+                double const endSimLoad = pmacc::PerfData::inst().getTime();
                 sim.start( );
+                double const endSimStart = pmacc::PerfData::inst().getTime();
                 sim.unload( );
+                double const endSimUnload = pmacc::PerfData::inst().getTime();
+                pmacc::PerfData::inst().pushRegions( "main-simulation-load", endSimLoad - startSimLoad);
+                pmacc::PerfData::inst().pushRegions( "main-simulation-start", endSimStart - endSimLoad);
+                pmacc::PerfData::inst().pushRegions( "main-simulation-unload", endSimUnload - endSimStart);
+            }
                 PMACC_FALLTHROUGH;
             case ArgsParser::Status::successExit:
                 errorCode = 0;
                 break;
         };
 
+        Environment<>::get().globalSync();
+        double const startMpiFinalize = pmacc::PerfData::inst().getTime();
         // finalize the pmacc context */
         pmacc::Environment<>::get( ).finalize( );
+
+        double const endProgram = PerfData::inst().getTime();
+        pmacc::PerfData::inst().pushRegions( "mpi-finalize", endProgram - startMpiFinalize);
+        pmacc::PerfData::inst().pushRegions( "main-program", endProgram - startProgram);
 
         return errorCode;
     }
