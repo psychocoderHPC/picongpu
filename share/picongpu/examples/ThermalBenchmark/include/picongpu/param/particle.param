@@ -39,9 +39,9 @@ namespace particles
              */
             using numParticlesPerDimension = typename mCT::shrinkTo<
                 mCT::Int<
-                    4,
-                    4,
-                    1
+                    2,
+                    2,
+                    2
                 >,
                 simDim
             >::type;

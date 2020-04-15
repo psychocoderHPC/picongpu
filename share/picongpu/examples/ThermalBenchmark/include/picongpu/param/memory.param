@@ -50,10 +50,24 @@ namespace picongpu
      *
      * note: use e.g. 16x16 for 2D, don't rely on this default (8x8)
      */
+#ifdef PARAM_SMALL_SUPERCELL
+    #if( PARAM_SMALL_SUPERCELL == 1 )
+        using SuperCellSize = typename mCT::shrinkTo<
+            mCT::Int< 8, 4, 4 >,
+            simDim
+        >::type;
+    #elif( PARAM_SMALL_SUPERCELL == 2 )
+        using SuperCellSize = typename mCT::shrinkTo<
+            mCT::Int< 4, 4, 4 >,
+            simDim
+        >::type;
+    #endif
+#else
     using SuperCellSize = typename mCT::shrinkTo<
         mCT::Int< 8, 8, 4 >,
         simDim
     >::type;
+#endif
 
     /** define mapper which is used for kernel call mappings */
     using MappingDesc = MappingDescription< simDim, SuperCellSize >;

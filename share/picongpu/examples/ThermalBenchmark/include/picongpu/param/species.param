@@ -27,8 +27,20 @@
 #include "picongpu/particles/flylite/NonLTE.def"
 #include "picongpu/fields/currentDeposition/Solver.def"
 
+#ifndef PARAM_PARTICLE_SHAPE
+#   define PARAM_PARTICLE_SHAPE PCS
+#endif
+
 #ifndef PARAM_CURRENT
 #   define PARAM_CURRENT EmZ
+#endif
+
+#ifndef PARAM_CURRENT_STRATEGY
+#   if( ALPAKA_ACC_GPU_CUDA_ENABLED == 1 )
+#       define PARAM_CURRENT_STRATEGY CachedSupercells
+#   else
+#       define PARAM_CURRENT_STRATEGY StridedCachedSupercells
+#   endif
 #endif
 
 
@@ -44,7 +56,7 @@ namespace picongpu
      *
      *  example: using UsedParticleShape = particles::shapes::CIC;
      */
-    using UsedParticleShape = particles::shapes::PCS;
+    using UsedParticleShape = particles::shapes::PARAM_PARTICLE_SHAPE;
 
     /* define which interpolation method is used to interpolate fields to particle */
     using UsedField2Particle = FieldToParticleInterpolation< UsedParticleShape, AssignedTrilinearInterpolation >;
@@ -63,7 +75,8 @@ namespace picongpu
      * - currentSolver::strategy::CachedSupercells
      * - currentSolver::strategy::NonCachedSupercells
      */
-    using UsedParticleCurrentSolver = currentSolver::PARAM_CURRENT<UsedParticleShape>;
+    using UsedCurentSolverStrategy = currentSolver::strategy::PARAM_CURRENT_STRATEGY;
+    using UsedParticleCurrentSolver = currentSolver::PARAM_CURRENT<UsedParticleShape, UsedCurentSolverStrategy>;
 
     /*! particle pusher configuration ----------------------------------------------
      *
