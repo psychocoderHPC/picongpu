@@ -12,15 +12,13 @@
 #include <alpaka/core/Common.hpp>
 #include <alpaka/core/Concepts.hpp>
 
-#include <boost/config.hpp>
-
 #include <type_traits>
 
 namespace alpaka
 {
     namespace math
     {
-        struct ConceptMathAtan;
+        struct ConceptMathAtan{};
 
         namespace traits
         {
@@ -46,15 +44,6 @@ namespace alpaka
         ALPAKA_FN_HOST_ACC auto atan(
             T const & atan_ctx,
             TArg const & arg)
-#ifdef BOOST_NO_CXX14_RETURN_TYPE_DEDUCTION
-        -> decltype(
-            traits::Atan<
-                concepts::ImplementationBase<ConceptMathAtan, T>,
-                TArg>
-            ::atan(
-                atan_ctx,
-                arg))
-#endif
         {
             using ImplementationBase = concepts::ImplementationBase<ConceptMathAtan, T>;
             return

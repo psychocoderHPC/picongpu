@@ -11,9 +11,6 @@
 
 #include <alpaka/core/Common.hpp>
 #include <alpaka/core/Concepts.hpp>
-#include <alpaka/core/Unused.hpp>
-
-#include <boost/config.hpp>
 
 #include <type_traits>
 
@@ -21,7 +18,7 @@ namespace alpaka
 {
     namespace math
     {
-        struct ConceptMathRound;
+        struct ConceptMathRound{};
 
         namespace traits
         {
@@ -64,15 +61,6 @@ namespace alpaka
         ALPAKA_FN_HOST_ACC auto round(
             T const & round_ctx,
             TArg const & arg)
-#ifdef BOOST_NO_CXX14_RETURN_TYPE_DEDUCTION
-        -> decltype(
-            traits::Round<
-                concepts::ImplementationBase<ConceptMathRound, T>,
-                TArg>
-            ::round(
-                round_ctx,
-                arg))
-#endif
         {
             using ImplementationBase = concepts::ImplementationBase<ConceptMathRound, T>;
             return

@@ -12,15 +12,13 @@
 #include <alpaka/core/Common.hpp>
 #include <alpaka/core/Concepts.hpp>
 
-#include <boost/config.hpp>
-
 #include <type_traits>
 
 namespace alpaka
 {
     namespace math
     {
-        struct ConceptMathMax;
+        struct ConceptMathMax{};
 
         namespace traits
         {
@@ -53,17 +51,6 @@ namespace alpaka
             T const & max_ctx,
             Tx const & x,
             Ty const & y)
-#ifdef BOOST_NO_CXX14_RETURN_TYPE_DEDUCTION
-        -> decltype(
-            traits::Max<
-                concepts::ImplementationBase<ConceptMathMax, T>,
-                Tx,
-                Ty>
-            ::max(
-                max_ctx,
-                x,
-                y))
-#endif
         {
             using ImplementationBase = concepts::ImplementationBase<ConceptMathMax, T>;
             return

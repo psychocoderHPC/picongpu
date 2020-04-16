@@ -12,15 +12,13 @@
 #include <alpaka/core/Common.hpp>
 #include <alpaka/core/Concepts.hpp>
 
-#include <boost/config.hpp>
-
 #include <type_traits>
 
 namespace alpaka
 {
     namespace math
     {
-        struct ConceptMathAbs;
+        struct ConceptMathAbs{};
 
         //-----------------------------------------------------------------------------
         //! The math traits.
@@ -49,15 +47,6 @@ namespace alpaka
         ALPAKA_FN_HOST_ACC auto abs(
             T const & abs_ctx,
             TArg const & arg)
-#ifdef BOOST_NO_CXX14_RETURN_TYPE_DEDUCTION
-        -> decltype(
-            traits::Abs<
-                concepts::ImplementationBase<ConceptMathAbs, T>,
-                TArg>
-            ::abs(
-                abs_ctx,
-                arg))
-#endif
         {
             using ImplementationBase = concepts::ImplementationBase<ConceptMathAbs, T>;
             return

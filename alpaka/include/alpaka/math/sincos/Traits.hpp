@@ -12,15 +12,13 @@
 #include <alpaka/core/Common.hpp>
 #include <alpaka/core/Concepts.hpp>
 
-#include <boost/config.hpp>
-
 #include <type_traits>
 
 namespace alpaka
 {
     namespace math
     {
-        struct ConceptMathSinCos;
+        struct ConceptMathSinCos{};
 
         namespace traits
         {

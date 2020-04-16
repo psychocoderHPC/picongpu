@@ -7,9 +7,6 @@
  * file, You can obtain one at http://mozilla.org/MPL/2.0/.
  */
 
-// NVCC needs --expt-relaxed-constexpr
-#if !defined(__NVCC__) || (defined(__NVCC__) && defined(__CUDACC_RELAXED_CONSTEXPR__))
-
 #include <alpaka/kernel/Traits.hpp>
 
 #include <alpaka/test/acc/TestAccs.hpp>
@@ -34,7 +31,7 @@ public:
     {
         alpaka::ignore_unused(acc);
 
-#if BOOST_COMP_MSVC
+#if BOOST_COMP_MSVC || defined(BOOST_COMP_MSVC_EMULATED)
     #pragma warning(push)
     #pragma warning(disable: 4127)  // warning C4127: conditional expression is constant
 #endif
@@ -42,7 +39,7 @@ public:
         constexpr auto max = std::numeric_limits< std::uint32_t >::max();
 
         ALPAKA_CHECK(*success, 0 != max);
-#if BOOST_COMP_MSVC
+#if BOOST_COMP_MSVC || defined(BOOST_COMP_MSVC_EMULATED)
     #pragma warning(pop)
 #endif
     }
@@ -62,5 +59,3 @@ TEMPLATE_LIST_TEST_CASE( "kernelWithHostConstexpr", "[kernel]", alpaka::test::ac
 
     REQUIRE(fixture(kernel));
 }
-
-#endif

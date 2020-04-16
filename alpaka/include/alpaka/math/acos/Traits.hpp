@@ -12,15 +12,13 @@
 #include <alpaka/core/Common.hpp>
 #include <alpaka/core/Concepts.hpp>
 
-#include <boost/config.hpp>
-
 #include <type_traits>
 
 namespace alpaka
 {
     namespace math
     {
-        struct ConceptMathAcos;
+        struct ConceptMathAcos{};
 
         namespace traits
         {
@@ -46,15 +44,6 @@ namespace alpaka
         ALPAKA_FN_HOST_ACC auto acos(
             T const & acos_ctx,
             TArg const & arg)
-#ifdef BOOST_NO_CXX14_RETURN_TYPE_DEDUCTION
-        -> decltype(
-            traits::Acos<
-                concepts::ImplementationBase<ConceptMathAcos, T>,
-                TArg>
-            ::acos(
-                acos_ctx,
-                arg))
-#endif
         {
             using ImplementationBase = concepts::ImplementationBase<ConceptMathAcos, T>;
             return
