@@ -12,15 +12,13 @@
 #include <alpaka/core/Common.hpp>
 #include <alpaka/core/Concepts.hpp>
 
-#include <boost/config.hpp>
-
 #include <type_traits>
 
 namespace alpaka
 {
     namespace math
     {
-        struct ConceptMathErf;
+        struct ConceptMathErf{};
 
         namespace traits
         {
@@ -47,15 +45,6 @@ namespace alpaka
         ALPAKA_FN_HOST_ACC auto erf(
             T const & erf_ctx,
             TArg const & arg)
-#ifdef BOOST_NO_CXX14_RETURN_TYPE_DEDUCTION
-        -> decltype(
-            traits::Erf<
-                concepts::ImplementationBase<ConceptMathErf, T>,
-                TArg>
-            ::erf(
-                erf_ctx,
-                arg))
-#endif
         {
             using ImplementationBase = concepts::ImplementationBase<ConceptMathErf, T>;
             return

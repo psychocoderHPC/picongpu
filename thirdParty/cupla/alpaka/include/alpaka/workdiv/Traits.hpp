@@ -16,8 +16,6 @@
 #include <alpaka/core/Positioning.hpp>
 #include <alpaka/core/Common.hpp>
 
-#include <boost/config.hpp>
-
 #include <type_traits>
 #include <utility>
 
@@ -27,7 +25,7 @@ namespace alpaka
     //! The work division traits specifics.
     namespace workdiv
     {
-        struct ConceptWorkDiv;
+        struct ConceptWorkDiv{};
 
         //-----------------------------------------------------------------------------
         //! The work division traits.
@@ -79,11 +77,6 @@ namespace alpaka
                 ALPAKA_NO_HOST_ACC_WARNING
                 ALPAKA_FN_HOST_ACC static auto getWorkDiv(
                     TWorkDiv const & workDiv)
-#ifdef BOOST_NO_CXX14_RETURN_TYPE_DEDUCTION
-                -> decltype(
-                    workdiv::getWorkDiv<origin::Grid, unit::Blocks>(workDiv)
-                    * workdiv::getWorkDiv<origin::Block, unit::Threads>(workDiv))
-#endif
                 {
                     return
                         workdiv::getWorkDiv<origin::Grid, unit::Blocks>(workDiv)
@@ -103,11 +96,6 @@ namespace alpaka
                 ALPAKA_NO_HOST_ACC_WARNING
                 ALPAKA_FN_HOST_ACC static auto getWorkDiv(
                     TWorkDiv const & workDiv)
-#ifdef BOOST_NO_CXX14_RETURN_TYPE_DEDUCTION
-                -> decltype(
-                    workdiv::getWorkDiv<origin::Grid, unit::Threads>(workDiv)
-                    * workdiv::getWorkDiv<origin::Thread, unit::Elems>(workDiv))
-#endif
                 {
                     return
                         workdiv::getWorkDiv<origin::Grid, unit::Threads>(workDiv)
@@ -127,11 +115,6 @@ namespace alpaka
                 ALPAKA_NO_HOST_ACC_WARNING
                 ALPAKA_FN_HOST_ACC static auto getWorkDiv(
                     TWorkDiv const & workDiv)
-#ifdef BOOST_NO_CXX14_RETURN_TYPE_DEDUCTION
-                -> decltype(
-                    workdiv::getWorkDiv<origin::Block, unit::Threads>(workDiv)
-                    * workdiv::getWorkDiv<origin::Thread, unit::Elems>(workDiv))
-#endif
                 {
                     return
                         workdiv::getWorkDiv<origin::Block, unit::Threads>(workDiv)

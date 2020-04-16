@@ -12,15 +12,13 @@
 #include <alpaka/core/Common.hpp>
 #include <alpaka/core/Concepts.hpp>
 
-#include <boost/config.hpp>
-
 #include <type_traits>
 
 namespace alpaka
 {
     namespace math
     {
-        struct ConceptMathPow;
+        struct ConceptMathPow{};
 
         namespace traits
         {
@@ -52,17 +50,6 @@ namespace alpaka
             T const & pow_ctx,
             TBase const & base,
             TExp const & exp)
-#ifdef BOOST_NO_CXX14_RETURN_TYPE_DEDUCTION
-        -> decltype(
-            traits::Pow<
-                concepts::ImplementationBase<ConceptMathPow, T>,
-                TBase,
-                TExp>
-            ::pow(
-                pow_ctx,
-                base,
-                exp))
-#endif
         {
             using ImplementationBase = concepts::ImplementationBase<ConceptMathPow, T>;
             return

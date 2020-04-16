@@ -56,7 +56,7 @@ namespace alpaka
                     __cpuid_count(level, subfunction, ex[0], ex[1], ex[2], ex[3]);
                 }
 
-    #elif BOOST_COMP_MSVC || defined(__INTEL_COMPILER)
+    #elif BOOST_COMP_MSVC || defined(BOOST_COMP_MSVC_EMULATED) || defined(__INTEL_COMPILER)
         #include <intrin.h>
                 //-----------------------------------------------------------------------------
                 inline auto cpuid(std::uint32_t const level, std::uint32_t const subfunction, std::uint32_t ex[4])
@@ -102,14 +102,6 @@ namespace alpaka
                     return "<unknown>";
 #endif
                 }
-                //-----------------------------------------------------------------------------
-                //! \return The frequency of the CPU the code is running on.
-                // TODO: implement!
-                /*inline auto getCpuFrequency()
-                -> std::size_t
-                {
-                    return 0;
-                }*/
                 //-----------------------------------------------------------------------------
                 //! \return The total number of bytes of global memory.
                 //! Adapted from David Robert Nadeau: http://nadeausoftware.com/articles/2012/09/c_c_tip_how_get_physical_memory_size_system
