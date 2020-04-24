@@ -98,7 +98,7 @@ then
 fi
 
 # make and install
-make -j install
+make VERBOSE=1 -j install
 if [ $? -ne 0 ]
 then
     echo ""
