@@ -154,7 +154,7 @@ namespace yeePML
                      * to specialize for sigmaKappaGradingOrder = 2, 3, or 4,
                      * but currently seems not worth it.
                      */
-                    auto const sigmaKappaGradingCoeff = math::pow(
+                    auto const sigmaKappaGradingCoeff = pmacc::math::pow(
                         relativeDepth,
                         parameters.sigmaKappaGradingOrder
                     );
@@ -165,7 +165,7 @@ namespace yeePML
                     /* Grading done according to [Taflove, Hagness], eq. (7.79),
                      * note that this code is only correct when relativeDepth != 0
                      */
-                    auto const alphaGradingCoeff = math::pow(
+                    auto const alphaGradingCoeff = pmacc::math::pow(
                         1._X - relativeDepth,
                         parameters.alphaGradingOrder
                     );

@@ -76,7 +76,7 @@ struct GaussianImpl : public T_ParamClass
         }
 
         const float_X gas_power = ParamClass::gasPower;
-        const float_X density = math::exp(float_X(ParamClass::gasFactor) * math::pow(exponent, gas_power));
+        const float_X density = math::exp(float_X(ParamClass::gasFactor) * pmacc::math::pow(exponent, gas_power));
         return density;
     }
 };

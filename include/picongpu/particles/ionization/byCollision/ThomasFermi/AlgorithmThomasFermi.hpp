@@ -81,7 +81,7 @@ namespace ionization
             /* atomic mass number (usually A) A = N + Z */
             constexpr float_64 massNumber = neutronNumber + protonNumber;
 
-            float_64 const T_0 = temperature / math::pow( protonNumber, float_64( 4. / 3. ) );
+            float_64 const T_0 = temperature / pmacc::math::pow( protonNumber, float_64( 4. / 3. ) );
 
             float_64 const T_F = T_0 / ( float_64( 1. ) + T_0 );
 
@@ -94,20 +94,20 @@ namespace ionization
             constexpr float_64 TFA4_temp = thomasFermi::TFA4;
             constexpr float_64 TFBeta_temp = thomasFermi::TFBeta;
 
-            float_64 const A = thomasFermi::TFA1 * math::pow( T_0, TFA2_temp ) + thomasFermi::TFA3 * math::pow( T_0, TFA4_temp );
+            float_64 const A = thomasFermi::TFA1 * pmacc::math::pow( T_0, TFA2_temp ) + thomasFermi::TFA3 * pmacc::math::pow( T_0, TFA4_temp );
 
-            float_64 const B = -math::exp( thomasFermi::TFB0 + thomasFermi::TFB1 * T_F + thomasFermi::TFB2 * math::pow( T_F, float_64( 7. ) ) );
+            float_64 const B = -math::exp( thomasFermi::TFB0 + thomasFermi::TFB1 * T_F + thomasFermi::TFB2 * pmacc::math::pow( T_F, float_64( 7. ) ) );
 
             float_64 const C = thomasFermi::TFC1 * T_F + thomasFermi::TFC2;
 
             constexpr float_64 invAtomicTimesMassNumber = float_64( 1. ) / ( protonNumber * massNumber );
             float_64 const R = massDensity * invAtomicTimesMassNumber;
 
-            float_64 const Q_1 = A * math::pow( R, B );
+            float_64 const Q_1 = A * pmacc::math::pow( R, B );
 
-            float_64 const Q = math::pow( math::pow( R, C ) + math::pow( Q_1, C ), float_64( 1. ) / C );
+            float_64 const Q = pmacc::math::pow( pmacc::math::pow( R, C ) + pmacc::math::pow( Q_1, C ), float_64( 1. ) / C );
 
-            float_64 const x = thomasFermi::TFAlpha * math::pow( Q, TFBeta_temp );
+            float_64 const x = thomasFermi::TFAlpha * pmacc::math::pow( Q, TFBeta_temp );
 
             /* Thomas-Fermi average ionization state */
             float_X const ZStar = static_cast< float_X >(
@@ -211,7 +211,7 @@ namespace ionization
                     /* integral part of the average charge state */
                     float_X intZStar;
                     /* fractional part of the average charge state */
-                    float_X const fracZStar = math::modf( ZStar, &intZStar );
+                    float_X const fracZStar = pmacc::math::modf( ZStar, &intZStar );
 
                     /* Determine new charge state.
                      * We do a Monte-Carlo step to distribute charge states between

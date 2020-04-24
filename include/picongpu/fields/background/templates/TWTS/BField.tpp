@@ -440,7 +440,7 @@ namespace twts
                   complex_T(0,2)*cspeed*t + cspeed*om0*tauG*tauG - complex_T(0,4)*z
                 + cspeed*(complex_T(0,2)*t + om0*tauG*tauG)*cosPhi
                 + complex_T(0,2)*y*tanPhi2
-            )*math::pow(helpVar3,float_T(-1.5))
+            )*pmacc::math::pow(helpVar3,float_T(-1.5))
         ) / (float_T(2.0)*helpVar5*math::sqrt(helpVar6));
 
         return result.get_real() / UNIT_SPEED;
@@ -555,7 +555,7 @@ namespace twts
         const complex_T result = ( complex_T(0,2)*math::exp(helpVar6)*tauG*tanPhi2
                                     *(cspeed*t - z + y*tanPhi2)
                                     *math::sqrt( (om0*rho0) / helpVar3 )
-                                  ) / math::pow(helpVar7,float_T(1.5));
+                                  ) / pmacc::math::pow(helpVar7,float_T(1.5));
 
         return result.get_real() / UNIT_SPEED;
     }
@@ -719,7 +719,7 @@ namespace twts
         ) / rho0;
 
         const complex_T result = float_T(-1.0)*(
-            cspeed*math::exp(helpVar3)*k*tauG*x*math::pow( helpVar2, float_T(-1.5) )
+            cspeed*math::exp(helpVar3)*k*tauG*x*pmacc::math::pow( helpVar2, float_T(-1.5) )
             / math::sqrt(helpVar4)
         );
 

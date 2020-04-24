@@ -69,7 +69,7 @@ struct GaussianCloudImpl : public T_ParamClass
         /* calculate exp(factor * exponent**power) */
         const float_X power  = ParamClass::gasPower;
         const float_X factor = ParamClass::gasFactor;
-        const float_X density = math::exp(factor * math::pow(exponent, power));
+        const float_X density = math::exp(factor * pmacc::math::pow(exponent, power));
 
         return density;
     }

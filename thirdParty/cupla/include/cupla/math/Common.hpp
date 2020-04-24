@@ -76,7 +76,7 @@ namespace detail
      */                                                                        \
     ALPAKA_NO_HOST_ACC_WARNING                                                 \
     template< typename T_Type >                                                \
-    ALPAKA_FN_ACC ALPAKA_FN_INLINE auto functionName(                          \
+    ALPAKA_FN_HOST_ACC ALPAKA_FN_INLINE auto functionName(                          \
         T_Type const & arg                                                     \
     )                                                                          \
     /* return type is required because nvcc can not detect the return type     \

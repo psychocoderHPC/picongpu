@@ -92,7 +92,7 @@ HDINLINE float_X LookupTableFunctor::operator()(const float_X Ekin, const float_
  */
 float_64 ScaledSpectrum::dcs(const float_64 Ekin, const float_64 kappa, const float_64 targetZ) const
 {
-    constexpr float_64 pi = pmacc::algorithms::math::Pi<float_64>::value;
+    constexpr float_64 pi = pmacc::math::Pi<float_64>::value;
     constexpr float_64 bohrRadius = pi * 4.0 * EPS0 * HBAR * HBAR /
         (float_64(ELECTRON_MASS) * ELECTRON_CHARGE * ELECTRON_CHARGE);
     constexpr float_64 classicalElRadius = float_64(ELECTRON_CHARGE*ELECTRON_CHARGE) / (pi * 4.0 * EPS0 * ELECTRON_MASS * SPEED_OF_LIGHT*SPEED_OF_LIGHT);
@@ -106,7 +106,7 @@ float_64 ScaledSpectrum::dcs(const float_64 Ekin, const float_64 kappa, const fl
 
     const float_64 W = kappa * Ekin;
     const float_64 eps = W / (Ekin + m_e * c2);
-    const float_64 R = math::pow(targetZ, float_64(-1.0/3.0)) * bohrRadius;
+    const float_64 R = pmacc::math::pow(targetZ, float_64(-1.0/3.0)) * bohrRadius;
     const float_64 gamma = Ekin / (m_e * c2) + float_64(1.0);
     const float_64 b = R * m_e * c / HBAR / (float_64(2.0) * gamma) * eps / (float_64(1.0) - eps);
 

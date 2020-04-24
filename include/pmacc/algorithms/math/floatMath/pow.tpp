@@ -27,8 +27,6 @@
 
 namespace pmacc
 {
-namespace algorithms
-{
 namespace math
 {
 
@@ -72,5 +70,4 @@ struct Pow<float, int>
 };
 
 } //namespace math
-} //namespace algorithms
 } // namespace pmacc

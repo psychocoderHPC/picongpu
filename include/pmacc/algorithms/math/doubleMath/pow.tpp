@@ -27,8 +27,6 @@
 
 namespace pmacc
 {
-namespace algorithms
-{
 namespace math
 {
 /*C++98 standard define a separate version for int and double exponent*/
@@ -65,5 +63,4 @@ struct Pow<double, int>
 
 
 } //namespace math
-} //namespace algorithms
 } // namespace pmacc

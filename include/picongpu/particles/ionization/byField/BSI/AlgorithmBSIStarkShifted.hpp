@@ -69,11 +69,11 @@ namespace ionization
             /* verify that ion is not completely ionized */
             if (chargeState < protonNumber)
             {
-                uint32_t cs = math::float2int_rd(chargeState);
+                uint32_t cs = pmacc::math::float2int_rd(chargeState);
                 /* ionization potential in atomic units */
                 const float_X iEnergy = typename GetIonizationEnergies<ParticleType>::type{ }[cs];
                 /* critical field strength in atomic units */
-                float_X critField = (math::sqrt(float_X(2.))-float_X(1.)) * math::pow(iEnergy,float_X(3./2.));
+                float_X critField = (math::sqrt(float_X(2.))-float_X(1.)) * pmacc::math::pow(iEnergy,float_X(3./2.));
 
                 /* ionization condition */
                 if (math::abs(eField) / ATOMIC_UNIT_EFIELD >= critField)

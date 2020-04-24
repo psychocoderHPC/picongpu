@@ -23,9 +23,6 @@
 
 namespace pmacc
 {
-namespace algorithms
-{
-
 namespace math
 {
 
@@ -46,5 +43,4 @@ HDINLINE typename Pow< T1, T2 >::result pow(const T1& base,const T2& exponent)
 }
 
 } //namespace math
-} //namespace algorithms
 }//namespace pmacc
