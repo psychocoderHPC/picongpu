@@ -111,3 +111,9 @@
 #ifndef CUPLA_HEADER_ONLY_FUNC_SPEC
 #   define CUPLA_HEADER_ONLY_FUNC_SPEC
 #endif
+#if defined(__CUDA_ARCH__) || ( defined(__HIP_DEVICE_COMPILE__) && __HIP_DEVICE_COMPILE__== 1 && defined(__HIP__) )
+    #define CUPLA_HIP_DEVICE_PATH 1
+#else
+    #define CUPLA_HIP_DEVICE_PATH 0
+#endif
+
