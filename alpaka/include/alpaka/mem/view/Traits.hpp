@@ -21,8 +21,6 @@
 #include <alpaka/meta/Fold.hpp>
 #include <alpaka/vec/Vec.hpp>
 
-#include <boost/config.hpp>
-
 #include <iosfwd>
 #include <type_traits>
 
@@ -117,8 +115,9 @@ namespace alpaka
                         -> idx::Idx<TView>
                         {
                             return
-                                extent::getExtent<dim::Dim<TView>::value - 1u>(view)
-                                * sizeof(elem::Elem<TView>);
+                                static_cast<idx::Idx<TView>>(
+                                    static_cast<unsigned int>(extent::getExtent<static_cast<unsigned int>(dim::Dim<TView>::value) - 1u>(view))
+                                    * sizeof(elem::Elem<TView>));
                         }
                     };
                     //#############################################################################
@@ -531,9 +530,8 @@ namespace alpaka
             -> vec::Vec<dim::Dim<TPitch>, idx::Idx<TPitch>>
             {
                 return
-                    vec::createVecFromIndexedFnWorkaround<
+                    vec::createVecFromIndexedFn<
                         dim::Dim<TPitch>,
-                        idx::Idx<TPitch>,
                         detail::CreatePitchBytes>(
                             pitch);
             }
@@ -548,9 +546,8 @@ namespace alpaka
             {
                 using IdxOffset = std::integral_constant<std::intmax_t, static_cast<std::intmax_t>(dim::Dim<TPitch>::value) - static_cast<std::intmax_t>(TDim::value)>;
                 return
-                    vec::createVecFromIndexedFnOffsetWorkaround<
+                    vec::createVecFromIndexedFnOffset<
                         TDim,
-                        idx::Idx<TPitch>,
                         detail::CreatePitchBytes,
                         IdxOffset>(
                             pitch);

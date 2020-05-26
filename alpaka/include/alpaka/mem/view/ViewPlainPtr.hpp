@@ -14,6 +14,8 @@
 #include <alpaka/vec/Vec.hpp>
 #include <alpaka/dev/DevCpu.hpp>
 #include <alpaka/dev/DevUniformCudaHipRt.hpp>
+#include <alpaka/dev/DevOmp5.hpp>
+#include <alpaka/dev/DevOacc.hpp>
 
 #include <type_traits>
 
@@ -342,6 +344,68 @@ namespace alpaka
                                 alpaka::dim::Dim<TExtent>,
                                 alpaka::idx::Idx<TExtent>>(
                                     pMemAcc,
+                                    dev,
+                                    extent);
+                    }
+                };
+#endif
+
+#ifdef ALPAKA_ACC_ANY_BT_OMP5_ENABLED
+                //#############################################################################
+                //! The Omp5 device CreateStaticDevMemView trait specialization.
+                //! \todo What ist this for? Does this exist in OMP5?
+                template<>
+                struct CreateStaticDevMemView<
+                    dev::DevOmp5>
+                {
+                    //-----------------------------------------------------------------------------
+                    template<
+                        typename TElem,
+                        typename TExtent>
+                    static auto createStaticDevMemView(
+                        TElem * pMem,
+                        dev::DevOmp5 const & dev,
+                        TExtent const & extent)
+#ifdef BOOST_NO_CXX14_RETURN_TYPE_DEDUCTION
+                    -> alpaka::mem::view::ViewPlainPtr<dev::DevOmp5, TElem, alpaka::dim::Dim<TExtent>, alpaka::idx::Idx<TExtent>>
+#endif
+                    {
+                        return
+                            alpaka::mem::view::ViewPlainPtr<
+                                dev::DevOmp5,
+                                TElem,
+                                alpaka::dim::Dim<TExtent>,
+                                alpaka::idx::Idx<TExtent>>(
+                                    pMem,
+                                    dev,
+                                    extent);
+                    }
+                };
+#endif
+
+#ifdef ALPAKA_ACC_ANY_BT_OACC_ENABLED
+                //#############################################################################
+                //! The Oacc device CreateStaticDevMemView trait specialization.
+                template<>
+                struct CreateStaticDevMemView<
+                    dev::DevOacc>
+                {
+                    //-----------------------------------------------------------------------------
+                    template<
+                        typename TElem,
+                        typename TExtent>
+                    static auto createStaticDevMemView(
+                        TElem * pMem,
+                        dev::DevOacc const & dev,
+                        TExtent const & extent)
+                    {
+                        return
+                            alpaka::mem::view::ViewPlainPtr<
+                                dev::DevOacc,
+                                TElem,
+                                alpaka::dim::Dim<TExtent>,
+                                alpaka::idx::Idx<TExtent>>(
+                                    pMem,
                                     dev,
                                     extent);
                     }

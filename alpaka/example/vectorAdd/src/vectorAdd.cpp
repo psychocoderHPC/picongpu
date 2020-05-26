@@ -20,6 +20,7 @@
 #include <random>
 #include <iostream>
 #include <typeinfo>
+#include <chrono>
 
 //#############################################################################
 //! A vector addition kernel.
@@ -72,6 +73,29 @@ public:
     }
 };
 
+template<class A, class B>
+#if defined(ALPAKA_ACC_ANY_BT_OMP5_ENABLED)
+using DefaultAcc = alpaka::acc::AccOmp5<A,B>;
+#elif defined(ALPAKA_ACC_ANY_BT_OACC_ENABLED)
+using DefaultAcc = alpaka::acc::AccOacc<A,B>;
+#elif defined(ALPAKA_ACC_CPU_B_OMP2_T_SEQ_ENABLED)
+using DefaultAcc = alpaka::acc::AccCpuOmp2Blocks<A,B>;
+#elif defined(ALPAKA_ACC_CPU_B_SEQ_T_FIBERS_ENABLED)
+using DefaultAcc = alpaka::acc::AccCpuFibers<A,B>;
+#elif defined(ALPAKA_ACC_CPU_B_SEQ_T_OMP2_ENABLED)
+using DefaultAcc = alpaka::acc::AccCpuOmp2Threads<A,B>;
+#elif defined(ALPAKA_ACC_CPU_B_SEQ_T_SEQ_ENABLED)
+using DefaultAcc = alpaka::acc::AccCpuSerial<A,B>;
+#elif defined(ALPAKA_ACC_CPU_B_SEQ_T_THREADS_ENABLED)
+using DefaultAcc = alpaka::acc::AccCpuThreads<A,B>;
+#elif defined(ALPAKA_ACC_GPU_CUDA_ENABLED)
+using DefaultAcc = alpaka::acc::AccGpuCudaRt<A,B>;
+#else
+class Stub;
+#define NOP
+#warning "No supported backend selected."
+#endif
+
 auto main()
 -> int
 {
@@ -92,10 +116,12 @@ auto main()
     // - AccCpuFibers
     // - AccCpuOmp2Threads
     // - AccCpuOmp2Blocks
-    // - AccCpuOmp4
+    // - AccOmp5
     // - AccCpuTbbBlocks
     // - AccCpuSerial
-    using Acc = alpaka::acc::AccCpuSerial<Dim, Idx>;
+    // using Acc = alpaka::acc::AccCpuSerial<Dim, Idx>;
+    using Acc = DefaultAcc<Dim, Idx>;
+    std::cout << "Using alpaka accelerator: " << alpaka::acc::getAccName<Acc>() << std::endl;
     using DevAcc = alpaka::dev::Dev<Acc>;
     using PltfAcc = alpaka::pltf::Pltf<DevAcc>;
 
@@ -112,8 +138,8 @@ auto main()
     QueueAcc queue(devAcc);
 
     // Define the work division
-    Idx const numElements(123456);
-    Idx const elementsPerThread(3u);
+    Idx const numElements(12345);
+    Idx const elementsPerThread(8u);
     alpaka::vec::Vec<Dim, Idx> const extent(numElements);
 
     // Let alpaka calculate good block and grid sizes given our full problem extent
@@ -180,13 +206,23 @@ auto main()
         numElements));
 
     // Enqueue the kernel execution task
-    alpaka::queue::enqueue(queue, taskKernel);
+    {
+        const auto beginT = std::chrono::high_resolution_clock::now();
+        alpaka::queue::enqueue(queue, taskKernel);
+        const auto endT = std::chrono::high_resolution_clock::now();
+        std::cout << "Time for kernel execution: " << std::chrono::duration<double>(endT-beginT).count() << 's' << std::endl;
+    }
 
     // Copy back the result
-    alpaka::mem::view::copy(queue, bufHostC, bufAccC, extent);
-    alpaka::wait::wait(queue);
+    {
+        auto beginT = std::chrono::high_resolution_clock::now();
+        alpaka::mem::view::copy(queue, bufHostC, bufAccC, extent);
+        const auto endT = std::chrono::high_resolution_clock::now();
+        std::cout << "Time for kernel execution: " << std::chrono::duration<double>(endT-beginT).count() << 's' << std::endl;
+    }
 
-    bool resultCorrect(true);
+    int falseResults = 0;
+    static constexpr int NUM_FALSE_RESULTS = 20;
     for(Idx i(0u);
         i < numElements;
         ++i)
@@ -195,19 +231,21 @@ auto main()
         Data const correctResult(pBufHostA[i] + pBufHostB[i]);
         if(val != correctResult)
         {
-            std::cerr << "C[" << i << "] == " << val << " != " << correctResult << std::endl;
-            resultCorrect = false;
+            if (falseResults < NUM_FALSE_RESULTS)
+                std::cerr << "C[" << i << "] == " << val << " != " << correctResult << std::endl;
+            ++falseResults;
         }
     }
 
-    if(resultCorrect)
+    if(falseResults == 0)
     {
         std::cout << "Execution results correct!" << std::endl;
         return EXIT_SUCCESS;
     }
     else
     {
-        std::cout << "Execution results incorrect!" << std::endl;
+        std::cout << "Found " << falseResults << " false results, printed no more than " << NUM_FALSE_RESULTS << "\n"
+            << "Execution results incorrect!" << std::endl;
         return EXIT_FAILURE;
     }
 #endif
