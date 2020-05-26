@@ -12,6 +12,7 @@
 #include <alpaka/test/MeasureKernelRunTime.hpp>
 #include <alpaka/test/acc/TestAccs.hpp>
 #include <alpaka/test/queue/Queue.hpp>
+#include <alpaka/meta/Filter.hpp>
 
 #include <catch2/catch.hpp>
 
@@ -69,9 +70,29 @@ public:
     }
 };
 
-using TestAccs = alpaka::test::acc::EnabledAccs<
+#ifdef ALPAKA_ACC_ANY_BT_OMP5_ENABLED
+template<typename B>
+struct not_omp5 : public std::integral_constant<
+    bool,
+    !bool(std::is_same<
+        alpaka::acc::AccOmp5<
+            alpaka::dim::DimInt<1u>,
+            std::size_t>,
+        B>::value
+    )>
+{};
+
+using TestAccs = alpaka::meta::Filter<
+    alpaka::test::acc::EnabledAccs<
+        alpaka::dim::DimInt<1u>,
+        std::size_t>,
+        not_omp5
+        >;
+#else
+using TestAccs =  alpaka::test::acc::EnabledAccs<
     alpaka::dim::DimInt<1u>,
     std::size_t>;
+#endif
 
 TEMPLATE_LIST_TEST_CASE( "separableCompilation", "[separableCompilation]", TestAccs)
 {

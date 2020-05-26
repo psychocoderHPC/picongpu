@@ -35,10 +35,7 @@ then
     ./script/install_cmake.sh
 fi
 
-if [ "$TRAVIS_OS_NAME" = "linux" ]
-then
-    if [ "${ALPAKA_CI_ANALYSIS}" == "ON" ] ;then ./script/install_analysis.sh ;fi
-fi
+if [ "${ALPAKA_CI_ANALYSIS}" == "ON" ] ;then ./script/install_analysis.sh ;fi
 
 # Install CUDA before installing gcc as it installs gcc-4.8 and overwrites our selected compiler
 if [ "${ALPAKA_CI_INSTALL_CUDA}" == "ON" ] ;then ./script/install_cuda.sh ;fi
@@ -48,6 +45,9 @@ then
     if [ "${CXX}" == "g++" ] ;then ./script/install_gcc.sh ;fi
     if [ "${CXX}" == "clang++" ] ;then source ./script/install_clang.sh ;fi
     if [ "${ALPAKA_CI_INSTALL_HIP}" == "ON" ] ;then ./script/install_hip.sh ;fi
+elif [ "$TRAVIS_OS_NAME" = "osx" ]
+then
+    sudo xcode-select -s "/Applications/Xcode_${ALPAKA_CI_XCODE_VER}.app/Contents/Developer"
 fi
 
 if [ "${ALPAKA_CI_INSTALL_TBB}" = "ON" ]

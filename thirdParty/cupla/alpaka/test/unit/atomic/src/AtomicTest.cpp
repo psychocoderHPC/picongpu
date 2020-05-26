@@ -330,8 +330,10 @@ class AtomicTestKernel
 public:
     //-----------------------------------------------------------------------------
     ALPAKA_NO_HOST_ACC_WARNING
+    template<
+        typename TTAcc>
     ALPAKA_FN_ACC auto operator()(
-        TAcc const & acc,
+        TTAcc const & acc,
         bool * success,
         T operandOrig) const
     -> void
@@ -973,9 +975,29 @@ struct TestAtomicOperations
     }
 };
 
-using TestAccs = alpaka::test::acc::EnabledAccs<
+#ifdef ALPAKA_ACC_ANY_BT_OMP5_ENABLED
+template<typename B>
+struct not_omp5 : public std::integral_constant<
+    bool,
+    !bool(std::is_same<
+        alpaka::acc::AccOmp5<
+            alpaka::dim::DimInt<1u>,
+            std::size_t>,
+        B>::value
+    )>
+{};
+
+using TestAccs = alpaka::meta::Filter<
+    alpaka::test::acc::EnabledAccs<
+        alpaka::dim::DimInt<1u>,
+        std::size_t>,
+    not_omp5
+    >;
+#else
+using TestAccs =  alpaka::test::acc::EnabledAccs<
     alpaka::dim::DimInt<1u>,
     std::size_t>;
+#endif
 
 //-----------------------------------------------------------------------------
 TEMPLATE_LIST_TEST_CASE( "atomicOperationsWorking", "[atomic]", TestAccs)
