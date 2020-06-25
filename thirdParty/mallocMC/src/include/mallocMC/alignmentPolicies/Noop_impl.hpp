@@ -27,34 +27,37 @@
 
 #pragma once
 
-#include <boost/cstdint.hpp>
-#include <string>
-
 #include "Noop.hpp"
-#include "../mallocMC_prefixes.hpp"
 
-namespace mallocMC{
-namespace AlignmentPolicies{
+#include <alpaka/core/Common.hpp>
+#include <cstdint>
+#include <string>
+#include <tuple>
 
-  class Noop{
-    typedef boost::uint32_t uint32;
+namespace mallocMC
+{
+    namespace AlignmentPolicies
+    {
+        class Noop
+        {
+        public:
+            static auto alignPool(void * memory, size_t memsize)
+                -> std::tuple<void *, size_t>
+            {
+                return std::make_tuple(memory, memsize);
+            }
 
-    public:
+            ALPAKA_FN_HOST_ACC
+            static auto applyPadding(size_t bytes) -> size_t
+            {
+                return bytes;
+            }
 
-    static boost::tuple<void*,size_t> alignPool(void* memory, size_t memsize){
-      return boost::make_tuple(memory,memsize);
-    }
+            static auto classname() -> std::string
+            {
+                return "Noop";
+            }
+        };
 
-    MAMC_HOST MAMC_ACCELERATOR
-    static uint32 applyPadding(uint32 bytes){
-      return bytes;
-    }
-
-    static std::string classname(){
-      return "Noop";
-    }
-
-  };
-
-} //namespace AlignmentPolicies
-} //namespace mallocMC
+    } // namespace AlignmentPolicies
+} // namespace mallocMC

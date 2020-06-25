@@ -27,26 +27,29 @@
 
 #pragma once
 
+#include "ReturnNull.hpp"
+
+#include <alpaka/core/Common.hpp>
 #include <string>
 
-#include "ReturnNull.hpp"
-#include "../mallocMC_prefixes.hpp"
+namespace mallocMC
+{
+    namespace OOMPolicies
+    {
+        class ReturnNull
+        {
+        public:
+            ALPAKA_FN_ACC
+            static auto handleOOM(void * mem) -> void *
+            {
+                return nullptr;
+            }
 
-namespace mallocMC{
-namespace OOMPolicies{
+            static auto classname() -> std::string
+            {
+                return "ReturnNull";
+            }
+        };
 
-  class ReturnNull
-  {
-    public:
-      MAMC_ACCELERATOR
-      static void* handleOOM(void* mem){
-        return NULL;
-      }
-
-      static std::string classname(){
-        return "ReturnNull";
-      }
-  };
-
-} //namespace OOMPolicies
-} //namespace mallocMC
+    } // namespace OOMPolicies
+} // namespace mallocMC

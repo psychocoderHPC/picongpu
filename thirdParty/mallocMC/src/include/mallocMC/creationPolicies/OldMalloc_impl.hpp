@@ -27,45 +27,59 @@
 
 #pragma once
 
-#include <boost/cstdint.hpp>
-#include <boost/mpl/bool.hpp>
-
 #include "OldMalloc.hpp"
 
-namespace mallocMC{
-namespace CreationPolicies{
+#include <alpaka/core/Common.hpp>
+#include <cstdint>
 
-  class OldMalloc
-  {
-    typedef boost::uint32_t uint32;
-
-    public:
-    typedef boost::mpl::bool_<false> providesAvailableSlots;
-
-    __device__ void* create(uint32 bytes)
+namespace mallocMC
+{
+    namespace CreationPolicies
     {
-      return ::malloc(static_cast<size_t>(bytes));
-    }
+        class OldMalloc
+        {
+            using uint32 = std::uint32_t;
 
-    __device__ void destroy(void* mem)
-    {
-      free(mem);
-    }
+        public:
+            static constexpr auto providesAvailableSlots = false;
 
-    __device__ bool isOOM(void* p, size_t s){
-      return s && (p == NULL);
-    }
+            template<typename AlpakaAcc>
+            ALPAKA_FN_ACC auto create(const AlpakaAcc & acc, uint32 bytes) const
+                -> void *
+            {
+                return ::malloc(static_cast<size_t>(bytes));
+            }
 
-    template < typename T >
-    static void* initHeap(T* dAlloc, void*, size_t){
-      return dAlloc;
-    }
+            template<typename AlpakaAcc>
+            ALPAKA_FN_ACC void
+            destroy(const AlpakaAcc & /*acc*/, void * mem) const
+            {
+                ::free(mem);
+            }
 
-    static std::string classname(){
-      return "OldMalloc";
-    }
+            ALPAKA_FN_ACC auto isOOM(void * p, size_t s) const -> bool
+            {
+                return s != 0 && (p == nullptr);
+            }
 
-  };
+            template<
+                typename AlpakaAcc,
+                typename AlpakaDevice,
+                typename AlpakaQueue,
+                typename T_DeviceAllocator>
+            static void initHeap(
+                AlpakaDevice & dev,
+                AlpakaQueue & queue,
+                T_DeviceAllocator * heap,
+                void * pool,
+                size_t memsize)
+            {}
 
-} //namespace CreationPolicies
-} //namespace mallocMC
+            static auto classname() -> std::string
+            {
+                return "OldMalloc";
+            }
+        };
+
+    } // namespace CreationPolicies
+} // namespace mallocMC
