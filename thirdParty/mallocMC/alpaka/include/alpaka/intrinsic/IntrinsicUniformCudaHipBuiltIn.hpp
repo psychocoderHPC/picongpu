@@ -91,7 +91,11 @@ namespace alpaka
                     std::int32_t value)
                 -> std::int32_t
                 {
+#if BOOST_COMP_CLANG
+                    return __ffs(static_cast<int>(value));
+#else
                     return __ffs(value);
+#endif
                 }
 
                 //-----------------------------------------------------------------------------
@@ -100,7 +104,11 @@ namespace alpaka
                     std::int64_t value)
                 -> std::int32_t
                 {
+#if BOOST_COMP_CLANG
+                    return __ffsll(static_cast<long long>(value));
+#else
                     return __ffsll(value);
+#endif
                 }
             };
         }

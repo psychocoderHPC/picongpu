@@ -59,9 +59,10 @@ namespace mallocMC
         using type = unsigned long long;
     };
 
-#if defined(__CUDA_ARCH__) \
-    || (defined(__HIP_DEVICE_COMPILE__) && defined(__HIP__))
+#if defined(__CUDA_ARCH__)
     constexpr auto warpSize = 32; // TODO
+#elif(__HIP_DEVICE_COMPILE__)
+    constexpr auto warpSize = 64;
 #else
     constexpr auto warpSize = 1;
 #endif
@@ -130,11 +131,22 @@ namespace mallocMC
 #endif
     }
 
+    ALPAKA_FN_ACC inline auto ballot(int pred)
+    {
+#if defined(__CUDA_ARCH__)
+        return __ballot_sync(__activemask(), pred);
+#else
+        return __ballot(pred);
+#endif
+    }
+
+
     ALPAKA_FN_ACC inline auto activemask()
     {
-#if defined(__CUDA_ARCH__) \
-    || (defined(__HIP_DEVICE_COMPILE__) && defined(__HIP__))
+#if defined(__CUDA_ARCH__)
         return __activemask();
+#elif defined(__HIP_DEVICE_COMPILE__) && defined(__HIP__)
+        return ballot(1);
 #else
         return 1u;
 #endif
@@ -175,11 +187,13 @@ namespace mallocMC
         return localId / warpSize;
     }
 
-    ALPAKA_FN_ACC inline auto ffs(std::uint32_t mask) -> std::uint32_t
+    template<typename T>
+    ALPAKA_FN_ACC inline auto ffs(T mask) -> std::uint32_t
     {
-#if defined(__CUDA_ARCH__) \
-    || (defined(__HIP_DEVICE_COMPILE__) && defined(__HIP__))
+#if defined(__CUDA_ARCH__)
         return ::__ffs(mask);
+#elif defined(__HIP_DEVICE_COMPILE__) && defined(__HIP__)
+        return __ffsll(static_cast<unsigned long long int>(mask));
 #else
         if(mask == 0)
             return 0;
@@ -193,11 +207,13 @@ namespace mallocMC
 #endif
     }
 
-    ALPAKA_FN_ACC inline auto popc(std::uint32_t mask) -> std::uint32_t
+    template<typename T>
+    ALPAKA_FN_ACC inline auto popc(T mask) -> std::uint32_t
     {
-#if defined(__CUDA_ARCH__) \
-    || (defined(__HIP_DEVICE_COMPILE__) && defined(__HIP__))
+#if defined(__CUDA_ARCH__)
         return ::__popc(mask);
+#elif defined(__HIP_DEVICE_COMPILE__) && defined(__HIP__)
+        return __popcll(static_cast<unsigned long long int>(mask));
 #else
         // cf.
         // https://graphics.stanford.edu/~seander/bithacks.html#CountBitsSetKernighan
