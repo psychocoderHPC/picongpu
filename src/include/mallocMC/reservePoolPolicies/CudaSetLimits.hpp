@@ -27,18 +27,25 @@
 
 #pragma once
 
-namespace mallocMC{
-namespace ReservePoolPolicies{
+namespace mallocMC
+{
+    namespace ReservePoolPolicies
+    {
+        /**
+         * @brief set CUDA internal heap for device-side malloc calls
+         *
+         * This ReservePoolPolicy is intended for use with CUDA capable
+         * accelerators that support at least compute capability 2.0. It should
+         * be used in conjunction with a CreationPolicy that actually requires
+         * the CUDA-internal heap to be sized by calls to cudaDeviceSetLimit().
+         *
+         * This policy sets the cudaLimitMallocHeapSize device limit. This value
+         * can no longer be changed once a kernel using ::malloc()/::free() has
+         * been run. Subsequent attempts will result in errors unless the device
+         * is reset via cudaDeviceReset(). See:
+         * https://docs.nvidia.com/cuda/cuda-runtime-api/group__CUDART__DEVICE.html#group__CUDART__DEVICE_1g05956f16eaa47ef3a4efee84563ccb7d
+         */
+        struct CudaSetLimits;
 
-  /**
-   * @brief set CUDA internal heap for device-side malloc calls
-   *
-   * This ReservePoolPolicy is intended for use with CUDA capable accelerators
-   * that support at least compute capability 2.0. It should be used in
-   * conjunction with a CreationPolicy that actually requires the CUDA-internal
-   * heap to be sized by calls to cudaDeviceSetLimit()
-   */
-  struct CudaSetLimits;
-
-} //namespace ReservePoolPolicies
-} //namespace mallocMC
+    } // namespace ReservePoolPolicies
+} // namespace mallocMC

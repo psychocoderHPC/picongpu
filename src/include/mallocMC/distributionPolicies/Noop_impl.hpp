@@ -27,36 +27,45 @@
 
 #pragma once
 
-#include <boost/cstdint.hpp>
+#include "Noop.hpp"
+
+#include <alpaka/core/Common.hpp>
+#include <cstdint>
 #include <string>
 
-#include "Noop.hpp"
-#include "../mallocMC_prefixes.hpp"
+namespace mallocMC
+{
+    namespace DistributionPolicies
+    {
+        class Noop
+        {
+            using uint32 = std::uint32_t;
 
-namespace mallocMC{
-namespace DistributionPolicies{
-    
-  class Noop 
-  {
-    typedef boost::uint32_t uint32;
+        public:
+            template<typename AlpakaAcc>
+            ALPAKA_FN_ACC Noop(const AlpakaAcc & /*acc*/)
+            {}
 
-    public:
+            template<typename AlpakaAcc>
+            ALPAKA_FN_ACC
+            auto collect(const AlpakaAcc& /*acc*/, uint32 bytes) const -> uint32
+            {
+                return bytes;
+            }
 
-    MAMC_ACCELERATOR
-    uint32 collect(uint32 bytes){
-      return bytes;
-    }
+            template<typename AlpakaAcc>
+            ALPAKA_FN_ACC
+            auto distribute(const AlpakaAcc& /*acc*/, void * allocatedMem) const
+                -> void *
+            {
+                return allocatedMem;
+            }
 
-    MAMC_ACCELERATOR
-    void* distribute(void* allocatedMem){
-      return allocatedMem;
-    }
+            static auto classname() -> std::string
+            {
+                return "Noop";
+            }
+        };
 
-    static std::string classname(){
-      return "Noop";
-    }
-
-  };
-
-} //namespace DistributionPolicies
-} //namespace mallocMC
+    } // namespace DistributionPolicies
+} // namespace mallocMC
