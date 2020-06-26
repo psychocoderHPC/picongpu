@@ -190,11 +190,21 @@ namespace emz
                          */
                         const float_X W = this->DS( line, k, 2 ) * tmp;
                         accumulated_J += W;
+#if PIC_EMU_ATOMICADD && BOOST_COMP_HIP
+                        float_X* ptr = &( (*cursorJ( i, j, k ) ).z( ) );
+                        nvidia::atomicAddEmulated(
+                            acc,
+                            ptr,
+                            accumulated_J,
+                            ::alpaka::hierarchy::Threads{}
+                        );
+#else
                         atomicAdd(
                             &( (*cursorJ( i, j, k ) ).z( ) ),
                             accumulated_J,
                             ::alpaka::hierarchy::Threads{}
                         );
+#endif
                     }
                 }
             }

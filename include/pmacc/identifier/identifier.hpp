@@ -26,13 +26,13 @@
 
 /* No namespace is needed because we only have defines*/
 
-#ifdef __CUDA_ARCH__ //we are on gpu
+#if( defined(__CUDA_ARCH__) || __HIP_DEVICE_COMPILE__ == 1 ) //we are on gpu
 #   define PMACC_PLACEHOLDER(id) using namespace PMACC_JOIN(device_placeholder,id)
 #else
 #   define PMACC_PLACEHOLDER(id) using namespace PMACC_JOIN(host_placeholder,id)
 #endif
 
-#ifdef __CUDACC__
+#if defined(__CUDACC__) || BOOST_COMP_HIP
 #   define PMACC_identifier_CUDA(name,id)                                         \
         namespace PMACC_JOIN(device_placeholder,id){                               \
             /* This variable exists only for template parameter deduction, its value
