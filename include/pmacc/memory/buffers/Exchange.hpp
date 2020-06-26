@@ -84,7 +84,7 @@ namespace pmacc
          */
         virtual Buffer<TYPE, DIM>* getCommunicationBuffer() = 0;
 
-        virtual bool hasDeviceDoubleBuffer()=0;
+        virtual bool hasDeviceDoubleBuffer() = 0;
 
         virtual DeviceBuffer<TYPE, DIM>& getDeviceDoubleBuffer()=0;
 

@@ -188,7 +188,8 @@ struct KernelComputeCurrent
         using Strategy = currentSolver::traits::GetStrategy_t< FrameSolver >;
 
         /* this memory is used by all virtual blocks */
-        auto cachedJ = detail::Cache< Strategy >::template create<
+        using CacheFactory = detail::Cache< Strategy >;
+        auto cachedJ = CacheFactory::template create<
             numWorkers,
             T_BlockDescription
         >(
