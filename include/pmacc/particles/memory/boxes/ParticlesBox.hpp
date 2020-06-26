@@ -146,7 +146,7 @@ public:
     HDINLINE
     FramePtr mapPtr( const FramePtr& devPtr ) const
     {
-#if( !defined(__CUDA_ARCH__) && __HIP_DEVICE_COMPILE__ == 0 )
+#if( !defined(__CUDA_ARCH__) && CUPLA_DEVICE_COMPILE == 0 )
         int64_t useOffset = hostMemoryOffset * static_cast<int64_t> (devPtr.ptr != 0);
         return FramePtr( reinterpret_cast<FrameType*> (
                                                        reinterpret_cast<char*> (devPtr.ptr) - useOffset

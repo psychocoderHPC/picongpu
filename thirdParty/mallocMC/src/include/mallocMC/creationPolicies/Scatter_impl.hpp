@@ -619,7 +619,11 @@ namespace mallocMC
                             _page[page].init();
                             // remove chunk information
                             _ptes[page].chunksize = 0;
-#if( BOOST_LANG_CUDA || BOOST_COMP_HIP)
+/* BOOST_COMP_HIP (from alpaka) instead of __HIP_DEVICE_COMPILE__ is required because HIP-clang is parsing
+ * this code with __HIP_DEVICE_COMPILE__ and is failing because `std::atomic_thread_fence`
+ * is not available on device
+ */
+#if(MALLOCMC_DEVICE_COMPILE_PATH)
                             __threadfence(); // TODO alpaka
 #else
                             std::atomic_thread_fence(
@@ -781,10 +785,12 @@ namespace mallocMC
 
                 // only one thread per warp can acquire the mutex
                 void * res = 0;
+                // based on the alpaka backend the mask type can be 64bit
                 const auto mask = activemask();
                 const uint32_t num = popc(mask);
+                // based on the alpaka backend the mask type can be 64bit
                 const auto lanemask = lanemask_lt();
-                const auto local_id = popc(lanemask & mask);
+                const uint32_t local_id = popc(lanemask & mask);
                 for(unsigned int active = 0; active < num; ++active)
                     if(active == local_id)
                         res = allocPageBasedSingle(acc, bytes);
@@ -806,7 +812,8 @@ namespace mallocMC
             {
                 const uint32 pages = divup(bytes, pagesize);
                 for(uint32 p = page; p < page + pages; ++p) _page[p].init();
-#if( BOOST_LANG_CUDA || BOOST_COMP_HIP)
+
+#if(MALLOCMC_DEVICE_COMPILE_PATH)
                 __threadfence(); // TODO alpaka
 #else
                 std::atomic_thread_fence(
@@ -1304,7 +1311,8 @@ namespace mallocMC
                 if(temp)
                     alpaka::atomic::atomicOp<alpaka::atomic::op::Add>(
                         acc, &warpResults[wId], temp);
-#if( BOOST_LANG_CUDA || BOOST_COMP_HIP)
+
+#if(MALLOCMC_DEVICE_COMPILE_PATH)
                 __threadfence_block();
 #else
                 std::atomic_thread_fence(

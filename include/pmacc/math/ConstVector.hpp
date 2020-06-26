@@ -26,7 +26,7 @@
 #include "pmacc/types.hpp"
 
 /* select namespace depending on __CUDA_ARCH__ compiler flag*/
-#if( defined(__CUDA_ARCH__) || __HIP_DEVICE_COMPILE__ == 1 )  //we are on gpu
+#if( defined(__CUDA_ARCH__) || CUPLA_DEVICE_COMPILE == 1 )  //we are on gpu
 #   define PMACC_USING_STATIC_CONST_VECTOR_NAMESPACE(id) using namespace PMACC_JOIN(pmacc_static_const_vector_device,id)
 #else
 #   define PMACC_USING_STATIC_CONST_VECTOR_NAMESPACE(id) using namespace PMACC_JOIN(pmacc_static_const_vector_host,id)

@@ -38,7 +38,7 @@ namespace math
 
         HDINLINE float operator( )(const float& value)
         {
-#if( defined(__CUDA_ARCH__) || __HIP_DEVICE_COMPILE__ == 1 ) //we are on gpu
+#if( defined(__CUDA_ARCH__) || CUPLA_DEVICE_COMPILE == 1 ) //we are on gpu
             return ::log10f( value );
 #else
             return ::log10( value );
