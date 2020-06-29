@@ -1,5 +1,5 @@
 project(mallocMC)
-cmake_minimum_required(VERSION 2.8.12.2)
+cmake_minimum_required(VERSION 3.11.4)
 
 # helper for libs and packages
 set(CMAKE_PREFIX_PATH "/usr/lib/x86_64-linux-gnu/"
@@ -17,27 +17,89 @@ if(POLICY CMP0074)
     cmake_policy(SET CMP0074 NEW)
 endif()
 
+# Add module search path
+set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_CURRENT_LIST_DIR}/cmake/modules/")
+
+
+set(mallocMC_CXX_STANDARD "11" CACHE STRING "C++ standard version")
+set_property(CACHE mallocMC_CXX_STANDARD PROPERTY STRINGS "11;14;17;20")
 
 ###############################################################################
-# CUDA
+# HIP
 ###############################################################################
-find_package(CUDA REQUIRED)
-set(CUDA_NVCC_FLAGS "-arch=sm_20;-use_fast_math;")
-set(CUDA_INCLUDE_DIRS ${CMAKE_CURRENT_SOURCE_DIR})
-include_directories(${CUDA_INCLUDE_DIRS})
-cuda_include_directories(${CUDA_INCLUDE_DIRS})
 
-OPTION(CUDA_OUTPUT_INTERMEDIATE_CODE "Output ptx code" OFF)
-if(CUDA_OUTPUT_INTERMEDIATE_CODE)
-set(CUDA_NVCC_FLAGS "${CUDA_NVCC_FLAGS};-Xptxas;-v;--keep")
-endif(CUDA_OUTPUT_INTERMEDIATE_CODE)
+# Drop-down combo box in cmake-gui for HIP platforms.
+set(mallocMC_HIP_PLATFORM "clang" CACHE STRING "Specify HIP platform")
+SET_PROPERTY(CACHE mallocMC_HIP_PLATFORM PROPERTY STRINGS "nvcc;hcc;clang")
 
-SET(CUDA_OPTIMIZATION_TYPE "unset" CACHE STRING "CUDA Optimization")
-set_property(CACHE CUDA_OPTIMIZATION_TYPE PROPERTY STRINGS "unset;-G0;-O0;-O1;-O2;-O3")
-if(NOT ${CUDA_OPTIMIZATION_TYPE} STREQUAL  "unset")
-  set(CUDA_NVCC_FLAGS "${CUDA_NVCC_FLAGS};${CUDA_OPTIMIZATION_TYPE}")
+set(HIP_PLATFORM "${mallocMC_HIP_PLATFORM}" CACHE STRING "")
+
+find_package(HIP 1.5 REQUIRED)
+if(HIP_FOUND)
+    set(HIP_HIPCC_FLAGS)
+
+    if(mallocMC_HIP_PLATFORM MATCHES "nvcc")
+        find_package(CUDA)
+        if(NOT CUDA_FOUND)
+            message(WARNING "Could not found CUDA while HIP platform is set to nvcc. Compiling might fail.")
+        endif()
+
+        set(mallocMC_CUDA_ARCH "30" CACHE STRING "GPU architecture")
+
+        if(CUDA_VERSION VERSION_LESS 9.0)
+            message(WARNING "CUDA Toolkit < 9.0 is not supported!")
+        endif()
+
+        list(APPEND HIP_NVCC_FLAGS "--expt-extended-lambda")
+        list(APPEND HIP_NVCC_FLAGS "--expt-relaxed-constexpr")
+
+        FOREACH(_HIP_ARCH_ELEM ${mallocMC_CUDA_ARCH})
+            # set flags to create device code for the given architecture
+            list(APPEND CUDA_NVCC_FLAGS
+                --generate-code arch=compute_${_HIP_ARCH_ELEM},code=sm_${_HIP_ARCH_ELEM}
+                --generate-code arch=compute_${_HIP_ARCH_ELEM},code=compute_${_HIP_ARCH_ELEM}
+            )
+        ENDFOREACH()
+        # for CUDA cmake adds automatically compiler flags as nvcc does not do this,
+        # but for HIP we have to do this here
+        list(APPEND HIP_NVCC_FLAGS "-D__CUDACC__")
+        list(APPEND HIP_NVCC_FLAGS "-ccbin ${CMAKE_CXX_COMPILER}")
+        list(APPEND HIP_NVCC_FLAGS "-Xcompiler" "-g")
+
+        if(CMAKE_BUILD_TYPE STREQUAL "Debug" OR CMAKE_BUILD_TYPE STREQUAL "RelWithDebInfo")
+            list(APPEND HIP_HIPCC_FLAGS "-G")
+        endif()
+        # propage host flags
+        # set(CUDA_PROPAGATE_HOST_FLAGS ON) # does not exist in HIP, so do it manually
+        string(TOUPPER "${CMAKE_BUILD_TYPE}" build_config)
+        foreach( _flag ${CMAKE_CXX_FLAGS} ${CMAKE_CXX_FLAGS_${build_config}})
+            list(APPEND HIP_NVCC_FLAGS "-Xcompiler ${_flag}")
+        endforeach()
+
+        if(CUDA_VERSION GREATER_EQUAL 9.0)
+            # avoids warnings on host-device signatured, default constructors/destructors
+            list(APPEND HIP_HIPCC_FLAGS "-Xcudafe --diag_suppress=esa_on_defaulted_function_ignored")
+        endif()
+
+    endif() # nvcc
+
+    list(APPEND HIP_HIPCC_FLAGS "-D__HIPCC__")
+    list(APPEND HIP_HIPCC_FLAGS "-std=c++${mallocMC_CXX_STANDARD}")
+
+    if(CMAKE_BUILD_TYPE STREQUAL "Debug" OR CMAKE_BUILD_TYPE STREQUAL "RelWithDebInfo")
+        list(APPEND HIP_HIPCC_FLAGS "-g")
+    endif()
+
+    HIP_INCLUDE_DIRECTORIES(
+        ${HIP_INCLUDE_DIRS}
+        ${Boost_INCLUDE_DIRS}
+    )
+
+    if(mallocMC_HIP_PLATFORM MATCHES "hcc" OR mallocMC_HIP_PLATFORM MATCHES "clang")
+        # GFX600, GFX601, GFX700, GFX701, GFX702, GFX703, GFX704, GFX801, GFX802, GFX803, GFX810, GFX900, GFX902
+        set(LIBS "${LIBS}" "--amdgpu-target=gfx803 --amdgpu-target=gfx900 --amdgpu-target=gfx906")
+    endif()
 endif()
-
 
 ###############################################################################
 # Boost
@@ -93,22 +155,26 @@ INSTALL(
 ###############################################################################
 # Executables
 ###############################################################################
-add_custom_target(examples DEPENDS mallocMC_Example01 mallocMC_Example02 mallocMC_Example03 VerifyHeap)
+add_custom_target(examples DEPENDS mallocMC_Example01 mallocMC_Example02 mallocMC_Example03)
 
-cuda_add_executable(mallocMC_Example01
+SET_SOURCE_FILES_PROPERTIES(examples/mallocMC_example01.cpp PROPERTIES HIP_SOURCE_PROPERTY_FORMAT OBJ)
+SET_SOURCE_FILES_PROPERTIES(examples/mallocMC_example02.cpp PROPERTIES HIP_SOURCE_PROPERTY_FORMAT OBJ)
+SET_SOURCE_FILES_PROPERTIES(examples/mallocMC_example03.cpp PROPERTIES HIP_SOURCE_PROPERTY_FORMAT OBJ)
+
+HIP_ADD_EXECUTABLE(mallocMC_Example01
                     EXCLUDE_FROM_ALL
-                    examples/mallocMC_example01.cu )
-cuda_add_executable(mallocMC_Example02
+                    examples/mallocMC_example01.cpp )
+HIP_ADD_EXECUTABLE(mallocMC_Example02
                     EXCLUDE_FROM_ALL
-                    examples/mallocMC_example02.cu )
-cuda_add_executable(mallocMC_Example03
+                    examples/mallocMC_example02.cpp )
+HIP_ADD_EXECUTABLE(mallocMC_Example03
                     EXCLUDE_FROM_ALL
-                    examples/mallocMC_example03.cu )
-cuda_add_executable(VerifyHeap
-                    EXCLUDE_FROM_ALL
-                    tests/verify_heap.cu )
+                    examples/mallocMC_example03.cpp )
+#HIP_ADD_EXECUTABLE(VerifyHeap
+#                    EXCLUDE_FROM_ALL
+#                    tests/verify_heap.cpp )
 
 target_link_libraries(mallocMC_Example01 ${LIBS})
 target_link_libraries(mallocMC_Example02 ${LIBS})
 target_link_libraries(mallocMC_Example03 ${LIBS})
-target_link_libraries(VerifyHeap ${LIBS})
+#target_link_libraries(VerifyHeap ${LIBS})

@@ -27,7 +27,6 @@
 
 #pragma once
 
-#include <cuda_runtime_api.h>
 #include <string>
 
 #include "CudaSetLimits.hpp"
@@ -37,12 +36,12 @@ namespace ReservePoolPolicies{
 
   struct CudaSetLimits{
     static void* setMemPool(size_t memsize){
-      cudaDeviceSetLimit(cudaLimitMallocHeapSize, memsize);
+//      hipDeviceSetLimit(hipLimitMallocHeapSize, memsize);
       return NULL;
     }
 
     static void resetMemPool(void *p=NULL){
-      cudaDeviceSetLimit(cudaLimitMallocHeapSize, 8192U);
+      //hipDeviceSetLimit(hipLimitMallocHeapSize, 8192U);
     }
 
     static std::string classname(){
