@@ -26,21 +26,20 @@
   THE SOFTWARE.
 */
 
-#pragma once
 
 #include <boost/mpl/int.hpp>
 #include <boost/mpl/bool.hpp>
 
 // basic files for mallocMC
-#include "src/include/mallocMC/mallocMC_hostclass.hpp"
+#include "../src/include/mallocMC/mallocMC_hostclass.hpp"
 
 // Load all available policies for mallocMC
-#include "src/include/mallocMC/CreationPolicies.hpp"
-#include "src/include/mallocMC/DistributionPolicies.hpp"
-#include "src/include/mallocMC/OOMPolicies.hpp"
-#include "src/include/mallocMC/ReservePoolPolicies.hpp"
-#include "src/include/mallocMC/AlignmentPolicies.hpp"
-    
+#include "../src/include/mallocMC/CreationPolicies.hpp"
+#include "../src/include/mallocMC/DistributionPolicies.hpp"
+#include "../src/include/mallocMC/OOMPolicies.hpp"
+#include "../src/include/mallocMC/ReservePoolPolicies.hpp"
+#include "../src/include/mallocMC/AlignmentPolicies.hpp"
+
 
 
 // configurate the CreationPolicy "Scatter" to modify the default behaviour
@@ -71,7 +70,7 @@ struct ShrinkConfig : mallocMC::AlignmentPolicies::Shrink<>::Properties {
 
 // Define a new allocator and call it ScatterAllocator
 // which resembles the behaviour of ScatterAlloc
-typedef mallocMC::Allocator< 
+typedef mallocMC::Allocator<
   mallocMC::CreationPolicies::Scatter<ScatterHeapConfig, ScatterHashConfig>,
   mallocMC::DistributionPolicies::XMallocSIMD<XMallocConfig>,
   mallocMC::OOMPolicies::ReturnNull,

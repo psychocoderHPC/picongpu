@@ -11,6 +11,12 @@ accelerators**. Currently, it supports **NVIDIA GPUs** of compute capability
 Usage
 -------
 
+:exclamation: :exclamation: :exclamation: 
+This is a unmaintained branch to add support for HIP.
+For HIP-hcc a workaround is used where the memory is not freed when the mallocMC allocator object is destructed.
+
+HIP-clang and HIP-nvcc is fully supported.
+
 Follow the step-by-step instructions in [Usage.md](Usage.md) to replace your
 `new`/`malloc` calls with a *blacingly fast* mallocMC heap! :rocket:
 

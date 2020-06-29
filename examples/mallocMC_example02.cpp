@@ -1,3 +1,4 @@
+#include "hip/hip_runtime.h"
 /*
   mallocMC: Memory Allocator for Many Core Architectures.
   https://www.hzdr.de/crp
@@ -31,7 +32,7 @@
 #include <vector>
 #include <numeric>
 
-#include <cuda.h>
+#include <hip/hip_runtime.h>
 #include <boost/mpl/int.hpp>
 #include <boost/mpl/bool.hpp>
 
@@ -39,14 +40,14 @@
 // includes for mallocMC
 ///////////////////////////////////////////////////////////////////////////////
 // basic files for mallocMC
-#include "src/include/mallocMC/mallocMC_hostclass.hpp"
+#include "../src/include/mallocMC/mallocMC_hostclass.hpp"
 
 // Load all available policies for mallocMC
-#include "src/include/mallocMC/CreationPolicies.hpp"
-#include "src/include/mallocMC/DistributionPolicies.hpp"
-#include "src/include/mallocMC/OOMPolicies.hpp"
-#include "src/include/mallocMC/ReservePoolPolicies.hpp"
-#include "src/include/mallocMC/AlignmentPolicies.hpp"
+#include "../src/include/mallocMC/CreationPolicies.hpp"
+#include "../src/include/mallocMC/DistributionPolicies.hpp"
+#include "../src/include/mallocMC/OOMPolicies.hpp"
+#include "../src/include/mallocMC/ReservePoolPolicies.hpp"
+#include "../src/include/mallocMC/AlignmentPolicies.hpp"
 
 ///////////////////////////////////////////////////////////////////////////////
 // Configuration for mallocMC
@@ -98,8 +99,8 @@ void run();
 
 int main()
 {
-    cudaDeviceProp deviceProp;
-    cudaGetDeviceProperties(&deviceProp, 0);
+    hipDeviceProp_t deviceProp;
+    hipGetDeviceProperties(&deviceProp, 0);
 
     if( deviceProp.major < int(2) ) {
         std::cerr << "Error: Compute Capability >= 2.0 required. (is ";
@@ -107,9 +108,9 @@ int main()
         return 1;
     }
 
-    cudaSetDevice(0);
+    hipSetDevice(0);
     run();
-    cudaDeviceReset();
+    hipDeviceReset();
 
     return 0;
 }
@@ -181,22 +182,22 @@ void run()
 
     // device-side pointers
     int*  d;
-    cudaMalloc((void**) &d, sizeof(int)*block*grid);
+    hipMalloc((void**) &d, sizeof(int)*block*grid);
 
     // host-side pointers
     std::vector<int> array_sums(block*grid,0);
 
     // create arrays of arrays on the device
-    createArrayPointers<<<1,1>>>(grid, block, mMC );
+    hipLaunchKernelGGL(createArrayPointers, dim3(1), dim3(1), 0, 0, grid, block, mMC );
 
     // fill 2 of them all with ascending values
-    fillArrays<<<grid,block>>>(length, d, mMC );
+    hipLaunchKernelGGL(fillArrays, dim3(grid), dim3(block), 0, 0, length, d, mMC );
 
     // add the 2 arrays (vector addition within each thread)
     // and do a thread-wise reduce to d
-    addArrays<<<grid,block>>>(length, d);
+    hipLaunchKernelGGL(addArrays, dim3(grid), dim3(block), 0, 0, length, d);
 
-    cudaMemcpy(&array_sums[0], d, sizeof(int)*block*grid, cudaMemcpyDeviceToHost);
+    hipMemcpy(&array_sums[0], d, sizeof(int)*block*grid, hipMemcpyDeviceToHost);
 
     int sum = std::accumulate(array_sums.begin(), array_sums.end(), 0);
     std::cout << "The sum of the arrays on GPU is " << sum << std::endl;
@@ -212,8 +213,8 @@ void run()
         std::cout << " Slots of size 1MB available" << std::endl;
     }
 
-    freeArrays<<<grid, block>>>( mMC );
-    freeArrayPointers<<<1, 1>>>( mMC );
-    cudaFree(d);
+    hipLaunchKernelGGL(freeArrays, dim3(grid), dim3(block), 0, 0,  mMC );
+    hipLaunchKernelGGL(freeArrayPointers, dim3(1), dim3(1), 0, 0,  mMC );
+    hipFree(d);
 
 }

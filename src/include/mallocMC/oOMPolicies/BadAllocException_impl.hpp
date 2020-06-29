@@ -40,7 +40,7 @@ namespace OOMPolicies{
   {
     MAMC_ACCELERATOR
     static void* handleOOM(void* mem){
-#ifdef __CUDACC__
+#if defined(__CUDACC__) ||  defined(__HCC__) || defined(__HIP__)
 //#if __CUDA_ARCH__ < 350
 #define PM_EXCEPTIONS_NOT_SUPPORTED_HERE
 //#endif

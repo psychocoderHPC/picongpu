@@ -1,3 +1,4 @@
+#include "hip/hip_runtime.h"
 /*
   mallocMC: Memory Allocator for Many Core Architectures.
   https://www.hzdr.de/crp
@@ -32,7 +33,7 @@
 #include <numeric>
 #include <stdio.h>
 
-#include <cuda.h>
+#include <hip/hip_runtime.h>
 #include <boost/mpl/int.hpp>
 #include <boost/mpl/bool.hpp>
 
@@ -40,13 +41,13 @@
 ///////////////////////////////////////////////////////////////////////////////
 // includes for mallocMC
 ///////////////////////////////////////////////////////////////////////////////
-#include "src/include/mallocMC/mallocMC_hostclass.hpp"
+#include "../src/include/mallocMC/mallocMC_hostclass.hpp"
 
-#include "src/include/mallocMC/CreationPolicies.hpp"
-#include "src/include/mallocMC/DistributionPolicies.hpp"
-#include "src/include/mallocMC/OOMPolicies.hpp"
-#include "src/include/mallocMC/ReservePoolPolicies.hpp"
-#include "src/include/mallocMC/AlignmentPolicies.hpp"
+#include "../src/include/mallocMC/CreationPolicies.hpp"
+#include "../src/include/mallocMC/DistributionPolicies.hpp"
+#include "../src/include/mallocMC/OOMPolicies.hpp"
+#include "../src/include/mallocMC/ReservePoolPolicies.hpp"
+#include "../src/include/mallocMC/AlignmentPolicies.hpp"
 
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -112,7 +113,7 @@ int main()
 {
     ScatterAllocator mMC(1U*1024U*1024U*1024U); //1GB for device-side malloc
 
-    exampleKernel<<<1,32>>>( mMC );
+    hipLaunchKernelGGL(exampleKernel, dim3(1), dim3(32), 0, 0,  mMC );
     std::cout << "Slots from Host: " << mMC.getAvailableSlots(1) << std::endl;
 
     return 0;
