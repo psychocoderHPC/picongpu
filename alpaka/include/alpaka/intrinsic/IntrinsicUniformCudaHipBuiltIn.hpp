@@ -100,7 +100,7 @@ namespace alpaka
                     std::int64_t value)
                 -> std::int32_t
                 {
-                    return __ffsll(value);
+                    return __ffsll(static_cast<unsigned long long>(value));
                 }
             };
         }
