@@ -91,7 +91,7 @@
 #include <pmacc/meta/ForEach.hpp>
 #include "picongpu/particles/ParticlesFunctors.hpp"
 #include "picongpu/particles/InitFunctors.hpp"
-#if( PMACC_CUDA_ENABLED == 1 )
+#if( PMACC_CUDA_ENABLED == 1)
 #   include <pmacc/particles/memory/buffers/MallocMCBuffer.hpp>
 #endif
 #include <pmacc/particles/traits/FilterByFlag.hpp>
@@ -373,7 +373,9 @@ public:
 
             this->bremsstrahlungPhotonAngle.init();
         }
+#endif
 
+#if( BOOST_LANG_CUDA || BOOST_COMP_HIP)
         /* Create an empty allocator. This one is resized after all exchanges
          * for particles are created */
         deviceHeap.reset(new DeviceHeap(0));
@@ -413,7 +415,7 @@ public:
             throw std::runtime_error(msg.str());
         }
 
-#if( PMACC_CUDA_ENABLED == 1 )
+#if( BOOST_LANG_CUDA || BOOST_COMP_HIP)
         size_t heapSize = freeGpuMem - reservedGpuMemorySize;
 
         if( Environment<>::get().MemoryInfo().isSharedMemoryPool() )
@@ -426,8 +428,10 @@ public:
 
         // initializing the heap for particles
         deviceHeap->destructiveResize(heapSize);
+#   if( PMACC_CUDA_ENABLED == 1 )
         auto mallocMCBuffer = pmacc::memory::makeUnique< MallocMCBuffer<DeviceHeap> >( deviceHeap );
         dc.consume( std::move( mallocMCBuffer ) );
+#   endif
 #endif
         meta::ForEach< VectorAllSpecies, particles::LogMemoryStatisticsForSpecies<bmpl::_1> > logMemoryStatisticsForSpecies;
         logMemoryStatisticsForSpecies( deviceHeap );
@@ -437,7 +441,7 @@ public:
 
         IdProvider<simDim>::init();
 
-#if( PMACC_CUDA_ENABLED == 1 )
+#if( BOOST_LANG_CUDA || BOOST_COMP_HIP)
         /* add CUDA streams to the StreamController for concurrent execution */
         Environment<>::get().StreamController().addStreams(6);
 #endif
@@ -502,8 +506,10 @@ public:
             else
             {
                 initialiserController->init();
+                std::cerr<<"start init species "<<std::endl;
                 meta::ForEach< particles::InitPipeline, particles::CallFunctor<bmpl::_1> > initSpecies;
                 initSpecies( step );
+                std::cerr<<"finished init species "<<std::endl;
             }
         }
 
