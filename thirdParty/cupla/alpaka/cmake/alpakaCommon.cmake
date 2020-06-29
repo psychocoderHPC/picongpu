@@ -580,10 +580,10 @@ endif()
 if(ALPAKA_ACC_GPU_HIP_ENABLE)
 
     if(NOT DEFINED ALPAKA_HIP_VERSION)
-        set(ALPAKA_HIP_VERSION 3.3)
+        set(ALPAKA_HIP_VERSION 3.2)
     endif()
 
-    if(ALPAKA_HIP_VERSION VERSION_LESS 3.3)
+    if(ALPAKA_HIP_VERSION VERSION_LESS 3.2)
         message(WARNING "HIP < 3.3 is not supported!")
         set(_ALPAKA_FOUND FALSE)
     else()
