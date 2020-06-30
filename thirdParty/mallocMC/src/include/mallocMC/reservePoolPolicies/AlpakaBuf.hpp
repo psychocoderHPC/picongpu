@@ -44,6 +44,7 @@ namespace mallocMC
                 poolBuffer = std::make_unique<PoolBufferType>(
                     alpaka::mem::buf::alloc<unsigned char, size_t>(
                         dev, memsize));
+                std::cerr<<"create mallocmc "<<memsize<<std::endl;
                 return alpaka::mem::view::getPtrNative(*poolBuffer);
             }
 
