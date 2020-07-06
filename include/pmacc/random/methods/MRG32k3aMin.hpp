@@ -24,7 +24,7 @@
 #include "pmacc/types.hpp"
 #include "pmacc/static_assert.hpp"
 
-#if( PMACC_CUDA_ENABLED != 1 )
+#if( BOOST_LANG_CUDA || BOOST_COMP_HIP)
 #   include "pmacc/random/methods/AlpakaRand.hpp"
 #else
 #   include <curand_kernel.h>
