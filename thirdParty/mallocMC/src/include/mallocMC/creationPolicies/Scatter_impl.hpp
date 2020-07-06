@@ -834,7 +834,7 @@ namespace mallocMC
              * @return pointer to the allocated memory
              */
             template<typename AlpakaAcc>
-            ALPAKA_FN_ACC auto create(const AlpakaAcc & acc, uint32 bytes)
+            ALPAKA_FN_ACC __noinline__ auto create(const AlpakaAcc & acc, uint32 bytes)
                 -> void *
             {
                 if(bytes == 0)
