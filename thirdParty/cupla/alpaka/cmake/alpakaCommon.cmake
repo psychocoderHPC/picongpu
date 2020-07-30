@@ -561,6 +561,16 @@ if(ALPAKA_ACC_GPU_CUDA_ENABLE)
                     endif()
                     set(ALPAKA_CUDA_KEEP_FILES ON CACHE BOOL "activate keep files" FORCE)
                 endif()
+
+                #string(TOUPPER "${CMAKE_BUILD_TYPE}" build_config)
+                #if(build_config)
+                    # CMAKE_CXX_FLAGS_* are strings and not lists, to allow the usage 
+                    # together with foreach we need to transform the string to a list
+                #    string (REPLACE " " ";" CXX_FLAGS_AS_LIST ${CMAKE_CXX_FLAGS_${build_config}})
+                #    foreach( _flag ${CXX_FLAGS_AS_LIST})
+                #        list(APPEND CUDA_NVCC_FLAGS -Xcompiler=${_flag})
+                #    endforeach()
+                #endif()
             endif()
 
             if(OpenMP_CXX_FOUND)

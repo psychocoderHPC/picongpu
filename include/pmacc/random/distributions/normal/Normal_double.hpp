@@ -43,7 +43,7 @@ namespace detail
 /* XorMin and MRG32k3aMin uses the alpaka RNG as fallback for CPU accelerators
  * therefore we are not allowed to add a specialization for those RNG methods
  */
-#if( BOOST_LANG_CUDA || BOOST_COMP_HIP)
+#if( PMACC_CUDA_ENABLED == 1 )
     //! specialization for XorMin
     template<
         typename T_Acc
@@ -60,9 +60,7 @@ namespace detail
     {
 
     };
-#endif
 
-#if( PMACC_CUDA_ENABLED == 1 )
     //! specialization for MRG32k3aMin
     template<
         typename T_Acc

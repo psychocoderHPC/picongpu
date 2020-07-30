@@ -468,7 +468,7 @@ namespace detail
     {
         int num_gpus = 0; //number of gpus
         cuplaGetDeviceCount(&num_gpus);
-#if (PMACC_CUDA_ENABLED == 1|| BOOST_COMP_HIP)
+#if(BOOST_LANG_CUDA|| BOOST_COMP_HIP)
         //##ERROR handling
         if (num_gpus < 1) //check if cupla device is found
         {
@@ -490,9 +490,15 @@ namespace detail
             const int tryDeviceId = (deviceOffset + deviceNumber) % num_gpus;
 
             log<ggLog::CUDA_RT>("Trying to allocate device %1%.") % tryDeviceId;
+
 #if (PMACC_CUDA_ENABLED == 1)
+#   if(BOOST_LANG_CUDA)
+            cudaDeviceProp devProp;
+#   elif(BOOST_LANG_HIP)
             hipDeviceProp_t devProp;
-            CUDA_CHECK((cuplaError_t)hipGetDeviceProperties(&devProp, tryDeviceId));
+#   endif
+
+            CUDA_CHECK((cuplaError_t)ALPAKA_API_PREFIX(GetDeviceProperties)(&devProp, tryDeviceId));
 
             /* If the cuda gpu compute mode is 'default'
              * (https://docs.nvidia.com/cuda/cuda-c-programming-guide/#compute-modes)
@@ -500,7 +506,7 @@ namespace detail
              * The index used to select a device is based on the local MPI rank so
              * that each rank tries a different device.
              */
-            if (devProp.computeMode == hipComputeModeDefault)
+            if (devProp.computeMode == cudaComputeModeDefault)
             {
                 maxTries = 1;
                 log<ggLog::CUDA_RT>("Device %1% is running in default mode.") % tryDeviceId;
@@ -527,9 +533,8 @@ namespace detail
             if (rc == cuplaSuccess)
             {
 #if (PMACC_CUDA_ENABLED == 1)
-                cudaDeviceProp dprop;
-                CUDA_CHECK((cuplaError_t)cudaGetDeviceProperties(&dprop, tryDeviceId));
-                log<ggLog::CUDA_RT> ("Set device to %1%: %2%") % tryDeviceId % dprop.name;
+                CUDA_CHECK((cuplaError_t)ALPAKA_API_PREFIX(GetDeviceProperties)(&devProp, tryDeviceId));
+                log<ggLog::CUDA_RT> ("Set device to %1%: %2%") % tryDeviceId % devProp.name;
                 if(cudaErrorSetOnActiveProcess == cudaSetDeviceFlags(cudaDeviceScheduleSpin))
                 {
                     cuplaGetLastError(); //reset all errors
@@ -537,7 +542,7 @@ namespace detail
                      * - to set the flags reset the device and set flags again
                      */
                     CUDA_CHECK(cuplaDeviceReset());
-                    CUDA_CHECK((cuplaError_t)cudaSetDeviceFlags(cudaDeviceScheduleSpin));
+                    CUDA_CHECK((cuplaError_t)ALPAKA_API_PREFIX(SetDeviceFlags)(cudaDeviceScheduleSpin));
                 }
 #endif
                 CUDA_CHECK(cuplaGetLastError());
@@ -546,7 +551,7 @@ namespace detail
             }
             else if (rc == cuplaErrorDeviceAlreadyInUse
 #if (PMACC_CUDA_ENABLED == 1)
-                || rc==(cuplaError)cudaErrorDevicesUnavailable
+                || rc==(cuplaError)ALPAKA_API_PREFIX(ErrorDevicesUnavailable)
 #endif
             )
             {

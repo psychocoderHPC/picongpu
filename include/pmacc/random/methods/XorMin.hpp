@@ -24,10 +24,10 @@
 #include "pmacc/types.hpp"
 #include "pmacc/static_assert.hpp"
 
-#if( !BOOST_LANG_CUDA && !BOOST_COMP_HIP)
+#if( PMACC_CUDA_ENABLED != 1 )
 #   include "pmacc/random/methods/AlpakaRand.hpp"
 #else
-#   include <hiprand_kernel.h>
+#   include <curand_kernel.h>
 #endif
 
 
@@ -38,8 +38,7 @@ namespace random
 namespace methods
 {
 
-// for hip use our random generator
-#if( !BOOST_LANG_CUDA && !BOOST_COMP_HIP)
+#if( PMACC_CUDA_ENABLED != 1 )
     //! fallback to alpaka RNG if a cpu accelerator is used
     template< typename T_Acc = cupla::Acc>
     using XorMin = AlpakaRand< T_Acc >;
@@ -48,6 +47,12 @@ namespace methods
     template< typename T_Acc = cupla::Acc>
     class XorMin
     {
+#if (BOOST_LANG_HIP)
+            using NativeStateType = hiprandStateXORWOW_t;
+#elif (BOOST_LANG_CUDA)
+            using NativeStateType = curandStateXORWOW_t;
+#endif
+
     public:
         class StateType
         {
@@ -63,34 +68,27 @@ namespace methods
 
             HDINLINE StateType( )
             { }
-#if BOOST_COMP_HIP
-            DINLINE StateType( hiprandStateXORWOW_t const & other )
+
+            DINLINE StateType( NativeStateType const & other ): d( other.d )
             {
-                // @todo fix me this is a very dirty cast
-                const auto * tmp_state = reinterpret_cast<const rocrand_device::xorwow_engine::xorwow_state*>(&other);
-                d = tmp_state->d;
+#if (BOOST_LANG_HIP)
+                auto const* nativeStateArray = other.x;
                 PMACC_STATIC_ASSERT_MSG(
-                    sizeof( v ) == sizeof( tmp_state->x ),
+                    sizeof( v ) == sizeof( other.x ),
                     Unexpected_sizes
                 );
-                for( unsigned i = 0; i < sizeof( v ) / sizeof( v[ 0 ] ); i++ )
-                    v[ i ] = tmp_state->x[ i ];
-            }
-#elif BOOST_LANG_CUDA
-            DINLINE StateType( curandStateXORWOW_t const & other ): d( other.d )
-            {
+#elif (BOOST_LANG_CUDA)
+                auto const* nativeStateArray = other.v;
                 PMACC_STATIC_ASSERT_MSG(
                     sizeof( v ) == sizeof( other.v ),
                     Unexpected_sizes
                 );
-                for( unsigned i = 0; i < sizeof( v ) / sizeof( v[ 0 ] ); i++ )
-                    v[ i ] = other.v[ i ];
-            }
-
 #endif
+                for( unsigned i = 0; i < sizeof( v ) / sizeof( v[ 0 ] ); i++ )
+                    v[ i ] = nativeStateArray[ i ];
+            }
         };
 
-#if BOOST_COMP_HIP
         DINLINE void
         init(
             T_Acc const & acc,
@@ -99,26 +97,12 @@ namespace methods
             uint32_t subsequence = 0
         ) const
         {
-            hiprandStateXORWOW_t tmpState;
+            NativeStateType tmpState;
+#if (BOOST_LANG_HIP)
             hiprand_init(
-                seed,
-                subsequence,
-                0,
-                &tmpState
-            );
-            state = tmpState;
-        }
-#elif BOOST_LANG_CUDA
-        DINLINE void
-        init(
-            T_Acc const & acc,
-            StateType & state,
-            uint32_t seed,
-            uint32_t subsequence = 0
-        ) const
-        {
-            curandStateXORWOW_t tmpState;
+#elif (BOOST_LANG_CUDA)
             curand_init(
+#endif
                 seed,
                 subsequence,
                 0,
@@ -126,7 +110,7 @@ namespace methods
             );
             state = tmpState;
         }
-#endif
+
         DINLINE uint32_t
         get32Bits(
             T_Acc const & acc,
