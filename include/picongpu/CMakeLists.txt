@@ -246,7 +246,7 @@ endif()
 
 option(PIC_COMPUTE_CURRENT_THREAD_LIMITER "results are wrong when 512 threads for compute current are used (possible compiler BUG). ON means that only 256 threads will be used." ON)
 
-if(NOT PIC_COMPUTE_CURRENT_THREAD_LIMITER)
+if(PIC_COMPUTE_CURRENT_THREAD_LIMITER)
     add_definitions(-DPIC_COMPUTE_CURRENT_THREAD_LIMITER=1)
 endif()
 ################################################################################
