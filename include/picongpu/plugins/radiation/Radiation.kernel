@@ -78,7 +78,7 @@ namespace radiation
          * The radiation kernel calculates for all particles on the device the
          * emitted radiation for every direction and every frequency.
          * The parallelization is as follows:
-         *  - There are as many Blocks of threads as there are directions for which
+         *  - There are as many Blocks of threads as there are directiomegaons for which
          *    radiation needs to be calculated. (A block of threads shares
          *    shared memory)
          *  - The number of threads per block is equal to the number of cells per
@@ -163,6 +163,13 @@ namespace radiation
 
 
             int const theta_idx = cupla::blockIdx(acc).x; //cupla::blockIdx(acc).x is used to determine theta
+            int const omega_idx = cupla::blockIdx(acc).y * numWorker + workerIdx;
+
+            PMACC_SMEM( acc, amplitude_s, memory::Array<Amplitude,numWorker> );
+            amplitude_s[workerIdx] = Amplitude{};
+
+            // compute frequency "omega" using for-loop-index "o"
+            picongpu::float_64 const omega = freqFkt( omega_idx );
 
             // simulation time (needed for retarded time)
             picongpu::float_64 const t(
@@ -422,16 +429,13 @@ namespace radiation
 
 
                     // run over all  valid omegas for this thread
-                    for( int o = workerIdx; o < radiation_frequencies::N_omega; o += T_numWorkers )
+                    //for( int o = workerIdx; o < radiation_frequencies::N_omega; o += T_numWorkers )
                     {
 
                         /* storage for amplitude (complex 3D vector)
                          * it  is initialized with zeros (  0 +  i 0 )
                          */
                         Amplitude amplitude = Amplitude::zero();
-
-                        // compute frequency "omega" using for-loop-index "o"
-                        picongpu::float_64 const omega = freqFkt( o );
 
                         // create a form factor object
                         radFormFactor::radFormFactor const myRadFormFactor{ };
@@ -481,7 +485,7 @@ namespace radiation
                          *     - from this (one) time step
                          *     - omega_id = theta_idx * radiation_frequencies::N_omega + o
                          */
-                        radiation[ theta_idx * radiation_frequencies::N_omega + o] += amplitude;
+                        amplitude_s[workerIdx] += amplitude;
 
                     } // end frequency loop
 
@@ -502,6 +506,10 @@ namespace radiation
 
               } // end loop over all super cells
 
+            // sync before results will be flushed
+            cupla::__syncthreads( acc );
+
+            radiation[ theta_idx * radiation_frequencies::N_omega + omega_idx ] = amplitude_s[workerIdx];
 
         } // end radiation kernel
     };

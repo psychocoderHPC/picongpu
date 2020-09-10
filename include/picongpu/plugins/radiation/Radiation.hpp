@@ -1163,6 +1163,7 @@ private:
       const int N_observer = parameters::N_observer;
       const auto gridDim_rad = N_observer;
 
+
       /* number of threads per block = number of cells in a super cell
        *          = number of particles in a Frame
        *          (THIS IS PIConGPU SPECIFIC)
@@ -1183,12 +1184,13 @@ private:
           pmacc::math::CT::volume< SuperCellSize >::type::value
       >::value;
 
+      const auto gridDim_omega = radiation_frequencies::N_omega / numWorkers;
 
       // PIC-like kernel call of the radiation kernel
       PMACC_KERNEL( KernelRadiationParticles<
           numWorkers
       >{} )(
-          gridDim_rad,
+          DataSpace<DIM3>(gridDim_rad, gridDim_omega, 1),
           numWorkers
       )(
          /*Pointer to particles memory on the device*/
