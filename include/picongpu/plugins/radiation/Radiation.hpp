@@ -1183,12 +1183,13 @@ private:
           pmacc::math::CT::volume< SuperCellSize >::type::value * 2
       >::value;
 
+      const auto gridDim_omega = radiation_frequencies::N_omega / numWorkers;
 
       // PIC-like kernel call of the radiation kernel
       PMACC_KERNEL( KernelRadiationParticles<
           numWorkers
       >{} )(
-          gridDim_rad,
+          DataSpace<DIM3>(gridDim_rad, gridDim_omega, 1),
           numWorkers
       )(
          /*Pointer to particles memory on the device*/
