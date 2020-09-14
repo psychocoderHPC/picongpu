@@ -1180,7 +1180,7 @@ private:
       globalOffset.y() += (localSize.y() * numSlides);
 
       constexpr uint32_t numWorkers = pmacc::traits::GetNumWorkers<
-          pmacc::math::CT::volume< SuperCellSize >::type::value
+          pmacc::math::CT::volume< SuperCellSize >::type::value * 2
       >::value;
 
 

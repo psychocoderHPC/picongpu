@@ -144,22 +144,28 @@ namespace radiation
              */
             constexpr int blockSize = pmacc::math::CT::volume<SuperCellSize>::type::value;
 
+            /* We work with virtual CUDA blocks if we have more workers than particles.
+             * Each virtual CUDA block is working on a frame, if we have 2 blocks each block processes
+             * every second frame until all frames are processed.
+             */
+            constexpr uint32_t numVirtualBlocks = ( numWorker + frameSize - 1u ) / frameSize;
+
             // vectorial part of the integrand in the Jackson formula
-            PMACC_SMEM( acc, real_amplitude_s, memory::Array< vector_64, blockSize > );
+            PMACC_SMEM( acc, real_amplitude_s, memory::Array< vector_64, blockSize * numVirtualBlocks > );
 
             // retarded time
-            PMACC_SMEM( acc, t_ret_s, memory::Array< picongpu::float_64, blockSize > );
+            PMACC_SMEM( acc, t_ret_s, memory::Array< picongpu::float_64, blockSize * numVirtualBlocks > );
 
             // storage for macro particle weighting needed if
             // the coherent and incoherent radiation of a single
             // macro-particle needs to be considered
-            PMACC_SMEM( acc, radWeighting_s, memory::Array< float_X, blockSize > );
+            PMACC_SMEM( acc, radWeighting_s, memory::Array< float_X, blockSize * numVirtualBlocks > );
 
             // particle counter used if not all particles are considered for
             // radiation calculation
             PMACC_SMEM( acc, counter_s, int );
 
-            PMACC_SMEM( acc, lowpass_s, memory::Array< NyquistLowPass, blockSize > );
+            PMACC_SMEM( acc, lowpass_s, memory::Array< NyquistLowPass, blockSize * numVirtualBlocks> );
 
 
             int const theta_idx = cupla::blockIdx(acc).x; //cupla::blockIdx(acc).x is used to determine theta
@@ -183,12 +189,73 @@ namespace radiation
             // get absolute number of relevant super cells
             int const numSuperCells = superCellsCount.productOfComponents();
 
+            using VirtualWorkerDomCfg = IdxConfig<
+                frameSize * numVirtualBlocks,
+                numWorker
+            >;
+
+            /* each virtual worker is part of one virtual block */
+            memory::CtxArray<
+                uint32_t,
+                VirtualWorkerDomCfg
+            >
+                virtualBlockIdCtx(
+                workerIdx,
+                [&](
+                    uint32_t const linearIdx,
+                    uint32_t const
+                )
+                {
+                    return linearIdx / frameSize;
+                }
+            );
+
+            /* linear virtual worker index in the virtual block*/
+            memory::CtxArray<
+                uint32_t,
+                VirtualWorkerDomCfg
+            >
+            virtualLinearIdCtx(
+                workerIdx,
+                [&](
+                    uint32_t const linearIdx,
+                    uint32_t const idx
+                )
+                {
+                    /* map virtualLinearIdCtx to the range [0;numParticlesPerFrame) */
+                    return linearIdx - ( virtualBlockIdCtx[ idx ] * frameSize );
+                }
+            );
+
+            /* each virtual worker stores the currently used frame */
+            memory::CtxArray<
+                FramePtr,
+                VirtualWorkerDomCfg
+            > frameCtx;
+
+            memory::CtxArray<
+                lcellId_t,
+                VirtualWorkerDomCfg
+            > particlesInSuperCellCtx( 0u );
+
+            /* loop over all virtual workers */
+            ForEachIdx< VirtualWorkerDomCfg > forEachVirtualWorker( workerIdx );
+
+            PMACC_SMEM( acc, hasWork, uint32_t);
+
+            ForEachIdx<
+                IdxConfig<
+                    1,
+                    numWorker
+                >
+            > onlyMaster{ workerIdx };
 
             /* go over all super cells on GPU
              * but ignore all guarding supercells
              */
             for( int super_cell_index = 0; super_cell_index <= numSuperCells; ++super_cell_index )
             {
+
                 // select SuperCell and add one sided guard again
                 DataSpace< simDim > const superCell =
                     DataSpaceOperations<simDim>::map(
@@ -206,31 +273,33 @@ namespace radiation
                     )
                 );
 
-                // pointer to  frame storing particles
-                FramePtr frame = pb.getLastFrame( superCell );
+                forEachVirtualWorker(
+                    [&](
+                        uint32_t const,
+                        uint32_t const idx
+                    )
+                    {
+                        frameCtx[ idx ] = pb.getLastFrame( superCell );
+                        if( frameCtx[ idx ].isValid() && virtualBlockIdCtx[ idx ] == 0u )
+                            particlesInSuperCellCtx[ idx ] = pb.getSuperCell( superCell ).getSizeLastFrame();
 
-                // number  of particles in current frame
-                lcellId_t particlesInFrame = pb.getSuperCell( superCell ).getSizeLastFrame();
+                        /* select N-th (N=virtualBlockId) frame from the end of the list */
+                        for( uint32_t i = 1; i <= virtualBlockIdCtx[ idx ] && frameCtx[ idx ].isValid(); ++i )
+                        {
+                            particlesInSuperCellCtx[ idx ] = frameSize;
+                            frameCtx[ idx ] = pb.getPreviousFrame( frameCtx[ idx ] );
+                        }
+                    }
+                );
+
 
                 /* go to next supercell
                  *
                  * if "isValid" is false then there is no frame
                  * inside the superCell (anymore)
                  */
-                while( frame.isValid() )
+                while( true)
                 {
-                    /* since a race condition can occur if "continue loop" is called,
-                     *  all threads must wait for the selection of a new frame
-                     *  until all threads have evaluated "isValid"
-                     */
-                    cupla::__syncthreads( acc );
-
-                    ForEachIdx<
-                        IdxConfig<
-                            1,
-                            numWorker
-                        >
-                    > onlyMaster{ workerIdx };
 
                     /* The Master process (thread 0) in every thread block is in
                      * charge of loading a frame from
@@ -243,31 +312,48 @@ namespace radiation
                             uint32_t const
                         )
                         {
+                            hasWork = 0;
                             counter_s = 0;
                         }
                     );
 
                     cupla::__syncthreads( acc );
 
-                    using ParticleDomCfg = IdxConfig<
-                        frameSize,
-                        numWorker
-                    >;
-
-                    // loop over all particles in the frame
-                    ForEachIdx< ParticleDomCfg > forEachParticle{ workerIdx };
-
-                    forEachParticle(
+                    bool isOneFrameValid = false;
+                    forEachVirtualWorker(
                         [&](
-                            uint32_t const linearIdx,
-                            uint32_t const
+                            uint32_t const,
+                            uint32_t const idx
                         )
                         {
-                            // only threads with particles are running
-                            if( linearIdx < particlesInFrame )
+                            isOneFrameValid = isOneFrameValid || frameCtx[ idx ].isValid();
+                        }
+                    );
+
+                    if(isOneFrameValid)
+                        nvidia::atomicAllInc( acc, &hasWork,::alpaka::hierarchy::Threads{} );
+
+                    cupla::__syncthreads( acc );
+
+                    if( !hasWork )
+                        break;
+
+                    forEachVirtualWorker(
+                        [&](
+                            uint32_t const,
+                            uint32_t const idx
+                        )
+                        {
+                            /* this test is only important for the last frame
+                             * if the frame is not the last one then: `particlesInSuperCell == numParticlesPerFrame`
+                             */
+                            if(
+                                frameCtx[ idx ].isValid() &&
+                                virtualLinearIdCtx[ idx ] < particlesInSuperCellCtx[ idx ]
+                            )
                             {
 
-                                auto par = frame[ linearIdx ];
+                                auto par = frameCtx[ idx ][ virtualLinearIdCtx[ idx ] ];
                                 // get old and new particle momenta
                                 vector_X const particle_momentumNow = vector_X( par[momentum_] );
                                 vector_X const particle_momentumOld = vector_X( par[momentumPrev1_] );
@@ -489,18 +575,26 @@ namespace radiation
                     // wait till all radiation contributions for this super cell are done
                     cupla::__syncthreads( acc );
 
-                    /* First threads starts loading next frame of the super-cell:
-                     *
-                     * Info:
-                     *   The calculation starts with the last SuperCell (must not be full filled)
-                     *   all previous SuperCells are full with particles
-                     */
-                    particlesInFrame = frameSize;
-                    frame = pb.getPreviousFrame( frame );
+                    forEachVirtualWorker(
+                        [&](
+                            uint32_t const,
+                            uint32_t const idx
+                        )
+                        {
+                            if( frameCtx[ idx ].isValid() )
+                            {
+                                particlesInSuperCellCtx[ idx ] = frameSize;
+                                for( int i = 0; i < numVirtualBlocks && frameCtx[ idx ].isValid(); ++i )
+                                {
+                                    frameCtx[ idx ] = pb.getPreviousFrame( frameCtx[ idx ] );
+                                }
+                            }
+                        }
+                    );
 
-                  } // end while(frame.isValid())
+                } // end while(frame.isValid())
 
-              } // end loop over all super cells
+            } // end loop over all super cells
 
 
         } // end radiation kernel
