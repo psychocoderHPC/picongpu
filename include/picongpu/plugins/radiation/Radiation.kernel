@@ -166,7 +166,7 @@ namespace radiation
             int const omega_idx = cupla::blockIdx(acc).y * numWorker + workerIdx;
 
             PMACC_SMEM( acc, amplitude_s, memory::Array<Amplitude,numWorker> );
-            amplitude_s[workerIdx] = Amplitude{};
+            amplitude_s[workerIdx] = Amplitude::zero();
 
             // compute frequency "omega" using for-loop-index "o"
             picongpu::float_64 const omega = freqFkt( omega_idx );
