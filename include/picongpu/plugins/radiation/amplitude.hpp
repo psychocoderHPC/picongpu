@@ -134,7 +134,7 @@ public:
   }
 
 
-private:
+//private:
   complex_64 amp_x; // complex amplitude x-component
   complex_64 amp_y; // complex amplitude y-component
   complex_64 amp_z; // complex amplitude z-component

@@ -90,6 +90,7 @@ private:
 
     typedef PIConGPUVerboseRadiation radLog;
 
+    using ValueType = typename Amplitude::complex_64::type;
     /**
      * Object that stores the complex radiated amplitude on host and device.
      * Radiated amplitude is a function of theta (looking direction) and
@@ -97,7 +98,7 @@ private:
      * [omega_1(theta_1),omega_2(theta_1),...,omega_N-omega(theta_1),
      *   omega_1(theta_2),omega_2(theta_2),...,omega_N-omega(theta_N-theta)]
      */
-    GridBuffer<Amplitude, DIM2> *radiation;
+    GridBuffer<ValueType, DIM3> *radiation;
     radiation_frequencies::InitFreqFunctor freqInit;
     radiation_frequencies::FreqFunctor freqFkt;
 
@@ -127,6 +128,7 @@ private:
      */
     Amplitude* timeSumArray;
     Amplitude *tmp_result;
+    Amplitude *tmp_local_result = nullptr;
     vector_64* detectorPositions;
     float_64* detectorFrequencies;
 
@@ -285,11 +287,13 @@ private:
         {
             // allocate memory for all amplitudes for temporal data collection
             tmp_result = new Amplitude[elements_amplitude()];
+            // contains the results from flat frequency array radiation converted to array of amplitudes
+            tmp_local_result = new Amplitude[elements_amplitude()];
 
             /*only rank 0 create a file*/
             isMaster = reduce.hasResult(mpi::reduceMethods::Reduce());
 
-            radiation = new GridBuffer<Amplitude, DIM2 > (DataSpace<DIM2>(elements_amplitude(), numMatrices)); //create one int on GPU and host
+            radiation = new GridBuffer<ValueType, DIM3 > (DataSpace<DIM3>(elements_amplitude(),6 , numMatrices)); //create one int on GPU and host
 
             freqInit.Init(frequencies_from_list::listLocation);
             freqFkt = freqInit.getFunctor();
@@ -393,10 +397,22 @@ private:
     int numAmp = elements_amplitude();
     // update the main result matrix
     for( int r = 1; r < numMatrices; ++r )
-        for( int elem = 0; elem < numAmp; ++elem )
-        {
-            dbox(DataSpace<DIM2>(elem, 0)) += dbox(DataSpace<DIM2>(elem, r));
-        }
+        for( int c = 0; c < 6; ++c )
+            for( int elem = 0; elem < numAmp; ++elem )
+            {
+                dbox(DataSpace<DIM3>(elem, c, 0)) += dbox(DataSpace<DIM3>(elem, c, r));
+            }
+      for( int elem = 0; elem < numAmp; ++elem )
+      {
+          tmp_local_result[elem] = Amplitude(
+              dbox(DataSpace<DIM3>(elem, 0, 0)),
+              dbox(DataSpace<DIM3>(elem, 1, 0)),
+              dbox(DataSpace<DIM3>(elem, 2, 0)),
+              dbox(DataSpace<DIM3>(elem, 3, 0)),
+              dbox(DataSpace<DIM3>(elem, 4, 0)),
+              dbox(DataSpace<DIM3>(elem, 5, 0))
+          );
+      }
   }
 
 
@@ -419,7 +435,7 @@ private:
             for(uint32_t dimIndex=0; dimIndex<simDim; ++dimIndex)
                 GPUpos_str << "_" <<currentGPUpos[dimIndex];
 
-            writeFile(radiation->getHostBuffer().getBasePointer(), folderRadPerGPU + "/" + speciesName
+            writeFile(tmp_result, folderRadPerGPU + "/" + speciesName
                       + "_radPerGPU_pos" + GPUpos_str.str()
                       + "_time_" + last_time_step_str.str()
                       + "-" + current_time_step_str.str() + ".dat");
@@ -443,7 +459,7 @@ private:
   {
       reduce(nvidia::functors::Add(),
              tmp_result,
-             radiation->getHostBuffer().getBasePointer(),
+             tmp_local_result,
              elements_amplitude(),
              mpi::reduceMethods::Reduce()
              );

@@ -181,11 +181,12 @@ namespace radiation
             // get absolute number of relevant super cells
             int const numSuperCells = superCellsCount.productOfComponents();
 
+            int resultBlock = cupla::blockIdx(acc).y;
 
             /* go over all super cells on GPU
              * but ignore all guarding supercells
              */
-            for( int super_cell_index = cupla::blockIdx(acc).y; super_cell_index <= numSuperCells; super_cell_index += cupla::gridDim(acc).y )
+            for( int super_cell_index = resultBlock; super_cell_index <= numSuperCells; super_cell_index += cupla::gridDim(acc).y )
             {
                 // select SuperCell and add one sided guard again
                 DataSpace< simDim > const superCell =
@@ -484,7 +485,13 @@ namespace radiation
                          *     - from this (one) time step
                          *     - omega_id = theta_idx * radiation_frequencies::N_omega + o
                          */
-                        radiation( DataSpace<DIM2>(theta_idx * radiation_frequencies::N_omega + o, cupla::blockIdx(acc).y )) += amplitude;
+                        int ampOffset = theta_idx * radiation_frequencies::N_omega + o;
+                        radiation( DataSpace<DIM3>(ampOffset, 0, resultBlock )) += amplitude.amp_x.get_real();
+                        radiation( DataSpace<DIM3>(ampOffset, 1, resultBlock )) += amplitude.amp_x.get_imag();
+                        radiation( DataSpace<DIM3>(ampOffset, 2, resultBlock )) += amplitude.amp_y.get_real();
+                        radiation( DataSpace<DIM3>(ampOffset, 3, resultBlock )) += amplitude.amp_y.get_imag();
+                        radiation( DataSpace<DIM3>(ampOffset, 4, resultBlock)) += amplitude.amp_z.get_real();
+                        radiation( DataSpace<DIM3>(ampOffset, 5, resultBlock )) += amplitude.amp_z.get_imag();
 
                     } // end frequency loop
 
