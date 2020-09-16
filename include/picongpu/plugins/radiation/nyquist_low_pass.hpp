@@ -41,7 +41,7 @@ public:
      * so that all Amplitudes for higher frequencies can be ignored
     **/
     HDINLINE NyquistLowPass(const vector_64& n, const Particle& particle)
-      : omegaNyquist((PI - 0.01)/
+      : omegaNyquist((PI - 0.01_X)/
            (DELTA_T *
             One_minus_beta_times_n()(n, particle)))
     { }
@@ -56,7 +56,7 @@ public:
     /**
      * checks if frequency omega is below Nyquist frequency
     **/
-    HDINLINE bool check(const float_32 omega)
+    HDINLINE bool check(const float_X omega)
     {
         return omega < omegaNyquist * radiationNyquist::NyquistFactor;
     }

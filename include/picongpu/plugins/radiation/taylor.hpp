@@ -31,12 +31,12 @@ struct Taylor
 {
     // a Taylor development for 1-sqrt(1-x)
 
-    HDINLINE picongpu::float_64 operator()(picongpu::float_64 x) const
+    HDINLINE picongpu::float_X operator()(picongpu::float_X x) const
     {
         // Taylor series of 1-sqrt(1-x) till 5th order
         //same like 0.5*x + 0.125*x*x + 0.0625 * x*x*x + 0.0390625 * x*x*x*x + 0.02734375 *x*x*x*x*x;
-        const picongpu::float_64 x2 = (x * x);
-        return x * ((0.5 + 0.125 * x) + x2 * (0.0625 + (0.0390625 * x + 0.02734375 * x2)));
+        const picongpu::float_X x2 = (x * x);
+        return x * ((0.5_X + 0.125_X * x) + x2 * (0.0625_X + (0.0390625_X * x + 0.02734375_X * x2)));
     }
 
 };

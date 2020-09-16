@@ -53,11 +53,11 @@ struct One_minus_beta_times_n
 
     //  Taylor just includes a method, When includes just enum
 
-    HDINLINE picongpu::float_32 operator()(const vector_64& n, const Particle & particle) const
+    HDINLINE picongpu::float_X operator()(const vector_64& n, const Particle & particle) const
     {
         // 1/gamma^2:
 
-        const picongpu::float_64 gamma_inv_square(particle.get_gamma_inv_square<When::now > ());
+        const picongpu::float_X gamma_inv_square(particle.get_gamma_inv_square<When::now > ());
 
         //picongpu::float_64 value; // storage for 1-\beta \times \vec n
 
@@ -70,7 +70,7 @@ struct One_minus_beta_times_n
         {
             const picongpu::float_64 cos_theta(particle.get_cos_theta<When::now > (n)); // cosine between looking vector and momentum of particle
             const picongpu::float_64 taylor_approx(cos_theta * Taylor()(gamma_inv_square) + (1.0 - cos_theta));
-            return  (taylor_approx);
+            return taylor_approx;
         }
         else
         {
@@ -90,7 +90,7 @@ struct Retarded_time_1
     HDINLINE picongpu::float_64 operator()(const picongpu::float_64 t,
                                 const vector_64& n, const Particle & particle) const
     {
-        const vector_64 r(particle.get_location<When::now > ()); // location
+        const auto r = particle.get_location<When::now > (); // location
         return (picongpu::float_64) (t - (n * r) / (picongpu::SPEED_OF_LIGHT));
     }
 
@@ -110,7 +110,7 @@ struct Old_Method
         const vector_64 beta_dot((beta - particle.get_beta < When::now + 1 > ()) / delta_t); // numeric differentiation (backward difference)
         const Exponent exponent; // instance of the Exponent class // ???is a static class and no instance possible???
          //const One_minus_beta_times_n one_minus_beta_times_n;
-        const picongpu::float_64 factor(exponent(1.0 / (One_minus_beta_times_n()(n, particle))));
+        const auto factor = exponent(1.0_X / (One_minus_beta_times_n()(n, particle)));
         // factor=1/(1-beta*n)^g   g=2 for DFT and g=3 for FFT
         return (n % ((n - beta) % beta_dot)) * factor;
     }
@@ -118,7 +118,7 @@ struct Old_Method
 
 // typedef of all possible forms of Old_Method
 //typedef Old_Method<util::Cube<picongpu::float_64> > Old_FFT;
-typedef Old_Method<util::Square<picongpu::float_64> > Old_DFT;
+typedef Old_Method<util::Square<picongpu::float_X> > Old_DFT;
 
 
 
@@ -140,8 +140,8 @@ public:
     // of base classes
 
     HDINLINE Calc_Amplitude(const Particle& particle,
-                           const picongpu::float_64 delta_t,
-                           const picongpu::float_64 t_sim)
+                           const picongpu::float_X delta_t,
+                           const picongpu::float_X t_sim)
     : m_particle(particle), m_delta_t(delta_t), m_t_sim(t_sim)
     {
     }
@@ -161,16 +161,13 @@ public:
     {
         TimeCalc timeC;
         return timeC(m_t_sim, look_direction, m_particle);
-
-        //  const vector_64 r = particle.get_location<When::now > (); // location
-        //  return (picongpu::float_64) (t - (n * r) / (picongpu::SPEED_OF_LIGHT));
     }
 
 private:
     // data:
     const Particle& m_particle; // one particle
-    const picongpu::float_64 m_delta_t; // length of one time step in simulation
-    const picongpu::float_64 m_t_sim; // simulation time (for methods not using index*delta_t )
+    const picongpu::float_X m_delta_t; // length of one time step in simulation
+    const picongpu::float_X m_t_sim; // simulation time (for methods not using index*delta_t )
 
 
 };

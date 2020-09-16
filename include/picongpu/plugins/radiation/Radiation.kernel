@@ -165,9 +165,7 @@ namespace radiation
             int const theta_idx = cupla::blockIdx(acc).x; //cupla::blockIdx(acc).x is used to determine theta
 
             // simulation time (needed for retarded time)
-            picongpu::float_64 const t(
-                picongpu::float_64( currentStep ) * picongpu::float_64( DELTA_T)
-            );
+            picongpu::float_X const t = currentStep * DELTA_T;
 
             // looking direction (needed for observer) used in the thread
             vector_64 const look = radiation_observer::observation_direction( theta_idx );
@@ -360,6 +358,11 @@ namespace radiation
                                             particle_mass
                                         );
 
+                                        lowpass_s[ saveParticleAt ] = NyquistLowPass(
+                                            look,
+                                            particle
+                                        );
+
                                         // set up amplitude calculator
                                         using Calc_Amplitude_n_sim_1 = Calc_Amplitude<
                                             Retarded_time_1,
@@ -382,7 +385,7 @@ namespace radiation
                                         real_amplitude_s[ saveParticleAt ] =
                                             amplitude3.get_vector( look ) *
                                             particle_charge *
-                                            picongpu::float_64( DELTA_T );
+                                            DELTA_T;
 
                                         // retarded time stored in shared memory
                                         t_ret_s[ saveParticleAt ] = amplitude3.get_t_ret( look );
@@ -398,7 +401,7 @@ namespace radiation
                                         radWindowFunction::radWindowFunction const winFkt;
 
                                         /* start with a factor of one */
-                                        float_X windowFactor = 1.0;
+                                        float_X windowFactor = 1.0_X;
 
                                         for( uint32_t d = 0; d < simDim; ++d )
                                         {
@@ -431,7 +434,7 @@ namespace radiation
                         Amplitude amplitude = Amplitude::zero();
 
                         // compute frequency "omega" using for-loop-index "o"
-                        picongpu::float_64 const omega = freqFkt( o );
+                        picongpu::float_X const omega = freqFkt( o );
 
                         // create a form factor object
                         radFormFactor::radFormFactor const myRadFormFactor{ };
