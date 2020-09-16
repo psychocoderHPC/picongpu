@@ -187,7 +187,7 @@ namespace radiation
             /* go over all super cells on GPU
              * but ignore all guarding supercells
              */
-            for( int super_cell_index = 0; super_cell_index <= numSuperCells; ++super_cell_index )
+            for( int super_cell_index = cupla::blockIdx(acc).y; super_cell_index <= numSuperCells; super_cell_index += cupla::gridDim(acc).y )
             {
                 // select SuperCell and add one sided guard again
                 DataSpace< simDim > const superCell =
@@ -481,7 +481,7 @@ namespace radiation
                          *     - from this (one) time step
                          *     - omega_id = theta_idx * radiation_frequencies::N_omega + o
                          */
-                        radiation[ theta_idx * radiation_frequencies::N_omega + o] += amplitude;
+                        radiation( DataSpace<DIM2>(theta_idx * radiation_frequencies::N_omega + o, cupla::blockIdx(acc).y )) += amplitude;
 
                     } // end frequency loop
 

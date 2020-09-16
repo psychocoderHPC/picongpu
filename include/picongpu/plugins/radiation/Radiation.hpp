@@ -77,7 +77,6 @@ namespace idLabels
 }// end namespace idLabels
 
 
-
 ///////////////////////////////////////////////////////////////////////////////////////////////
 ///////////////////////////////  Radiation Plugin Class  ////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////////////////////////////
@@ -98,7 +97,7 @@ private:
      * [omega_1(theta_1),omega_2(theta_1),...,omega_N-omega(theta_1),
      *   omega_1(theta_2),omega_2(theta_2),...,omega_N-omega(theta_N-theta)]
      */
-    GridBuffer<Amplitude, DIM1> *radiation;
+    GridBuffer<Amplitude, DIM2> *radiation;
     radiation_frequencies::InitFreqFunctor freqInit;
     radiation_frequencies::FreqFunctor freqFkt;
 
@@ -119,6 +118,7 @@ private:
     bool radPerGPU;
     std::string folderRadPerGPU;
     DataSpace<simDim> lastGPUpos;
+    int numMatrices = 1;
 
     /**
      * Data structure for storage and summation of the intermediate values of
@@ -205,6 +205,7 @@ public:
     {
         desc.add_options()
             ((pluginPrefix + ".period").c_str(), po::value<std::string> (&notifyPeriod), "enable plugin [for each n-th step]")
+            ((pluginPrefix + ".numMatrices").c_str(), po::value<int > (&numMatrices)->default_value(1), "Number of result matrices per device")
             ((pluginPrefix + ".dump").c_str(), po::value<uint32_t > (&dumpPeriod)->default_value(0), "dump integrated radiation from last dumped step [for each n-th step] (0 = only print data at end of simulation)")
             ((pluginPrefix + ".lastRadiation").c_str(), po::bool_switch(&lastRad), "enable calculation of integrated radiation from last dumped step")
             ((pluginPrefix + ".folderLastRad").c_str(), po::value<std::string > (&folderLastRad)->default_value("lastRad"), "folder in which the integrated radiation from last dumped step is written")
@@ -288,7 +289,7 @@ private:
             /*only rank 0 create a file*/
             isMaster = reduce.hasResult(mpi::reduceMethods::Reduce());
 
-            radiation = new GridBuffer<Amplitude, DIM1 > (DataSpace<DIM1 > (elements_amplitude())); //create one int on GPU and host
+            radiation = new GridBuffer<Amplitude, DIM2 > (DataSpace<DIM2>(elements_amplitude(), numMatrices)); //create one int on GPU and host
 
             freqInit.Init(frequencies_from_list::listLocation);
             freqFkt = freqInit.getFunctor();
@@ -387,6 +388,15 @@ private:
   {
     radiation->deviceToHost();
     __getTransactionEvent().waitForFinished();
+
+    auto dbox = radiation->getHostBuffer().getDataBox();
+    int numAmp = elements_amplitude();
+    // update the main result matrix
+    for( int r = 1; r < numMatrices; ++r )
+        for( int elem = 0; elem < numAmp; ++elem )
+        {
+            dbox(DataSpace<DIM2>(elem, 0)) += dbox(DataSpace<DIM2>(elem, r));
+        }
   }
 
 
@@ -1188,8 +1198,8 @@ private:
       PMACC_KERNEL( KernelRadiationParticles<
           numWorkers
       >{} )(
-          gridDim_rad,
-          numWorkers
+          DataSpace<DIM2>(gridDim_rad, numMatrices),
+          DataSpace<DIM2>(numWorkers,1)
       )(
          /*Pointer to particles memory on the device*/
          particles->getDeviceParticlesBox(),
