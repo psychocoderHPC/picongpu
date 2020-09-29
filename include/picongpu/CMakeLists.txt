@@ -244,6 +244,25 @@ if(PIC_EMU_ATOMICADD)
     add_definitions(-DPIC_EMU_ATOMICADD=1)
 endif()
 
+option(PIC_HIP_COMP_WORKAROUND "Workaround avoids wrong code which results into segfaults on device. Disable optimization for few kernel" OFF)
+
+if(PIC_HIP_COMP_WORKAROUND)
+    add_definitions(-DPIC_HIP_COMP_WORKAROUND=1)
+    message(WARNING "HIP-clang compiler workaround is ENABLED.")
+else()
+    message(WARNING "HIP-clang compiler workaround is DISABLED.")
+endif()
+
+option(PIC_HIP_COMP_WORKAROUND_O2 "Workaround avoids wrong code which results into segfaults on device. Enable optimization -O2 instead of -O3 and set one volatile in malocMC." OFF)
+
+if(PIC_HIP_COMP_WORKAROUND_O3)
+    add_definitions(-DPIC_HIP_COMP_WORKAROUND_O2=1)
+    set(HIP_CLANG_FLAGS "-O2")
+    message(WARNING "HIP-clang compiler workaround is ENABLED. HIP_CLANG_FLAGS is set to '-O2'")
+else()
+    message(WARNING "HIP-clang compiler workaround is DISABLED. Compile with default -O3")
+endif()
+
 option(PIC_COMPUTE_CURRENT_THREAD_LIMITER "results are wrong when 512 threads for compute current are used (possible compiler BUG). ON means that only 256 threads will be used." ON)
 
 if(PIC_COMPUTE_CURRENT_THREAD_LIMITER)

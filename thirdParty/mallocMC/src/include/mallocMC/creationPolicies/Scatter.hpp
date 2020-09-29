@@ -499,6 +499,10 @@ namespace mallocMC
                     = (bytes * hashingK + hashingDistMP * smid()
                        + (hashingDistWP + hashingDistWPRel * reloff) * warpid())
                     % pagesperblock;
+#if(BOOST_COMP_CLANG && BOOST_LANG_HIP && (PIC_HIP_COMP_WORKAROUND || PIC_HIP_COMP_WORKAROUND_O2))
+                // The clang HIP compiler is producing runtime errors if variable is not volatile
+                volatile
+#endif
                 const uint32 maxchunksize
                     = alpaka::math::min(acc, +pagesize, wastefactor * bytes);
                 uint32 startblock = _firstfreeblock;

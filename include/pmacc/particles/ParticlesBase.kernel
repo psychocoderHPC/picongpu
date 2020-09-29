@@ -525,6 +525,9 @@ struct KernelFillGaps
  *
  * @tparam T_numWorkers number of workers
  */
+#if(BOOST_COMP_CLANG && BOOST_LANG_HIP && PIC_HIP_COMP_WORKAROUND)
+#   pragma clang optimize off
+#endif
 template< uint32_t T_numWorkers >
 struct KernelShiftParticles
 {
@@ -847,6 +850,9 @@ struct KernelShiftParticles
         );
     }
 };
+#if(BOOST_COMP_CLANG && BOOST_LANG_HIP && PIC_HIP_COMP_WORKAROUND)
+#   pragma clang optimize on
+#endif
 
 /** deletes all particles within an AREA
  *
@@ -1199,6 +1205,9 @@ struct KernelCopyGuardToExchange
  *
  * @tparam T_numWorkers number of workers
  */
+#if(BOOST_COMP_CLANG && BOOST_LANG_HIP && PIC_HIP_COMP_WORKAROUND)
+#   pragma clang optimize off
+#endif
 template< uint32_t T_numWorkers >
 struct KernelInsertParticles
 {
@@ -1352,5 +1361,8 @@ struct KernelInsertParticles
 
     }
 };
+#if(BOOST_COMP_CLANG && BOOST_LANG_HIP && PIC_HIP_COMP_WORKAROUND)
+#   pragma clang optimize on
+#endif
 
 } //namespace pmacc
