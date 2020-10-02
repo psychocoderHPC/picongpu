@@ -24,7 +24,7 @@
 #include "picongpu/algorithms/FieldToParticleInterpolation.hpp"
 #include "picongpu/algorithms/AssignedTrilinearInterpolation.hpp"
 
-#include "picongpu/particles/flylite/NonLTE.def"
+//#include "picongpu/particles/flylite/NonLTE.def"
 #include "picongpu/fields/currentDeposition/Solver.def"
 
 

@@ -180,7 +180,7 @@ namespace detail
 
             DataSpace< dim > const self;
 
-            constexpr ComponentJ deltaT = DELTA_T;
+            const ComponentJ deltaT = DELTA_T;
             ComponentJ const constE = ( float_X( 1.0 )  / EPS0 ) * deltaT;
             ComponentJ const constB = ( float_X( 0.25 ) / EPS0 ) * deltaT * deltaT;
 

@@ -58,11 +58,12 @@ namespace picongpu
         DataSpace< simDim > const & totalGpuCellIdx
     )
     {
+#if 0
         PMACC_CASSERT_MSG(
             Please_deselect_densityProfileInitMethod_for_your_species_or_set_BASE_DENSITY_to_a_value_greater_than_0,
             BASE_DENSITY > float_X( 0.0 )
         );
-
+#endif
         float_X const densityRatioOfSpecies = traits::GetDensityRatio< T_Species >::type::getValue( );
 
         float_X const value = densityFunctor( totalGpuCellIdx ) * BASE_DENSITY * densityRatioOfSpecies;

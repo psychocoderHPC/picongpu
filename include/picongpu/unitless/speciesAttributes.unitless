@@ -105,7 +105,7 @@ struct WeightingPower<position<T_Type> >
         return 0.0;
     }
 };
-
+#if 0
 template<>
 struct Unit<radiationMask>
 {
@@ -185,7 +185,7 @@ struct WeightingPower<transitionRadiationMask>
         return 0.0;
     }
 };
-
+#endif
 template<>
 struct Unit<momentum>
 {
@@ -593,6 +593,7 @@ struct WeightingPower<boundElectrons>
     }
 };
 
+#if 0
 template<>
 struct Unit<superconfig>
 {
@@ -602,6 +603,7 @@ struct Unit<superconfig>
         return std::vector<double>( picongpu::flylite::populations, 1.0 );
     }
 };
+
 template<>
 struct UnitDimension<superconfig>
 {
@@ -630,6 +632,6 @@ struct WeightingPower<superconfig>
         return 1.0;
     }
 };
-
+#endif
 } // namespace traits
 } // namespace picongpu

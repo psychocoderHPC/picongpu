@@ -38,10 +38,11 @@ namespace none
     {
         using Params = T_Params;
 
-        static constexpr float_X WAVE_LENGTH = float_X( Params::WAVE_LENGTH_SI / UNIT_LENGTH ); // unit: meter
-        static constexpr float_X PULSE_LENGTH = float_X( Params::PULSE_LENGTH_SI / UNIT_TIME ); // unit: seconds (1 sigma)
-        static constexpr float_X AMPLITUDE = float_X( Params::AMPLITUDE_SI / UNIT_EFIELD ); // unit: Volt /meter
-        static constexpr float_X INIT_TIME = 0.0_X; // unit: seconds (no initialization time)
+        static constexpr uint32_t initPlaneY = 0;
+        const float_X WAVE_LENGTH = float_X( Params::WAVE_LENGTH_SI / UNIT_LENGTH ); // unit: meter
+        const float_X PULSE_LENGTH = float_X( Params::PULSE_LENGTH_SI / UNIT_TIME ); // unit: seconds (1 sigma)
+        const float_X AMPLITUDE = float_X( Params::AMPLITUDE_SI / UNIT_EFIELD ); // unit: Volt /meter
+        const float_X INIT_TIME = 0.0_X; // unit: seconds (no initialization time)
     };
 } // namespace none
 namespace acc

@@ -138,6 +138,7 @@ namespace maxwellSolver
             template< uint32_t T_Area >
             void updateE( uint32_t currentStep )
             {
+#if 0
                 /* Courant-Friedrichs-Levy-Condition for Yee Field Solver:
                  *
                  * A workaround is to add a template dependency to the expression.
@@ -145,7 +146,7 @@ namespace maxwellSolver
                  */
                 PMACC_CASSERT_MSG(Courant_Friedrichs_Levy_condition_failure____check_your_grid_param_file,
                     (SPEED_OF_LIGHT*SPEED_OF_LIGHT*DELTA_T*DELTA_T*INV_CELL2_SUM)<=1.0 && sizeof(T_CurlE*) != 0);
-
+#endif
                 constexpr auto numWorkers = getNumWorkers( );
                 using Kernel = yeePML::KernelUpdateE<
                     numWorkers,

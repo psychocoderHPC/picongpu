@@ -69,6 +69,7 @@ namespace dirSplitting
          * A workaround is to add a template dependency to the expression.
          * `sizeof(ANY_TYPE*) != 0` is always true and defers the evaluation.
          */
+#if 0
         PMACC_CASSERT_MSG(DirectionSplitting_Set_dX_equal_dt_times_c____check_your_grid_param_file,
                           (SI::SPEED_OF_LIGHT_SI * SI::DELTA_T_SI) == SI::CELL_WIDTH_SI &&
                           (sizeof(T_Dummy*) != 0));
@@ -79,6 +80,7 @@ namespace dirSplitting
         PMACC_CASSERT_MSG(DirectionSplitting_use_cubic_cells____check_your_grid_param_file,
                           SI::CELL_DEPTH_SI == SI::CELL_WIDTH_SI &&
                           (sizeof(T_Dummy*) != 0));
+#endif
 #endif
     };
 } // namespace dirSplitting

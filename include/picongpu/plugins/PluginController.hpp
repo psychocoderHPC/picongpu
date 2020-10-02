@@ -25,6 +25,7 @@
 #include "picongpu/simulation_defines.hpp"
 #include <pmacc/assert.hpp>
 
+#if 0
 #include "picongpu/plugins/CountParticles.hpp"
 #include "picongpu/plugins/EnergyParticles.hpp"
 #include "picongpu/plugins/multi/Master.hpp"
@@ -81,8 +82,10 @@
 #include "picongpu/plugins/Checkpoint.hpp"
 #include "picongpu/plugins/ResourceLog.hpp"
 
-#include <pmacc/mappings/kernel/MappingDescription.hpp>
 
+#endif
+
+#include <pmacc/mappings/kernel/MappingDescription.hpp>
 #include "picongpu/plugins/ILightweightPlugin.hpp"
 #include "picongpu/plugins/ISimulationPlugin.hpp"
 #include "picongpu/particles/traits/SpeciesEligibleForSolver.hpp"
@@ -166,7 +169,7 @@ private:
             >::type;
         };
     };
-
+#if 0
     /* define stand alone plugins */
     using StandAlonePlugins = bmpl::vector<
         Checkpoint,
@@ -269,14 +272,14 @@ private:
         FieldPlugins,
         SpeciesPlugins
     >;
-
+#endif
     /**
      * Initializes the controller by adding all user plugins to its internal list.
      */
     virtual void init()
     {
-        meta::ForEach<AllPlugins, PushBack<bmpl::_1> > pushBack;
-        pushBack(plugins);
+//        meta::ForEach<AllPlugins, PushBack<bmpl::_1> > pushBack;
+//        pushBack(plugins);
     }
 
 public:

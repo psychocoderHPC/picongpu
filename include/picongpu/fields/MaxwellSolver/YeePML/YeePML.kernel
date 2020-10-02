@@ -347,8 +347,8 @@ namespace yeePML
                     uint32_t const
                 )
                 {
-                    constexpr auto c2 = SPEED_OF_LIGHT * SPEED_OF_LIGHT;
-                    constexpr auto dt = DELTA_T;
+                    const auto c2 = SPEED_OF_LIGHT * SPEED_OF_LIGHT;
+                    const auto dt = DELTA_T;
 
                     auto const idxInSuperCell =
                         DataSpaceOperations< simDim >::template map< SuperCellSize >( linearIdx );

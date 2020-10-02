@@ -29,16 +29,18 @@
 #include <pmacc/communication/AsyncCommunication.hpp>
 #include <pmacc/particles/meta/FindByNameOrType.hpp>
 
+#if 0
 #include "picongpu/particles/traits/GetIonizerList.hpp"
 #if( PMACC_CUDA_ENABLED == 1 )
 #   include "picongpu/particles/bremsstrahlung/Bremsstrahlung.hpp"
 #endif
 #include "picongpu/particles/traits/GetPhotonCreator.hpp"
 #include "picongpu/particles/synchrotronPhotons/SynchrotronFunctions.hpp"
+#endif
 #include "picongpu/particles/creation/creation.hpp"
 #include <pmacc/particles/traits/FilterByFlag.hpp>
 #include <pmacc/particles/traits/ResolveAliasFromSpecies.hpp>
-#include "picongpu/particles/flylite/IFlyLite.hpp"
+//#include "picongpu/particles/flylite/IFlyLite.hpp"
 
 #include <boost/mpl/plus.hpp>
 #include <boost/mpl/accumulate.hpp>
@@ -162,7 +164,7 @@ struct CallReset
         dc.releaseData( FrameType::getName() );
     }
 };
-
+#if 0
 /** Allocate helper fields for FLYlite population kinetics for atomic physics
  *
  * energy histograms, rate matrix, etc.
@@ -224,7 +226,7 @@ struct CallPopulationKinetics
         );
     }
 };
-
+#endif
 /** push a species
  *
  * push is only triggered for species with a pusher
@@ -341,7 +343,7 @@ struct PushAllSpecies
         }
     }
 };
-
+#if 0
 /** Call an ionization method upon an ion species
  *
  * \tparam T_SpeciesType type or name as boost::mpl::string of particle species that is going to be ionized with
@@ -518,7 +520,8 @@ struct CallBremsstrahlung
 
 };
 #endif
-
+#endif
+#if 0
 /** Handles the synchrotron radiation emission of photons from electrons
  *
  * @tparam T_ElectronSpecies type or name as boost::mpl::string of electron particle species
@@ -571,6 +574,6 @@ struct CallSynchrotronPhotons
     }
 
 };
-
+#endif
 } // namespace particles
 } // namespace picongpu

@@ -150,10 +150,11 @@ public:
                 "   (see: density.param, speciesDefinition.param).\n"
                 "   It and does not cover other forms of initialization");
             logOmegaP();
-
+#if 0
             if (fields::laserProfiles::Selected::INIT_TIME > float_X(0.0))
                 log<picLog::PHYSICS >("y-cells per wavelength: %1%") %
                                      (fields::laserProfiles::Selected::WAVE_LENGTH / CELL_HEIGHT);
+#endif
             const int localNrOfCells = cellDescription->getGridLayout().getDataSpaceWithoutGuarding().productOfComponents();
             log<picLog::PHYSICS >("macro particles per device: %1%") %
                                  (localNrOfCells * particles::TYPICAL_PARTICLES_PER_CELL * (bmpl::size<VectorAllSpecies>::type::value));

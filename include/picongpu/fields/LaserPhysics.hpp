@@ -117,7 +117,7 @@ namespace fields
              * laser in planes inside the simulation corresponds to an
              * evaluation of the field at negatively shifted time.
              */
-            constexpr float_X laserTimeShift = laserProfiles::Selected::Unitless::initPlaneY * CELL_HEIGHT / SPEED_OF_LIGHT;
+            const float_X laserTimeShift = laserProfiles::Selected::Unitless::initPlaneY * CELL_HEIGHT / SPEED_OF_LIGHT;
 
             const uint32_t numSlides = MovingWindow::getInstance().getSlideCounter(currentStep);
 
@@ -126,9 +126,9 @@ namespace fields
              * - we have periodic boundaries in Y direction or
              * - we already performed a slide
              */
-            bool const laserNone = ( laserProfiles::Selected::Unitless::INIT_TIME == float_X(0.0) );
+            bool const laserNone = ( laserProfiles::Selected::Unitless{}.INIT_TIME == float_X(0.0) );
             bool const laserInitTimeOver =
-                ( ( currentStep * DELTA_T  - laserTimeShift ) >= laserProfiles::Selected::Unitless::INIT_TIME );
+                ( ( currentStep * DELTA_T  - laserTimeShift ) >= laserProfiles::Selected::Unitless{}.INIT_TIME );
             bool const topBoundariesArePeriodic =
                 ( Environment<simDim>::get().GridController().getCommunicationMask( ).isSet( TOP ) );
             bool const boxHasSlided = ( numSlides != 0 );
@@ -141,21 +141,22 @@ namespace fields
             if( !disableLaser )
             {
                 PMACC_VERIFY_MSG(
-                    laserProfiles::Selected::Unitless::initPlaneY < static_cast<uint32_t>( Environment<simDim>::get().SubGrid().getLocalDomain().size.y() ),
+                    laserProfiles::Selected::Unitless{}.initPlaneY < static_cast<uint32_t>( Environment<simDim>::get().SubGrid().getLocalDomain().size.y() ),
                     "initPlaneY must be located in the top GPU"
                 );
-
+#if 0
                 // laser is disabled e.g. laserNone
-                constexpr bool isLaserDisabled = laserProfiles::Selected::Unitless::INIT_TIME == 0.0_X;
-                constexpr bool isLaserInitInFirstCell = laserProfiles::Selected::Unitless::initPlaneY == 0;
+                const bool isLaserDisabled = laserProfiles::Selected::Unitless{}.INIT_TIME == 0.0_X;
+                const bool isLaserInitInFirstCell = laserProfiles::Selected::Unitless::initPlaneY == 0;
                 // X + 1 is a workaround to avoid warning: pointless comparison of unsigned integer with zero
-                constexpr bool isInitPlaneYOutsideOfAbsorber =
+                const bool isInitPlaneYOutsideOfAbsorber =
                     laserProfiles::Selected::Unitless::initPlaneY + 1 > absorber::numCells[1][0] + 1;
-                PMACC_CASSERT_MSG(
+
+PMACC_CASSERT_MSG(
                     __initPlaneY_needs_to_be_greater_than_the_top_absorber_cells_or_zero,
                     isLaserDisabled || isLaserInitInFirstCell || isInitPlaneYOutsideOfAbsorber
                 );
-
+#endif
                 /* Calculate how many neighbors to the left we have
                  * to initialize the laser in the E-Field
                  *

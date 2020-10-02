@@ -72,13 +72,13 @@ public:
                 /* allow to enable the absorber on the top side if the laser
                  * initialization plane in y direction is *not* in cell zero
                  */
-                if (fields::laserProfiles::Selected::initPlaneY == 0)
+                if (fields::laserProfiles::Selected(0).initPlaneY == 0)
                 {
                     /* disable the absorber on top side if
                      *      no slide was performed and
                      *      laser init time is not over
                      */
-                    if (numSlides == 0 && ((currentStep * DELTA_T) <= fields::laserProfiles::Selected::INIT_TIME))
+                    if (numSlides == 0 && ((currentStep * DELTA_T) <= fields::laserProfiles::Selected(0).INIT_TIME))
                     {
                         /* disable absorber on top side */
                         if (i == TOP) continue;

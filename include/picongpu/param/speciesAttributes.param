@@ -150,7 +150,7 @@ namespace picongpu
         boundElectrons,
         0._X
     );
-
+#if 0
     /** atomic superconfiguration
      *
      * atomic configuration of an ion for collisional-radiative modeling,
@@ -161,7 +161,7 @@ namespace picongpu
         superconfig,
         flylite::Superconfig::create( 0. )
     );
-
+#endif
     /** Total cell index of a particle.
      *
      *  The total cell index is a

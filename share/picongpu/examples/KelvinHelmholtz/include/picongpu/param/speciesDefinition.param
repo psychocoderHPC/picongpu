@@ -92,8 +92,8 @@ using ParticleFlagsIons = MakeSeq_t<
     current< UsedParticleCurrentSolver >,
     massRatio< MassRatioIons >,
     chargeRatio< ChargeRatioIons >,
-    densityRatio< DensityRatioIons >,
-    atomicNumbers< ionization::atomicNumbers::Hydrogen_t >
+    densityRatio< DensityRatioIons >
+    //,atomicNumbers< ionization::atomicNumbers::Hydrogen_t >
 >;
 
 /* define species ions */

@@ -30,7 +30,11 @@
 
 #pragma once
 
-
+#ifdef __CUDA_ARCH__
+#   define CREATE_VAR(...) __device__ __VA_ARGS__
+#else
+#   define CREATE_VAR(...) __VA_ARGS__
+#endif
 namespace picongpu
 {
 

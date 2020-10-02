@@ -49,17 +49,17 @@ namespace picongpu
     {
         /** Duration of one timestep
          *  unit: seconds */
-        constexpr float_64 DELTA_T_SI = 0.8e-16;
+        CREATE_VAR( float_64 DELTA_T_SI = 0.8e-16);
 
         /** equals X
          *  unit: meter */
-        constexpr float_64 CELL_WIDTH_SI = 0.1772e-6;
+        CREATE_VAR( float_64 CELL_WIDTH_SI = 0.1772e-6);
         /** equals Y - the laser & moving window propagation direction
          *  unit: meter */
-        constexpr float_64 CELL_HEIGHT_SI = 0.4430e-7;
+        CREATE_VAR( float_64 CELL_HEIGHT_SI = 0.4430e-7);
         /** equals Z
          *  unit: meter */
-        constexpr float_64 CELL_DEPTH_SI = CELL_WIDTH_SI;
+        CREATE_VAR( float_64 CELL_DEPTH_SI); // = CELL_WIDTH_SI);
 
     } // namespace SI
 

@@ -33,18 +33,18 @@
 #include "picongpu/unitless/particle.unitless"
 #include "picongpu/unitless/pml.unitless"
 #include "picongpu/unitless/pusher.unitless"
-#include "picongpu/unitless/ionizer.unitless"
+//#include "picongpu/unitless/ionizer.unitless"
 #include "picongpu/unitless/speciesAttributes.unitless"
 #include "picongpu/unitless/speciesDefinition.unitless"
 #include "picongpu/unitless/speciesInitialization.unitless"
 #include "picongpu/unitless/fieldBackground.unitless"
-#include "picongpu/unitless/synchrotronPhotons.unitless"
+//#include "picongpu/unitless/synchrotronPhotons.unitless"
 #if( PMACC_CUDA_ENABLED == 1 )
-#    include "picongpu/unitless/bremsstrahlung.unitless"
+//#    include "picongpu/unitless/bremsstrahlung.unitless"
 #endif
 
 #include "picongpu/unitless/fileOutput.unitless"
 #include "picongpu/unitless/checkpoints.unitless"
 #include "picongpu/unitless/png.unitless"
-#include "picongpu/unitless/radiation.unitless"
-#include "picongpu/unitless/transitionRadiation.unitless"
+//#include "picongpu/unitless/radiation.unitless"
+//#include "picongpu/unitless/transitionRadiation.unitless"

@@ -23,29 +23,30 @@
 namespace picongpu
 {
     //! reduced Planck constant
-    constexpr float_X HBAR = (float_X) (SI::HBAR_SI / UNIT_ENERGY / UNIT_TIME);
+    CREATE_VAR( float_X HBAR); // = (float_X) (SI::HBAR_SI / UNIT_ENERGY / UNIT_TIME));
 
     //! Charge of electron
-    constexpr float_X ELECTRON_CHARGE = (float_X) (SI::ELECTRON_CHARGE_SI / UNIT_CHARGE);
+    CREATE_VAR( float_X ELECTRON_CHARGE); // = (float_X) (SI::ELECTRON_CHARGE_SI / UNIT_CHARGE));
     //! Mass of electron
-    constexpr float_X ELECTRON_MASS = (float_X) (SI::ELECTRON_MASS_SI / UNIT_MASS);
+    CREATE_VAR( float_X ELECTRON_MASS); // = (float_X) (SI::ELECTRON_MASS_SI / UNIT_MASS));
 
     //! magnetic constexprant must be double 3.92907e-39
-    constexpr float_X MUE0 = (float_X) (SI::MUE0_SI / UNIT_LENGTH / UNIT_MASS * UNIT_CHARGE * UNIT_CHARGE);
+    CREATE_VAR( float_X MUE0); // = (float_X) (SI::MUE0_SI / UNIT_LENGTH / UNIT_MASS * UNIT_CHARGE * UNIT_CHARGE));
+
 
     //! electric constexprant must be double 2.54513e+38
-    constexpr float_X EPS0 = (float_X) (1. / MUE0 / SPEED_OF_LIGHT / SPEED_OF_LIGHT);
+    CREATE_VAR( float_X EPS0); // = (float_X) (1. / MUE0 / SPEED_OF_LIGHT / SPEED_OF_LIGHT));
 
     // = 1/c^2
-    constexpr float_X MUE0_EPS0 = float_X(1. / SPEED_OF_LIGHT / SPEED_OF_LIGHT);
+    CREATE_VAR( float_X MUE0_EPS0); // = float_X(1. / SPEED_OF_LIGHT / SPEED_OF_LIGHT));
 
     //! Impedance of free space
-    constexpr float_X Z0 = MUE0 * SPEED_OF_LIGHT;
+    CREATE_VAR( float_X Z0); // = MUE0 * SPEED_OF_LIGHT);
 
     /* Atomic unit of electric field in PIC Efield units */
-    constexpr float_X ATOMIC_UNIT_EFIELD = float_X(SI::ATOMIC_UNIT_EFIELD / UNIT_EFIELD);
+    CREATE_VAR( float_X ATOMIC_UNIT_EFIELD); // = float_X(SI::ATOMIC_UNIT_EFIELD / UNIT_EFIELD));
 
     /* Atomic unit of time in PIC units */
-    constexpr float_X ATOMIC_UNIT_TIME = float_X(SI::ATOMIC_UNIT_TIME / UNIT_TIME);
+    CREATE_VAR( float_X ATOMIC_UNIT_TIME); // = float_X(SI::ATOMIC_UNIT_TIME / UNIT_TIME));
 
 } //namespace picongpu

@@ -52,7 +52,7 @@ namespace currentInterpolation
         {
             DataSpace< dim > const self;
 
-            constexpr float_X deltaT = DELTA_T;
+            const float_X deltaT = DELTA_T;
             fieldE( self ) -= fieldJ( self ) * ( float_X( 1.0 ) / EPS0 ) * deltaT;
         }
 

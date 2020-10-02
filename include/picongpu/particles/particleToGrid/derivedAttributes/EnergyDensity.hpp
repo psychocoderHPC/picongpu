@@ -37,7 +37,7 @@ namespace derivedAttributes
     HDINLINE float1_64
     EnergyDensity::getUnit() const
     {
-        constexpr float_64 UNIT_VOLUME = (UNIT_LENGTH * UNIT_LENGTH * UNIT_LENGTH);
+        const float_64 UNIT_VOLUME = (UNIT_LENGTH * UNIT_LENGTH * UNIT_LENGTH);
         return UNIT_ENERGY / UNIT_VOLUME;
     }
 
