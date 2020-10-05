@@ -42,7 +42,7 @@ public:
     **/
     HDINLINE NyquistLowPass(const vector_64& n, const Particle& particle)
       : omegaNyquist((PI - 0.01)/
-           (DELTA_T *
+           (DELTA_T::pic() *
             One_minus_beta_times_n()(n, particle)))
     { }
 

@@ -221,7 +221,7 @@ unsigned int Bremsstrahlung<T_IonSpecies, T_ElectronSpecies, T_PhotonSpecies>::n
     const float_X rutherfordCoeff = float_X(2.0) * ELECTRON_CHARGE*ELECTRON_CHARGE /
         (float_X(4.0) * pmacc::math::Pi<float_X>::value * EPS0) * targetZ / Ekin;
     const float_X scaledDeflectionDCS = pmacc::math::Pi<float_X>::value * (zMax - zMin) * rutherfordCoeff*rutherfordCoeff;
-    const float_X deflectionProb = ionDensity * c * DELTA_T * scaledDeflectionDCS;
+    const float_X deflectionProb = ionDensity * c * DELTA_T::pic() * scaledDeflectionDCS;
 
     if(this->randomGen(acc) < deflectionProb)
     {
@@ -232,7 +232,7 @@ unsigned int Bremsstrahlung<T_IonSpecies, T_ElectronSpecies, T_PhotonSpecies>::n
     /* non-radiative Bremsstrahlung */
     const float_X kappaCutoff = math::min(photon::SOFT_PHOTONS_CUTOFF / Ekin, float_X(1.0));
     const float_X stoppingPower = ionDensity * c * this->stoppingPowerFunctor(Ekin, kappaCutoff);
-    const float_X newEkin = math::max(Ekin - stoppingPower * DELTA_T, float_X(0.0));
+    const float_X newEkin = math::max(Ekin - stoppingPower * DELTA_T::pic(), float_X(0.0));
     const float_X newEkin_norm = newEkin / (mass * c*c);
     /* This is based on: (p / mc)^2 = (E_kin / mc^2)^2 + 2 * (E_kin / mc^2) */
     const float_X newMomAbs = mass * c * math::sqrt(newEkin_norm*newEkin_norm + float_X(2.0) * newEkin_norm);
@@ -243,7 +243,7 @@ unsigned int Bremsstrahlung<T_IonSpecies, T_ElectronSpecies, T_PhotonSpecies>::n
     const float_X delta = this->randomGen(acc);
     const float_X kappa = math::pow(kappaCutoff, delta);
     const float_X scalingFactor = -math::log(kappaCutoff);
-    const float_X emissionProb = photon::WEIGHTING_RATIO * scalingFactor * ionDensity * c * DELTA_T * this->scaledSpectrumFunctor(Ekin, kappa);
+    const float_X emissionProb = photon::WEIGHTING_RATIO * scalingFactor * ionDensity * c * DELTA_T::pic() * this->scaledSpectrumFunctor(Ekin, kappa);
 
     // raise a warning if the emission probability is too high.
     if(picLog::log_level & picLog::CRITICAL::lvl)

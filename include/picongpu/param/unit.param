@@ -30,7 +30,7 @@
 namespace picongpu
 {
     /** Unit of time */
-    CREATE_VAR( float_64 UNIT_TIME); // = SI::DELTA_T_SI);
+    CREATE_VAR( float_64 UNIT_TIME); // = DELTA_T::si());
     /** Unit of length */
     CREATE_VAR( float_64 UNIT_LENGTH); // = UNIT_TIME*UNIT_SPEED);
 

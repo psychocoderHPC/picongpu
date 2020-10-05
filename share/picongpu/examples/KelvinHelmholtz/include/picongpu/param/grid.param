@@ -25,42 +25,18 @@
 namespace picongpu
 {
 
+    DECLARE(
+        "delta_t", "Delta of time for one iteration. [meter]",
+        float_64, DELTA_T_SI, 1.79e-16,
+        float_X, DELTA_T,
+        []()->float_X{
+            return DELTA_T::si() / UNIT_TIME;
+        }
+    );
+
     namespace SI
     {
-        /** Duration of one timestep
-         *  unit: seconds */
-        CREATE_VAR(
-            float_64, DELTA_T_SI,
-            float_X, DELTA_T,
-            "detlat_t", "delta time is .....",
-            {
-                how to normalize;
-            }
-        );
-
-        __device__ float_64 DELTA_T_SI;
-        __device__ float_X DELTA_T;
-
-        void help_DELTA_T()
-        {
-            boost::arg(detlat_t, ppm.setvalue(DELTA_T),  "detlat_t", "delta time is .....");
-        }
-
-        void set_DELTA_T()
-        {
-            how to normalize;
-        }
-
-        struct RegisterPOaram_DETLTA_T
-        {
-            RegisterPOaram()
-            {
-                register(DETLTA_T);
-            }
-        }
-        static tmp_DETLTA_T = RegisterPOaram_DETLTA_T();
-
-
+        //CREATE_VAR(float_64 DELTA_T_SI);
         /** equals X
          *  unit: meter */
 

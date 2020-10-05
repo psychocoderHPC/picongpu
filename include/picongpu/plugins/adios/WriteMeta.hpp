@@ -248,10 +248,11 @@ namespace writeMeta
                       adiosUInt32Type.type, 1, (void*)&slides ));
 
             /* openPMD: required time attributes */
+            auto delta_t = DELTA_T::pic();
             ADIOS_CMD(adios_define_attribute_byvalue(threadParams->adiosGroupHandle,
                       "dt", threadParams->adiosBasePath.c_str(),
-                      adiosFloatXType.type, 1, (void*)&DELTA_T ));
-            const float_X time = float_X( threadParams->currentStep ) * DELTA_T;
+                      adiosFloatXType.type, 1, (void*)&delta_t ));
+            const float_X time = float_X( threadParams->currentStep ) * DELTA_T::pic();
             ADIOS_CMD(adios_define_attribute_byvalue(threadParams->adiosGroupHandle,
                       "time", threadParams->adiosBasePath.c_str(),
                       adiosFloatXType.type, 1, (void*)&time ));

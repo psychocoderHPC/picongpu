@@ -76,7 +76,7 @@ struct Push
         auto bField  = functorBField(pos);
         auto eField  = functorEField(pos);
 
-        float_X const deltaT = DELTA_T;
+        float_X const deltaT = DELTA_T::pic();
 
 
         Gamma gamma;

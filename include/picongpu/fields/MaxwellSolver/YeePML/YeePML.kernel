@@ -348,7 +348,7 @@ namespace yeePML
                 )
                 {
                     const auto c2 = SPEED_OF_LIGHT * SPEED_OF_LIGHT;
-                    const auto dt = DELTA_T;
+                    const auto dt = DELTA_T::pic();
 
                     auto const idxInSuperCell =
                         DataSpaceOperations< simDim >::template map< SuperCellSize >( linearIdx );
@@ -498,7 +498,7 @@ namespace yeePML
                     uint32_t const
                 )
                 {
-                    constexpr auto halfDt = 0.5_X * DELTA_T;
+                    constexpr auto halfDt = 0.5_X * DELTA_T::pic();
                     auto const idxInSuperCell =
                         DataSpaceOperations< simDim >::template map< SuperCellSize >( linearIdx );
                     // grid index to process with the current thread

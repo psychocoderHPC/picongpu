@@ -503,7 +503,7 @@ if(ALPAKA_ACC_GPU_CUDA_ENABLE)
                 if(ALPAKA_CUDA_KEEP_FILES)
                     file(MAKE_DIRECTORY "${PROJECT_BINARY_DIR}/nvcc_tmp")
                     list(APPEND CUDA_NVCC_FLAGS --keep)
-                    list(APPEND CUDA_NVCC_FLAGS --keep-dir="${PROJECT_BINARY_DIR}/nvcc_tmp")
+                    #list(APPEND CUDA_NVCC_FLAGS --keep-dir="${PROJECT_BINARY_DIR}/nvcc_tmp")
                 endif()
 
                 option(ALPAKA_CUDA_SHOW_CODELINES "Show kernel lines in cuda-gdb and cuda-memcheck" OFF)

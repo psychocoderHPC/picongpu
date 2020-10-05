@@ -191,7 +191,7 @@ namespace currentSolver
             /* We multiply with `cellEdgeLength` due to the fact that the attribute for the
              * in-cell particle `position` (and it's change in DELTA_T) is normalize to [0,1)
              */
-            const float_X currentSurfaceDensity = this->charge * (float_X(1.0) / float_X(CELL_VOLUME * DELTA_T)) * cellEdgeLength;
+            const float_X currentSurfaceDensity = this->charge * (float_X(1.0) / float_X(CELL_VOLUME * DELTA_T::pic())) * cellEdgeLength;
 
             /* pick every cell in the xy-plane that is overlapped by particle's
              * form factor and deposit the current for the cells above and beneath

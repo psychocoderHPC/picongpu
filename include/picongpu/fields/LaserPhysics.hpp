@@ -128,7 +128,7 @@ namespace fields
              */
             bool const laserNone = ( laserProfiles::Selected::Unitless{}.INIT_TIME == float_X(0.0) );
             bool const laserInitTimeOver =
-                ( ( currentStep * DELTA_T  - laserTimeShift ) >= laserProfiles::Selected::Unitless{}.INIT_TIME );
+                ( ( currentStep * DELTA_T::pic()  - laserTimeShift ) >= laserProfiles::Selected::Unitless{}.INIT_TIME );
             bool const topBoundariesArePeriodic =
                 ( Environment<simDim>::get().GridController().getCommunicationMask( ).isSet( TOP ) );
             bool const boxHasSlided = ( numSlides != 0 );

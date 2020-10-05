@@ -68,7 +68,7 @@ struct Push
      Here the real (PIConGPU) momentum (p) is used, not the momentum from the Vay paper (u)
      p = m_0 * u
          */
-        const float_X deltaT = DELTA_T;
+        const float_X deltaT = DELTA_T::pic();
         const float_X factor = 0.5 * charge * deltaT;
         Gamma gamma;
         Velocity velocity;
@@ -101,7 +101,7 @@ struct Push
 
         for(uint32_t d=0;d<simDim;++d)
         {
-            pos[d] += (vel[d] * DELTA_T) / cellSize[d];
+            pos[d] += (vel[d] * DELTA_T::pic()) / cellSize[d];
         }
     }
 

@@ -125,19 +125,19 @@ namespace emz
                 acc,
                 twistVectorFieldAxes< pmacc::math::CT::Int < 1, 2, 0 > >( cursorJ ),
                 rotateOrigin< 1, 2, 0 >( line ),
-                cellSize.x( ) * chargeDensity / DELTA_T
+                cellSize.x( ) * chargeDensity / DELTA_T::pic()
             );
             cptCurrent1D(
                 acc,
                 twistVectorFieldAxes< pmacc::math::CT::Int < 2, 0, 1 > >( cursorJ ),
                 rotateOrigin< 2, 0, 1 >( line ),
-                cellSize.y( ) * chargeDensity / DELTA_T
+                cellSize.y( ) * chargeDensity / DELTA_T::pic()
             );
             cptCurrent1D(
                 acc,
                 cursorJ,
                 line,
-                cellSize.z( ) * chargeDensity / DELTA_T
+                cellSize.z( ) * chargeDensity / DELTA_T::pic()
             );
         }
 
@@ -235,13 +235,13 @@ namespace emz
                 acc,
                 cursorJ,
                 line,
-                cellSize.x( ) * chargeDensity / DELTA_T
+                cellSize.x( ) * chargeDensity / DELTA_T::pic()
             );
             cptCurrent1D(
                 acc,
                 twistVectorFieldAxes< pmacc::math::CT::Int < 1, 0 > >( cursorJ ),
                 rotateOrigin < 1, 0 > ( line ),
-                cellSize.y( ) * chargeDensity / DELTA_T
+                cellSize.y( ) * chargeDensity / DELTA_T::pic()
             );
             cptCurrentZ(
                 acc,

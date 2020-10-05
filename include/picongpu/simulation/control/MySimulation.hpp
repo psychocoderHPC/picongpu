@@ -137,6 +137,7 @@ public:
     virtual void pluginRegisterHelp(po::options_description& desc)
     {
         SimulationHelper<simDim>::pluginRegisterHelp(desc);
+        GlobalRegister::inst().loadHelp(desc);
         desc.add_options()
             ("versionOnce", po::value<bool>(&showVersionOnce)->zero_tokens(), "print version information once and start")
 

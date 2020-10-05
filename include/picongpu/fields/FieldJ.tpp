@@ -261,7 +261,7 @@ void FieldJ::computeCurrent( T_Species & species, uint32_t )
 
     typename T_Species::ParticlesBoxType pBox = species.getDeviceParticlesBox( );
     FieldJ::DataBoxType jBox = buffer.getDeviceBuffer( ).getDataBox( );
-    FrameSolver solver( DELTA_T );
+    FrameSolver solver( DELTA_T::pic() );
 
     auto const deposit = currentSolver::Deposit< Strategy >{};
     deposit.template execute<

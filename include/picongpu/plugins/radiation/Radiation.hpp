@@ -867,8 +867,8 @@ private:
                                          "iterationFormat",
                                          iterationFormat.c_str() );
 
-      hdf5DataFile.writeAttribute(currentStep, splashFloatXType, nullptr, "dt", &DELTA_T);
-      const float_X time = float_X(currentStep) * DELTA_T;
+      hdf5DataFile.writeAttribute(currentStep, splashFloatXType, nullptr, "dt", &DELTA_T::pic());
+      const float_X time = float_X(currentStep) * DELTA_T::pic();
       hdf5DataFile.writeAttribute(currentStep, splashFloatXType, nullptr, "time", &time);
       splash::ColTypeDouble ctDouble;
       hdf5DataFile.writeAttribute(currentStep, ctDouble, nullptr, "timeUnitSI", &UNIT_TIME);

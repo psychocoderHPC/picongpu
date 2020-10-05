@@ -137,7 +137,7 @@ namespace acc
                  *
                  * The `correctionFactor` assume that the wave is moving in y direction.
                  */
-                auto const correctionFactor = ( SPEED_OF_LIGHT * DELTA_T ) / CELL_HEIGHT * 2._X;
+                auto const correctionFactor = ( SPEED_OF_LIGHT * DELTA_T::pic() ) / CELL_HEIGHT * 2._X;
 
                 // jump over the guard of the electric field
                 m_dataBoxE( localCell + SuperCellSize::toRT() * GuardSize::toRT() ) +=  correctionFactor * m_elong;
@@ -192,7 +192,7 @@ namespace acc
             // the front of the laser pulse.
             const float_64 mue = 0.5 * Unitless::INIT_TIME;
 
-            float_64 const runTime = DELTA_T * currentStep - Unitless::laserTimeShift - mue;
+            float_64 const runTime = DELTA_T::pic() * currentStep - Unitless::laserTimeShift - mue;
 
             elong = float3_X::create( 0.0_X );
             float_X envelope = float_X( Unitless::AMPLITUDE );

@@ -287,8 +287,8 @@ namespace writeMeta
 
 
             /* openPMD: required time attributes */
-            dc->writeAttribute( currentStep, splashFloatXType, nullptr, "dt", &DELTA_T );
-            const float_X time = float_X( threadParams->currentStep ) * DELTA_T;
+            dc->writeAttribute( currentStep, splashFloatXType, nullptr, "dt", &DELTA_T::pic() );
+            const float_X time = float_X( threadParams->currentStep ) * DELTA_T::pic();
             dc->writeAttribute( currentStep, splashFloatXType, nullptr, "time", &time );
             dc->writeAttribute( currentStep, ctDouble, nullptr, "timeUnitSI", &UNIT_TIME );
 

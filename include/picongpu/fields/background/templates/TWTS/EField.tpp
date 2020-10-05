@@ -57,7 +57,7 @@ namespace twts
         focus_y_SI(focus_y_SI), wavelength_SI(wavelength_SI),
         pulselength_SI(pulselength_SI), w_x_SI(w_x_SI),
         w_y_SI(w_y_SI), phi(phi), beta_0(beta_0),
-        tdelay_user_SI(tdelay_user_SI), dt(SI::DELTA_T_SI),
+        tdelay_user_SI(tdelay_user_SI), dt(DELTA_T::si()),
         unit_length(UNIT_LENGTH), auto_tdelay(auto_tdelay), pol(pol), phiPositive( float_X(1.0) )
     {
         /* Note: Enviroment-objects cannot be instantiated on CUDA GPU device. Since this is done
@@ -207,7 +207,7 @@ namespace twts
         /* Unit of speed */
         const float_64 UNIT_SPEED = SI::SPEED_OF_LIGHT_SI;
         /* Unit of time */
-        const float_64 UNIT_TIME = SI::DELTA_T_SI;
+        const float_64 UNIT_TIME = DELTA_T::si();
         /* Unit of length */
         const float_64 UNIT_LENGTH = UNIT_TIME*UNIT_SPEED;
 

@@ -68,7 +68,7 @@ struct Push
         using MomType = momentum::type;
         MomType new_mom = particle[ momentum_ ];
 
-        const float_X deltaT = DELTA_T;
+        const float_X deltaT = DELTA_T::pic();
 
         // normalize input SI values to
         const float3_X eField(UnitlessParam::AMPLITUDEx, UnitlessParam::AMPLITUDEy, UnitlessParam::AMPLITUDEz);
@@ -76,7 +76,7 @@ struct Push
         /* ToDo: Refactor to ensure a smooth and slow increase of eField with time
          * which may help to reduce radiation due to acceleration, if present.
          */
-        if ( currentStep * DELTA_T <= UnitlessParam::ACCELERATION_TIME )
+        if ( currentStep * DELTA_T::pic() <= UnitlessParam::ACCELERATION_TIME )
             new_mom += charge * eField * deltaT;
 
         particle[ momentum_ ] = new_mom;

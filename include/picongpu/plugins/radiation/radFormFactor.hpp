@@ -134,7 +134,7 @@ namespace radFormFactor_Gauss_spherical
           /* currently a fixed sigma of DELTA_T * c is used to describe the distribution - might become a parameter */
           return math::sqrt(
               N + ( N * N - N ) * util::square(
-                  math::exp( float_X( -0.5 ) * util::square( omega * float_X( 0.5 ) * DELTA_T ) )
+                  math::exp( float_X( -0.5 ) * util::square( omega * float_X( 0.5 ) * DELTA_T::pic() ) )
               )
           );
       }

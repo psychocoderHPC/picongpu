@@ -116,10 +116,10 @@ namespace lehe
             constexpr uint32_t dir2 = (dir0 + 2) % 3;
 
             float_64 const stepRatio = cellSize[ dir0 ] /
-                ( SPEED_OF_LIGHT * DELTA_T );
+                ( SPEED_OF_LIGHT * DELTA_T::pic() );
             float_64 const coeff = stepRatio * math::sin(
                 pmacc::math::Pi< float_64 >::halfValue *
-                float_64( SPEED_OF_LIGHT ) * float_64( DELTA_T ) /
+                float_64( SPEED_OF_LIGHT ) * float_64( DELTA_T::pic() ) /
                 float_64( cellSize[ dir0 ] )
             );
             delta = static_cast< float_X >(

@@ -176,7 +176,7 @@ namespace acc
                  *
                  * The `correctionFactor` assume that the wave is moving in y direction.
                  */
-                auto const correctionFactor = ( SPEED_OF_LIGHT * DELTA_T ) / CELL_HEIGHT * 2._X;
+                auto const correctionFactor = ( SPEED_OF_LIGHT * DELTA_T::pic() ) / CELL_HEIGHT * 2._X;
 
                 // jump over the guard of the electric field
                 m_dataBoxE( localCell + SuperCellSize::toRT() * GuardSize::toRT() ) +=  correctionFactor * m_elong;
@@ -225,7 +225,7 @@ namespace acc
             // @todo reset origin of direction of moving window
             // offsetToTotalDomain.y() = 0
 
-            float_64 const runTime = DELTA_T * currentStep - Unitless::laserTimeShift;
+            float_64 const runTime = DELTA_T::pic() * currentStep - Unitless::laserTimeShift;
 
             // calculate focus position relative to the laser initialization plane
             float_X const focusPos = Unitless::FOCUS_POS - Unitless::initPlaneY * CELL_HEIGHT;

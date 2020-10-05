@@ -201,8 +201,9 @@ namespace picongpu
                                 "dV", &CELL_VOLUME );
             pdc.writeAttribute( currentStep, ctFloat64, dataSetName.str().c_str(),
                                 "dr_unit", &UNIT_LENGTH );
+            auto delta_t = DELTA_T::pic();
             pdc.writeAttribute( currentStep, ctFloatX, dataSetName.str().c_str(),
-                                "dt", &DELTA_T );
+                                "dt", delta_t );
             pdc.writeAttribute( currentStep, ctFloat64, dataSetName.str().c_str(),
                                 "dt_unit", &UNIT_TIME );
 

@@ -78,7 +78,7 @@ struct Push
 
     TypeMomentum mom = particle[ momentum_ ];
 
-    const float_X deltaT = DELTA_T;
+    const float_X deltaT = DELTA_T::pic();
     const uint32_t dimMomentum = GetNComponents<TypeMomentum>::value;
     // the transver data type adjust to 3D3V, 2D3V, 2D2V, ...
     using VariableType = pmacc::math::Vector< picongpu::float_X, simDim + dimMomentum >;

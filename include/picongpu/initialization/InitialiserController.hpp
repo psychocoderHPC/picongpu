@@ -120,7 +120,7 @@ public:
             const auto densityRatio = traits::GetDensityRatio< T_Species >::type::getValue( );
             const auto density = BASE_DENSITY * densityRatio;
             log<picLog::PHYSICS >("species %2%: omega_p * dt <= 0.1 ? %1%") %
-                                 (sqrt(density * charge / mass * charge / EPS0) * DELTA_T) %
+                                 (sqrt(density * charge / mass * charge / EPS0) * DELTA_T::pic()) %
                                   FrameType::getName();
         }
     };
@@ -134,7 +134,7 @@ public:
         {
             log<picLog::PHYSICS >("Courant c*dt <= %1% ? %2%") %
                                  (1./math::sqrt(INV_CELL2_SUM)) %
-                                 (SPEED_OF_LIGHT * DELTA_T);
+                                 (SPEED_OF_LIGHT * DELTA_T::pic());
 
             using SpeciesWithMass = typename pmacc::particles::traits::FilterByFlag<
                 VectorAllSpecies,

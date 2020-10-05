@@ -104,7 +104,7 @@ struct typicalFields < 1 >
 #else
         constexpr auto baseCharge = BASE_CHARGE;
         const float_X tyCurrent = particles::TYPICAL_PARTICLES_PER_CELL * particles::TYPICAL_NUM_PARTICLES_PER_MACROPARTICLE
-            * math::abs(baseCharge) / DELTA_T;
+            * math::abs(baseCharge) / DELTA_T::pic();
         const float_X tyEField = fields::laserProfiles::Selected::Unitless::AMPLITUDE + FLT_MIN;
         const float_X tyBField = tyEField * MUE0_EPS0;
 
@@ -156,7 +156,7 @@ struct typicalFields < 5 >
         const float_X tyEField = fields::laserProfiles::Selected::Unitless::W0 * BASE_DENSITY / 3.0f / EPS0;
         const float_X tyBField = tyEField * MUE0_EPS0;
         const float_X tyCurrent = particles::TYPICAL_PARTICLES_PER_CELL * particles::TYPICAL_NUM_PARTICLES_PER_MACROPARTICLE
-            * math::abs(baseCharge) / DELTA_T;
+            * math::abs(baseCharge) / DELTA_T::pic();
 
         return float3_X(tyBField, tyEField, tyCurrent);
 #endif

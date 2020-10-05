@@ -212,7 +212,7 @@ public:
         /*FORMAT OUTPUT*/
         if (positionParticle.mass != float_X(0.0))
             std::cout << "[ANALYSIS] [" << rank << "] [COUNTER] [" << pluginPrefix << "] [" << currentStep << "] "
-            << std::setprecision(16) << float_64(currentStep) * SI::DELTA_T_SI << " "
+            << std::setprecision(16) << float_64(currentStep) * DELTA_T::si() << " "
             << positionParticle << "\n"; // no flush
     }
 

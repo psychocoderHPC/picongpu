@@ -93,7 +93,7 @@ struct EmZ
     {
         floatD_X deltaPos;
         for ( uint32_t d = 0; d < simDim; ++d )
-            deltaPos[d] = ( velocity[d] * DELTA_T ) / cellSize[d];
+            deltaPos[d] = ( velocity[d] * DELTA_T::pic() ) / cellSize[d];
 
         /*note: all positions are normalized to the grid*/
         const floatD_X posStart( posEnd - deltaPos );

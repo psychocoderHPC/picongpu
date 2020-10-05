@@ -181,7 +181,7 @@ namespace acc
                  *
                  * The `correctionFactor` assume that the wave is moving in y direction.
                  */
-                auto const correctionFactor = ( SPEED_OF_LIGHT * DELTA_T ) / CELL_HEIGHT * 2._X;
+                auto const correctionFactor = ( SPEED_OF_LIGHT * DELTA_T::pic() ) / CELL_HEIGHT * 2._X;
 
                 // jump over the guard of the electric field
                 m_dataBoxE( localCell + SuperCellSize::toRT() * GuardSize::toRT() ) +=  correctionFactor * m_elong;
@@ -341,7 +341,7 @@ namespace acc
              * in time
              */
             const float_64 runTime = Unitless::time_start_init - Unitless::laserTimeShift +
-                DELTA_T * currentStep;
+                DELTA_T::pic() * currentStep;
 
             phase = float_X( Unitless::w * runTime ) + Unitless::LASER_PHASE;
 

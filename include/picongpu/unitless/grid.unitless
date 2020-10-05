@@ -27,7 +27,7 @@
 namespace picongpu
 {
     // normed grid parameter
-    CREATE_VAR( float_X DELTA_T); // = float_X( SI::DELTA_T_SI / UNIT_TIME ));
+
     CREATE_VAR( float_X CELL_WIDTH); // = float_X( SI::CELL_WIDTH_SI / UNIT_LENGTH ));
     CREATE_VAR( float_X CELL_HEIGHT); // = float_X( SI::CELL_HEIGHT_SI / UNIT_LENGTH ));
     CREATE_VAR( float_X CELL_DEPTH); // = float_X( SI::CELL_DEPTH_SI / UNIT_LENGTH ));

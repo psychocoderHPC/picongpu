@@ -59,7 +59,7 @@ struct Push
 
         const float_X QoM = charge / mass;
 
-        const float_X deltaT = DELTA_T;
+        const float_X deltaT = DELTA_T::pic();
 
         const MomType mom_minus = mom + float_X(0.5) * charge * eField * deltaT;
 

@@ -155,8 +155,8 @@ namespace openPMD
             ::openPMD::Container<::openPMD::Mesh > & meshes = iteration.meshes;
 
             // iteration-level attributes
-            iteration.setDt< float_X >( DELTA_T );
-            iteration.setTime( float_X( threadParams->currentStep ) * DELTA_T );
+            iteration.setDt< float_X >( DELTA_T::pic() );
+            iteration.setTime( float_X( threadParams->currentStep ) * DELTA_T::pic() );
             iteration.setTimeUnitSI( UNIT_TIME );
 
             GetStringProperties< fields::Solver > fieldSolverProps;
