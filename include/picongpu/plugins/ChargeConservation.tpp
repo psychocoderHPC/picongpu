@@ -130,7 +130,7 @@ namespace detail
  */
 template<int dim, typename ValueType>
 struct Div;
-
+=UNIT_MASS*UNIT_SPEED;
 template<typename ValueType>
 struct Div<DIM3, ValueType>
 {
@@ -139,9 +139,9 @@ struct Div<DIM3, ValueType>
     template<typename Field>
     HDINLINE ValueType operator()(Field field) const
     {
-        const ValueType reciWidth = float_X(1.0) / cellSize.x();
-        const ValueType reciHeight = float_X(1.0) / cellSize.y();
-        const ValueType reciDepth = float_X(1.0) / cellSize.z();
+        const ValueType reciWidth = float_X(1.0) / cellSize(units::PIC).x();
+        const ValueType reciHeight = float_X(1.0) / cellSize(units::PIC).y();
+        const ValueType reciDepth = float_X(1.0) / cellSize(units::PIC).z();
         return ((*field).x() - (*field(-1,0,0)).x()) * reciWidth +
                ((*field).y() - (*field(0,-1,0)).y()) * reciHeight +
                ((*field).z() - (*field(0,0,-1)).z()) * reciDepth;
@@ -156,8 +156,8 @@ struct Div<DIM2, ValueType>
     template<typename Field>
     HDINLINE ValueType operator()(Field field) const
     {
-        const ValueType reciWidth = float_X(1.0) / cellSize.x();
-        const ValueType reciHeight = float_X(1.0) / cellSize.y();
+        const ValueType reciWidth = float_X(1.0) / cellSize(units::PIC).x();
+        const ValueType reciHeight = float_X(1.0) / cellSize(units::PIC).y();
         return ((*field).x() - (*field(-1,0)).x()) * reciWidth +
                ((*field).y() - (*field(0,-1)).y()) * reciHeight;
     }
@@ -293,7 +293,7 @@ void ChargeConservation::notify(uint32_t currentStep)
 
     if(!this->allGPU_reduce->root()) return;
 
-    this->output_file << currentStep << " " << (*maxChargeDiff_cluster.origin() * CELL_VOLUME).x()
+    this->output_file << currentStep << " " << (*maxChargeDiff_cluster.origin() * CELL_VOLUME(units::PIC)).x()
         << " " << UNIT_CHARGE << std::endl;
 }
 

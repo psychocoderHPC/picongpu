@@ -35,131 +35,13 @@
 #include <list>
 #include <boost/program_options.hpp>
 
+#include "unitSystem.hpp"
+
 #ifdef __CUDA_ARCH__
 #   define CREATE_VAR(...) __device__ __VA_ARGS__
 #else
 #   define CREATE_VAR(...) __VA_ARGS__
 #endif
-
-#if( CUPLA_DEVICE_COMPILE == 1) //we are on gpu
-#   define PICONGPU_VAR_NAMESPACE(id) globalVariables::PMACC_JOIN(picongpu_var_device,id)
-#else
-#   define PICONGPU_VAR_NAMESPACE(id) globalVariables::PMACC_JOIN(picongpu_var_host,id)
-#endif
-
-#define PICONGPU_VAR_DECL(id,Type, Name)                       \
-    namespace PMACC_JOIN(picongpu_var_device,id)               \
-    {                                                          \
-        __constant__ Type Name;                                \
-    } /*namespace pmacc_static_const_vector_device + id */     \
-    namespace PMACC_JOIN(picongpu_var_host,id)                 \
-    {                                                          \
-       Type Name;                                              \
-    } /*namespace pmacc_static_const_vector_device + id */
-
-
-struct IGlobalVariable
-{
-    template<typename T_Type>
-    void uploadToDevice(T_Type * ptr, T_Type value)
-    {
-        cudaMemcpy(ptr, &value, sizeof(T_Type), cudaMemcpyHostToDevice);
-    }
-
-    virtual void help(boost::program_options::options_description&) = 0;
-    virtual void update() = 0;
-};
-
-
-struct GlobalRegister
-{
-    static GlobalRegister& inst()
-    {
-        static GlobalRegister instance;
-        return instance;
-    }
-
-    void announce( IGlobalVariable* handle )
-    {
-        data.push_back( handle );
-    }
-
-    void loadHelp( boost::program_options::options_description& desc )
-    {
-        for( auto& d : data )
-        {
-            d->help( desc );
-        }
-    }
-
-    void update()
-    {
-        for( auto& d : data )
-        {
-            d->update();
-        }
-    }
-
-    std::list< IGlobalVariable* > data;
-};
-
-
-template<typename T>
-void setGlobalVarValue(T& ptr, const T& value)
-{
-    ptr = value;
-};
-
-
-#define DECLARE_DO(id, cmdName, cmdDescription, typeSI, varNameSI, defaultValueSI, typeNormalized, varNameNormalized, ...) \
-namespace globalVariables{                                                                                              \
-    PICONGPU_VAR_DECL(id, typeSI, varNameSI);                                                                           \
-    PICONGPU_VAR_DECL(id, typeNormalized, varNameNormalized);                                                           \
-}                                                                                                                       \
-                                                                                                                        \
-struct varNameNormalized                                                                                                \
-{                                                                                                                       \
-    static HDINLINE typeSI si()                                                                                         \
-    {                                                                                                                   \
-        return PICONGPU_VAR_NAMESPACE(id)::varNameSI;                                                                                               \
-    }                                                                                                                   \
-    static HDINLINE typeNormalized pic()                                                                                \
-    {                                                                                                                   \
-        return PICONGPU_VAR_NAMESPACE(id)::varNameNormalized;                                                                                       \
-    }                                                                                                                   \
-};                                                                                                                      \
-namespace PMACC_JOIN(simulation_,varNameSI)                                                                             \
-{                                                                                                                       \
-    struct GloablObject : IGlobalVariable                                                                               \
-    {                                                                                                                   \
-        GloablObject()                                                                                                  \
-        {                                                                                                               \
-            GlobalRegister::inst().announce(this);                                                                             \
-        }                                                                                                               \
-        void help(boost::program_options::options_description& desc) override                                           \
-        {                                                                                                               \
-            using namespace PICONGPU_VAR_NAMESPACE(id);                                                                                 \
-            desc.add_options()                                                                                          \
-                (cmdName, boost::program_options::value<typeSI>(&varNameSI)->default_value(defaultValueSI), "cmdDescription"); \
-        }                                                                                                               \
-        void update() override                                                                                          \
-        {                                                                                                               \
-            auto func = __VA_ARGS__; \
-            setGlobalVarValue(PICONGPU_VAR_NAMESPACE(id)::varNameNormalized, func());                                                                                    \
-            typeNormalized* ptrNorm;                                                                                    \
-            cudaGetSymbolAddress((void **)&ptrNorm, globalVariables::PMACC_JOIN(picongpu_var_device,id)::varNameNormalized); \
-            uploadToDevice(ptrNorm, varNameNormalized::pic());                                                           \
-            typeSI* ptr;                                                                                                \
-            cudaGetSymbolAddress((void **)&ptr, globalVariables::PMACC_JOIN(picongpu_var_device,id)::varNameSI);        \
-            uploadToDevice(ptr, varNameNormalized::si());                                                               \
-        }                                                                                                               \
-    };                                                                                                                  \
-    static GloablObject dummy;                                                                                          \
-}
-
-#define DECLARE(cmdName, cmdDescription, typeSI, varNameSI, defaultValueSI, typeNormalized, varNameNormalized, ...)     \
-    DECLARE_DO(__COUNTER__, cmdName, cmdDescription, typeSI, varNameSI, defaultValueSI, typeNormalized, varNameNormalized, __VA_ARGS__)
-
 
 namespace picongpu
 {

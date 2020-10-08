@@ -37,7 +37,7 @@ namespace derivedAttributes
     Density::getUnit() const
     {
         const float_64 UNIT_VOLUME = (UNIT_LENGTH * UNIT_LENGTH * UNIT_LENGTH);
-        return particles::TYPICAL_NUM_PARTICLES_PER_MACROPARTICLE / UNIT_VOLUME;
+        return particles::TYPICAL_NUM_PARTICLES_PER_MACROPARTICLE() / UNIT_VOLUME;
     }
 
     template< class T_Particle >
@@ -49,7 +49,7 @@ namespace derivedAttributes
 
         /* calculate new attribute */
         const float_X particleDensity = weighting /
-            ( particles::TYPICAL_NUM_PARTICLES_PER_MACROPARTICLE * CELL_VOLUME );
+            ( particles::TYPICAL_NUM_PARTICLES_PER_MACROPARTICLE() * CELL_VOLUME(units::PIC) );
 
         /* return attribute */
         return particleDensity;

@@ -130,7 +130,7 @@ namespace xrayScattering
                         cellGlobalPosition( cellPosition + globalOffset );
                     floatD_X fieldGlobalPosition = precisionCast< float_X >
                         ( cellGlobalPosition ) + fieldPos( )[ 0 ];
-                    fieldGlobalPosition *= cellSize.shrink< simDim >( );
+                    fieldGlobalPosition *= cellSize(units::PIC).shrink< simDim >( );
 
                     float_X density = densityBoxGPU( cellPosition )[ 0 ];
                     // Save the cell position in the beam coordinate system.

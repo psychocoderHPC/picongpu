@@ -367,7 +367,7 @@ namespace xrayScattering
                 // Output unit:
                 const float_64 amplitudeUnit = static_cast< float_64 >(
                     FieldTmp::getUnit< ElectronDensitySolver >( )[ 0 ] ) *
-                    CELL_WIDTH_SI * CELL_HEIGHT_SI * CELL_DEPTH_SI
+                    CELL_WIDTH(units::SI) * CELL_HEIGHT(units::SI) * CELL_DEPTH(units::SI)
                     * ELECTRON_RADIUS_SI;
 
                 // Set the total number of cells in the simulation.

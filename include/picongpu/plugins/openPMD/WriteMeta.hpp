@@ -155,8 +155,8 @@ namespace openPMD
             ::openPMD::Container<::openPMD::Mesh > & meshes = iteration.meshes;
 
             // iteration-level attributes
-            iteration.setDt< float_X >( DELTA_T::pic() );
-            iteration.setTime( float_X( threadParams->currentStep ) * DELTA_T::pic() );
+            iteration.setDt< float_X >( DELTA_T(units::PIC) );
+            iteration.setTime( float_X( threadParams->currentStep ) * DELTA_T(units::PIC) );
             iteration.setTimeUnitSI( UNIT_TIME );
 
             GetStringProperties< fields::Solver > fieldSolverProps;
@@ -235,7 +235,7 @@ namespace openPMD
                 "cell_width", "cell_height", "cell_depth" };
             for( unsigned i = 0; i < 3; ++i )
             {
-                iteration.setAttribute( names[ i ], cellSize[ i ] );
+                iteration.setAttribute( names[ i ], cellSize(units::PIC)[ i ] );
             }
 
 

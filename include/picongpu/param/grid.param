@@ -28,7 +28,7 @@
  *
  * **Units in reduced dimensions**
  *
- * In 2D3V simulations, the CELL_DEPTH_SI (Z) cell length
+ * In 2D3V simulations, the CELL_DEPTH(units::SI) (Z) cell length
  * is still used for normalization of densities, etc..
  *
  * A 2D3V simulation in a cartesian PIC simulation such as
@@ -53,13 +53,13 @@ namespace picongpu
 
         /** equals X
          *  unit: meter */
-        CREATE_VAR( float_64 CELL_WIDTH_SI = 0.1772e-6);
+        CREATE_VAR( float_64 CELL_WIDTH(units::SI) = 0.1772e-6);
         /** equals Y - the laser & moving window propagation direction
          *  unit: meter */
-        CREATE_VAR( float_64 CELL_HEIGHT_SI = 0.4430e-7);
+        CREATE_VAR( float_64 CELL_HEIGHT(units::SI) = 0.4430e-7);
         /** equals Z
          *  unit: meter */
-        CREATE_VAR( float_64 CELL_DEPTH_SI); // = CELL_WIDTH_SI);
+        CREATE_VAR( float_64 CELL_DEPTH(units::SI)); // = CELL_WIDTH(units::SI));
 
     } // namespace SI
 

@@ -99,7 +99,7 @@ namespace picongpu
             const float_X weighting = particle[weighting_];
             const float_X charge    = attribute::getCharge( weighting,particle );
             const float_PS particleChargeDensity =
-              precisionCast<float_PS>( charge / CELL_VOLUME );
+              precisionCast<float_PS>( charge / CELL_VOLUME(units::PIC) );
 
             const float_X rel_bin = (mom_i / weighting - axis_p_range.first)
                                   / (axis_p_range.second - axis_p_range.first);

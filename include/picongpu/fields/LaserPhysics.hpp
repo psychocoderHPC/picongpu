@@ -117,7 +117,7 @@ namespace fields
              * laser in planes inside the simulation corresponds to an
              * evaluation of the field at negatively shifted time.
              */
-            const float_X laserTimeShift = laserProfiles::Selected::Unitless::initPlaneY * CELL_HEIGHT / SPEED_OF_LIGHT;
+            const float_X laserTimeShift = laserProfiles::Selected::Unitless::initPlaneY * CELL_HEIGHT(units::PIC) / SPEED_OF_LIGHT;
 
             const uint32_t numSlides = MovingWindow::getInstance().getSlideCounter(currentStep);
 
@@ -128,7 +128,7 @@ namespace fields
              */
             bool const laserNone = ( laserProfiles::Selected::Unitless{}.INIT_TIME == float_X(0.0) );
             bool const laserInitTimeOver =
-                ( ( currentStep * DELTA_T::pic()  - laserTimeShift ) >= laserProfiles::Selected::Unitless{}.INIT_TIME );
+                ( ( currentStep * DELTA_T(units::PIC)  - laserTimeShift ) >= laserProfiles::Selected::Unitless{}.INIT_TIME );
             bool const topBoundariesArePeriodic =
                 ( Environment<simDim>::get().GridController().getCommunicationMask( ).isSet( TOP ) );
             bool const boxHasSlided = ( numSlides != 0 );

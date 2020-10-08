@@ -36,7 +36,7 @@ namespace derivedAttributes
     HDINLINE float1_64
     Counter::getUnit() const
     {
-        return particles::TYPICAL_NUM_PARTICLES_PER_MACROPARTICLE;
+        return particles::TYPICAL_NUM_PARTICLES_PER_MACROPARTICLE();
     }
 
     template< class T_Particle >
@@ -48,7 +48,7 @@ namespace derivedAttributes
 
         /* calculate new attribute */
         const float_X particleCounter = weighting /
-            particles::TYPICAL_NUM_PARTICLES_PER_MACROPARTICLE;
+            particles::TYPICAL_NUM_PARTICLES_PER_MACROPARTICLE();
 
         /* return attribute */
         return particleCounter;

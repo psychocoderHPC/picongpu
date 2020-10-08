@@ -35,7 +35,7 @@ namespace picongpu
         constexpr float_64 CELL_WIDTH_SI = 1.8e-8;
         /** equals Y
          *  unit: meter */
-        constexpr float_64 CELL_HEIGHT_SI = 1.8e-8;
+        constexpr float_64 CELL_HEIGHT(units::PIC)_SI = 1.8e-8;
         /** equals Z
          *  unit: meter */
         constexpr float_64 CELL_DEPTH_SI = 1.8e-8;

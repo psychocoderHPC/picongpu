@@ -28,13 +28,60 @@ namespace picongpu
 {
     // normed grid parameter
 
-    CREATE_VAR( float_X CELL_WIDTH); // = float_X( SI::CELL_WIDTH_SI / UNIT_LENGTH ));
-    CREATE_VAR( float_X CELL_HEIGHT); // = float_X( SI::CELL_HEIGHT_SI / UNIT_LENGTH ));
-    CREATE_VAR( float_X CELL_DEPTH); // = float_X( SI::CELL_DEPTH_SI / UNIT_LENGTH ));
-    CREATE_VAR( float3_X cellSize); // = {CELL_WIDTH, CELL_HEIGHT, CELL_DEPTH});
+    UNIT_BASE(TIME, PIC, [&]()
+    {
+        return DELTA_T(units::SI);
+    });
+
+    UNIT_BASE(LENGTH, PIC, [&]()
+    {
+        return UNIT_TIME * UNIT_SPEED;
+    });
+
+
+    INIT(DELTA_T, PIC, [&]()
+    {
+        return DELTA_T(units::SI) / UNIT_TIME;
+    });
+
+    INIT(CELL_WIDTH, PIC, [&]()
+    {
+        return CELL_WIDTH(units::SI) / UNIT_LENGTH;
+    });
+
+    INIT(CELL_HEIGHT, PIC, [&]()
+    {
+        return CELL_HEIGHT(units::SI) / UNIT_LENGTH;
+    });
+
+    INIT(CELL_DEPTH, PIC, [&]()
+    {
+        return CELL_DEPTH(units::SI) / UNIT_LENGTH;
+    });
 
     // always a 3D cell, even in 1D3V or 2D3V
-    CREATE_VAR( float_X CELL_VOLUME); // = CELL_WIDTH * CELL_HEIGHT * CELL_DEPTH);
+    DEF_GLOBAL_VAR(float3_64, cellSize, [&]()
+    {
+        return float3_64(CELL_WIDTH(units::SI), CELL_HEIGHT(units::SI), CELL_DEPTH(units::SI));
+    });
+    GLOBAL_VAR_ADD(float3_X, cellSize, PIC);
+
+    INIT(cellSize, PIC, [&]()
+    {
+        return cellSize(units::SI) * scale(LENGTH, units::SI, units::PIC);
+    });
+
+    // volume of a cell
+    DEF_GLOBAL_VAR(float_64, CELL_VOLUME, [&]()
+    {
+        return cellSize(units::SI).productOfComponents();
+    });
+    GLOBAL_VAR_ADD(float_X, CELL_VOLUME, PIC);
+
+    INIT(CELL_VOLUME, PIC, [&]()
+    {
+        return cellSize(units::PIC).productOfComponents();
+    });
 
     // only used for CFL checks
 #if (SIMDIM==DIM3)
@@ -42,13 +89,13 @@ namespace picongpu
 #if 0
     =
         1.0 / ( CELL_WIDTH  * CELL_WIDTH  ) +
-        1.0 / ( CELL_HEIGHT * CELL_HEIGHT ) +
+        1.0 / ( CELL_HEIGHT(units::PIC) * CELL_HEIGHT(units::PIC) ) +
         1.0 / ( CELL_DEPTH  * CELL_DEPTH  ));
 #endif
 #elif(SIMDIM==DIM2)
     constexpr float_X INV_CELL2_SUM =
         1.0 / ( CELL_WIDTH  * CELL_WIDTH  ) +
-        1.0 / ( CELL_HEIGHT * CELL_HEIGHT );
+        1.0 / ( CELL_HEIGHT(units::PIC) * CELL_HEIGHT(units::PIC) );
 #else
     constexpr float_X INV_CELL2_SUM =
         1.0 / ( CELL_WIDTH  * CELL_WIDTH );

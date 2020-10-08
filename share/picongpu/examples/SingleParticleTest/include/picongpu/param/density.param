@@ -41,7 +41,7 @@ namespace SI
      */
     constexpr float_64 BASE_DENSITY_SI =
         1.0 /
-        ( CELL_WIDTH_SI * CELL_HEIGHT_SI * CELL_DEPTH_SI );
+        ( CELL_WIDTH_SI * CELL_HEIGHT(units::PIC)_SI * CELL_DEPTH_SI );
 
 }
 

@@ -242,7 +242,7 @@ public:
         const float_X charge = frame::getCharge<FrameType>();
 
         const float_X sqrtOf3 = 1.7320508075688772;
-        const float_X factor = DELTA_T::pic() * charge*charge * mass * SPEED_OF_LIGHT / (float_X(4.0) * PI * EPS0 * HBAR*HBAR) *
+        const float_X factor = DELTA_T(units::PIC) * charge*charge * mass * SPEED_OF_LIGHT / (float_X(4.0) * PI * EPS0 * HBAR*HBAR) *
                                sqrtOf3 / (float_X(2.0) * PI) * chi / gamma;
 
         if(enableQEDTerm)

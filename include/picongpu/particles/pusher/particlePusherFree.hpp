@@ -58,7 +58,7 @@ namespace picongpu
 
                 for(uint32_t d=0;d<simDim;++d)
                 {
-                    pos[d] += (vel[d] * DELTA_T::pic()) / cellSize[d];
+                    pos[d] += (vel[d] * DELTA_T(units::PIC)) / cellSize(units::PIC)[d];
                 }
             }
 

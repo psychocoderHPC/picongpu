@@ -50,13 +50,13 @@ struct GaussianCloudImpl : public T_ParamClass
     HDINLINE float_X operator()(const DataSpace<simDim>& totalCellOffset)
     {
         const float_64 unit_length = UNIT_LENGTH;
-        const float_X vacuum_y = float_X(ParamClass::vacuumCellsY) * cellSize.y();
+        const float_X vacuum_y = float_X(ParamClass::vacuumCellsY) * cellSize(units::PIC).y();
         const floatD_X center = precisionCast<float_X>(ParamClass::center_SI / unit_length);
         const floatD_X sigma = precisionCast<float_X>(ParamClass::sigma_SI / unit_length);
 
         const floatD_X globalCellPos(
                                      precisionCast<float_X>(totalCellOffset) *
-                                     cellSize.shrink<simDim>()
+                                     cellSize(units::PIC).shrink<simDim>()
                                      );
 
         if (globalCellPos.y() < vacuum_y) return float_X(0.0);

@@ -98,8 +98,8 @@ namespace currentSolver
         )
         {
             this->charge = charge;
-            const float2_X deltaPos = float2_X(velocity.x() * deltaTime / cellSize.x(),
-                                               velocity.y() * deltaTime / cellSize.y());
+            const float2_X deltaPos = float2_X(velocity.x() * deltaTime / cellSize(units::PIC).x(),
+                                               velocity.y() * deltaTime / cellSize(units::PIC).y());
             const PosType oldPos = pos - deltaPos;
             Line<float2_X> line(oldPos, pos);
 
@@ -148,7 +148,7 @@ namespace currentSolver
                 leaveCell,
                 cursorJ,
                 line,
-                cellSize.x()
+                cellSize(units::PIC).x()
             );
             cptCurrent1D(
                 acc,
@@ -158,7 +158,7 @@ namespace currentSolver
                 ),
                 twistVectorFieldAxes<pmacc::math::CT::Int < 1, 0 > >(cursorJ),
                 rotateOrigin < 1, 0 > (line),
-                cellSize.y()
+                cellSize(units::PIC).y()
             );
             cptCurrentZ(
                 acc,
@@ -198,7 +198,7 @@ namespace currentSolver
             /* We multiply with `cellEdgeLength` due to the fact that the attribute for the
              * in-cell particle `position` (and it's change in DELTA_T) is normalize to [0,1)
              */
-            const float_X currentSurfaceDensity = this->charge * ( float_X( 1.0 ) / float_X( CELL_VOLUME * DELTA_T::pic() ) ) * cellEdgeLength;
+            const float_X currentSurfaceDensity = this->charge * ( float_X( 1.0 ) / float_X( CELL_VOLUME(units::PIC) * DELTA_T(units::PIC) ) ) * cellEdgeLength;
 
             for( int j = begin; j < end + 1; ++j )
                 if( j < end + leaveCell[1] )
@@ -248,7 +248,7 @@ namespace currentSolver
             if( v_z == float_X( 0.0 ) )
                 return;
 
-            const float_X currentSurfaceDensityZ = this->charge * ( float_X( 1.0 ) / float_X( CELL_VOLUME ) ) * v_z;
+            const float_X currentSurfaceDensityZ = this->charge * ( float_X( 1.0 ) / float_X( CELL_VOLUME(units::PIC) ) ) * v_z;
 
             for( int j = begin; j < end + 1; ++j )
                 if( j < end + leaveCell[1] )

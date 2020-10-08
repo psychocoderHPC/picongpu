@@ -550,7 +550,7 @@ private:
             MPI_Comm_size(MPI_COMM_WORLD, &numProc);
             if ( MovingWindow::getInstance().isEnabled() )
                 movingWindow = true;
-            float_X minCellSize = math::min( cellSize[0], math::min( cellSize[1], cellSize[2] ) );
+            float_X minCellSize = math::min( cellSize(units::PIC)[0], math::min( cellSize(units::PIC)[1], cellSize(units::PIC)[2] ) );
             float3_X cellSizeFactor = cellSize / minCellSize;
 
             const SubGrid<simDim>& subGrid = Environment< simDim >::get().SubGrid();

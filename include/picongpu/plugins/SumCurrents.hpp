@@ -120,14 +120,14 @@ public:
         // j = I/A
 #if(SIMDIM==DIM3)
         const float3_X realCurrent(
-                                   gCurrent.x() * CELL_HEIGHT * CELL_DEPTH,
+                                   gCurrent.x() * CELL_HEIGHT(units::PIC) * CELL_DEPTH,
                                    gCurrent.y() * CELL_WIDTH * CELL_DEPTH,
-                                   gCurrent.z() * CELL_WIDTH * CELL_HEIGHT);
+                                   gCurrent.z() * CELL_WIDTH * CELL_HEIGHT(units::PIC));
 #elif(SIMDIM==DIM2)
         const float3_X realCurrent(
-                                   gCurrent.x() * CELL_HEIGHT,
+                                   gCurrent.x() * CELL_HEIGHT(units::PIC),
                                    gCurrent.y() * CELL_WIDTH,
-                                   gCurrent.z() * CELL_WIDTH * CELL_HEIGHT);
+                                   gCurrent.z() * CELL_WIDTH * CELL_HEIGHT(units::PIC));
 #endif
         float3_64 realCurrent_SI(
                                  float_64(realCurrent.x()) * (UNIT_CHARGE / UNIT_TIME),

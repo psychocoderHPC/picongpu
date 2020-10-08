@@ -120,7 +120,7 @@ struct CalorimeterFunctor
             // energy
             const float_X weighting = particlesFrame[linearThreadIdx][weighting_];
             const float_X normedWeighting = weighting /
-                                            static_cast<float_X>(particles::TYPICAL_NUM_PARTICLES_PER_MACROPARTICLE);
+                                            static_cast<float_X>(particles::TYPICAL_NUM_PARTICLES_PER_MACROPARTICLE());
             const auto particle = particlesFrame[linearThreadIdx];
             const float_X mass = attribute::getMass(weighting, particle);
             const float_X energy = KinEnergy<>()(mom, mass) / weighting;

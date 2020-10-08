@@ -228,7 +228,7 @@ namespace picongpu
                         if( accFilter( acc, particle ) )
                         {
                             float_X const weighting = particle[ weighting_ ];
-                            float_X const normedWeighting = weighting / float_X( particles::TYPICAL_NUM_PARTICLES_PER_MACROPARTICLE );
+                            float_X const normedWeighting = weighting / float_X( particles::TYPICAL_NUM_PARTICLES_PER_MACROPARTICLE() );
                             float3_X const mom = particle[ momentum_ ] / weighting;
                             floatD_X const pos = particle[ position_ ];
                             lcellId_t const cellIdx = particle[ localCellIdx_ ];
@@ -244,7 +244,7 @@ namespace picongpu
                             auto const globalCellOffset = globalOffset
                                                         + localSupercellStart
                                                         + frameCellOffset;
-                            float_X const posX = ( float_X( globalCellOffset.x( ) ) + pos.x( ) ) * cellSize.x( );
+                            float_X const posX = ( float_X( globalCellOffset.x( ) ) + pos.x( ) ) * cellSize(units::PIC).x( );
 
                             cupla::atomicAdd(
                                 acc,
@@ -903,7 +903,7 @@ namespace picongpu
                         outFile << "#step emit_all" << std::scientific;
                         for ( int i = startWindow_y; i < ( endWindow_y + 10 ); i += 10 )
                         {
-                            outFile << " " << i * SI::CELL_HEIGHT_SI;
+                            outFile << " " << i * CELL_HEIGHT(units::SI);
                         }
                         outFile << std::endl;
                         fisttimestep = false;
@@ -923,7 +923,7 @@ namespace picongpu
                             pos2_SI_all += static_cast< long double >( globalSumPos2.getDataPointer( )[ i ] ) * UNIT_LENGTH * UNIT_LENGTH ;
                             xux_all += static_cast< long double >( globalSumMomPos.getDataPointer( )[ i ] ) * UNIT_MASS * UNIT_LENGTH / SI::ELECTRON_MASS_SI;
                     }
-                    /* the scaling with normalized weighting (weighting / particles::TYPICAL_NUM_PARTICLES_PER_MACROPARTICLE)
+                    /* the scaling with normalized weighting (weighting / particles::TYPICAL_NUM_PARTICLES_PER_MACROPARTICLE())
                      * is compendated by the division by (normalized) number of particles
                      */
                     float_64 emit_all = math::sqrt(

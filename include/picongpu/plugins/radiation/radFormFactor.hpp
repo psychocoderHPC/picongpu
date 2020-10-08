@@ -58,7 +58,7 @@ namespace radFormFactor_baseShape_3D
       {
           float_X sincValue = float_X( 1.0 );
           for( uint32_t d = 0; d < DIM3; ++d )
-              sincValue *= pmacc::math::sinc( observer_unit_vec[d] * cellSize[d] / ( SPEED_OF_LIGHT * float_X( 2.0 ) ) * omega );
+              sincValue *= pmacc::math::sinc( observer_unit_vec[d] * cellSize(units::PIC)[d] / ( SPEED_OF_LIGHT * float_X( 2.0 ) ) * omega );
 
           // here we combine sinc^2(..) with (...)^T_shapeOrder to ...^(2 * T_shapeOrder)
           return math::sqrt( N + ( N * N - N ) * util::pow( sincValue , 2 * T_shapeOrder ) );
@@ -108,7 +108,7 @@ namespace radFormFactor_CIC_1Dy
       {
           return math::sqrt(
               N + ( N * N - N ) * util::square(
-                  pmacc::math::sinc( CELL_HEIGHT / ( SPEED_OF_LIGHT * float_X( 2.0 ) ) * omega )
+                  pmacc::math::sinc( CELL_HEIGHT(units::PIC) / ( SPEED_OF_LIGHT * float_X( 2.0 ) ) * omega )
               )
           );
       }
@@ -134,7 +134,7 @@ namespace radFormFactor_Gauss_spherical
           /* currently a fixed sigma of DELTA_T * c is used to describe the distribution - might become a parameter */
           return math::sqrt(
               N + ( N * N - N ) * util::square(
-                  math::exp( float_X( -0.5 ) * util::square( omega * float_X( 0.5 ) * DELTA_T::pic() ) )
+                  math::exp( float_X( -0.5 ) * util::square( omega * float_X( 0.5 ) * DELTA_T(units::PIC) ) )
               )
           );
       }
@@ -162,7 +162,7 @@ namespace radFormFactor_Gauss_cell
                  math::exp(
                      float_X( -0.5 ) * (
                          util::square( observer_unit_vec.x() * CELL_WIDTH / ( SPEED_OF_LIGHT * float_X(2.0) ) * omega ) +
-                         util::square( observer_unit_vec.y() * CELL_HEIGHT / ( SPEED_OF_LIGHT * float_X(2.0) ) * omega ) +
+                         util::square( observer_unit_vec.y() * CELL_HEIGHT(units::PIC) / ( SPEED_OF_LIGHT * float_X(2.0) ) * omega ) +
                          util::square( observer_unit_vec.z() * CELL_DEPTH / ( SPEED_OF_LIGHT * float_X(2.0) ) * omega )
                      )
                  )

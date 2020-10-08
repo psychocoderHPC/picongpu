@@ -49,14 +49,14 @@ struct LinearExponentialImpl : public T_ParamClass
      */
     HDINLINE float_X operator()(const DataSpace<simDim>& totalCellOffset)
     {
-        const float_X vacuum_y = float_X(ParamClass::vacuumCellsY) * cellSize.y();
+        const float_X vacuum_y = float_X(ParamClass::vacuumCellsY) * cellSize(units::PIC).y();
         const float_X gas_a = ParamClass::gasA_SI * UNIT_LENGTH;
         const float_X gas_d = ParamClass::gasD_SI * UNIT_LENGTH;
         const float_X gas_y_max = ParamClass::gasYMax_SI / UNIT_LENGTH;
 
         const floatD_X globalCellPos(
                                      precisionCast<float_X>(totalCellOffset) *
-                                     cellSize.shrink<simDim>()
+                                     cellSize(units::PIC).shrink<simDim>()
                                      );
         float_X density = float_X(0.0);
 

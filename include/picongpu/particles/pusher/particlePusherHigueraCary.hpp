@@ -76,7 +76,7 @@ struct Push
         auto bField  = functorBField(pos);
         auto eField  = functorEField(pos);
 
-        float_X const deltaT = DELTA_T::pic();
+        float_X const deltaT = DELTA_T(units::PIC);
 
 
         Gamma gamma;
@@ -130,7 +130,7 @@ struct Push
 
         for( uint32_t d=0 ; d<simDim ; ++d )
         {
-            pos[d] += ( vel[d] * deltaT ) / cellSize[d];
+            pos[d] += ( vel[d] * deltaT ) / cellSize(units::PIC)[d];
         }
     }
 

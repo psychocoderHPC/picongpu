@@ -227,9 +227,9 @@ private:
         for(int d=0; d<FieldB::numComponents; ++d)
         {
             /* B field convert */
-            globalFieldEnergy[0][d] *= float_64(0.5 / MUE0 * CELL_VOLUME);
+            globalFieldEnergy[0][d] *= float_64(0.5 / MUE0 * CELL_VOLUME(units::PIC));
             /* E field convert */
-            globalFieldEnergy[1][d] *= float_64(EPS0 * CELL_VOLUME * 0.5);
+            globalFieldEnergy[1][d] *= float_64(EPS0 * CELL_VOLUME(units::PIC) * 0.5);
 
             /* add all to one */
             energyFieldBReduced+= globalFieldEnergy[0][d];

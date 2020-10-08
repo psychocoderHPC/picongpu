@@ -78,7 +78,7 @@ public:
                      *      no slide was performed and
                      *      laser init time is not over
                      */
-                    if (numSlides == 0 && ((currentStep * DELTA_T::pic()) <= fields::laserProfiles::Selected(0).INIT_TIME))
+                    if (numSlides == 0 && ((currentStep * DELTA_T(units::PIC)) <= fields::laserProfiles::Selected(0).INIT_TIME))
                     {
                         /* disable absorber on top side */
                         if (i == TOP) continue;

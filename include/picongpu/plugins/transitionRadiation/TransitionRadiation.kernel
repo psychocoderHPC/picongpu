@@ -281,7 +281,7 @@ namespace transitionRadiation
                                         for( int i = 0; i < simDim; ++i )
                                             particleLocation[ i ] = (
                                                 float_X( globalPos[ i ] ) + pos[ i ]
-                                            ) * cellSize[ i ];
+                                            ) * cellSize(units::PIC)[ i ];
 
                                         /* get macro-particle weighting
                                         *

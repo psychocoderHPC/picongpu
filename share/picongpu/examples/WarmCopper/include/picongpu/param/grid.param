@@ -45,7 +45,7 @@ namespace picongpu
         constexpr float_64 CELL_WIDTH_SI = DELTA_T_SI * SPEED_OF_LIGHT_SI * SQRT_OF_3;
         /** equals Y - the laser & moving window propagation direction
          *  unit: meter */
-        constexpr float_64 CELL_HEIGHT_SI = CELL_WIDTH_SI;
+        constexpr float_64 CELL_HEIGHT(units::PIC)_SI = CELL_WIDTH_SI;
         /** equals Z
          *  unit: meter */
         constexpr float_64 CELL_DEPTH_SI = CELL_WIDTH_SI;

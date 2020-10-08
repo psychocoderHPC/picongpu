@@ -116,7 +116,7 @@ namespace ionization
                 }
 
                 /* simulation time step in atomic units */
-                float_X const timeStepAU = float_X( DELTA_T::pic() / ATOMIC_UNIT_TIME );
+                float_X const timeStepAU = float_X( DELTA_T(units::PIC) / ATOMIC_UNIT_TIME );
                 /* ionization probability
                  *
                  * probability = rate * time step

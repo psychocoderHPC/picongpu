@@ -133,7 +133,7 @@ namespace helperFields
             /* continue with master
              *
              * - before working with this field, multiply by
-             *   particles::TYPICAL_NUM_PARTICLES_PER_MACROPARTICLE
+             *   particles::TYPICAL_NUM_PARTICLES_PER_MACROPARTICLE()
              * - divide by for average by numAvgCells
              * - write back to global
              *
@@ -142,7 +142,7 @@ namespace helperFields
             if( linearThreadIdx == 0 )
             {
                 ValueType localAverageResult = shReduceBuffer[ 0 ] *
-                    particles::TYPICAL_NUM_PARTICLES_PER_MACROPARTICLE /
+                    particles::TYPICAL_NUM_PARTICLES_PER_MACROPARTICLE() /
                     float_X( numAvgCells );
 
                 localDensity( avgBoxCell ) =

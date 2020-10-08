@@ -92,9 +92,9 @@ namespace currentSolver
         )
         {
             this->charge = charge;
-            const float3_X deltaPos = float3_X(velocity.x() * deltaTime / cellSize.x(),
-                                               velocity.y() * deltaTime / cellSize.y(),
-                                               velocity.z() * deltaTime / cellSize.z());
+            const float3_X deltaPos = float3_X(velocity.x() * deltaTime / cellSize(units::PIC).x(),
+                                               velocity.y() * deltaTime / cellSize(units::PIC).y(),
+                                               velocity.z() * deltaTime / cellSize(units::PIC).z());
             const PosType oldPos = pos - deltaPos;
             Line<float3_X> line(oldPos, pos);
 
@@ -142,21 +142,21 @@ namespace currentSolver
                 DataSpace<simDim>(leaveCell.y(),leaveCell.z(),leaveCell.x()),
                 twistVectorFieldAxes<pmacc::math::CT::Int < 1, 2, 0 > >(cursorJ),
                 rotateOrigin < 1, 2, 0 > (line),
-                cellSize.x()
+                cellSize(units::PIC).x()
             );
             cptCurrent1D(
                 acc,
                 DataSpace<simDim>(leaveCell.z(),leaveCell.x(),leaveCell.y()),
                 twistVectorFieldAxes<pmacc::math::CT::Int < 2, 0, 1 > >(cursorJ),
                 rotateOrigin < 2, 0, 1 > (line),
-                cellSize.y()
+                cellSize(units::PIC).y()
             );
             cptCurrent1D(
                 acc,
                 leaveCell,
                 cursorJ,
                 line,
-                cellSize.z()
+                cellSize(units::PIC).z()
             );
         }
 
@@ -191,7 +191,7 @@ namespace currentSolver
             /* We multiply with `cellEdgeLength` due to the fact that the attribute for the
              * in-cell particle `position` (and it's change in DELTA_T) is normalize to [0,1)
              */
-            const float_X currentSurfaceDensity = this->charge * (float_X(1.0) / float_X(CELL_VOLUME * DELTA_T::pic())) * cellEdgeLength;
+            const float_X currentSurfaceDensity = this->charge * (float_X(1.0) / float_X(CELL_VOLUME(units::PIC) * DELTA_T(units::PIC))) * cellEdgeLength;
 
             /* pick every cell in the xy-plane that is overlapped by particle's
              * form factor and deposit the current for the cells above and beneath

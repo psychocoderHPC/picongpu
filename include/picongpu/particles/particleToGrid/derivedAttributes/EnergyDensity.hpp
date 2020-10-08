@@ -50,7 +50,7 @@ namespace derivedAttributes
         const float3_X mom = particle[momentum_];
         const float_X mass = attribute::getMass( weighting, particle );
 
-        constexpr float_X INV_CELL_VOLUME = float_X(1.0) / CELL_VOLUME;
+        constexpr float_X INV_CELL_VOLUME = float_X(1.0) / CELL_VOLUME(units::PIC);
 
         return KinEnergy<>()( mom, mass ) * INV_CELL_VOLUME;
     }

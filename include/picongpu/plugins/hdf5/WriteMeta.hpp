@@ -287,14 +287,14 @@ namespace writeMeta
 
 
             /* openPMD: required time attributes */
-            dc->writeAttribute( currentStep, splashFloatXType, nullptr, "dt", &DELTA_T::pic() );
-            const float_X time = float_X( threadParams->currentStep ) * DELTA_T::pic();
+            dc->writeAttribute( currentStep, splashFloatXType, nullptr, "dt", &DELTA_T(units::PIC) );
+            const float_X time = float_X( threadParams->currentStep ) * DELTA_T(units::PIC);
             dc->writeAttribute( currentStep, splashFloatXType, nullptr, "time", &time );
             dc->writeAttribute( currentStep, ctDouble, nullptr, "timeUnitSI", &UNIT_TIME );
 
             /* write normed grid parameters */
             dc->writeAttribute( currentStep, splashFloatXType, nullptr, "cell_width", &CELL_WIDTH );
-            dc->writeAttribute( currentStep, splashFloatXType, nullptr, "cell_height", &CELL_HEIGHT );
+            dc->writeAttribute( currentStep, splashFloatXType, nullptr, "cell_height", &CELL_HEIGHT(units::PIC) );
             if( simDim == DIM3 )
             {
                 dc->writeAttribute( currentStep, splashFloatXType, nullptr, "cell_depth", &CELL_DEPTH );

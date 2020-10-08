@@ -49,7 +49,7 @@ namespace derivedAttributes
         const float_X charge = attribute::getCharge( weighting, particle );
 
         /* calculate new attribute */
-        const float_X particleChargeDensity = charge / CELL_VOLUME;
+        const float_X particleChargeDensity = charge / CELL_VOLUME(units::PIC);
 
         /* return attribute */
         return particleChargeDensity;

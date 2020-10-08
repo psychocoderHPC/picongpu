@@ -50,7 +50,7 @@ namespace picongpu
         /** Acceleration duration
          *  unit: second
          */
-        static constexpr float_64 ACCELERATION_TIME_SI = 10000.0; // * ::picongpu::DELTA_T::si();
+        static constexpr float_64 ACCELERATION_TIME_SI = 10000.0; // * ::picongpu::DELTA_T(units::SI);
     };
 
     namespace particlePusherVay

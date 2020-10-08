@@ -90,7 +90,7 @@ namespace picongpu
                 Gamma gammaCalc;
                 Velocity velocityCalc;
                 const float_X epsilon = 1.0e-6;
-                const float_X deltaT = DELTA_T::pic();
+                const float_X deltaT = DELTA_T(units::PIC);
 
                 //const float3_X velocity_atMinusHalf = velocity(mom, mass);
                 const float_X gamma = gammaCalc( mom, mass );
@@ -143,7 +143,7 @@ namespace picongpu
                 {
                     const float3_X vel = velocityCalc( mom, mass );
                     dr = float3_X( vel.x() * deltaT / CELL_WIDTH,
-                                                   vel.y() * deltaT / CELL_HEIGHT,
+                                                   vel.y() * deltaT / CELL_HEIGHT(units::PIC),
                                                    vel.z() * deltaT / CELL_DEPTH );
                 }
 

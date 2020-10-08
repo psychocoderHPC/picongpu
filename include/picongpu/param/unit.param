@@ -29,28 +29,52 @@
 
 namespace picongpu
 {
-    /** Unit of time */
-    CREATE_VAR( float_64 UNIT_TIME); // = DELTA_T::si());
-    /** Unit of length */
-    CREATE_VAR( float_64 UNIT_LENGTH); // = UNIT_TIME*UNIT_SPEED);
+
+    DEF_UNIT(TIME, "time", "second", "s");
+    UNIT_ADD(float_64, TIME, PIC);
+    //LEGACY_UNIT(UNIT_TIME, TIME);
+#define UNIT_TIME scale(TIME, picongpu::units::PIC, picongpu::units::SI)
+
+    DEF_UNIT(LENGTH, "length", "meter", "m");
+    UNIT_ADD(float_64, LENGTH, PIC);
+    //LEGACY_UNIT(UNIT_LENGTH, LENGTH);
+#define UNIT_LENGTH scale(LENGTH, picongpu::units::PIC, picongpu::units::SI)
+
+
+
+    DEF_UNIT(PARTICLES_PER_MACROPARTICLE, "???", "??", "??");
+    UNIT_ADD(float_X, PARTICLES_PER_MACROPARTICLE, PIC);
+    /** Number of particles per makro particle (= macro particle weighting)
+      *  unit: none */
+
+
+    UNIT_BASE(LENGTH, PIC, [&]()
+    {
+        return
+            float_64( SI::BASE_DENSITY_SI * CELL_WIDTH(units::SI) * CELL_HEIGHT(units::SI) * CELL_DEPTH(units::SI) ) /
+            float_64( particles::TYPICAL_PARTICLES_PER_CELL );
+    });
 
     namespace particles
     {
+        LEGACY_UNIT(TYPICAL_NUM_PARTICLES_PER_MACROPARTICLE, PARTICLES_PER_MACROPARTICLE);
+        //#define TYPICAL_NUM_PARTICLES_PER_MACROPARTICLE scale(PARTICLES_PER_MACROPARTICLE, picongpu::units::PIC, picongpu::units::SI)
+#if 0
         /** Number of particles per makro particle (= macro particle weighting)
          *  unit: none */
-        CREATE_VAR( float_X TYPICAL_NUM_PARTICLES_PER_MACROPARTICLE);
-#if 0
+        CREATE_VAR( float_X TYPICAL_NUM_PARTICLES_PER_MACROPARTICLE());
+
          =
-            float_64( SI::BASE_DENSITY_SI * SI::CELL_WIDTH_SI * SI::CELL_HEIGHT_SI * SI::CELL_DEPTH_SI ) /
+            float_64( SI::BASE_DENSITY_SI * CELL_WIDTH(units::SI)_SI * CELL_HEIGHT(units::SI) * CELL_DEPTH(units::SI) ) /
             float_64( particles::TYPICAL_PARTICLES_PER_CELL ));
 #endif
     }
 
 
     /** Unit of mass */
-    CREATE_VAR( float_64 UNIT_MASS); // = SI::BASE_MASS_SI * double(particles::TYPICAL_NUM_PARTICLES_PER_MACROPARTICLE));
+    CREATE_VAR( float_64 UNIT_MASS); // = SI::BASE_MASS_SI * double(particles::TYPICAL_NUM_PARTICLES_PER_MACROPARTICLE()));
     /** Unit of charge */
-    CREATE_VAR( float_64 UNIT_CHARGE); // = -1.0 * SI::BASE_CHARGE_SI * double(particles::TYPICAL_NUM_PARTICLES_PER_MACROPARTICLE));
+    CREATE_VAR( float_64 UNIT_CHARGE); // = -1.0 * SI::BASE_CHARGE_SI * double(particles::TYPICAL_NUM_PARTICLES_PER_MACROPARTICLE()));
     /** Unit of energy */
     CREATE_VAR( float_64 UNIT_ENERGY); // = (UNIT_MASS * UNIT_LENGTH * UNIT_LENGTH / (UNIT_TIME * UNIT_TIME)));
     /** Unit of EField: V/m */

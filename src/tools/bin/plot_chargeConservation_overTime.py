@@ -124,7 +124,7 @@ def deviation_charge_conservation(h5file):
 
     # load cell size and compute cell volume
     CELL_WIDTH = f["/data/{}".format(timestep)].attrs["cell_width"]
-    CELL_HEIGHT = f["/data/{}".format(timestep)].attrs["cell_height"]
+    CELL_HEIGHT(units::PIC) = f["/data/{}".format(timestep)].attrs["cell_height"]
     CELL_DEPTH = f["/data/{}".format(timestep)].attrs["cell_depth"]
 
     # close hdf5 file
@@ -133,7 +133,7 @@ def deviation_charge_conservation(h5file):
     if is2D:
         # compute divergence of electric field according to Yee scheme
         div = ((Ex[1:, 1:] - Ex[1:, :-1]) / CELL_WIDTH +
-               (Ey[1:, 1:] - Ey[:-1, 1:]) / CELL_HEIGHT)
+               (Ey[1:, 1:] - Ey[:-1, 1:]) / CELL_HEIGHT(units::PIC))
 
         # compute difference between electric field divergence and charge
         # density
@@ -142,7 +142,7 @@ def deviation_charge_conservation(h5file):
     else:
         # compute divergence of electric field according to Yee scheme
         div = ((Ex[1:, 1:, 1:] - Ex[1:, 1:, :-1]) / CELL_WIDTH +
-               (Ey[1:, 1:, 1:] - Ey[1:, :-1, 1:]) / CELL_HEIGHT +
+               (Ey[1:, 1:, 1:] - Ey[1:, :-1, 1:]) / CELL_HEIGHT(units::PIC) +
                (Ez[1:, 1:, 1:] - Ez[:-1, 1:, 1:]) / CELL_DEPTH)
 
         # compute difference between electric field divergence and charge
