@@ -106,7 +106,7 @@ struct typicalFields < 1 >
         const float_X tyCurrent = particles::TYPICAL_PARTICLES_PER_CELL * particles::TYPICAL_NUM_PARTICLES_PER_MACROPARTICLE()
             * math::abs(baseCharge) / DELTA_T(units::PIC);
         const float_X tyEField = fields::laserProfiles::Selected::Unitless::AMPLITUDE + FLT_MIN;
-        const float_X tyBField = tyEField * MUE0_EPS0;
+        const float_X tyBField = tyEField * MUE0_EPS0(units::PIC);
 
         return float3_X(tyBField, tyEField, tyCurrent);
 #endif
@@ -127,12 +127,12 @@ struct typicalFields < 3 >
 #if !(EM_FIELD_SCALE_CHANNEL1 == 3 || EM_FIELD_SCALE_CHANNEL2 == 3 || EM_FIELD_SCALE_CHANNEL3 == 3)
         return float3_X(float_X(1.0), float_X(1.0), float_X(1.0));
 #else
-        constexpr auto baseCharge = BASE_CHARGE;
+        constexpr auto baseCharge = BASE_CHARGE(units::PIC);
         const float_X lambda_pl = pmacc::math::Pi< float_X >::doubleValue *
-            SPEED_OF_LIGHT * sqrt(BASE_MASS * EPS0 / BASE_DENSITY / baseCharge / baseCharge);
-        const float_X tyEField = lambda_pl * BASE_DENSITY / 3.0f / EPS0;
-        const float_X tyBField = tyEField * MUE0_EPS0;
-        const float_X tyCurrent = tyBField / MUE0;
+            SPEED_OF_LIGHT * sqrt(BASE_MASS(units::PIC) * EPS0(units::PIC) / BASE_DENSITY(units::PIC) / baseCharge / baseCharge);
+        const float_X tyEField = lambda_pl * BASE_DENSITY / 3.0f / EPS0(units::PIC);
+        const float_X tyBField = tyEField * MUE0_EPS0(units::PIC);
+        const float_X tyCurrent = tyBField / MUE0(units::PIC);
 
         return float3_X(tyBField, tyEField, tyCurrent);
 #endif
@@ -153,8 +153,8 @@ struct typicalFields < 5 >
         return float3_X(float_X(1.0), float_X(1.0), float_X(1.0));
 #else
         constexpr auto baseCharge = BASE_CHARGE;
-        const float_X tyEField = fields::laserProfiles::Selected::Unitless::W0 * BASE_DENSITY / 3.0f / EPS0;
-        const float_X tyBField = tyEField * MUE0_EPS0;
+        const float_X tyEField = fields::laserProfiles::Selected::Unitless::W0 * BASE_DENSITY / 3.0f / EPS0(units::PIC);
+        const float_X tyBField = tyEField * MUE0_EPS0(units::PIC);
         const float_X tyCurrent = particles::TYPICAL_PARTICLES_PER_CELL * particles::TYPICAL_NUM_PARTICLES_PER_MACROPARTICLE()
             * math::abs(baseCharge) / DELTA_T(units::PIC);
 
@@ -334,7 +334,7 @@ struct KernelPaintFields
                 typename T_JBox::ValueType field_j = fieldJ( cellOffset );
 
                 // multiply with the area size of each plane
-                field_j *= float3_X::create( CELL_VOLUME(units::PIC) ) / cellSize;
+                field_j *= float3_X::create( CELL_VOLUME(units::PIC) ) / cellSize(units::PIC);
 
                 /* reset picture to black
                  *   color range for each RGB channel: [0.0, 1.0]

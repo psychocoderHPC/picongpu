@@ -221,13 +221,13 @@ namespace PMACC_JOIN(simulation_,__COUNTER__)                                  \
         }                                                                                               \
         void convert() override                                                                         \
         {                                                                                               \
-            std::cout<<"fill unit "<< PRINT(UNIT_VAR_NAME(name, fromUnit,toUnit)) << std::endl;         \
             using destinationType = decltype(PICONGPU_VAR_NAMESPACE::UNIT_VAR_NAME(name, fromUnit, toUnit));                 \
             auto f = __VA_ARGS__;                                                                       \
             setGlobalVarValue(PICONGPU_VAR_NAMESPACE::UNIT_VAR_NAME(name, fromUnit, toUnit), static_cast<destinationType>(f()));                        \
             destinationType* ptr = nullptr;               \
             cudaGetSymbolAddress((void **)&ptr, picongpu_var_device::UNIT_VAR_NAME(name, fromUnit, toUnit));        \
             uploadToDevice(ptr, PICONGPU_VAR_NAMESPACE::UNIT_VAR_NAME(name, fromUnit, toUnit)); \
+            std::cout<<"fill unit "<< PRINT(UNIT_VAR_NAME(name, fromUnit,toUnit))<<" "<<PICONGPU_VAR_NAMESPACE::UNIT_VAR_NAME(name, fromUnit,toUnit) << std::endl;         \
         }                                                                                               \
     };                                                                                                  \
     static GloablObject dummy;                                                                          \
@@ -325,6 +325,13 @@ static HDINLINE auto name(picongpu::units::PMACC_JOIN(unitSystem,_t) const) \
 #define DEF_GLOBAL_VAR(type, name, ...) \
     CREATE_GLOBAL_VAR(type, name, SI);                                      \
     INIT(name, SI, __VA_ARGS__)
+
+#define PIC_DEF_GLOBAL_VAR(type, name, siLambda, typeUnitPic, picLambda) \
+DEF_GLOBAL_VAR(type, name, DEPAREN(siLambda)); \
+GLOBAL_VAR_ADD(typeUnitPic, name, PIC); \
+INIT(name, PIC, DEPAREN(picLambda))
+
+
 
 #define DEF_PARAMETER(type, name, cmd, help)                                \
     CREATE_GLOBAL_VAR(type, name, SI);                                      \

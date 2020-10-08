@@ -120,7 +120,7 @@ public:
             const auto densityRatio = traits::GetDensityRatio< T_Species >::type::getValue( );
             const auto density = BASE_DENSITY * densityRatio;
             log<picLog::PHYSICS >("species %2%: omega_p * dt <= 0.1 ? %1%") %
-                                 (sqrt(density * charge / mass * charge / EPS0) * DELTA_T(units::PIC)) %
+                                 (sqrt(density * charge / mass * charge / EPS0(units::PIC)) * DELTA_T(units::PIC)) %
                                   FrameType::getName();
         }
     };
@@ -133,7 +133,7 @@ public:
         if (Environment<simDim>::get().GridController().getGlobalRank() == 0)
         {
             log<picLog::PHYSICS >("Courant c*dt <= %1% ? %2%") %
-                                 (1./math::sqrt(INV_CELL2_SUM)) %
+                                 (1./math::sqrt(INV_CELL2_SUM(units::PIC))) %
                                  (SPEED_OF_LIGHT * DELTA_T(units::PIC));
 
             using SpeciesWithMass = typename pmacc::particles::traits::FilterByFlag<

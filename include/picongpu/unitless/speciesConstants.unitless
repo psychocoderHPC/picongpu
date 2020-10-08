@@ -24,8 +24,38 @@ namespace picongpu
 {
 
     //! Charge of base particle
-    CREATE_VAR( float_X BASE_CHARGE); // = (float_X) (SI::BASE_CHARGE_SI / UNIT_CHARGE));
+    PIC_DEF_GLOBAL_VAR(float_64, BASE_CHARGE,
+        (
+            [&]()
+            {
+                return SI::BASE_CHARGE_SI;
+            }
+        ),
+        float_X,
+        (
+            [&]()
+            {
+                return static_cast<float_X>(SI::BASE_CHARGE_SI / UNIT_CHARGE);
+            }
+        )
+    );
+
     //! Mass of base particle
-    CREATE_VAR( float_X BASE_MASS); // = (float_X) (SI::BASE_MASS_SI / UNIT_MASS));
+    PIC_DEF_GLOBAL_VAR(float_64, BASE_MASS,
+        (
+            [&]()
+            {
+                return SI::BASE_MASS_SI;
+            }
+        ),
+        float_X,
+        (
+            [&]()
+            {
+                return static_cast<float_X>(SI::BASE_MASS_SI / UNIT_MASS);
+            }
+        )
+    );
+
 
 } //namespace picongpu

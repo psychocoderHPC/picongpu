@@ -23,25 +23,124 @@
 namespace picongpu
 {
     //! reduced Planck constant
-    CREATE_VAR( float_X HBAR); // = (float_X) (SI::HBAR_SI / UNIT_ENERGY / UNIT_TIME));
+    PIC_DEF_GLOBAL_VAR(float_64, HBAR,
+        (
+            [&]()
+            {
+                return SI::HBAR_SI;
+            }
+        ),
+        float_X,
+        (
+            [&]()
+            {
+                return static_cast<float_X>(SI::HBAR_SI / UNIT_ENERGY / UNIT_TIME);
+            }
+        )
+    );
 
     //! Charge of electron
-    CREATE_VAR( float_X ELECTRON_CHARGE); // = (float_X) (SI::ELECTRON_CHARGE_SI / UNIT_CHARGE));
+    PIC_DEF_GLOBAL_VAR(float_64, ELECTRON_CHARGE,
+        (
+            [&]()
+            {
+                return SI::ELECTRON_CHARGE_SI;
+            }
+        ),
+        float_X,
+        (
+            [&]()
+            {
+                return static_cast<float_X>(SI::ELECTRON_CHARGE_SI / UNIT_CHARGE);
+            }
+        )
+    );
+
     //! Mass of electron
-    CREATE_VAR( float_X ELECTRON_MASS); // = (float_X) (SI::ELECTRON_MASS_SI / UNIT_MASS));
+    PIC_DEF_GLOBAL_VAR(float_64, ELECTRON_MASS,
+        (
+            [&]()
+            {
+                return SI::ELECTRON_MASS_SI;
+            }
+        ),
+        float_X,
+        (
+            [&]()
+            {
+                return static_cast<float_X>(SI::ELECTRON_MASS_SI / UNIT_MASS);
+            }
+        )
+    );
 
     //! magnetic constexprant must be double 3.92907e-39
-    CREATE_VAR( float_X MUE0); // = (float_X) (SI::MUE0_SI / UNIT_LENGTH / UNIT_MASS * UNIT_CHARGE * UNIT_CHARGE));
+    PIC_DEF_GLOBAL_VAR(float_64, MUE0,
+        (
+            [&]()
+            {
+                return SI::MUE0_SI;
+            }
+        ),
+        float_X,
+        (
+            [&]()
+            {
+                return static_cast<float_X>(SI::MUE0_SI / UNIT_LENGTH / UNIT_MASS * UNIT_CHARGE * UNIT_CHARGE);
+            }
+        )
+    );
 
 
     //! electric constexprant must be double 2.54513e+38
-    CREATE_VAR( float_X EPS0); // = (float_X) (1. / MUE0 / SPEED_OF_LIGHT / SPEED_OF_LIGHT));
+    PIC_DEF_GLOBAL_VAR(float_64, EPS0,
+        (
+            [&]()
+            {
+                return 1. / MUE0(units::SI) / SI::SPEED_OF_LIGHT_SI / SI::SPEED_OF_LIGHT_SI;
+            }
+        ),
+        float_X,
+        (
+            [&]()
+            {
+                return static_cast<float_X>(1. / MUE0(units::PIC) / SPEED_OF_LIGHT / SPEED_OF_LIGHT);
+            }
+        )
+    );
 
     // = 1/c^2
-    CREATE_VAR( float_X MUE0_EPS0); // = float_X(1. / SPEED_OF_LIGHT / SPEED_OF_LIGHT));
+    PIC_DEF_GLOBAL_VAR(float_64, MUE0_EPS0,
+        (
+            [&]()
+            {
+                return 1. / SI::SPEED_OF_LIGHT_SI / SI::SPEED_OF_LIGHT_SI;
+            }
+        ),
+        float_X,
+        (
+            [&]()
+            {
+                return static_cast<float_X>(1. / SPEED_OF_LIGHT / SPEED_OF_LIGHT);
+            }
+        )
+    );
 
     //! Impedance of free space
-    CREATE_VAR( float_X Z0); // = MUE0 * SPEED_OF_LIGHT);
+    PIC_DEF_GLOBAL_VAR(float_64, Z0,
+        (
+            [&]()
+            {
+                return MUE0(units::SI) * SI::SPEED_OF_LIGHT_SI;
+            }
+        ),
+        float_X,
+        (
+            [&]()
+            {
+                return static_cast<float_X>(MUE0(units::PIC) * SPEED_OF_LIGHT);
+            }
+        )
+    );
 
     /* Atomic unit of electric field in PIC Efield units */
     CREATE_VAR( float_X ATOMIC_UNIT_EFIELD); // = float_X(SI::ATOMIC_UNIT_EFIELD / UNIT_EFIELD));

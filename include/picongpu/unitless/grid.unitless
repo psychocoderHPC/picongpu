@@ -62,33 +62,42 @@ namespace picongpu
     });
 
     // volume of a cell
-    DEF_GLOBAL_VAR(float_64, CELL_VOLUME, [&]()
-    {
-        return cellSize(units::SI).productOfComponents();
-    });
-    GLOBAL_VAR_ADD(float_X, CELL_VOLUME, PIC);
-
-    INIT(CELL_VOLUME, PIC, [&]()
-    {
-        return cellSize(units::PIC).productOfComponents();
-    });
+    PIC_DEF_GLOBAL_VAR(float_64, CELL_VOLUME,
+        (
+            [&]()
+            {
+                return cellSize(units::SI).productOfComponents();
+            }
+        ),
+        float_X,
+        (
+            [&]()
+            {
+                return cellSize(units::PIC).productOfComponents();
+            }
+        )
+    );
 
     // only used for CFL checks
-#if (SIMDIM==DIM3)
-    CREATE_VAR( float_X INV_CELL2_SUM);
-#if 0
-    =
-        1.0 / ( CELL_WIDTH  * CELL_WIDTH  ) +
-        1.0 / ( CELL_HEIGHT(units::PIC) * CELL_HEIGHT(units::PIC) ) +
-        1.0 / ( CELL_DEPTH  * CELL_DEPTH  ));
-#endif
-#elif(SIMDIM==DIM2)
-    constexpr float_X INV_CELL2_SUM =
-        1.0 / ( CELL_WIDTH  * CELL_WIDTH  ) +
-        1.0 / ( CELL_HEIGHT(units::PIC) * CELL_HEIGHT(units::PIC) );
-#else
-    constexpr float_X INV_CELL2_SUM =
-        1.0 / ( CELL_WIDTH  * CELL_WIDTH );
-#endif
-
+    PIC_DEF_GLOBAL_VAR(float_64, INV_CELL2_SUM,
+        (
+            [&]()
+            {
+                float_64 tmp = 0.;
+                for(uint32_t d = 0u; d < simDim; ++d)
+                    tmp += 1.0 / (cellSize(units::SI)[d] * cellSize(units::SI)[d]);
+                return tmp;
+            }
+        ),
+        float_X,
+        (
+            [&]()
+            {
+                float_64 tmp = 0.;
+                for(uint32_t d = 0u; d < simDim; ++d)
+                    tmp += 1.0 / (cellSize(units::PIC)[d] * cellSize(units::PIC)[d]);
+                return static_cast<float_X>(tmp);
+            }
+        )
+    );
 }

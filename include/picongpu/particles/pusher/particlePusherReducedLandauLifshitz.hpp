@@ -167,7 +167,7 @@ struct Push
       const float_X charge2 = charge*charge;
       const float3_X beta = velocity / c;
 
-      const float_X prefactorRR = 2./3. * charge2 * charge2 / (4.*PI*EPS0 * mass*mass * c2*c2);
+      const float_X prefactorRR = 2./3. * charge2 * charge2 / (4.*PI*EPS0(units::PIC) * mass*mass * c2*c2);
       const float3_X lorentz = fieldE + conversionMomentum2Beta * c * pmacc::math::cross(mom, fieldB);
       const float_X fieldETimesBeta = pmacc::math::dot(fieldE, mom) * conversionMomentum2Beta;
       const float3_X radReactionVec = c * (pmacc::math::cross(fieldE, fieldB) +

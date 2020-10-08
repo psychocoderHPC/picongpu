@@ -53,7 +53,7 @@ namespace currentInterpolation
             DataSpace< dim > const self;
 
             const float_X deltaT = DELTA_T(units::PIC);
-            fieldE( self ) -= fieldJ( self ) * ( float_X( 1.0 ) / EPS0 ) * deltaT;
+            fieldE( self ) -= fieldJ( self ) * ( float_X( 1.0 ) / EPS0(units::PIC) ) * deltaT;
         }
 
         static pmacc::traits::StringProperty getStringProperties( )

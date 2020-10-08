@@ -104,7 +104,7 @@ namespace detail
             averagedJ *= inverseDivisor;
 
             const float_X deltaT = DELTA_T(units::PIC);
-            *fieldE -= averagedJ * ( 1._X / EPS0 ) * deltaT;
+            *fieldE -= averagedJ * ( 1._X / EPS0(units::PIC) ) * deltaT;
         }
     };
 
@@ -168,7 +168,7 @@ namespace detail
             averagedJ *= inverseDivisor;
 
             const float_X deltaT = DELTA_T(units::PIC);
-            *fieldE -= averagedJ * ( 1._X / EPS0 ) * deltaT;
+            *fieldE -= averagedJ * ( 1._X / EPS0(units::PIC) ) * deltaT;
         }
     };
 

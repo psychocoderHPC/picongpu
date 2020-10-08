@@ -52,7 +52,7 @@ HDINLINE float_X getMass()
         >::type
     >::type;
 
-    return BASE_MASS * MassRatioValue::getValue();
+    return BASE_MASS(units::PIC) * MassRatioValue::getValue();
 };
 
 
@@ -71,7 +71,7 @@ HDINLINE float_X getCharge()
         >::type
     >::type;
 
-    return BASE_CHARGE * ChargeRatioValue::getValue();
+    return BASE_CHARGE(units::PIC) * ChargeRatioValue::getValue();
 };
 
 } // namespace frame
