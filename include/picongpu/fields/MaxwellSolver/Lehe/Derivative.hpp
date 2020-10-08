@@ -152,17 +152,17 @@ namespace lehe
             constexpr uint32_t dir2 = (dir0 + 2) % 3;
 
             // cellSize is not constexpr currently, so make an own constexpr array
-            constexpr float_X step[3] = { CELL_WIDTH, CELL_HEIGHT(units::PIC), CELL_DEPTH };
+            const float_X step[3] = { CELL_WIDTH(units::PIC), CELL_HEIGHT(units::PIC), CELL_DEPTH(units::PIC) };
 
             /* beta_xy and beta_xz from eq. (11), generic for any T_direction;
              * for 2D the betas corresponding to z are 0
              */
-            constexpr float_X stepRatio1 = dir1 < simDim ?
+            const float_X stepRatio1 = dir1 < simDim ?
                 step[ dir0 ] / step[ dir1 ] : 0.0_X;
-            constexpr float_X stepRatio2 = dir2 < simDim ?
+            const float_X stepRatio2 = dir2 < simDim ?
                 step[ dir0 ] / step[ dir2 ] : 0.0_X;
-            constexpr float_X betaDir1 = 0.125_X * stepRatio1 * stepRatio1;
-            constexpr float_X betaDir2 = 0.125_X * stepRatio2 * stepRatio2;
+            const float_X betaDir1 = 0.125_X * stepRatio1 * stepRatio1;
+            const float_X betaDir2 = 0.125_X * stepRatio2 * stepRatio2;
 
             // finite-difference expression from eq. (6), generic for any T_direction
             using Index = pmacc::DataSpace< simDim >;

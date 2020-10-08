@@ -28,16 +28,6 @@ namespace picongpu
 {
     // normed grid parameter
 
-    UNIT_BASE(TIME, PIC, [&]()
-    {
-        return DELTA_T(units::SI);
-    });
-
-    UNIT_BASE(LENGTH, PIC, [&]()
-    {
-        return UNIT_TIME * UNIT_SPEED;
-    });
-
 
     INIT(DELTA_T, PIC, [&]()
     {

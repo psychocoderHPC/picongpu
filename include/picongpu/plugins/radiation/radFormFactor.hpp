@@ -161,9 +161,9 @@ namespace radFormFactor_Gauss_cell
              N + ( N * N - N ) * util::square(
                  math::exp(
                      float_X( -0.5 ) * (
-                         util::square( observer_unit_vec.x() * CELL_WIDTH / ( SPEED_OF_LIGHT * float_X(2.0) ) * omega ) +
+                         util::square( observer_unit_vec.x() * CELL_WIDTH(units::PIC) / ( SPEED_OF_LIGHT * float_X(2.0) ) * omega ) +
                          util::square( observer_unit_vec.y() * CELL_HEIGHT(units::PIC) / ( SPEED_OF_LIGHT * float_X(2.0) ) * omega ) +
-                         util::square( observer_unit_vec.z() * CELL_DEPTH / ( SPEED_OF_LIGHT * float_X(2.0) ) * omega )
+                         util::square( observer_unit_vec.z() * CELL_DEPTH(units::PIC) / ( SPEED_OF_LIGHT * float_X(2.0) ) * omega )
                      )
                  )
              )

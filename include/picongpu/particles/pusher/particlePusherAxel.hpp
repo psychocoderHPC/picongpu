@@ -142,9 +142,9 @@ namespace picongpu
                 if( TrajectoryInterpolation == LINEAR )
                 {
                     const float3_X vel = velocityCalc( mom, mass );
-                    dr = float3_X( vel.x() * deltaT / CELL_WIDTH,
+                    dr = float3_X( vel.x() * deltaT / CELL_WIDTH(units::PIC),
                                                    vel.y() * deltaT / CELL_HEIGHT(units::PIC),
-                                                   vel.z() * deltaT / CELL_DEPTH );
+                                                   vel.z() * deltaT / CELL_DEPTH(units::PIC) );
                 }
 
                 // new spacial change calculation
@@ -195,7 +195,7 @@ namespace picongpu
                     }
                     dr = r - pos;
 
-                    dr *= float3_X::create(1.0) / cellSize;
+                    dr *= float3_X::create(1.0) / cellSize(units::PIC);
 
                 }
 

@@ -24,8 +24,13 @@
 namespace picongpu
 
 {
-    CREATE_VAR( float_X BASE_DENSITY);
-    //=        float_X( SI::BASE_DENSITY_SI * UNIT_LENGTH * UNIT_LENGTH * UNIT_LENGTH ));
+    /** Unit of mass */
+    PIC_DEF_UNIT(float_X, DENSITY, "density", "??", "???", [&]()
+    {
+        return
+            float_X( SI::BASE_DENSITY_SI * UNIT_LENGTH * UNIT_LENGTH * UNIT_LENGTH );
+    });
+    #define BASE_DENSITY scale(DENSITY, picongpu::units::PIC, picongpu::units::SI)
 }
 
 #include "picongpu/particles/densityProfiles/profiles.hpp"

@@ -197,7 +197,10 @@ namespace PMACC_JOIN(simulation_,__COUNTER__)                                   
         }                                                                                                               \
         void help(boost::program_options::options_description& desc) override                                           \
         {                                                                                                               \
-            std::cout<<cmdName <<" : " <<cmdDescription <<" : default = "<< PICONGPU_VAR_NAMESPACE::PMACC_JOIN(name, _SI)<<std::endl;           \
+            using destinationType = decltype(PICONGPU_VAR_NAMESPACE::PMACC_JOIN(name, _SI));                                                                                                            \
+            desc.add_options()                                                                                          \
+                (cmdName, po::value<destinationType>(&PICONGPU_VAR_NAMESPACE::PMACC_JOIN(name, _SI))->default_value(PICONGPU_VAR_NAMESPACE::PMACC_JOIN(name, _SI)), cmdDescription);                          \
+            std::cout<<cmdName <<" : " <<cmdDescription <<" : default = "<< PICONGPU_VAR_NAMESPACE::PMACC_JOIN(name, _SI)<<std::endl; \
         }                                                                                                               \
     };                                                                                                                  \
     static GloablCmdVar dummy;                                                                                          \
@@ -289,6 +292,10 @@ struct PMACC_JOIN(definition, _t)                                           \
 };                                                                          \
 constexpr PMACC_JOIN(definition, _t) definition
 
+#define PIC_DEF_UNIT(type, definition, nameCategory, nameSingular, nameAbbreviation, ...) \
+    DEF_UNIT(definition, nameCategory, nameSingular, nameAbbreviation);                   \
+    UNIT_ADD(type, definition, PIC);                                                      \
+    UNIT_BASE(definition, PIC, __VA_ARGS__)
 
 #define DEF_ALIAS(name)                                                     \
 struct PMACC_JOIN(name, _t)                                                 \
@@ -304,29 +311,22 @@ constexpr PMACC_JOIN(name, _t) name
 
 #define CREATE_GLOBAL_VAR(type, name, unitSystem)                           \
 PICONGPU_VAR_DECL(type,  PMACC_JOIN(name, PMACC_JOIN(_, unitSystem)));      \
-namespace detail{                                                           \
-    template<>                                                              \
-    struct Param<PMACC_JOIN(name, _t), PMACC_JOIN(picongpu::units::unitSystem,_t)>    \
-    {                                                                       \
-        static HDINLINE auto get()                                          \
-        {                                                                   \
-            return PICONGPU_VAR_NAMESPACE::PMACC_JOIN(name, PMACC_JOIN(_, unitSystem));             \
-        }                                                                   \
-    };                                                                      \
+static HDINLINE auto name(picongpu::units::PMACC_JOIN(unitSystem,_t) const) \
+{                                                       \
+    return PICONGPU_VAR_NAMESPACE::PMACC_JOIN(name, PMACC_JOIN(_, unitSystem));      \
 }
+
 
 
 
 #define INIT(name, unitSystem, ...)                                         \
     REG_PARAM_CONVERSION(name, unitSystem, __VA_ARGS__)
 
-#define DEF_GLOBAL_VAR(type, name, ...)                                     \
-    DEF_ALIAS(name);                                                        \
+#define DEF_GLOBAL_VAR(type, name, ...) \
     CREATE_GLOBAL_VAR(type, name, SI);                                      \
     INIT(name, SI, __VA_ARGS__)
 
 #define DEF_PARAMETER(type, name, cmd, help)                                \
-    DEF_ALIAS(name);                                                        \
     CREATE_GLOBAL_VAR(type, name, SI);                                      \
     REG_CMD_VAR(name, cmd, help)
 

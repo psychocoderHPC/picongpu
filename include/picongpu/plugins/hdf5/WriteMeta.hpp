@@ -293,7 +293,7 @@ namespace writeMeta
             dc->writeAttribute( currentStep, ctDouble, nullptr, "timeUnitSI", &UNIT_TIME );
 
             /* write normed grid parameters */
-            dc->writeAttribute( currentStep, splashFloatXType, nullptr, "cell_width", &CELL_WIDTH );
+            dc->writeAttribute( currentStep, splashFloatXType, nullptr, "cell_width", &CELL_WIDTH(units::PIC) );
             dc->writeAttribute( currentStep, splashFloatXType, nullptr, "cell_height", &CELL_HEIGHT(units::PIC) );
             if( simDim == DIM3 )
             {

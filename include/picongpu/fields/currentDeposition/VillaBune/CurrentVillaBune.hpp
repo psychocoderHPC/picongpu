@@ -151,9 +151,9 @@ namespace currentSolver
             //   Q.x() = charge * deltaPos_real.x() / cellsize.x()
             //       = charge * deltaPos.x() / 1.0
             //
-            const float_X rho_dtX = charge * (float_X(1.0) / (CELL_HEIGHT(units::PIC) * CELL_DEPTH * deltaTime));
-            const float_X rho_dtY = charge * (float_X(1.0) / (CELL_WIDTH * CELL_DEPTH * deltaTime));
-            const float_X rho_dtZ = charge * (float_X(1.0) / (CELL_WIDTH * CELL_HEIGHT(units::PIC) * deltaTime));
+            const float_X rho_dtX = charge * (float_X(1.0) / (CELL_HEIGHT(units::PIC) * CELL_DEPTH(units::PIC) * deltaTime));
+            const float_X rho_dtY = charge * (float_X(1.0) / (CELL_WIDTH(units::PIC) * CELL_DEPTH(units::PIC) * deltaTime));
+            const float_X rho_dtZ = charge * (float_X(1.0) / (CELL_WIDTH(units::PIC) * CELL_HEIGHT(units::PIC) * deltaTime));
 
             auto const atomicOp = typename T_Strategy::BlockReductionOp{};
 
