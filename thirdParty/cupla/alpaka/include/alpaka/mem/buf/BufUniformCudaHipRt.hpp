@@ -354,6 +354,7 @@ namespace alpaka
                                 dev.m_iDevice));
                         // Allocate the buffer on this device.
                         void * memPtr;
+                        std::cout<<"{ void * memPtr; CUDA_CHECK("<<"hipMalloc(&memPtr,"<< static_cast<std::size_t>(widthBytes) <<"llu));}"<<std::endl;
                         ALPAKA_UNIFORM_CUDA_HIP_RT_CHECK(
                             ALPAKA_API_PREFIX(Malloc)(
                                 &memPtr,
@@ -415,6 +416,7 @@ namespace alpaka
 
 
                             // Allocate the buffer on this device.
+                            std::cout<<"{ void * memPtr; CUDA_CHECK("<<"hipMallocPitch(&memPtr,&pitchBytes,"<< static_cast<std::size_t>(widthBytes) <<"llu,"<<static_cast<std::size_t>(height)<<"llu));}"<<std::endl;
                             ALPAKA_UNIFORM_CUDA_HIP_RT_CHECK(
                                 ALPAKA_API_PREFIX(MallocPitch)(
                                     &memPtr,
@@ -484,6 +486,7 @@ namespace alpaka
                                 ALPAKA_API_PREFIX(SetDevice)(
                                     dev.m_iDevice));
                             // Allocate the buffer on this device.
+                            std::cout<<"{ auto ex=make_hipExtent("<<extentVal.width<<"llu,"<<extentVal.height<<"llu,"<<extentVal.depth<<"llu); hipPitchedPtr pptr;pptr.ptr=nullptr; CUDA_CHECK("<<"hipMalloc3D(&pptr,ex));}"<<std::endl;
                             ALPAKA_UNIFORM_CUDA_HIP_RT_CHECK(
                                 ALPAKA_API_PREFIX(Malloc3D)(
                                     &pitchedPtrVal,
