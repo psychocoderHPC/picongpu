@@ -64,7 +64,7 @@ struct AssignToDim
         DataSpace< dim > intShift;
         intShift[component] = GetOffsetToStaticShapeSystem <isEven>()(v_pos);
         cursor = cursor(intShift);
-        pos[component] = v_pos - ValueType(intShift[component]);
+        pos[component] = clipToCell<1>(v_pos - ValueType(intShift[component]));
     }
 };
 

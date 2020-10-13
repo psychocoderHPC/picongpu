@@ -79,4 +79,12 @@ namespace picongpu
     // trigonometric functions
     using trigo_X = precisionTrigonometric::precisionType;
 
+    template<uint32_t T_maxIntervall, typename T_Type>
+    HDINLINE T_Type clipToCell(T_Type const particlePos)
+    {
+        if(particlePos > static_cast<T_Type>(T_maxIntervall))
+            printf("wrong intervall %f\n", particlePos);
+        return math::min(particlePos, static_cast<T_Type>(T_maxIntervall) - (static_cast<T_Type>(T_maxIntervall) * std::numeric_limits<T_Type>::epsilon()));
+    }
+
 } // namespace picongpu

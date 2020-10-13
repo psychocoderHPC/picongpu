@@ -125,8 +125,8 @@ namespace currentSolver
                 /* particle is leaving the cell */
                 leaveCell[d] = iStart != iEnd ? 1 : 0;
                 /* shift the particle position to the virtual coordinate system */
-                line.m_pos0[d] -= gridShift[d];
-                line.m_pos1[d] -= gridShift[d];
+                line.m_pos0[d] = clipToCell<2>(line.m_pos0[d] - gridShift[d]);
+                line.m_pos1[d] = clipToCell<2>(line.m_pos1[d] - gridShift[d]);
             }
             /* shift current field to the virtual coordinate system */
             auto cursorJ = dataBoxJ.shift(gridShift).toCursor();

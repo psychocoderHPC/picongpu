@@ -193,7 +193,7 @@ struct EmZ
         const float_X i
     ) const
     {
-        return x - i;
+        return clipToCell<1>(x - i);
     }
 };
 

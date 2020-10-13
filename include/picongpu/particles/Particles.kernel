@@ -479,28 +479,11 @@ struct PushParticlePerFrame
              * if pos positive and >1 moveDir is set to +1
              * 0 (zero) if particle stays in cell
              */
-            float_X moveDir = math::floor(pos[i]);
-            /* shift pos back to cell range [0;1)*/
-            pos[i] -= moveDir;
-            /* check for rounding errors and correct them
-             * if position now is 1 we have a rounding error
-             *
-             * We correct moveDir that we not have left the cell
-             */
-            const float_X valueCorrector = math::floor(pos[i]);
-            /* One has also to correct moveDir for the following reason:
-             * Imagine a new particle moves to -1e-20, leaving the cell to the left,
-             * setting moveDir to -1.
-             * The new in-cell position will be -1e-20 + 1.0,
-             * which can flip to 1.0 (wrong value).
-             * We move the particle back to the old cell at position 0.0 and
-             * moveDir has to be corrected back, too (add +1 again).*/
-            moveDir += valueCorrector;
-            /* If we have corrected moveDir we must set pos to 0 */
-            pos[i] -= valueCorrector;
+            const float_X moveDir = math::floor(pos[i]);
+            particle[position_][i] = clipToCell<1>(pos[i] - moveDir);
             dir[i] = precisionCast<int>(moveDir);
         }
-        particle[position_] = pos;
+        //particle[position_] = pos;
 
         /* new local cell position after particle move
          * can be out of supercell
