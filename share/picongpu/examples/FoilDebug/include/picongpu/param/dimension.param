@@ -1,0 +1,151 @@
+/* Copyright 2014-2019 Axel Huebl
+ *
+ * This file is part of PIConGPU.
+ *
+ * PIConGPU is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * PIConGPU is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with PIConGPU.
+ * If not, see <http://www.gnu.org/licenses/>.
+ */
+
+/** @file
+ *
+ * The spatial dimensionality of the simulation.
+ */
+
+#pragma once
+
+
+/* predefine CMAKE-flags */
+
+#ifndef PARAM_RES
+#define PARAM_RES 128.
+#endif
+#ifndef PARAM_PPC
+#define PARAM_PPC 12u
+#endif
+#ifndef PARAM_PSHAPE
+#define PARAM_PSHAPE PCS
+#endif
+#ifndef PARAM_PPC_IMPU
+#define PARAM_PPC_IMPU 24u
+#endif
+
+/* for laser */
+#ifndef PARAM_LASERPROFILE
+#define PARAM_LASERPROFILE PlaneWave
+#endif
+#ifndef PARAM_INT3
+#define PARAM_INT3 1.e-4
+#endif
+#ifndef PARAM_A0
+#define PARAM_A0 45.
+#endif
+#ifndef PARAM_PULSELENGTH
+#define PARAM_PULSELENGTH 30.e-15
+#endif
+#ifndef PARAM_PULSEINIT
+#define PARAM_PULSEINIT 10.5
+#endif
+#ifndef PARAM_W0
+#define PARAM_W0 3.0e-6
+#endif
+#ifndef PARAM_ASYMPULSE_RTF
+#define PARAM_ASYMPULSE_RTF 1.0
+#endif
+
+/* for target/density */
+#ifndef PARAM_TARGETDENS
+#define PARAM_TARGETDENS 30.0
+#endif
+#ifndef PARAM_TARGETPOS
+#define PARAM_TARGETPOS 14.0
+#endif
+#ifndef PARAM_TARGETPOSX
+#define PARAM_TARGETPOSX PARAM_TARGETPOS
+#endif
+#ifndef PARAM_TARGETSIZE
+#define PARAM_TARGETSIZE 8.0
+#endif
+#ifndef PARAM_TARGETSCALELENGTHREAR
+#define PARAM_TARGETSCALELENGTHREAR 1.0
+#endif
+#ifndef PARAM_TARGETSCALELENGTHFRONT
+#define PARAM_TARGETSCALELENGTHFRONT 1.0
+#endif
+
+// for the second ramp
+#ifndef PARAM_TARGETL2R 
+#define PARAM_TARGETL2R PARAM_TARGETSCALELENGTHREAR
+#endif
+#ifndef PARAM_TARGETN1R 
+#define PARAM_TARGETN1R 4.0
+#endif
+#ifndef PARAM_TARGETN2R 
+#define PARAM_TARGETN2R 0.0
+#endif
+#ifndef PARAM_TARGETL2F 
+#define PARAM_TARGETL2F PARAM_TARGETSCALELENGTHFRONT
+#endif
+#ifndef PARAM_TARGETN1F 
+#define PARAM_TARGETN1F 4.0
+#endif
+#ifndef PARAM_TARGETN2F 
+#define PARAM_TARGETN2F 0.0
+#endif
+
+// for transversal stripes and ripples
+#ifndef PARAM_KSTRIPES 
+#define PARAM_KSTRIPES 3.14
+#endif
+#ifndef PARAM_AMPSTRIPES 
+#define PARAM_AMPSTRIPES 0.0
+#endif
+#ifndef PARAM_KRIPPLES
+#define PARAM_KRIPPLES 2.0
+#endif
+#ifndef PARAM_AMPRIPPLES
+#define PARAM_AMPRIPPLES 0.0
+#endif
+#ifndef PARAM_RIPPLESTHICKNESS
+#define PARAM_RIPPLESTHICKNESS 0.3
+#endif
+
+#ifndef PARAM_XANTEIL
+#define PARAM_XANTEIL 0.0
+#endif
+
+#ifndef PARAM_CELLSIMPUFRONT
+#define PARAM_CELLSIMPUFRONT 1
+#endif
+#ifndef PARAM_CELLSIMPUREAR
+#define PARAM_CELLSIMPUREAR 1
+#endif
+
+
+#ifndef PARAM_PPC
+#define PARAM_PPC 4
+#endif
+#ifndef PARAM_PSHAPE
+#define PARAM_PSHAPE PCS
+#endif
+
+
+
+/** Possible values: DIM3 for 3D3V and DIM2 for 2D3V.
+ */
+#define SIMDIM DIM2
+
+namespace picongpu
+{
+    constexpr uint32_t simDim = SIMDIM;
+} // namespace picongpu
