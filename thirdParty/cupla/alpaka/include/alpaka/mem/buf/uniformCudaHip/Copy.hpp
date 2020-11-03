@@ -76,17 +76,17 @@ namespace alpaka
                         // gridDim and blockIdx is already in alpaka index order [z,y,x]
 #if defined(ALPAKA_ACC_GPU_CUDA_ENABLED)
                         alpaka::vec::Vec<alpaka::dim::DimInt<3u>, uint32_t> const tid(
-                            blockIdx.x,
-                            blockIdx.y,
-                            blockIdx.z * blockDim.x + threadIdx.x);
+                            static_cast<uint32_t>(blockIdx.x),
+                            static_cast<uint32_t>(blockIdx.y),
+                            static_cast<uint32_t>(blockIdx.z * blockDim.x + threadIdx.x));
 
                         size_t const bytePerBlock = sizeof(T) * blockDim.x;
                         size_t const bytePerRow = gridDim.z * bytePerBlock;
 #else
                         alpaka::vec::Vec<alpaka::dim::DimInt<3u>, uint32_t> const tid(
-                            hipBlockIdx_x,
-                            hipBlockIdx_y,
-                            hipBlockIdx_z * hipBlockDim_x + hipThreadIdx_x);
+                            static_cast<uint32_t>(hipBlockIdx_x),
+                            static_cast<uint32_t>(hipBlockIdx_y),
+                            static_cast<uint32_t>(hipBlockIdx_z * hipBlockDim_x + hipThreadIdx_x));
 
                         size_t const bytePerBlock = sizeof(T) * hipBlockDim_x;
                         size_t const bytePerRow = hipGridDim_z * bytePerBlock;
