@@ -128,7 +128,7 @@ struct KernelBinEnergyParticles
          * 0 is for <minEnergy
          * (numBins+2)-1 is for >maxEnergy
          */
-        sharedMemExtern(shBin,float_X); /* size must be numBins+2 because we have <min and >max */
+        sharedMemExtern(shBin,uint32_t); /* size must be numBins+2 because we have <min and >max */
 
 
         int const realNumBins = numBins + 2;
@@ -168,7 +168,7 @@ struct KernelBinEnergyParticles
             {
                 /* set all bins to 0 */
                 for( int i = linearIdx; i < realNumBins; i += numWorkers )
-                    shBin[ i ] = float_X( 0. );
+                    shBin[ i ] =  0;
             }
         );
 
@@ -247,8 +247,9 @@ struct KernelBinEnergyParticles
                              * uses a normed float weighting to avoid an overflow of the floating point result
                              * for the reduced weighting if the particle weighting is very large
                              */
-                            float_X const normedWeighting = weighting /
-                                float_X( particles::TYPICAL_NUM_PARTICLES_PER_MACROPARTICLE );
+                            uint32_t const normedWeighting = weighting;
+                            //
+                            //    float_X( particles::TYPICAL_NUM_PARTICLES_PER_MACROPARTICLE );
                             cupla::atomicAdd(
                                 acc,
                                 &( shBin[ binNumber ] ),
@@ -290,7 +291,7 @@ struct KernelBinEnergyParticles
                     cupla::atomicAdd(
                         acc,
                         &( gBins[ i ] ),
-                        float_64( shBin[ i ] ),
+                        shBin[ i ],
                         ::alpaka::hierarchy::Blocks{}
                     );
             }
@@ -464,12 +465,12 @@ private:
         std::string const prefix = ParticlesType::FrameType::getName( ) + std::string( "_energyHistogram" );
     };
 
-    GridBuffer<float_64, DIM1> *gBins = nullptr;
+    GridBuffer<uint32_t, DIM1> *gBins = nullptr;
     MappingDesc *m_cellDescription = nullptr;
 
     std::string filename;
 
-    float_64 * binReduced = nullptr;
+    uint32_t * binReduced = nullptr;
 
     int numBins;
     int realNumBins;
@@ -524,11 +525,11 @@ public:
         realNumBins = numBins + 2;
 
         /* create an array of float_64 on gpu und host */
-        gBins = new GridBuffer<float_64, DIM1 > (DataSpace<DIM1 > (realNumBins));
-        binReduced = new float_64[realNumBins];
+        gBins = new GridBuffer<uint32_t, DIM1 > (DataSpace<DIM1 > (realNumBins));
+        binReduced = new uint32_t[realNumBins];
         for (int i = 0; i < realNumBins; ++i)
         {
-            binReduced[i] = 0.0;
+            binReduced[i] = 0;
         }
 
         writeToFile = reduce.hasResult(mpi::reduceMethods::Reduce());
@@ -647,7 +648,7 @@ private:
         auto kernel = PMACC_KERNEL( KernelBinEnergyParticles< numWorkers >{ } )(
             mapper.getGridDim( ),
             numWorkers,
-            realNumBins * sizeof( float_X )
+            realNumBins * sizeof( uint32_t )
         );
 
         auto bindKernel = std::bind(
@@ -686,19 +687,19 @@ private:
             outFile.precision(dbl::digits10);
 
             /* write data to file */
-            float_64 count_particles = 0.0;
+            uint32_t count_particles = 0.0;
             outFile << currentStep << " "
                     << std::scientific; /*  for floating points, ignored for ints */
 
             for (int i = 0; i < realNumBins; ++i)
             {
-                count_particles += float_64( binReduced[i]);
-                outFile << std::scientific << (binReduced[i]) * float_64(particles::TYPICAL_NUM_PARTICLES_PER_MACROPARTICLE) << " ";
+                count_particles += ( binReduced[i]);
+                outFile << std::scientific << (binReduced[i]) << " ";
             }
             /* endl: Flush any step to the file.
              * Thus, we will have data if the program should crash.
              */
-            outFile << std::scientific << count_particles * float_64(particles::TYPICAL_NUM_PARTICLES_PER_MACROPARTICLE)
+            outFile << std::scientific << count_particles
                 << std::endl;
         }
     }

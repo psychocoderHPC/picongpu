@@ -49,22 +49,51 @@ namespace particles
      * here we essentially allow any weighting since it has no real meaning in 2D3V
      */
     constexpr float_X MIN_WEIGHTING = 0.0000001;
+namespace manipulators
+{
+
+    // Parameters for a particle drift in X
+    CONST_VECTOR(
+        float_X,
+        3,
+        DriftParam_direction,
+    // unit vector for direction of drift: x, y, z
+        0.0,
+        1.0,
+        0.0
+    );
+    struct DriftParam
+    {
+        static constexpr float_64 gamma = 1.1547; // beta: 0.5
+        const DriftParam_direction_t direction;
+    };
+    using AssignYDrift = unary::Drift<
+        DriftParam,
+        nvidia::functors::Assign
+    >;
+
+} // namespace manipulators
 
 namespace manipulators
 {
     // ionize ions once by removing one bound electron
     struct OnceIonizedImpl
     {
-        template< typename T_Particle >
+        template<typename T_Rng, typename T_Particle >
         DINLINE void operator()(
+            T_Rng & rng,
             T_Particle& particle
         )
         {
             constexpr float_X protonNumber = GetAtomicNumbers< T_Particle >::type::numberOfProtons;
-            particle[ boundElectrons_ ] = protonNumber - 1.0_X;
+            particle[ boundElectrons_ ] = rng() * 0.1_X;
         }
     };
-    using OnceIonized = generic::Free< OnceIonizedImpl >;
+
+    using RandomIonized = generic::FreeRng<
+        OnceIonizedImpl,
+        pmacc::random::distributions::Uniform< float_X >
+    >;
 
     //! ionize ions twice
     struct TwiceIonizedImpl
@@ -98,13 +127,13 @@ namespace startPosition
          */
          using numParticlesPerDimension = typename mCT::shrinkTo<
                 mCT::Int<
-                    8,
-                    8
+                    4,
+                    4
                 >,
                 simDim
             >::type;
     };
-    using Quiet8ppc = QuietImpl< QuietParameterXppc >;
+    using Quiet = QuietImpl< QuietParameterXppc >;
 
     // probe particles sit directly in lower corner of the cell
     CONST_VECTOR(
@@ -128,8 +157,24 @@ namespace startPosition
     };
     using OnePosition = OnePositionImpl< OnePositionParameter >;
 
+    struct RandomParameterPPC
+    {
+        /** Count of particles per cell at initial state
+         *  unit: none
+         */
+        static constexpr uint32_t numParticlesPerCell = 64u;
+    };
+    using RandomPPC = RandomImpl< RandomParameterPPC >;
+
 } // namespace startPosition
 
+    /** During unit normalization, we assume this is a typical
+     *  number of particles per cell for normalization of weighted
+     *  particle attributes.
+     */
+    constexpr uint32_t TYPICAL_PARTICLES_PER_CELL =
+        startPosition::RandomParameterPPC::numParticlesPerCell;
+#if 0
     /** During unit normalization, we assume this is a typical
      *  number of particles per cell for normalization of weighted
      *  particle attributes.
@@ -137,6 +182,6 @@ namespace startPosition
     constexpr uint32_t TYPICAL_PARTICLES_PER_CELL = pmacc::math::CT::volume<
         startPosition::QuietParameterXppc::numParticlesPerDimension
     >::type::value;
-
+#endif
 } // namespace particles
 } // namespace picongpu

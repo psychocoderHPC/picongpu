@@ -109,7 +109,7 @@ namespace picongpu
     >;
 
     using FileOutputFields = MakeSeq_t<
-
+        NativeFileOutputFields
     >;
 
 
@@ -118,6 +118,6 @@ namespace picongpu
      * hint: to enable particle output set to
      *   using FileOutputParticles = VectorAllSpecies;
      */
-    using FileOutputParticles = MakeSeq_t< >;
+    using FileOutputParticles = VectorAllSpecies;
 
 }

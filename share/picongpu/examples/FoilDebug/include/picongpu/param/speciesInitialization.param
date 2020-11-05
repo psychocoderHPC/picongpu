@@ -43,7 +43,11 @@ namespace particles
     using InitPipeline = bmpl::vector<
         CreateDensity<
             densityProfiles::FlatFoilWithRamp,
-            startPosition::Quiet8ppc,
+            startPosition::RandomPPC,
+            Hydrogen
+        >,
+        Manipulate<
+            manipulators::RandomIonized,
             Hydrogen
         >,
         //ManipulateDerive<

@@ -58,6 +58,11 @@ namespace differentiation
             0
         >::type;
 
+        HDINLINE int _float_as_int(float_X& x) const
+        {
+            return *((int*)(&x));
+        }
+
         /** Return derivative value at the given point
          *
          * @tparam T_DataBox data box type with field data
@@ -72,7 +77,17 @@ namespace differentiation
                 Index,
                 T_direction
             >();
-            return ( data( Index{} ) - data( lowerIndex ) ) /
+            auto tmp = ( data( Index{} ) - data( lowerIndex ) );
+
+            for (uint32_t d = 0; d < DIM3; ++d)
+            {
+
+                bool cc = ((0x007fffff & _float_as_int(tmp[d])) == 0x007fffff) ||
+                    (((0x007fffff ^ _float_as_int(tmp[d])) & 0x007fffff) == 0x007fffff);
+                tmp[d] = tmp[d] * float_X(!cc);
+            }
+
+            return tmp /
                 cellSize[ T_direction ];
         }
     };

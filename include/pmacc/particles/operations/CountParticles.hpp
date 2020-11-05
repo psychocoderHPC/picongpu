@@ -159,20 +159,22 @@ struct KernelCountParticles
                     uint32_t const idx
                 )
                 {
-                    if( linearIdx < particlesInSuperCell )
+                    //if( linearIdx < particlesInSuperCell )
                     {
-                        bool const useParticle = filter(
+                        /*bool const useParticle = filter(
                             *frame,
                             linearIdx
                         );
-                        if( useParticle )
+                        if( useParticle )*/
                         {
                             auto parSrc = ( frame[ linearIdx ] );
-                            if(
+                            if( frame[linearIdx][multiMask_]!=0
+                            /*
                                 accParFilter(
                                     acc,
                                     parSrc
                                 )
+                                */
                             )
                                 nvidia::atomicAllInc( acc, &counter, ::alpaka::hierarchy::Threads{} );
                         }
@@ -209,6 +211,9 @@ struct KernelCountParticles
                     static_cast< uint64_cu >( counter ),
                     ::alpaka::hierarchy::Blocks{}
                 );
+                auto num = pb.getSuperCell( superCellIdx ).getNumParticles();
+                if(counter != num)
+                    printf("error %i %i\n",counter, num);
             }
         );
     }

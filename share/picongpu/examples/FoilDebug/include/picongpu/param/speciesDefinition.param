@@ -76,14 +76,15 @@ using ParticleFlagsElectrons = MakeSeq_t<
     interpolation< UsedField2Particle >,
     current< UsedParticleCurrentSolver >,
     massRatio< MassRatioElectrons >,
-    chargeRatio< ChargeRatioElectrons >
+    chargeRatio< ChargeRatioElectrons >,
+    atomicNumbers< ionization::atomicNumbers::Hydrogen_t >
 >;
 
 /* define species electrons */
 using Electrons = Particles<
     PMACC_CSTRING( "e" ),
     ParticleFlagsElectrons,
-    DefaultParticleAttributes
+    IonParticleAttributes
 >;
 
 /*--------------------------- H+ --------------------------------------------*/
@@ -105,14 +106,7 @@ using ParticleFlagsHydrogen = MakeSeq_t<
     densityRatio< DensityRatioHydrogen >,
     atomicNumbers< ionization::atomicNumbers::Hydrogen_t >,
     ionizationEnergies< ionization::energies::AU::Hydrogen_t >,
-    effectiveNuclearCharge< ionization::effectiveNuclearCharge::Hydrogen_t >,
-    ionizers<
-        MakeSeq_t<
-            particles::ionization::BSIEffectiveZ< Electrons >,
-            particles::ionization::ADKLinPol< Electrons >,
-            particles::ionization::ThomasFermi< Electrons >
-        >
-    >
+    effectiveNuclearCharge< ionization::effectiveNuclearCharge::Hydrogen_t >
 >;
 
 /* define species Hydrogen */

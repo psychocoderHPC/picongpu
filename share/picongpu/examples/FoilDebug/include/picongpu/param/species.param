@@ -68,7 +68,7 @@ using UsedField2Particle = FieldToParticleInterpolation<
  * - currentSolver::CachedSupercells
  * - currentSolver::NonCachedSupercells
  */
-using UsedParticleCurrentSolver = currentSolver::Esirkepov< UsedParticleShape >;
+using UsedParticleCurrentSolver = currentSolver::Esirkepov< UsedParticleShape, currentSolver::strategy::StridedCachedSupercells >;
 
 /** particle pusher configuration
  *

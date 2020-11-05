@@ -1309,7 +1309,13 @@ struct KernelInsertParticles
             {
                 if( linearIdx < elementCount )
                 {
+#if 0
+                    uint32_t myIdx = (linearIdx + 3) % elementCount;
+
+                    auto parDestFull = frame[ myIdx ];
+#else
                     auto parDestFull = frame[ linearIdx ];
+#endif
                     parDestFull[ multiMask_ ] = 1;
                     auto parSrc = exchangeChunk[ linearIdx ][ 0 ];
                     /*we know that source has no multiMask*/

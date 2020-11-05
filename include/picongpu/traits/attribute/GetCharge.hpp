@@ -70,7 +70,7 @@ struct LoadBoundElectrons
         /* note: ELECTRON_CHARGE is negative and the second term is also negative
          */
         return
-            ELECTRON_CHARGE *
+            frame::getCharge< typename T_Particle::FrameType >() * -1.0_X *
             ( particle[boundElectrons_] - protonNumber ) *
             weighting;
     }

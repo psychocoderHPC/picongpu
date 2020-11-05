@@ -46,7 +46,7 @@ struct FieldToParticleInterpolation
     using AssignmentFunction = typename T_Shape::ChargeAssignmentOnSupport;
     static constexpr int supp = AssignmentFunction::support;
 
-    static constexpr int lowerMargin = supp / 2 ;
+    static constexpr int lowerMargin = supp / 2;
     static constexpr int upperMargin = (supp + 1) / 2;
     using LowerMargin = typename pmacc::math::CT::make_Int<simDim,lowerMargin>::type;
     using UpperMargin = typename pmacc::math::CT::make_Int<simDim,upperMargin>::type;

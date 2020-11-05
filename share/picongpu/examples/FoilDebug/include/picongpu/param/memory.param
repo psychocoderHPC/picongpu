@@ -48,7 +48,7 @@ namespace picongpu
      *
      * volume of a superCell must be <= 1024
      */
-    using SuperCellSize = mCT::Int< 16, 16 >;
+    using SuperCellSize = mCT::Int< 8, 8 >;
 
     /** define mapper which is used for kernel call mappings */
     using MappingDesc = MappingDescription< simDim, SuperCellSize >;

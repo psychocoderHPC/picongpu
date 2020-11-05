@@ -58,6 +58,10 @@ namespace differentiation
             int
         >::type;
 
+        HDINLINE int _float_as_int(float_X& x) const
+        {
+            return *((int*)(&x));
+        }
         /** Return derivative value at the given point
          *
          * @tparam T_DataBox data box type with field data
@@ -67,12 +71,21 @@ namespace differentiation
         HDINLINE typename T_DataBox::ValueType operator()(
             T_DataBox const & data ) const
         {
-            using Index = pmacc::DataSpace< simDim >;
-            auto const upperIndex = pmacc::math::basisVector<
-                Index,
-                T_direction
-            >();
-            return ( data( upperIndex ) - data( Index{} ) ) /
+            using Index = pmacc::DataSpace<simDim>;
+            auto const upperIndex = pmacc::math::basisVector<Index, T_direction>();
+
+            auto tmp = (data(upperIndex) - data(Index{}));
+
+            for (uint32_t d = 0; d < DIM3; ++d)
+            {
+
+                bool cc = ((0x007fffff & _float_as_int(tmp[d])) == 0x007fffff) ||
+                    (((0x007fffff ^ _float_as_int(tmp[d])) & 0x007fffff) == 0x007fffff);
+                tmp[d] = tmp[d] * float_X(!cc);
+                    //printf("error: %.15f %.15f %.15f\n", data(Index{})[1], data(upperIndex)[1], tmp * float_X(!cc));
+            }
+
+            return tmp /
                 cellSize[ T_direction ];
         }
     };
