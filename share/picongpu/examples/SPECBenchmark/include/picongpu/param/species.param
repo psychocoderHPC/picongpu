@@ -44,7 +44,7 @@ namespace picongpu
      *
      *  example: using UsedParticleShape = particles::shapes::CIC;
      */
-    using UsedParticleShape = particles::shapes::PCS;
+    using UsedParticleShape = particles::shapes::PQS;
 
     /** define which interpolation method is used to interpolate fields to particles
      */

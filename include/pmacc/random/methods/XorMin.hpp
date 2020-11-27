@@ -61,12 +61,15 @@ namespace pmacc
                     {
                     }
 
-                    DINLINE StateType(NativeStateType const& other) : d(other.d)
+                    DINLINE StateType(NativeStateType const& other)
                     {
 #    if(BOOST_LANG_HIP)
-                        auto const* nativeStateArray = other.x;
-                        PMACC_STATIC_ASSERT_MSG(sizeof(v) == sizeof(other.x), Unexpected_sizes);
+                        auto baseObjectPtr = reinterpret_cast<typename NativeStateType::xorwow_state const* const>(&other);
+                        d = baseObjectPtr->d;
+                        auto const* nativeStateArray = baseObjectPtr->x;
+                        PMACC_STATIC_ASSERT_MSG(sizeof(v) == sizeof(baseObjectPtr->x), Unexpected_sizes);
 #    elif(BOOST_LANG_CUDA)
+                        d = other.d;
                         auto const* nativeStateArray = other.v;
                         PMACC_STATIC_ASSERT_MSG(sizeof(v) == sizeof(other.v), Unexpected_sizes);
 #    endif

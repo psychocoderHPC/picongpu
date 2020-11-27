@@ -43,7 +43,11 @@ namespace pmacc
                 template<typename T_Acc, typename T_Dst, typename T_Src>
                 HDINLINE void operator()(T_Acc const& acc, T_Dst& dst, T_Src const& src) const
                 {
+#if(BOOST_LANG_HIP)
+                    atomicAddNoRet(&dst, src);
+#else
                     ::alpaka::atomicOp<T_AlpakaOperation>(acc, &dst, src, T_AlpakaHierarchy{});
+#endif
                 }
 
                 /** pmacc::math::Vector atomic add implementation */
@@ -65,7 +69,11 @@ namespace pmacc
                     pmacc::math::Vector<T_Type, T_dim, T_SrcAccessor, T_SrcNavigator, T_SrcStorage> const& src) const
                 {
                     for(int i = 0; i < T_dim; ++i)
+#if(BOOST_LANG_HIP)
+                        atomicAddNoRet(&dst[i], src[i]);
+#else
                         ::alpaka::atomicOp<T_AlpakaOperation>(acc, &dst[i], src[i], T_AlpakaHierarchy{});
+#endif
                 }
             };
 
