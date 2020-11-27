@@ -53,7 +53,7 @@ namespace strategy
         >;
 #else
         using BlockReductionOp = nvidia::functors::Atomic<
-            ::alpaka::atomic::op::Add,
+            ::alpaka::AtomicAdd,
             ::alpaka::hierarchy::Threads
         >;
 #endif
@@ -77,12 +77,12 @@ namespace strategy
         >;
 #else
         using BlockReductionOp = nvidia::functors::Atomic<
-            ::alpaka::atomic::op::Add,
+            ::alpaka::AtomicAdd,
             ::alpaka::hierarchy::Threads
         >;
 #endif
         using GridReductionOp = nvidia::functors::Atomic<
-            ::alpaka::atomic::op::Add,
+            ::alpaka::AtomicAdd,
             ::alpaka::hierarchy::Blocks
         >;
     };
@@ -100,7 +100,7 @@ namespace strategy
         static constexpr bool useBlockCache = false;
         static constexpr bool stridedMapping = false;
         using BlockReductionOp = nvidia::functors::Atomic<
-            ::alpaka::atomic::op::Add,
+            ::alpaka::AtomicAdd,
             ::alpaka::hierarchy::Blocks
         >;
         // dummy which produces a compile time error if used
@@ -153,7 +153,7 @@ namespace traits
         typename ... T_Args
     >
     struct GetDefaultStrategy<
-        alpaka::acc::AccGpuCudaRt< T_Args... >
+        alpaka::AccGpuCudaRt< T_Args... >
     >
     {
         using type = strategy::CachedSupercells;
@@ -165,7 +165,7 @@ namespace traits
         typename ... T_Args
     >
     struct GetDefaultStrategy<
-        alpaka::acc::AccGpuHipRt< T_Args... >
+        alpaka::AccGpuHipRt< T_Args... >
     >
     {
         using type = strategy::CachedSupercells;

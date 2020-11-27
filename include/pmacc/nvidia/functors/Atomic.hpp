@@ -34,7 +34,7 @@ namespace functors
 
     /** Addition of two values
      *
-     * @tparam T_AlpakaOperation alpaka atomic operation [::alpaka::atomic::op]
+     * @tparam T_AlpakaOperation alpaka atomic operation [::alpaka::op]
      * @tparam T_AlpakaHierarchy alpaka atomic hierarchy [::alpaka::hierarchy]
      */
     template<
@@ -55,7 +55,7 @@ namespace functors
             T_Src const & src
         ) const
         {
-            ::alpaka::atomic::atomicOp< T_AlpakaOperation >(
+            ::alpaka::atomicOp< T_AlpakaOperation >(
                 acc,
                 &dst,
                 src,
@@ -94,7 +94,7 @@ namespace functors
         ) const
         {
             for( int i = 0; i < T_dim; ++i )
-                ::alpaka::atomic::atomicOp< T_AlpakaOperation >(
+                ::alpaka::atomicOp< T_AlpakaOperation >(
                     acc,
                     &dst[ i ],
                     src[ i ],

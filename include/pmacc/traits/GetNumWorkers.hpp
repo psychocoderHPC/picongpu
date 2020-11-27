@@ -53,7 +53,7 @@ namespace traits
     >
     struct GetNumWorkers<
         T_maxWorkers,
-        alpaka::acc::AccCpuOmp2Blocks< T_Args... >
+        alpaka::AccCpuOmp2Blocks< T_Args... >
     >
     {
         static constexpr uint32_t value = 1u;
@@ -66,7 +66,7 @@ namespace traits
     >
     struct GetNumWorkers<
         T_maxWorkers,
-        alpaka::acc::AccCpuSerial< T_Args... >
+        alpaka::AccCpuSerial< T_Args... >
     >
     {
         static constexpr uint32_t value = 1u;
@@ -79,7 +79,7 @@ namespace traits
     >
     struct GetNumWorkers<
         T_maxWorkers,
-        alpaka::acc::AccCpuTbbBlocks< T_Args... >
+        alpaka::AccCpuTbbBlocks< T_Args... >
     >
     {
         static constexpr uint32_t value = 1u;
