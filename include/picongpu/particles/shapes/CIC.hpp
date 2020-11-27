@@ -23,70 +23,65 @@
 
 namespace picongpu
 {
-namespace particles
-{
-namespace shapes
-{
-namespace shared_CIC
-{
-
-struct CIC
-{
-    /**
-     * width of the support of this form_factor. This is the area where the function
-     * is non-zero.
-     */
-    static constexpr int support = 2;
-};
-
-}//namespace shared_CIC
-
-struct CIC : public shared_CIC::CIC
-{
-    using CloudShape = picongpu::particles::shapes::NGP;
-
-    struct ChargeAssignment : public shared_CIC::CIC
+    namespace particles
     {
-
-        HDINLINE float_X operator()( float_X const x )
+        namespace shapes
         {
-            /*       -
-             *       |  1-|x|           if |x|<1
-             * W(x)=<|
-             *       |  0               otherwise
-             *       -
-             */
-            float_X const abs_x = math::abs( x );
+            namespace shared_CIC
+            {
+                struct CIC
+                {
+                    /**
+                     * width of the support of this form_factor. This is the area where the function
+                     * is non-zero.
+                     */
+                    static constexpr int support = 2;
+                };
 
-            bool const below_1 = abs_x < 1.0_X;
-            float_X const onSupport = 1.0_X - abs_x;
+            } // namespace shared_CIC
 
-            float_X result( 0.0 );
-            if( below_1 )
-                result = onSupport;
+            struct CIC : public shared_CIC::CIC
+            {
+                using CloudShape = picongpu::particles::shapes::NGP;
 
-            return result;
-        }
-    };
+                struct ChargeAssignment : public shared_CIC::CIC
+                {
+                    HDINLINE float_X operator()(float_X const x)
+                    {
+                        /*       -
+                         *       |  1-|x|           if |x|<1
+                         * W(x)=<|
+                         *       |  0               otherwise
+                         *       -
+                         */
+                        float_X const abs_x = math::abs(x);
 
-    struct ChargeAssignmentOnSupport : public shared_CIC::CIC
-    {
+                        bool const below_1 = abs_x < 1.0_X;
+                        float_X const onSupport = 1.0_X - abs_x;
 
-        /** form factor of this particle shape.
-         * \param x has to be within [-support/2, support/2]
-         */
-        HDINLINE float_X operator()( float_X const x )
-        {
-            /*
-             * W(x)=1-|x|
-             */
-            return 1.0_X - math::abs( x );
-        }
+                        float_X result(0.0);
+                        if(below_1)
+                            result = onSupport;
 
-    };
+                        return result;
+                    }
+                };
 
-};
+                struct ChargeAssignmentOnSupport : public shared_CIC::CIC
+                {
+                    /** form factor of this particle shape.
+                     * \param x has to be within [-support/2, support/2]
+                     */
+                    HDINLINE float_X operator()(float_X const x)
+                    {
+                        /*
+                         * W(x)=1-|x|
+                         */
+                        return 1.0_X - math::abs(x);
+                    }
+                };
+            };
 
-} // namespace shapes
-} // namespace particles
+        } // namespace shapes
+    } // namespace particles
 } // namespace picongpu

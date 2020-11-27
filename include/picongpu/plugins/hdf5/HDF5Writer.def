@@ -18,7 +18,6 @@
  */
 
 
-
 #pragma once
 
 #include "picongpu/simulation_types.hpp"
@@ -29,56 +28,53 @@
 
 namespace picongpu
 {
+    namespace hdf5
+    {
+        using namespace pmacc;
 
-namespace hdf5
-{
-using namespace pmacc;
-
-using namespace splash;
+        using namespace splash;
 
 
-namespace po = boost::program_options;
+        namespace po = boost::program_options;
 
-struct ThreadParams
-{
-    /* set at least the pointers to nullptr by default */
-    ThreadParams() :
-        dataCollector(nullptr),
-        cellDescription(nullptr)
-    {}
+        struct ThreadParams
+        {
+            /* set at least the pointers to nullptr by default */
+            ThreadParams() : dataCollector(nullptr), cellDescription(nullptr)
+            {
+            }
 
-    /** current simulation step */
-    uint32_t currentStep;
+            /** current simulation step */
+            uint32_t currentStep;
 
-    /** current dump is a checkpoint */
-    bool isCheckpoint;
+            /** current dump is a checkpoint */
+            bool isCheckpoint;
 
-    /** libSplash class */
-    ParallelDomainCollector *dataCollector;
+            /** libSplash class */
+            ParallelDomainCollector* dataCollector;
 
-    /** libSplash file's base name */
-    std::string h5Filename;
+            /** libSplash file's base name */
+            std::string h5Filename;
 
-    /** description of the grid/field layout, including guards etc. */
-    GridLayout<simDim> gridLayout;
+            /** description of the grid/field layout, including guards etc. */
+            GridLayout<simDim> gridLayout;
 
-    /** cell description */
-    MappingDesc *cellDescription;
+            /** cell description */
+            MappingDesc* cellDescription;
 
-    /** window describing the volume to be dumped */
-    Window window;
+            /** window describing the volume to be dumped */
+            Window window;
 
-    /** offset from local moving window to local domain */
-    DataSpace<simDim> localWindowToDomainOffset;
-};
+            /** offset from local moving window to local domain */
+            DataSpace<simDim> localWindowToDomainOffset;
+        };
 
-/**
- * Writes simulation data to hdf5 files.
- * Implements the ISimulationPlugin interface.
- */
+        /**
+         * Writes simulation data to hdf5 files.
+         * Implements the ISimulationPlugin interface.
+         */
 
-class HDF5Writer;
+        class HDF5Writer;
 
-} //namespace hdf5
-} //namespace picongpu
-
+    } // namespace hdf5
+} // namespace picongpu

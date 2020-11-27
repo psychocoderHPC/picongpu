@@ -24,134 +24,106 @@
 #include "pmacc/types.hpp"
 #include "pmacc/static_assert.hpp"
 
-#if( PMACC_CUDA_ENABLED != 1 )
-#   include "pmacc/random/methods/AlpakaRand.hpp"
+#if(PMACC_CUDA_ENABLED != 1)
+#    include "pmacc/random/methods/AlpakaRand.hpp"
 #else
-#   include <curand_kernel.h>
+#    include <curand_kernel.h>
 #endif
 
 
 namespace pmacc
 {
-namespace random
-{
-namespace methods
-{
-
-#if( PMACC_CUDA_ENABLED != 1 )
-    //! fallback to alpaka RNG if a cpu accelerator is used
-    template< typename T_Acc = cupla::Acc>
-    using XorMin = AlpakaRand< T_Acc >;
-#else
-    //! Uses the CUDA XORWOW RNG but does not store state members required for normal distribution
-    template< typename T_Acc = cupla::Acc>
-    class XorMin
+    namespace random
     {
-#if (BOOST_LANG_HIP)
-            using NativeStateType = hiprandStateXORWOW_t;
-#elif (BOOST_LANG_CUDA)
-            using NativeStateType = curandStateXORWOW_t;
-#endif
-
-    public:
-        class StateType
+        namespace methods
         {
-        public:
-            PMACC_ALIGN(
-                d,
-                unsigned int
-            );
-            PMACC_ALIGN(
-                v[ 5 ],
-                unsigned int
-            );
-
-            HDINLINE StateType( )
-            { }
-
-            DINLINE StateType( NativeStateType const & other ): d( other.d )
+#if(PMACC_CUDA_ENABLED != 1)
+            //! fallback to alpaka RNG if a cpu accelerator is used
+            template<typename T_Acc = cupla::Acc>
+            using XorMin = AlpakaRand<T_Acc>;
+#else
+            //! Uses the CUDA XORWOW RNG but does not store state members required for normal distribution
+            template<typename T_Acc = cupla::Acc>
+            class XorMin
             {
-#if (BOOST_LANG_HIP)
-                auto const* nativeStateArray = other.x;
-                PMACC_STATIC_ASSERT_MSG(
-                    sizeof( v ) == sizeof( other.x ),
-                    Unexpected_sizes
-                );
-#elif (BOOST_LANG_CUDA)
-                auto const* nativeStateArray = other.v;
-                PMACC_STATIC_ASSERT_MSG(
-                    sizeof( v ) == sizeof( other.v ),
-                    Unexpected_sizes
-                );
+#    if(BOOST_LANG_HIP)
+                using NativeStateType = hiprandStateXORWOW_t;
+#    elif(BOOST_LANG_CUDA)
+                using NativeStateType = curandStateXORWOW_t;
+#    endif
+
+            public:
+                class StateType
+                {
+                public:
+                    PMACC_ALIGN(d, unsigned int);
+                    PMACC_ALIGN(v[5], unsigned int);
+
+                    HDINLINE StateType()
+                    {
+                    }
+
+                    DINLINE StateType(NativeStateType const& other) : d(other.d)
+                    {
+#    if(BOOST_LANG_HIP)
+                        auto const* nativeStateArray = other.x;
+                        PMACC_STATIC_ASSERT_MSG(sizeof(v) == sizeof(other.x), Unexpected_sizes);
+#    elif(BOOST_LANG_CUDA)
+                        auto const* nativeStateArray = other.v;
+                        PMACC_STATIC_ASSERT_MSG(sizeof(v) == sizeof(other.v), Unexpected_sizes);
+#    endif
+                        for(unsigned i = 0; i < sizeof(v) / sizeof(v[0]); i++)
+                            v[i] = nativeStateArray[i];
+                    }
+                };
+
+                DINLINE void init(T_Acc const& acc, StateType& state, uint32_t seed, uint32_t subsequence = 0) const
+                {
+                    NativeStateType tmpState;
+#    if(BOOST_LANG_HIP)
+                    hiprand_init(
+#    elif(BOOST_LANG_CUDA)
+                    curand_init(
+#    endif
+                        seed,
+                        subsequence,
+                        0,
+                        &tmpState);
+                    state = tmpState;
+                }
+
+                DINLINE uint32_t get32Bits(T_Acc const& acc, StateType& state) const
+                {
+                    /* This generator uses the xorwow formula of
+                     * www.jstatsoft.org/v08/i14/paper page 5
+                     * Has period 2^192 - 2^32.
+                     */
+                    uint32_t t;
+                    t = (state.v[0] ^ (state.v[0] >> 2));
+                    state.v[0] = state.v[1];
+                    state.v[1] = state.v[2];
+                    state.v[2] = state.v[3];
+                    state.v[3] = state.v[4];
+                    state.v[4] = (state.v[4] ^ (state.v[4] << 4)) ^ (t ^ (t << 1));
+                    state.d += 362437;
+                    return state.v[4] + state.d;
+                }
+
+                DINLINE uint64_t get64Bits(T_Acc const& acc, StateType& state) const
+                {
+                    // two 32bit values are packed into a 64bit value
+                    uint64_t result = get32Bits(acc, state);
+                    result <<= 32;
+                    result ^= get32Bits(acc, state);
+                    return result;
+                }
+
+                static std::string getName()
+                {
+                    return "XorMin";
+                }
+            };
 #endif
-                for( unsigned i = 0; i < sizeof( v ) / sizeof( v[ 0 ] ); i++ )
-                    v[ i ] = nativeStateArray[ i ];
-            }
-        };
-
-        DINLINE void
-        init(
-            T_Acc const & acc,
-            StateType & state,
-            uint32_t seed,
-            uint32_t subsequence = 0
-        ) const
-        {
-            NativeStateType tmpState;
-#if (BOOST_LANG_HIP)
-            hiprand_init(
-#elif (BOOST_LANG_CUDA)
-            curand_init(
-#endif
-                seed,
-                subsequence,
-                0,
-                &tmpState
-            );
-            state = tmpState;
-        }
-
-        DINLINE uint32_t
-        get32Bits(
-            T_Acc const & acc,
-            StateType & state
-        ) const
-        {
-            /* This generator uses the xorwow formula of
-             * www.jstatsoft.org/v08/i14/paper page 5
-             * Has period 2^192 - 2^32.
-             */
-            uint32_t t;
-            t = ( state.v[ 0 ] ^ ( state.v[ 0 ] >> 2 ) );
-            state.v[ 0 ] = state.v[ 1 ];
-            state.v[ 1 ] = state.v[ 2 ];
-            state.v[ 2 ] = state.v[ 3 ];
-            state.v[ 3 ] = state.v[ 4 ];
-            state.v[ 4 ] = ( state.v[ 4 ] ^ ( state.v[ 4 ] << 4 ) ) ^ ( t ^ ( t << 1 ) );
-            state.d += 362437;
-            return state.v[ 4 ] + state.d;
-        }
-
-        DINLINE uint64_t
-        get64Bits(
-            T_Acc const & acc,
-            StateType& state
-        ) const
-        {
-            // two 32bit values are packed into a 64bit value
-            uint64_t result = get32Bits( acc, state);
-            result <<= 32;
-            result ^= get32Bits( acc, state);
-            return result;
-        }
-
-        static std::string
-        getName( )
-        {
-            return "XorMin";
-        }
-    };
-#endif
-}  // namespace methods
-}  // namespace random
-}  // namespace pmacc
+        } // namespace methods
+    } // namespace random
+} // namespace pmacc

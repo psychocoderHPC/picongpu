@@ -27,22 +27,18 @@
 
 namespace pmacc
 {
-namespace memory
-{
-
-    /*
-     * Analogue of std::make_unique for C++11, except not disabled for arrays.
-     * Implementation is taken from
-     * https://en.cppreference.com/w/cpp/memory/unique_ptr/make_unique
-     */
-    template<
-        typename T,
-        typename ... T_Args
-    >
-    inline std::unique_ptr< T > makeUnique( T_Args && ... args )
+    namespace memory
     {
-        return std::unique_ptr< T >( new T( std::forward< T_Args >( args ) ... ) );
-    }
+        /*
+         * Analogue of std::make_unique for C++11, except not disabled for arrays.
+         * Implementation is taken from
+         * https://en.cppreference.com/w/cpp/memory/unique_ptr/make_unique
+         */
+        template<typename T, typename... T_Args>
+        inline std::unique_ptr<T> makeUnique(T_Args&&... args)
+        {
+            return std::unique_ptr<T>(new T(std::forward<T_Args>(args)...));
+        }
 
-} // namespace memory
+    } // namespace memory
 } // namespace pmacc

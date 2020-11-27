@@ -24,64 +24,57 @@
 
 namespace picongpu
 {
-namespace particles
-{
-namespace shapes
-{
-
-    namespace shared_NGP
+    namespace particles
     {
-
-        struct NGP
+        namespace shapes
         {
-            /**
-             * width of the support of this form_factor. This is the area where the function
-             * is non-zero.
-             */
-            static constexpr int support = 1;
-        };
-
-    } // namespace shared_NGP
-
-    struct NGP : public shared_NGP::NGP
-    {
-
-        struct ChargeAssignment : public shared_NGP::NGP
-        {
-
-            HDINLINE float_X operator()( float_X const x )
+            namespace shared_NGP
             {
-                /*       -
-                 *       |  1               if -1/2<=x<1/2
-                 * W(x)=<|
-                 *       |  0               otherwise
-                 *       -
-                 */
+                struct NGP
+                {
+                    /**
+                     * width of the support of this form_factor. This is the area where the function
+                     * is non-zero.
+                     */
+                    static constexpr int support = 1;
+                };
 
-                bool const below_half = -0.5_X <= x && x < 0.5_X;
+            } // namespace shared_NGP
 
-                return float_X( below_half );
-            }
-        };
-
-        struct ChargeAssignmentOnSupport : public shared_NGP::NGP
-        {
-
-            /** form factor of this particle shape.
-             * \param x has to be within [-support/2, support/2)
-             */
-            HDINLINE float_X operator()( float_X const )
+            struct NGP : public shared_NGP::NGP
             {
-                /*
-                 * W(x)=1
-                 */
-                return 1.0_X;
-            }
+                struct ChargeAssignment : public shared_NGP::NGP
+                {
+                    HDINLINE float_X operator()(float_X const x)
+                    {
+                        /*       -
+                         *       |  1               if -1/2<=x<1/2
+                         * W(x)=<|
+                         *       |  0               otherwise
+                         *       -
+                         */
 
-        };
+                        bool const below_half = -0.5_X <= x && x < 0.5_X;
 
-    };
+                        return float_X(below_half);
+                    }
+                };
 
-} // namespace shapes
-} // namespace particles
+                struct ChargeAssignmentOnSupport : public shared_NGP::NGP
+                {
+                    /** form factor of this particle shape.
+                     * \param x has to be within [-support/2, support/2)
+                     */
+                    HDINLINE float_X operator()(float_X const)
+                    {
+                        /*
+                         * W(x)=1
+                         */
+                        return 1.0_X;
+                    }
+                };
+            };
+
+        } // namespace shapes
+    } // namespace particles
 } // namespace picongpu

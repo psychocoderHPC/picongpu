@@ -26,75 +26,74 @@
 
 namespace picongpu
 {
-namespace openPMD
-{
-
-    /** Struct for a list of particle patches
-     *
-     * Object for all particle patches.
-     * @see https://github.com/openPMD/openPMD-standard/blob/1.0.0/STANDARD.md#sub-group-for-each-particle-species
-     */
-    class ParticlePatches
+    namespace openPMD
     {
-    private:
-        /** Disallow (empty) default contructor
-         */
-        ParticlePatches ();
-
-    public:
-        std::vector<uint64_t> numParticles;
-        std::vector<uint64_t> numParticlesOffset;
-
-        std::vector<uint64_t> offsetX;
-        std::vector<uint64_t> offsetY;
-        std::vector<uint64_t> offsetZ;
-
-        std::vector<uint64_t> extentX;
-        std::vector<uint64_t> extentY;
-        std::vector<uint64_t> extentZ;
-
-        /** Fill-Constructor with n empty-sized patches
+        /** Struct for a list of particle patches
          *
-         * @param n number of patches to store
+         * Object for all particle patches.
+         * @see https://github.com/openPMD/openPMD-standard/blob/1.0.0/STANDARD.md#sub-group-for-each-particle-species
          */
-        ParticlePatches( const size_t n );
+        class ParticlePatches
+        {
+        private:
+            /** Disallow (empty) default contructor
+             */
+            ParticlePatches();
 
-        /** Return the beginning of one of the components of the
-         *  offset as pointer
-         *
-         * Be aware that the pointer is pointing to the beginning
-         * of a C-array of size `size()` and is only allocated as long
-         * as the `ParticlePatches` object is alive.
-         *
-         * @param comp component (0=x, 1=y, 2=z) of offset array
-         *             for the list of patches
-         * @return uint64_t* pointing to the beginning of a c-array
-         *                   with length as given in size()
-         */
-        uint64_t* getOffsetComp( const uint32_t comp );
+        public:
+            std::vector<uint64_t> numParticles;
+            std::vector<uint64_t> numParticlesOffset;
 
-        /** Return the beginning of one of the components of the
-         *  extent as pointer
-         *
-         * Be aware that the pointer is pointing to the beginning
-         * of a C-array of size `size()` and is only allocated as long
-         * as the `ParticlePatches` object is alive.
-         *
-         * @param comp component (0=x, 1=y, 2=z) of extent array
-         *             for the list of patches
-         * @return uint64_t* pointing to the beginning of a c-array
-         *                   with length as given in size()
-         */
-        uint64_t* getExtentComp( const uint32_t comp );
+            std::vector<uint64_t> offsetX;
+            std::vector<uint64_t> offsetY;
+            std::vector<uint64_t> offsetZ;
 
-        /** Returns the number of patches
-         */
-        size_t size() const;
+            std::vector<uint64_t> extentX;
+            std::vector<uint64_t> extentY;
+            std::vector<uint64_t> extentZ;
 
-        /** Helper function printing to std::cout
-         */
-        void print();
-    };
+            /** Fill-Constructor with n empty-sized patches
+             *
+             * @param n number of patches to store
+             */
+            ParticlePatches(const size_t n);
 
-} // namespace openPMD
+            /** Return the beginning of one of the components of the
+             *  offset as pointer
+             *
+             * Be aware that the pointer is pointing to the beginning
+             * of a C-array of size `size()` and is only allocated as long
+             * as the `ParticlePatches` object is alive.
+             *
+             * @param comp component (0=x, 1=y, 2=z) of offset array
+             *             for the list of patches
+             * @return uint64_t* pointing to the beginning of a c-array
+             *                   with length as given in size()
+             */
+            uint64_t* getOffsetComp(const uint32_t comp);
+
+            /** Return the beginning of one of the components of the
+             *  extent as pointer
+             *
+             * Be aware that the pointer is pointing to the beginning
+             * of a C-array of size `size()` and is only allocated as long
+             * as the `ParticlePatches` object is alive.
+             *
+             * @param comp component (0=x, 1=y, 2=z) of extent array
+             *             for the list of patches
+             * @return uint64_t* pointing to the beginning of a c-array
+             *                   with length as given in size()
+             */
+            uint64_t* getExtentComp(const uint32_t comp);
+
+            /** Returns the number of patches
+             */
+            size_t size() const;
+
+            /** Helper function printing to std::cout
+             */
+            void print();
+        };
+
+    } // namespace openPMD
 } // namespace picongpu

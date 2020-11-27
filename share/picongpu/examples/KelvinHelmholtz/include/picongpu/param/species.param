@@ -41,12 +41,12 @@ namespace picongpu
  *  example: using UsedParticleShape = particles::shapes::CIC;
  */
 #ifndef PARAM_PARTICLESHAPE
-#define PARAM_PARTICLESHAPE TSC
+#    define PARAM_PARTICLESHAPE TSC
 #endif
-using UsedParticleShape = particles::shapes::PARAM_PARTICLESHAPE;
+    using UsedParticleShape = particles::shapes::PARAM_PARTICLESHAPE;
 
-/* define which interpolation method is used to interpolate fields to particle*/
-using UsedField2Particle = FieldToParticleInterpolation< UsedParticleShape, AssignedTrilinearInterpolation >;
+    /* define which interpolation method is used to interpolate fields to particle*/
+    using UsedField2Particle = FieldToParticleInterpolation<UsedParticleShape, AssignedTrilinearInterpolation>;
 
 /*! select current solver method
  * - currentSolver::Esirkepov< SHAPE, STRATEGY > : particle shapes - CIC, TSC, PCS, P4S (1st to 4th order)
@@ -63,30 +63,30 @@ using UsedField2Particle = FieldToParticleInterpolation< UsedParticleShape, Assi
  * - currentSolver::strategy::NonCachedSupercells
  */
 #ifndef PARAM_CURRENTSOLVER
-#define PARAM_CURRENTSOLVER Esirkepov<UsedParticleShape>
+#    define PARAM_CURRENTSOLVER Esirkepov<UsedParticleShape>
 #endif
-using UsedParticleCurrentSolver = currentSolver::PARAM_CURRENTSOLVER;
+    using UsedParticleCurrentSolver = currentSolver::PARAM_CURRENTSOLVER;
 
-/*! particle pusher configuration ----------------------------------------------
- *
- * Defining a pusher is optional for particles
- *
- * - particles::pusher::HigueraCary : Higuera & Cary's relativistic pusher preserving both volume and ExB velocity
- * - particles::pusher::Vay : Vay's relativistic pusher preserving ExB velocity
- * - particles::pusher::Boris : Boris' relativistic pusher preserving volume
- * - particles::pusher::ReducedLandauLifshitz : 4th order RungeKutta pusher
- *                                              with classical radiation reaction
- * - particles::pusher::Composite : composite of two given pushers,
- *                                  switches between using one (or none) of those
- *
- * For diagnostics & modeling: ------------------------------------------------
- * - particles::pusher::Free : free propagation, ignore fields
- *                             (= free stream model)
- * - particles::pusher::Photon : propagate with c in direction of normalized mom.
- * - particles::pusher::Probe : Probe particles that interpolate E & B
- * For development purposes: --------------------------------------------------
- * - particles::pusher::Axel : a pusher developed at HZDR during 2011 (testing)
- */
-using UsedParticlePusher = particles::pusher::Boris;
+    /*! particle pusher configuration ----------------------------------------------
+     *
+     * Defining a pusher is optional for particles
+     *
+     * - particles::pusher::HigueraCary : Higuera & Cary's relativistic pusher preserving both volume and ExB velocity
+     * - particles::pusher::Vay : Vay's relativistic pusher preserving ExB velocity
+     * - particles::pusher::Boris : Boris' relativistic pusher preserving volume
+     * - particles::pusher::ReducedLandauLifshitz : 4th order RungeKutta pusher
+     *                                              with classical radiation reaction
+     * - particles::pusher::Composite : composite of two given pushers,
+     *                                  switches between using one (or none) of those
+     *
+     * For diagnostics & modeling: ------------------------------------------------
+     * - particles::pusher::Free : free propagation, ignore fields
+     *                             (= free stream model)
+     * - particles::pusher::Photon : propagate with c in direction of normalized mom.
+     * - particles::pusher::Probe : Probe particles that interpolate E & B
+     * For development purposes: --------------------------------------------------
+     * - particles::pusher::Axel : a pusher developed at HZDR during 2011 (testing)
+     */
+    using UsedParticlePusher = particles::pusher::Boris;
 
 } // namespace picongpu

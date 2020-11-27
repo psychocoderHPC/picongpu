@@ -29,18 +29,17 @@
 
 namespace pmacc
 {
-
 /**
  * Print a cupla error message including file/line info to stderr
  */
-#define PMACC_PRINT_CUPLA_ERROR(msg) \
+#define PMACC_PRINT_CUPLA_ERROR(msg)                                                                                  \
     std::cerr << "[cupla] Error: <" << __FILE__ << ">:" << __LINE__ << " " << msg << std::endl
 
 /**
  * Print a cupla error message including file/line info to stderr and raises an exception
  */
-#define PMACC_PRINT_CUPLA_ERROR_AND_THROW(cuplaError, msg) \
-    PMACC_PRINT_CUPLA_ERROR(msg);                         \
+#define PMACC_PRINT_CUPLA_ERROR_AND_THROW(cuplaError, msg)                                                            \
+    PMACC_PRINT_CUPLA_ERROR(msg);                                                                                     \
     throw std::runtime_error(std::string("[cupla] Error: ") + std::string(cuplaGetErrorString(cuplaError)))
 
 /**
@@ -48,10 +47,31 @@ namespace pmacc
  *
  * @param cmd command with cuplaError_t return value to check
  */
-#define CUDA_CHECK(cmd) {cuplaError_t error = cmd; if(error!=cuplaSuccess){ PMACC_PRINT_CUPLA_ERROR_AND_THROW(error, ""); }}
+#define CUDA_CHECK(cmd)                                                                                               \
+    {                                                                                                                 \
+        cuplaError_t error = cmd;                                                                                     \
+        if(error != cuplaSuccess)                                                                                     \
+        {                                                                                                             \
+            PMACC_PRINT_CUPLA_ERROR_AND_THROW(error, "");                                                             \
+        }                                                                                                             \
+    }
 
-#define CUDA_CHECK_MSG(cmd,msg) {cuplaError_t error = cmd; if(error!=cuplaSuccess){ PMACC_PRINT_CUPLA_ERROR_AND_THROW(error, msg); }}
+#define CUDA_CHECK_MSG(cmd, msg)                                                                                      \
+    {                                                                                                                 \
+        cuplaError_t error = cmd;                                                                                     \
+        if(error != cuplaSuccess)                                                                                     \
+        {                                                                                                             \
+            PMACC_PRINT_CUPLA_ERROR_AND_THROW(error, msg);                                                            \
+        }                                                                                                             \
+    }
 
-#define CUDA_CHECK_NO_EXCEPT(cmd) {cuplaError_t error = cmd; if(error!=cuplaSuccess){ PMACC_PRINT_CUPLA_ERROR(""); }}
+#define CUDA_CHECK_NO_EXCEPT(cmd)                                                                                     \
+    {                                                                                                                 \
+        cuplaError_t error = cmd;                                                                                     \
+        if(error != cuplaSuccess)                                                                                     \
+        {                                                                                                             \
+            PMACC_PRINT_CUPLA_ERROR("");                                                                              \
+        }                                                                                                             \
+    }
 
 } // namespace pmacc

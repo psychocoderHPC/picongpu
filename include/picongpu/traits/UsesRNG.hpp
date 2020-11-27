@@ -23,20 +23,19 @@
 
 namespace picongpu
 {
-namespace traits
-{
+    namespace traits
+    {
+        /** Checks if an object requires the RNG
+         *
+         * @tparam T_Object any object (class or typename)
+         *
+         * This struct must inherit from (boost::true_type/false_type)
+         */
+        template<typename T_Object>
+        struct UsesRNG : public boost::false_type
+        {
+        };
 
-/** Checks if an object requires the RNG
- *
- * @tparam T_Object any object (class or typename)
- *
- * This struct must inherit from (boost::true_type/false_type)
- */
-template<typename T_Object>
-struct UsesRNG : public boost::false_type
-{
-};
+    } // namespace traits
 
-}// namespace traits
-
-}// namespace picongpu
+} // namespace picongpu

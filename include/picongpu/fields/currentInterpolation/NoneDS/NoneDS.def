@@ -21,15 +21,14 @@
 
 namespace picongpu
 {
-namespace currentInterpolation
-{
+    namespace currentInterpolation
+    {
+        /* The standard interpolation for Directional Splitting
+         *
+         * Experimental assignment for all-centered cells used in directional splitting.
+         * Updates E & B at the same time.
+         */
+        struct NoneDS;
 
-    /* The standard interpolation for Directional Splitting
-     *
-     * Experimental assignment for all-centered cells used in directional splitting.
-     * Updates E & B at the same time.
-     */
-    struct NoneDS;
-
-} // namespace currentInterpolation
+    } // namespace currentInterpolation
 } // namespace picongpu

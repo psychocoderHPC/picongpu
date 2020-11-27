@@ -17,116 +17,110 @@
  * If not, see <http://www.gnu.org/licenses/>.
  */
 
-#if( ENABLE_HDF5 == 1 )
+#if(ENABLE_HDF5 == 1)
 
-#  include "picongpu/plugins/hdf5/openPMD/patchReader.hpp"
-#include "picongpu/plugins/misc/ComponentNames.hpp"
+#    include "picongpu/plugins/hdf5/openPMD/patchReader.hpp"
+#    include "picongpu/plugins/misc/ComponentNames.hpp"
 
 
 namespace picongpu
 {
-namespace hdf5
-{
-namespace openPMD
-{
-    void PatchReader::checkSpatialTypeSize(
-            splash::DataCollector* const dc,
-            const uint32_t availableRanks,
-            const int32_t id,
-            const std::string particlePatchPathComponent
-    ) const
+    namespace hdf5
     {
-        // will later read into 1D buffer from first position on
-        splash::Dimensions dstBuffer(availableRanks, 1, 1);
-        splash::Dimensions dstOffset(0, 0, 0);
-        // sizeRead will be set
-        splash::Dimensions sizeRead(0, 0, 0);
-
-        splash::CollectionType* colType = dc->readMeta(
-            id,
-            particlePatchPathComponent.c_str(),
-            dstBuffer,
-            dstOffset,
-            sizeRead );
-
-        // check if the 1D list of patches has the right length
-        assert( sizeRead[0] == availableRanks );
-
-        // currently only support uint64_t types to spare type conversation
-        assert( typeid(*colType) == typeid(splash::ColTypeUInt64) );
-
-        // free collections
-        delete( colType );
-        colType = nullptr;
-    }
-
-    void PatchReader::readPatchAttribute(
-        splash::DataCollector* const dc,
-        const uint32_t availableRanks,
-        const int32_t id,
-        const std::string particlePatchPathComponent,
-        uint64_t* const dest
-    ) const
-    {
-        // will later read into 1D buffer from first position on
-        splash::Dimensions dstBuffer(availableRanks, 1, 1);
-        splash::Dimensions dstOffset(0, 0, 0);
-        // sizeRead will be set
-        splash::Dimensions sizeRead(0, 0, 0);
-
-        // check if types, number of patches and names are supported
-        checkSpatialTypeSize( dc, availableRanks, id, particlePatchPathComponent.c_str() );
-
-        // read actual offset and extent data of particle patch component
-        dc->read( id,
-                  particlePatchPathComponent.c_str(),
-                  sizeRead,
-                  (void*)dest );
-    }
-
-    picongpu::openPMD::ParticlePatches PatchReader::operator()(
-        splash::DataCollector* const dc,
-        const uint32_t availableRanks,
-        const uint32_t dimensionality,
-        const int32_t id,
-        const std::string particlePatchPath
-    ) const
-    {
-        // allocate memory for patches
-        picongpu::openPMD::ParticlePatches particlePatches( availableRanks );
-        const auto componentNames = plugins::misc::getComponentNames( dimensionality );
-        for( uint32_t d = 0; d < dimensionality; ++d )
+        namespace openPMD
         {
-            readPatchAttribute(
-                dc, availableRanks, id,
-                particlePatchPath + std::string("offset/") + componentNames[d],
-                particlePatches.getOffsetComp( d )
-            );
-            readPatchAttribute(
-                dc, availableRanks, id,
-                particlePatchPath + std::string("extent/") + componentNames[d],
-                particlePatches.getExtentComp( d )
-            );
-        }
+            void PatchReader::checkSpatialTypeSize(
+                splash::DataCollector* const dc,
+                const uint32_t availableRanks,
+                const int32_t id,
+                const std::string particlePatchPathComponent) const
+            {
+                // will later read into 1D buffer from first position on
+                splash::Dimensions dstBuffer(availableRanks, 1, 1);
+                splash::Dimensions dstOffset(0, 0, 0);
+                // sizeRead will be set
+                splash::Dimensions sizeRead(0, 0, 0);
 
-        // read number of particles and their starting point (offset), too
-        readPatchAttribute(
-            dc, availableRanks, id,
-            particlePatchPath + std::string("numParticles"),
-            &(*particlePatches.numParticles.begin())
-        );
-        readPatchAttribute(
-            dc, availableRanks, id,
-            particlePatchPath + std::string("numParticlesOffset"),
-            &(*particlePatches.numParticlesOffset.begin())
-        );
+                splash::CollectionType* colType
+                    = dc->readMeta(id, particlePatchPathComponent.c_str(), dstBuffer, dstOffset, sizeRead);
 
-        // return struct of array with particle patches
-        return particlePatches;
-    }
+                // check if the 1D list of patches has the right length
+                assert(sizeRead[0] == availableRanks);
 
-} // namespace openPMD
-} // namespace hdf5
+                // currently only support uint64_t types to spare type conversation
+                assert(typeid(*colType) == typeid(splash::ColTypeUInt64));
+
+                // free collections
+                delete(colType);
+                colType = nullptr;
+            }
+
+            void PatchReader::readPatchAttribute(
+                splash::DataCollector* const dc,
+                const uint32_t availableRanks,
+                const int32_t id,
+                const std::string particlePatchPathComponent,
+                uint64_t* const dest) const
+            {
+                // will later read into 1D buffer from first position on
+                splash::Dimensions dstBuffer(availableRanks, 1, 1);
+                splash::Dimensions dstOffset(0, 0, 0);
+                // sizeRead will be set
+                splash::Dimensions sizeRead(0, 0, 0);
+
+                // check if types, number of patches and names are supported
+                checkSpatialTypeSize(dc, availableRanks, id, particlePatchPathComponent.c_str());
+
+                // read actual offset and extent data of particle patch component
+                dc->read(id, particlePatchPathComponent.c_str(), sizeRead, (void*) dest);
+            }
+
+            picongpu::openPMD::ParticlePatches PatchReader::operator()(
+                splash::DataCollector* const dc,
+                const uint32_t availableRanks,
+                const uint32_t dimensionality,
+                const int32_t id,
+                const std::string particlePatchPath) const
+            {
+                // allocate memory for patches
+                picongpu::openPMD::ParticlePatches particlePatches(availableRanks);
+                const auto componentNames = plugins::misc::getComponentNames(dimensionality);
+                for(uint32_t d = 0; d < dimensionality; ++d)
+                {
+                    readPatchAttribute(
+                        dc,
+                        availableRanks,
+                        id,
+                        particlePatchPath + std::string("offset/") + componentNames[d],
+                        particlePatches.getOffsetComp(d));
+                    readPatchAttribute(
+                        dc,
+                        availableRanks,
+                        id,
+                        particlePatchPath + std::string("extent/") + componentNames[d],
+                        particlePatches.getExtentComp(d));
+                }
+
+                // read number of particles and their starting point (offset), too
+                readPatchAttribute(
+                    dc,
+                    availableRanks,
+                    id,
+                    particlePatchPath + std::string("numParticles"),
+                    &(*particlePatches.numParticles.begin()));
+                readPatchAttribute(
+                    dc,
+                    availableRanks,
+                    id,
+                    particlePatchPath + std::string("numParticlesOffset"),
+                    &(*particlePatches.numParticlesOffset.begin()));
+
+                // return struct of array with particle patches
+                return particlePatches;
+            }
+
+        } // namespace openPMD
+    } // namespace hdf5
 } // namespace picongpu
 
 #endif

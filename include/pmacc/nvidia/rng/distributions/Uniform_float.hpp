@@ -26,68 +26,66 @@
 
 namespace pmacc
 {
-namespace nvidia
-{
-namespace rng
-{
-namespace distributions
-{
-namespace detail
-{
-    /*create a random float number from [0.0,1.0)
-     */
-    template< typename T_Acc>
-    class Uniform_float
+    namespace nvidia
     {
-    public:
-        typedef float Type;
-    private:
-        using Dist =
-            decltype(
-                ::alpaka::rand::distribution::createUniformReal<Type>(
-                    alpaka::core::declval<T_Acc const &>()));
-        PMACC_ALIGN(dist, Dist);
-    public:
-
-        HDINLINE Uniform_float()
+        namespace rng
         {
-        }
+            namespace distributions
+            {
+                namespace detail
+                {
+                    /*create a random float number from [0.0,1.0)
+                     */
+                    template<typename T_Acc>
+                    class Uniform_float
+                    {
+                    public:
+                        typedef float Type;
 
-        HDINLINE Uniform_float(const T_Acc& acc) : dist(::alpaka::rand::distribution::createUniformReal<Type>(acc))
-        {
-        }
+                    private:
+                        using Dist = decltype(::alpaka::rand::distribution::createUniformReal<Type>(
+                            alpaka::core::declval<T_Acc const&>()));
+                        PMACC_ALIGN(dist, Dist);
 
-        template<class RNGState>
-        DINLINE Type operator()(RNGState& state)
-        {
-            // (0.f, 1.0f]
-            const Type raw = dist(state);
+                    public:
+                        HDINLINE Uniform_float()
+                        {
+                        }
 
-            /// \warn hack, are is that really ok? I say, yes, since
-            /// it shifts just exactly one number. Axel
-            ///
-            ///   Note: (1.0f - raw) does not work, since
-            ///         nvidia seems to return denormalized
-            ///         floats around 0.f (thats not as they
-            ///         state it out in their documentation)
-            // [0.f, 1.0f)
-            const Type r = raw * static_cast<float>( raw != Type(1.0) );
-            return r;
-        }
+                        HDINLINE Uniform_float(const T_Acc& acc)
+                            : dist(::alpaka::rand::distribution::createUniformReal<Type>(acc))
+                        {
+                        }
 
-    };
-} // namespace detail
+                        template<class RNGState>
+                        DINLINE Type operator()(RNGState& state)
+                        {
+                            // (0.f, 1.0f]
+                            const Type raw = dist(state);
 
-    struct Uniform_float
-    {
-        template< typename T_Acc>
-        static HDINLINE detail::Uniform_float< T_Acc >
-        get( T_Acc const & acc)
-        {
-            return detail::Uniform_float< T_Acc >( acc );
-        }
-    };
-} // namespace distributions
-} // namespace rng
-} // namespace nvidia
+                            /// \warn hack, are is that really ok? I say, yes, since
+                            /// it shifts just exactly one number. Axel
+                            ///
+                            ///   Note: (1.0f - raw) does not work, since
+                            ///         nvidia seems to return denormalized
+                            ///         floats around 0.f (thats not as they
+                            ///         state it out in their documentation)
+                            // [0.f, 1.0f)
+                            const Type r = raw * static_cast<float>(raw != Type(1.0));
+                            return r;
+                        }
+                    };
+                } // namespace detail
+
+                struct Uniform_float
+                {
+                    template<typename T_Acc>
+                    static HDINLINE detail::Uniform_float<T_Acc> get(T_Acc const& acc)
+                    {
+                        return detail::Uniform_float<T_Acc>(acc);
+                    }
+                };
+            } // namespace distributions
+        } // namespace rng
+    } // namespace nvidia
 } // namespace pmacc

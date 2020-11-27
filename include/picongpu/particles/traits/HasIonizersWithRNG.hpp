@@ -35,51 +35,40 @@
 
 namespace picongpu
 {
-namespace particles
-{
-namespace traits
-{
-    /** Check Ionizers for RNG Need
-     *
-     * Checks all species for ionizers and within those if a random number generator is needed.
-     * Returns a true-valued boost integral constant in ::type if a RNG is needed.
-     *
-     * @tparam T_VectorSpecies sequence of (ion) species to check ionizers for
-     */
-    template< typename T_VectorSpecies >
-    struct HasIonizersWithRNG
+    namespace particles
     {
-        using VectorSpecies = T_VectorSpecies;
+        namespace traits
+        {
+            /** Check Ionizers for RNG Need
+             *
+             * Checks all species for ionizers and within those if a random number generator is needed.
+             * Returns a true-valued boost integral constant in ::type if a RNG is needed.
+             *
+             * @tparam T_VectorSpecies sequence of (ion) species to check ionizers for
+             */
+            template<typename T_VectorSpecies>
+            struct HasIonizersWithRNG
+            {
+                using VectorSpecies = T_VectorSpecies;
 
-        // make a list of all species that can be ionized
-        using VectorSpeciesWithIonizer = typename pmacc::particles::traits::FilterByFlag<
-            VectorSpecies,
-            ionizers<>
-        >::type;
+                // make a list of all species that can be ionized
+                using VectorSpeciesWithIonizer =
+                    typename pmacc::particles::traits::FilterByFlag<VectorSpecies, ionizers<>>::type;
 
-        // make a list of all ionizers that will be used by all species
-        using AllUsedIonizers = typename pmacc::MakeSeqFromNestedSeq<
-            typename pmacc::OperateOnSeq<
-                VectorSpeciesWithIonizer,
-                GetIonizerList< bmpl::_1 >
-            >::type
-        >::type;
+                // make a list of all ionizers that will be used by all species
+                using AllUsedIonizers = typename pmacc::MakeSeqFromNestedSeq<
+                    typename pmacc::OperateOnSeq<VectorSpeciesWithIonizer, GetIonizerList<bmpl::_1>>::type>::type;
 
-        /* make a list of `boost::true_type`s and `boost::false_type`s for species that use or do
-         * not use the RNG during ionization
-         */
-        using AllIonizersUsingRNG = typename pmacc::OperateOnSeq<
-            AllUsedIonizers,
-            picongpu::traits::UsesRNG< bmpl::_1 >
-        >::type;
+                /* make a list of `boost::true_type`s and `boost::false_type`s for species that use or do
+                 * not use the RNG during ionization
+                 */
+                using AllIonizersUsingRNG =
+                    typename pmacc::OperateOnSeq<AllUsedIonizers, picongpu::traits::UsesRNG<bmpl::_1>>::type;
 
-        // check if at least one RNG is needed
-        using type = typename boost::mpl::contains<
-            AllIonizersUsingRNG,
-            boost::true_type
-        >::type;
-    };
+                // check if at least one RNG is needed
+                using type = typename boost::mpl::contains<AllIonizersUsingRNG, boost::true_type>::type;
+            };
 
-} // namespace traits
-} // namespace particles
+        } // namespace traits
+    } // namespace particles
 } // namespace picongpu

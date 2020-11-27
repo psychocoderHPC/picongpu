@@ -26,50 +26,46 @@
 
 namespace pmacc
 {
-namespace nvidia
-{
-namespace rng
-{
-namespace methods
-{
-
-    template< typename T_Acc >
-    class Xor
+    namespace nvidia
     {
-    private:
-         using Gen =
-            decltype(
-                ::alpaka::rand::generator::createDefault(
-                    alpaka::core::declval<T_Acc const &>(),
-                    alpaka::core::declval<uint32_t &>(),
-                    alpaka::core::declval<uint32_t &>()));
-        PMACC_ALIGN(gen, Gen);
-    public:
-        typedef Gen StateType;
-        typedef T_Acc Acc;
-
-        HDINLINE Xor() : gen (0)
+        namespace rng
         {
-        }
+            namespace methods
+            {
+                template<typename T_Acc>
+                class Xor
+                {
+                private:
+                    using Gen = decltype(::alpaka::rand::generator::createDefault(
+                        alpaka::core::declval<T_Acc const&>(),
+                        alpaka::core::declval<uint32_t&>(),
+                        alpaka::core::declval<uint32_t&>()));
+                    PMACC_ALIGN(gen, Gen);
 
-        DINLINE Xor(const T_Acc& acc, uint32_t seed, uint32_t subsequence = 0)
-        {
-            gen = ::alpaka::rand::generator::createDefault(acc, seed, subsequence);
-        }
+                public:
+                    typedef Gen StateType;
+                    typedef T_Acc Acc;
 
-        HDINLINE Xor(const Xor& other): gen(other.gen)
-        {
+                    HDINLINE Xor() : gen(0)
+                    {
+                    }
 
-        }
+                    DINLINE Xor(const T_Acc& acc, uint32_t seed, uint32_t subsequence = 0)
+                    {
+                        gen = ::alpaka::rand::generator::createDefault(acc, seed, subsequence);
+                    }
 
-    protected:
+                    HDINLINE Xor(const Xor& other) : gen(other.gen)
+                    {
+                    }
 
-        DINLINE StateType& getState()
-        {
-            return gen;
-        }
-    };
-} // namespace methods
-} // namespace rng
-} // namespace nvidia
+                protected:
+                    DINLINE StateType& getState()
+                    {
+                        return gen;
+                    }
+                };
+            } // namespace methods
+        } // namespace rng
+    } // namespace nvidia
 } // namespace pmacc

@@ -25,23 +25,21 @@
 
 namespace picongpu
 {
-namespace densityProfiles
-{
-
-template<typename T_Base>
-struct IProfile : private T_Base
-{
-
-    using Base = T_Base;
-
-    HINLINE IProfile(uint32_t currentStep) : Base(currentStep)
+    namespace densityProfiles
     {
-    }
+        template<typename T_Base>
+        struct IProfile : private T_Base
+        {
+            using Base = T_Base;
 
-    HDINLINE float_X operator()(const DataSpace<simDim>& totalCellOffset)
-    {
-        return Base::operator()(totalCellOffset);
-    }
-};
-}
-}
+            HINLINE IProfile(uint32_t currentStep) : Base(currentStep)
+            {
+            }
+
+            HDINLINE float_X operator()(const DataSpace<simDim>& totalCellOffset)
+            {
+                return Base::operator()(totalCellOffset);
+            }
+        };
+    } // namespace densityProfiles
+} // namespace picongpu

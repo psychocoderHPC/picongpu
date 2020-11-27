@@ -26,55 +26,54 @@
 
 namespace pmacc
 {
-namespace nvidia
-{
-namespace rng
-{
-namespace distributions
-{
-namespace detail
-{
-    /*Return normally distributed floats with mean 0.0f and standard deviation 1.0f
-     */
-    template< typename T_Acc>
-    class Normal_float
+    namespace nvidia
     {
-    public:
-        typedef float Type;
-    private:
-        using Dist =
-            decltype(
-                ::alpaka::rand::distribution::createNormalReal<Type>(
-                    alpaka::core::declval<T_Acc const &>()));
-        PMACC_ALIGN(dist, Dist);
-    public:
-        HDINLINE Normal_float()
+        namespace rng
         {
-        }
+            namespace distributions
+            {
+                namespace detail
+                {
+                    /*Return normally distributed floats with mean 0.0f and standard deviation 1.0f
+                     */
+                    template<typename T_Acc>
+                    class Normal_float
+                    {
+                    public:
+                        typedef float Type;
 
-        HDINLINE Normal_float(const T_Acc& acc) : dist(::alpaka::rand::distribution::createNormalReal<Type>(acc))
-        {
-        }
+                    private:
+                        using Dist = decltype(::alpaka::rand::distribution::createNormalReal<Type>(
+                            alpaka::core::declval<T_Acc const&>()));
+                        PMACC_ALIGN(dist, Dist);
 
-        template<class RNGState>
-        DINLINE Type operator()(RNGState& state)
-        {
-            return dist(state);
-        }
+                    public:
+                        HDINLINE Normal_float()
+                        {
+                        }
 
-    };
-} // namespace detail
+                        HDINLINE Normal_float(const T_Acc& acc)
+                            : dist(::alpaka::rand::distribution::createNormalReal<Type>(acc))
+                        {
+                        }
 
-    struct Normal_float
-    {
-        template< typename T_Acc>
-        static HDINLINE detail::Normal_float< T_Acc >
-        get( T_Acc const & acc)
-        {
-            return detail::Normal_float< T_Acc >( acc );
-        }
-    };
-} // namespace distributions
-} // namespace rng
-} // namespace nvidia
+                        template<class RNGState>
+                        DINLINE Type operator()(RNGState& state)
+                        {
+                            return dist(state);
+                        }
+                    };
+                } // namespace detail
+
+                struct Normal_float
+                {
+                    template<typename T_Acc>
+                    static HDINLINE detail::Normal_float<T_Acc> get(T_Acc const& acc)
+                    {
+                        return detail::Normal_float<T_Acc>(acc);
+                    }
+                };
+            } // namespace distributions
+        } // namespace rng
+    } // namespace nvidia
 } // namespace pmacc

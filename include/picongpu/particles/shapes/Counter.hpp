@@ -24,63 +24,56 @@
 
 namespace picongpu
 {
-namespace particles
-{
-namespace shapes
-{
-
-    namespace shared_Counter
+    namespace particles
     {
-
-        struct Counter
+        namespace shapes
         {
-            /**
-             * width of the support of this form_factor. This is the area where the function
-             * is non-zero.
-             */
-            static constexpr int support = 0;
-        };
-
-    } // namespace shared_Counter
-
-    struct Counter : public shared_Counter::Counter
-    {
-
-        struct ChargeAssignment : public shared_Counter::Counter
-        {
-
-            HDINLINE float_X operator()( float_X const x )
+            namespace shared_Counter
             {
-                /*       -
-                 *       | -1               if -1<x<=0
-                 * W(x)=<|
-                 *       |  0               otherwise
-                 *       -
-                 */
+                struct Counter
+                {
+                    /**
+                     * width of the support of this form_factor. This is the area where the function
+                     * is non-zero.
+                     */
+                    static constexpr int support = 0;
+                };
 
-                bool const in_cell = -1.0_X < x && x <= 0.0_X;
+            } // namespace shared_Counter
 
-                return float_X( in_cell );
-            }
-        };
-
-        struct ChargeAssignmentOnSupport : public shared_Counter::Counter
-        {
-
-            /** form factor of this particle shape.
-             * \param x has to be within [-support/2, support/2)
-             */
-            HDINLINE float_X operator()( float_X const x )
+            struct Counter : public shared_Counter::Counter
             {
-                bool const in_cell = 0.0_X <= x && x < 1.0_X;
+                struct ChargeAssignment : public shared_Counter::Counter
+                {
+                    HDINLINE float_X operator()(float_X const x)
+                    {
+                        /*       -
+                         *       | -1               if -1<x<=0
+                         * W(x)=<|
+                         *       |  0               otherwise
+                         *       -
+                         */
 
-                return float_X( in_cell );
-            }
+                        bool const in_cell = -1.0_X < x && x <= 0.0_X;
 
-        };
+                        return float_X(in_cell);
+                    }
+                };
 
-    };
+                struct ChargeAssignmentOnSupport : public shared_Counter::Counter
+                {
+                    /** form factor of this particle shape.
+                     * \param x has to be within [-support/2, support/2)
+                     */
+                    HDINLINE float_X operator()(float_X const x)
+                    {
+                        bool const in_cell = 0.0_X <= x && x < 1.0_X;
 
-} // namespace shapes
-} // namespace particles
+                        return float_X(in_cell);
+                    }
+                };
+            };
+
+        } // namespace shapes
+    } // namespace particles
 } // namespace picongpu

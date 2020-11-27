@@ -26,69 +26,68 @@
 
 namespace pmacc
 {
-namespace nvidia
-{
-namespace rng
-{
-
-    /* create a random number generator on gpu
-     * \tparam RngMethod method to generate random number
-     * \tparam Distribution functor for distribution
-     */
-    template<class RNGMethod, class Distribution>
-    class RNG : public RNGMethod
+    namespace nvidia
     {
-    public:
-
-        typedef RNGMethod MethodType;
-        typedef Distribution DistributionType;
-        typedef RNG<RNGMethod, Distribution> This;
-
-        HDINLINE RNG()
+        namespace rng
         {
-        }
+            /* create a random number generator on gpu
+             * \tparam RngMethod method to generate random number
+             * \tparam Distribution functor for distribution
+             */
+            template<class RNGMethod, class Distribution>
+            class RNG : public RNGMethod
+            {
+            public:
+                typedef RNGMethod MethodType;
+                typedef Distribution DistributionType;
+                typedef RNG<RNGMethod, Distribution> This;
 
-        /*
-         * \param rngMethod instance of generator
-         * \param distribution instance of distribution functor
-         */
-        DINLINE RNG(const RNGMethod& rng_method, const Distribution& rng_operation) :
-        RNGMethod(rng_method), op(rng_operation)
-        {
-        }
+                HDINLINE RNG()
+                {
+                }
 
-        HDINLINE RNG(const This& other) :
-        RNGMethod(static_cast<RNGMethod>(other)), op(other.op)
-        {
-        }
+                /*
+                 * \param rngMethod instance of generator
+                 * \param distribution instance of distribution functor
+                 */
+                DINLINE RNG(const RNGMethod& rng_method, const Distribution& rng_operation)
+                    : RNGMethod(rng_method)
+                    , op(rng_operation)
+                {
+                }
 
-        /* default method to generate a random number
-         * @return random number
-         */
-        DINLINE typename Distribution::Type operator()()
-        {
-            return this->op(this->getState());
-        }
+                HDINLINE RNG(const This& other) : RNGMethod(static_cast<RNGMethod>(other)), op(other.op)
+                {
+                }
 
-    private:
-        PMACC_ALIGN(op, Distribution);
-    };
+                /* default method to generate a random number
+                 * @return random number
+                 */
+                DINLINE typename Distribution::Type operator()()
+                {
+                    return this->op(this->getState());
+                }
 
-    /* create a random number generator on gpu
-     * \tparam RngMethod method to generate random number
-     * \tparam Distribution functor for distribution
-     *
-     * \param rngMethod instance of generator
-     * \param distribution instance of distribution functor
-     * \return class which can used to generate random numbers
-     */
-    template<class RngMethod, class Distribution>
-    DINLINE typename pmacc::nvidia::rng::RNG<RngMethod, Distribution> create(const RngMethod & rngMethod,
-                                                                             const Distribution & distribution)
-    {
-        return pmacc::nvidia::rng::RNG<RngMethod, Distribution >(rngMethod, distribution);
-    }
+            private:
+                PMACC_ALIGN(op, Distribution);
+            };
 
-} // namespace rng
-} // namespace nvidia
+            /* create a random number generator on gpu
+             * \tparam RngMethod method to generate random number
+             * \tparam Distribution functor for distribution
+             *
+             * \param rngMethod instance of generator
+             * \param distribution instance of distribution functor
+             * \return class which can used to generate random numbers
+             */
+            template<class RngMethod, class Distribution>
+            DINLINE typename pmacc::nvidia::rng::RNG<RngMethod, Distribution> create(
+                const RngMethod& rngMethod,
+                const Distribution& distribution)
+            {
+                return pmacc::nvidia::rng::RNG<RngMethod, Distribution>(rngMethod, distribution);
+            }
+
+        } // namespace rng
+    } // namespace nvidia
 } // namespace pmacc
