@@ -790,13 +790,7 @@ namespace mallocMC
              */
             template<typename AlpakaAcc>
             ALPAKA_FN_ACC
-<<<<<<< HEAD
-            auto create(const AlpakaAcc & acc, uint32 bytes)
-                -> void *
-=======
-                auto
-                create(const AlpakaAcc& acc, uint32 bytes) -> void*
->>>>>>> 4a24905c13cc915263575449e2d90ef8337cbb82
+            auto create(const AlpakaAcc& acc, uint32 bytes) -> void*
             {
                 if(bytes == 0)
                     return 0;
