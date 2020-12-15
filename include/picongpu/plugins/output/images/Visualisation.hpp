@@ -103,10 +103,10 @@ struct typicalFields < 1 >
         return float3_X(float_X(1.0), float_X(1.0), float_X(1.0));
 #else
         constexpr auto baseCharge = BASE_CHARGE;
-        const float_X tyCurrent = particles::TYPICAL_PARTICLES_PER_CELL * particles::TYPICAL_NUM_PARTICLES_PER_MACROPARTICLE
-            * math::abs(baseCharge) / DELTA_T;
+        const float_X tyCurrent = particles::TYPICAL_PARTICLES_PER_CELL * particles::TYPICAL_NUM_PARTICLES_PER_MACROPARTICLE(base::PIC)
+            * math::abs(baseCharge) / DELTA_T(base::PIC);
         const float_X tyEField = fields::laserProfiles::Selected::Unitless::AMPLITUDE + FLT_MIN;
-        const float_X tyBField = tyEField * MUE0_EPS0;
+        const float_X tyBField = tyEField * MUE0_EPS0(base::PIC);
 
         return float3_X(tyBField, tyEField, tyCurrent);
 #endif
@@ -127,12 +127,12 @@ struct typicalFields < 3 >
 #if !(EM_FIELD_SCALE_CHANNEL1 == 3 || EM_FIELD_SCALE_CHANNEL2 == 3 || EM_FIELD_SCALE_CHANNEL3 == 3)
         return float3_X(float_X(1.0), float_X(1.0), float_X(1.0));
 #else
-        constexpr auto baseCharge = BASE_CHARGE;
+        constexpr auto baseCharge = BASE_CHARGE(base::PIC);
         const float_X lambda_pl = pmacc::math::Pi< float_X >::doubleValue *
-            SPEED_OF_LIGHT * sqrt(BASE_MASS * EPS0 / BASE_DENSITY / baseCharge / baseCharge);
-        const float_X tyEField = lambda_pl * BASE_DENSITY / 3.0f / EPS0;
-        const float_X tyBField = tyEField * MUE0_EPS0;
-        const float_X tyCurrent = tyBField / MUE0;
+            SPEED_OF_LIGHT * sqrt(BASE_MASS(base::PIC) * EPS0(base::PIC) / BASE_DENSITY(base::PIC) / baseCharge / baseCharge);
+        const float_X tyEField = lambda_pl * BASE_DENSITY(base::PIC) / 3.0f / EPS0(base::PIC);
+        const float_X tyBField = tyEField * MUE0_EPS0(base::PIC);
+        const float_X tyCurrent = tyBField / MUE0(base::PIC);
 
         return float3_X(tyBField, tyEField, tyCurrent);
 #endif
@@ -153,10 +153,10 @@ struct typicalFields < 5 >
         return float3_X(float_X(1.0), float_X(1.0), float_X(1.0));
 #else
         constexpr auto baseCharge = BASE_CHARGE;
-        const float_X tyEField = fields::laserProfiles::Selected::Unitless::W0 * BASE_DENSITY / 3.0f / EPS0;
-        const float_X tyBField = tyEField * MUE0_EPS0;
-        const float_X tyCurrent = particles::TYPICAL_PARTICLES_PER_CELL * particles::TYPICAL_NUM_PARTICLES_PER_MACROPARTICLE
-            * math::abs(baseCharge) / DELTA_T;
+        const float_X tyEField = fields::laserProfiles::Selected::Unitless::W0 * BASE_DENSITY(base::PIC) / 3.0f / EPS0(base::PIC);
+        const float_X tyBField = tyEField * MUE0_EPS0(base::PIC);
+        const float_X tyCurrent = particles::TYPICAL_PARTICLES_PER_CELL * particles::TYPICAL_NUM_PARTICLES_PER_MACROPARTICLE(base::PIC)
+            * math::abs(baseCharge) / DELTA_T(base::PIC);
 
         return float3_X(tyBField, tyEField, tyCurrent);
 #endif
@@ -334,7 +334,7 @@ struct KernelPaintFields
                 typename T_JBox::ValueType field_j = fieldJ( cellOffset );
 
                 // multiply with the area size of each plane
-                field_j *= float3_X::create( CELL_VOLUME ) / cellSize;
+                field_j *= float3_X::create( CELL_VOLUME(base::PIC) ) / cellSize(base::PIC);
 
                 /* reset picture to black
                  *   color range for each RGB channel: [0.0, 1.0]
@@ -607,7 +607,7 @@ struct KernelPaintParticles3D
                                 acc,
                                 &( counter( reducedCell ) ),
                                 // normalize the value to avoid bad precision for large macro particle weightings
-                                particle[ weighting_ ] / particles::TYPICAL_NUM_PARTICLES_PER_MACROPARTICLE,
+                                particle[ weighting_ ] / particles::TYPICAL_NUM_PARTICLES_PER_MACROPARTICLE(base::PIC),
                                 ::alpaka::hierarchy::Threads{ }
                             );
                         }
@@ -644,7 +644,7 @@ struct KernelPaintParticles3D
                         cellIdx[ transpose.y( ) ]
                     );
 
-                    /** Note: normally, we would multiply by particles::TYPICAL_NUM_PARTICLES_PER_MACROPARTICLE again.
+                    /** Note: normally, we would multiply by particles::TYPICAL_NUM_PARTICLES_PER_MACROPARTICLE(base::PIC) again.
                      *  BUT: since we are interested in a simple value between 0 and 1,
                      *       we stay with this number (normalized to the order of macro
                      *       particles) and devide by the number of typical macro particles
@@ -1066,7 +1066,7 @@ public:
 
             float_32 cellSizeArr[3] = {0, 0, 0};
             for (uint32_t i = 0; i < simDim; ++i)
-                cellSizeArr[i] = cellSize[i];
+                cellSizeArr[i] = cellSize(base::PIC)[i];
 
             header = MessageHeader::create();
             header->update(*cellDescription, window, m_transpose, 0, cellSizeArr, gpus);

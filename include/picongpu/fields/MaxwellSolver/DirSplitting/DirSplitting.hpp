@@ -71,14 +71,14 @@ namespace dirSplitting
          */
 #if 0
         PMACC_CASSERT_MSG(DirectionSplitting_Set_dX_equal_dt_times_c____check_your_grid_param_file,
-                          (SI::SPEED_OF_LIGHT_SI * SI::DELTA_T_SI) == SI::CELL_WIDTH_SI &&
+                          (SI::SPEED_OF_LIGHT_SI * DELTA_T(base::SI)) == CELL_WIDTH(base::SI)_SI &&
                           (sizeof(T_Dummy*) != 0));
         PMACC_CASSERT_MSG(DirectionSplitting_use_cubic_cells____check_your_grid_param_file,
-                          SI::CELL_HEIGHT_SI == SI::CELL_WIDTH_SI &&
+                          CELL_HEIGHT(base::SI) == CELL_WIDTH(base::SI)_SI &&
                           (sizeof(T_Dummy*) != 0));
 #if (SIMDIM == DIM3)
         PMACC_CASSERT_MSG(DirectionSplitting_use_cubic_cells____check_your_grid_param_file,
-                          SI::CELL_DEPTH_SI == SI::CELL_WIDTH_SI &&
+                          CELL_DEPTH(base::SI) == CELL_WIDTH(base::SI)_SI &&
                           (sizeof(T_Dummy*) != 0));
 #endif
 #endif

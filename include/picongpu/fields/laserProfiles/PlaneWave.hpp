@@ -47,7 +47,7 @@ namespace planeWave
         /* initialize the laser not in the first cell is equal to a negative shift
          * in time
          */
-        static constexpr float_X laserTimeShift = Params::initPlaneY * CELL_HEIGHT / SPEED_OF_LIGHT;
+        static constexpr float_X laserTimeShift = Params::initPlaneY * CELL_HEIGHT(base::PIC) / SPEED_OF_LIGHT;
 
         static constexpr float_64 f = SPEED_OF_LIGHT / WAVE_LENGTH;
 
@@ -113,7 +113,7 @@ namespace acc
                  *
                  * The `correctionFactor` assume that the wave is moving in y direction.
                  */
-                auto const correctionFactor = ( SPEED_OF_LIGHT * DELTA_T ) / CELL_HEIGHT * 2._X;
+                auto const correctionFactor = ( SPEED_OF_LIGHT * DELTA_T(base::PIC) ) / CELL_HEIGHT(base::PIC) * 2._X;
 
                 // jump over the guard of the electric field
                 m_dataBoxE( localCell + SuperCellSize::toRT() * GuardSize::toRT() ) +=  correctionFactor * m_elong;
@@ -163,7 +163,7 @@ namespace acc
             // @todo reset origin of direction of moving window
             // offsetToTotalDomain.y() = 0
 
-            float_64 const runTime = DELTA_T * currentStep - Unitless::laserTimeShift;
+            float_64 const runTime = DELTA_T(base::PIC) * currentStep - Unitless::laserTimeShift;
 
             elong = float3_X::create( 0.0 );
 

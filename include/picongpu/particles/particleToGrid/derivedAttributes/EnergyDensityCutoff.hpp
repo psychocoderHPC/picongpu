@@ -48,7 +48,7 @@ namespace derivedAttributes
             particle
         );
 
-        constexpr float_X INV_CELL_VOLUME = float_X( 1.0 ) / CELL_VOLUME;
+        constexpr float_X INV_CELL_VOLUME = float_X( 1.0 ) / CELL_VOLUME(base::PIC);
 
         /* value for energy cut-off */
         float_X const cutoffMaxEnergy = ParamClass::cutoffMaxEnergy;

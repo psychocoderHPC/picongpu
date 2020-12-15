@@ -145,7 +145,7 @@ namespace maxwellSolver
                  * `sizeof(ANY_TYPE*) != 0` is always true and defers the evaluation.
                  */
                 PMACC_CASSERT_MSG(Courant_Friedrichs_Levy_condition_failure____check_your_grid_param_file,
-                    (SPEED_OF_LIGHT*SPEED_OF_LIGHT*DELTA_T*DELTA_T*INV_CELL2_SUM)<=1.0 && sizeof(T_CurlE*) != 0);
+                    (SPEED_OF_LIGHT*SPEED_OF_LIGHT*DELTA_T(base::PIC)*DELTA_T(base::PIC)*INV_CELL2_SUM(base::PIC))<=1.0 && sizeof(T_CurlE*) != 0);
 #endif
                 constexpr auto numWorkers = getNumWorkers( );
                 using Kernel = yeePML::KernelUpdateE<
@@ -313,7 +313,7 @@ namespace maxwellSolver
                     if( fields::laserProfiles::Selected::initPlaneY == 0 )
                     {
                         bool isLaserInitializationOver =
-                            (currentStep * DELTA_T) >= fields::laserProfiles::Selected::INIT_TIME;
+                            (currentStep * DELTA_T(base::PIC)) >= fields::laserProfiles::Selected::INIT_TIME;
                         if( numSlides == 0 && !isLaserInitializationOver && exchange == TOP )
                             localThickness( axis, direction ) = 0;
                     }

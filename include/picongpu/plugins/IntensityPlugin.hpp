@@ -329,7 +329,7 @@ private:
         stream << currentStep << " ";
         for (size_t i = 0; i < count; ++i)
         {
-            stream << (physicalYOffset + i) * SI::CELL_HEIGHT_SI << " ";
+            stream << (physicalYOffset + i) * CELL_HEIGHT(base::SI) << " ";
         }
         stream << std::endl << currentStep << " ";
         for (size_t i = 0; i < count; ++i)

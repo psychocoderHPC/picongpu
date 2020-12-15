@@ -103,8 +103,8 @@ namespace detail
             constexpr float_X inverseDivisor = 1._X / ( M + 6._X * S + 12._X * D + 8._X * T );
             averagedJ *= inverseDivisor;
 
-            const float_X deltaT = DELTA_T;
-            *fieldE -= averagedJ * ( 1._X / EPS0 ) * deltaT;
+            const float_X deltaT = DELTA_T(base::PIC);
+            *fieldE -= averagedJ * ( 1._X / EPS0(base::PIC) ) * deltaT;
         }
     };
 
@@ -167,8 +167,8 @@ namespace detail
             constexpr float_X inverseDivisor = 1._X / ( M + 4._X * S + 4._X * D );
             averagedJ *= inverseDivisor;
 
-            const float_X deltaT = DELTA_T;
-            *fieldE -= averagedJ * ( 1._X / EPS0 ) * deltaT;
+            const float_X deltaT = DELTA_T(base::PIC);
+            *fieldE -= averagedJ * ( 1._X / EPS0(base::PIC) ) * deltaT;
         }
     };
 

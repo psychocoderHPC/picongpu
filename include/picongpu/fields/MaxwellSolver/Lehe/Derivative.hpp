@@ -115,21 +115,21 @@ namespace lehe
             constexpr uint32_t dir1 = (dir0 + 1) % 3;
             constexpr uint32_t dir2 = (dir0 + 2) % 3;
 
-            float_64 const stepRatio = cellSize[ dir0 ] /
-                ( SPEED_OF_LIGHT * DELTA_T );
+            float_64 const stepRatio = cellSize(base::PIC)[ dir0 ] /
+                ( SPEED_OF_LIGHT * DELTA_T(base::PIC) );
             float_64 const coeff = stepRatio * math::sin(
                 pmacc::math::Pi< float_64 >::halfValue *
-                float_64( SPEED_OF_LIGHT ) * float_64( DELTA_T ) /
-                float_64( cellSize[ dir0 ] )
+                float_64( SPEED_OF_LIGHT ) * float_64( DELTA_T(base::PIC) ) /
+                float_64( cellSize(base::PIC)[ dir0 ] )
             );
             delta = static_cast< float_X >(
                 0.25 * ( 1.0 - coeff * coeff )
             );
             // for 2D the betas corresponding to z are 0
             float_64 const stepRatio1 = dir1 < simDim ?
-                cellSize[ dir0 ] / cellSize[ dir1 ] : 0.0;
+                cellSize(base::PIC)[ dir0 ] / cellSize(base::PIC)[ dir1 ] : 0.0;
             float_64 const stepRatio2 = dir2 < simDim ?
-                cellSize[ dir0 ] / cellSize[ dir2 ] : 0.0;
+                cellSize(base::PIC)[ dir0 ] / cellSize(base::PIC)[ dir2 ] : 0.0;
             float_64 const betaDir1 = 0.125 * stepRatio1 * stepRatio1;
             float_64 const betaDir2 = 0.125 * stepRatio2 * stepRatio2;
             alpha = static_cast< float_X >(
@@ -152,17 +152,17 @@ namespace lehe
             constexpr uint32_t dir2 = (dir0 + 2) % 3;
 
             // cellSize is not constexpr currently, so make an own constexpr array
-            constexpr float_X step[3] = { CELL_WIDTH, CELL_HEIGHT, CELL_DEPTH };
+            const float_X step[3] = { CELL_WIDTH(base::PIC), CELL_HEIGHT(base::PIC), CELL_DEPTH(base::PIC) };
 
             /* beta_xy and beta_xz from eq. (11), generic for any T_direction;
              * for 2D the betas corresponding to z are 0
              */
-            constexpr float_X stepRatio1 = dir1 < simDim ?
+            const float_X stepRatio1 = dir1 < simDim ?
                 step[ dir0 ] / step[ dir1 ] : 0.0_X;
-            constexpr float_X stepRatio2 = dir2 < simDim ?
+            const float_X stepRatio2 = dir2 < simDim ?
                 step[ dir0 ] / step[ dir2 ] : 0.0_X;
-            constexpr float_X betaDir1 = 0.125_X * stepRatio1 * stepRatio1;
-            constexpr float_X betaDir2 = 0.125_X * stepRatio2 * stepRatio2;
+            const float_X betaDir1 = 0.125_X * stepRatio1 * stepRatio1;
+            const float_X betaDir2 = 0.125_X * stepRatio2 * stepRatio2;
 
             // finite-difference expression from eq. (6), generic for any T_direction
             using Index = pmacc::DataSpace< simDim >;

@@ -90,7 +90,7 @@ namespace picongpu
                 Gamma gammaCalc;
                 Velocity velocityCalc;
                 const float_X epsilon = 1.0e-6;
-                const float_X deltaT = DELTA_T;
+                const float_X deltaT = DELTA_T(base::PIC);
 
                 //const float3_X velocity_atMinusHalf = velocity(mom, mass);
                 const float_X gamma = gammaCalc( mom, mass );
@@ -142,9 +142,9 @@ namespace picongpu
                 if( TrajectoryInterpolation == LINEAR )
                 {
                     const float3_X vel = velocityCalc( mom, mass );
-                    dr = float3_X( vel.x() * deltaT / CELL_WIDTH,
-                                                   vel.y() * deltaT / CELL_HEIGHT,
-                                                   vel.z() * deltaT / CELL_DEPTH );
+                    dr = float3_X( vel.x() * deltaT / CELL_WIDTH(base::PIC),
+                                                   vel.y() * deltaT / CELL_HEIGHT(base::PIC),
+                                                   vel.z() * deltaT / CELL_DEPTH(base::PIC) );
                 }
 
                 // new spacial change calculation
@@ -195,7 +195,7 @@ namespace picongpu
                     }
                     dr = r - pos;
 
-                    dr *= float3_X::create(1.0) / cellSize;
+                    dr *= float3_X::create(1.0) / cellSize(base::PIC);
 
                 }
 

@@ -49,7 +49,7 @@ struct GaussianImpl : public T_ParamClass
      */
     HDINLINE float_X operator()(const DataSpace<simDim>& totalCellOffset)
     {
-        const float_X vacuum_y = float_X(ParamClass::vacuumCellsY) * cellSize.y();
+        const float_X vacuum_y = float_X(ParamClass::vacuumCellsY) * cellSize(base::PIC).y();
         const float_X gas_center_left = ParamClass::gasCenterLeft_SI / UNIT_LENGTH;
         const float_X gas_center_right = ParamClass::gasCenterRight_SI / UNIT_LENGTH;
         const float_X gas_sigma_left = ParamClass::gasSigmaLeft_SI / UNIT_LENGTH;
@@ -57,10 +57,10 @@ struct GaussianImpl : public T_ParamClass
 
         const floatD_X globalCellPos(
                                      precisionCast<float_X>(totalCellOffset) *
-                                     cellSize.shrink<simDim>()
+                                     cellSize(base::PIC).shrink<simDim>()
                                      );
 
-        if (globalCellPos.y() * cellSize.y() < vacuum_y)
+        if (globalCellPos.y() * cellSize(base::PIC).y() < vacuum_y)
         {
             return float_X(0.0);
         }

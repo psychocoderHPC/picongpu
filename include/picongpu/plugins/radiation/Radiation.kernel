@@ -166,7 +166,7 @@ namespace radiation
 
             // simulation time (needed for retarded time)
             picongpu::float_64 const t(
-                picongpu::float_64( currentStep ) * picongpu::float_64( DELTA_T)
+                picongpu::float_64( currentStep ) * picongpu::float_64( DELTA_T(base::PIC))
             );
 
             // looking direction (needed for observer) used in the thread
@@ -327,7 +327,7 @@ namespace radiation
                                         for( int i = 0; i < simDim; ++i )
                                           particle_locationNow[ i ] =
                                               ( float_X( globalPos[ i ] ) + pos[ i ] ) *
-                                              cellSize[ i ];
+                                              cellSize(base::PIC)[ i ];
 
                                         /* get macro-particle weighting
                                          *
@@ -371,7 +371,7 @@ namespace radiation
                                         // calculate amplitude
                                         Calc_Amplitude_n_sim_1 const amplitude3(
                                             particle,
-                                            DELTA_T,
+                                            DELTA_T(base::PIC),
                                             t
                                         );
 
@@ -384,7 +384,7 @@ namespace radiation
                                         real_amplitude_s[ saveParticleAt ] =
                                             amplitude3.get_vector( look ) *
                                             particle_charge *
-                                            picongpu::float_64( DELTA_T );
+                                            picongpu::float_64( DELTA_T(base::PIC) );
 
                                         // retarded time stored in shared memory
                                         t_ret_s[ saveParticleAt ] = amplitude3.get_t_ret( look );
@@ -406,7 +406,7 @@ namespace radiation
                                         {
                                             windowFactor *= winFkt(
                                                 particle_locationNow[ d ],
-                                                simBoxSize[d] * cellSize[ d ]
+                                                simBoxSize[d] * cellSize(base::PIC)[ d ]
                                             );
                                         }
 

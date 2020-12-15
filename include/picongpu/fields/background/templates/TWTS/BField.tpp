@@ -58,7 +58,7 @@ namespace twts
         focus_y_SI(focus_y_SI), wavelength_SI(wavelength_SI),
         pulselength_SI(pulselength_SI), w_x_SI(w_x_SI),
         w_y_SI(w_y_SI), phi(phi), beta_0(beta_0),
-        tdelay_user_SI(tdelay_user_SI), dt(SI::DELTA_T_SI),
+        tdelay_user_SI(tdelay_user_SI), dt(DELTA_T(base::SI)),
         unit_length(UNIT_LENGTH), auto_tdelay(auto_tdelay), pol(pol), phiPositive( float_X(1.0) )
     {
         /* Note: Enviroment-objects cannot be instantiated on CUDA GPU device. Since this is done
@@ -300,11 +300,11 @@ namespace twts
         using complex_T = pmacc::math::Complex< float_T >;
         using complex_64 = pmacc::math::Complex< float_64 >;
         /* Unit of speed */
-        const float_64 UNIT_SPEED = SI::SPEED_OF_LIGHT_SI;
+        //const float_64 UNIT_SPEED = SI::SPEED_OF_LIGHT_SI;
         /* Unit of time */
-        const float_64 UNIT_TIME = SI::DELTA_T_SI;
+        //const float_64 UNIT_TIME = DELTA_T(base::SI);
         /* Unit of length */
-        const float_64 UNIT_LENGTH = UNIT_TIME*UNIT_SPEED;
+        //const float_64 UNIT_LENGTH = UNIT_TIME*UNIT_SPEED;
 
         /* Propagation speed of overlap normalized to the speed of light [Default: beta0=1.0] */
         const float_T beta0 = float_T(beta_0);
@@ -456,11 +456,11 @@ namespace twts
     {
         using complex_T = pmacc::math::Complex< float_T >;
         /** Unit of Speed */
-        const float_64 UNIT_SPEED = SI::SPEED_OF_LIGHT_SI;
+        //const float_64 UNIT_SPEED = SI::SPEED_OF_LIGHT_SI;
         /** Unit of time */
-        const float_64 UNIT_TIME = SI::DELTA_T_SI;
+        //const float_64 UNIT_TIME = DELTA_T(base::SI);
         /** Unit of length */
-        const float_64 UNIT_LENGTH = UNIT_TIME*UNIT_SPEED;
+        //const float_64 UNIT_LENGTH = UNIT_TIME*UNIT_SPEED;
 
         /* propagation speed of overlap normalized to the speed of light [Default: beta0=1.0] */
         const float_T beta0 = float_T(beta_0);
@@ -585,11 +585,11 @@ namespace twts
         using complex_T = pmacc::math::Complex< float_T >;
         using complex_64 = pmacc::math::Complex< float_64 >;
         /** Unit of speed */
-        const float_64 UNIT_SPEED = SI::SPEED_OF_LIGHT_SI;
+        //const float_64 UNIT_SPEED = SI::SPEED_OF_LIGHT_SI;
         /** Unit of time */
-        const float_64 UNIT_TIME = SI::DELTA_T_SI;
+        //const float_64 UNIT_TIME = DELTA_T(base::SI);
         /** Unit of length */
-        const float_64 UNIT_LENGTH = UNIT_TIME*UNIT_SPEED;
+        //const float_64 UNIT_LENGTH = UNIT_TIME*UNIT_SPEED;
 
         /* Propagation speed of overlap normalized to the speed of light [Default: beta0=1.0] */
         const float_T beta0 = float_T(beta_0);

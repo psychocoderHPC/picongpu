@@ -59,7 +59,7 @@ struct Push
 
         const float_X QoM = charge / mass;
 
-        const float_X deltaT = DELTA_T;
+        const float_X deltaT = DELTA_T(base::PIC);
 
         const MomType mom_minus = mom + float_X(0.5) * charge * eField * deltaT;
 
@@ -80,7 +80,7 @@ struct Push
 
         for(uint32_t d=0;d<simDim;++d)
         {
-            pos[d] += (vel[d] * deltaT) / cellSize[d];
+            pos[d] += (vel[d] * deltaT) / cellSize(base::PIC)[d];
         }
 
     }

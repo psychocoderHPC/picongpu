@@ -32,82 +32,69 @@ namespace picongpu
 
 
 
-    PIC_DEF_UNIT(float_64, TIME, "time", "second", "s", [&]()
+
+    UNIT_BASE(TIME, PIC, [&]()
     {
-        return DELTA_T(units::SI);
+        return DELTA_T(base::SI);
     });
-    #define UNIT_TIME scale(TIME, picongpu::units::PIC, picongpu::units::SI)
 
-    PIC_DEF_UNIT(float_64, LENGTH, "length", "meter", "m", [&]()
+    UNIT_BASE(LENGTH, PIC, [&]()
     {
-        return UNIT_TIME * UNIT_SPEED;
-    });
-    #define UNIT_LENGTH scale(LENGTH, picongpu::units::PIC, picongpu::units::SI)
-
-
-
-    PIC_DEF_UNIT(float_X, PARTICLES_PER_MACROPARTICLE, "???", "??", "??", [&]()
-    {
-        return
-            float_64( SI::BASE_DENSITY_SI * CELL_WIDTH(units::SI) * CELL_HEIGHT(units::SI) * CELL_DEPTH(units::SI) ) /
-                float_64( particles::TYPICAL_PARTICLES_PER_CELL );
+        return CELL_WIDTH(base::SI);
     });
 
     namespace particles
     {
-        LEGACY_UNIT(TYPICAL_NUM_PARTICLES_PER_MACROPARTICLE, PARTICLES_PER_MACROPARTICLE);
-        //#define TYPICAL_NUM_PARTICLES_PER_MACROPARTICLE scale(PARTICLES_PER_MACROPARTICLE, picongpu::units::PIC, picongpu::units::SI)
-#if 0
-        /** Number of particles per makro particle (= macro particle weighting)
-         *  unit: none */
-        CREATE_VAR( float_X TYPICAL_NUM_PARTICLES_PER_MACROPARTICLE());
+        CREATE_GLOBAL_VAR(float_X, TYPICAL_NUM_PARTICLES_PER_MACROPARTICLE, PIC);
+        DEF_GLOBAL_VAR(float_64, TYPICAL_NUM_PARTICLES_PER_MACROPARTICLE, units::scalar, [=](auto x)
+        {
+            return
+                float_64( SI::BASE_DENSITY_SI * CELL_WIDTH(base::SI) * CELL_HEIGHT(base::SI) * CELL_DEPTH(base::SI) ) /
+                    float_64( particles::TYPICAL_PARTICLES_PER_CELL );
+        });
 
-         =
-            float_64( SI::BASE_DENSITY_SI * CELL_WIDTH(units::SI)_SI * CELL_HEIGHT(units::SI) * CELL_DEPTH(units::SI) ) /
-            float_64( particles::TYPICAL_PARTICLES_PER_CELL ));
-#endif
+        GLOBAL_VAR_CONVERSION(TYPICAL_NUM_PARTICLES_PER_MACROPARTICLE, PIC, [=](auto x)
+        {
+            x = TYPICAL_NUM_PARTICLES_PER_MACROPARTICLE(base::SI);
+            return x;
+        });
     }
 
 
-    /** Unit of mass */
-    PIC_DEF_UNIT(float_64, MASS, "mass", "kilogram", "kg", [&]()
-    {
-        return
-            SI::BASE_MASS_SI * float_64(particles::TYPICAL_NUM_PARTICLES_PER_MACROPARTICLE());
-    });
-    #define UNIT_MASS scale(MASS, picongpu::units::PIC, picongpu::units::SI)
 
-    /** Unit of charge */
-    /** Unit of mass */
-    PIC_DEF_UNIT(float_64, CHARGE, "charge", "??", "???", [&]()
+    UNIT_BASE(MASS, PIC, [&]()
     {
-        return
-            -1.0 * SI::BASE_CHARGE_SI * double(particles::TYPICAL_NUM_PARTICLES_PER_MACROPARTICLE());
+        return SI::BASE_MASS_SI * particles::TYPICAL_NUM_PARTICLES_PER_MACROPARTICLE(base::SI);
     });
-    #define UNIT_CHARGE scale(CHARGE, picongpu::units::PIC, picongpu::units::SI)
 
-    /** Unit of energy */
-    PIC_DEF_UNIT(float_64, ENERGY, "energy", "??", "???", [&]()
-    {
-        return
-            (UNIT_MASS * UNIT_LENGTH * UNIT_LENGTH / (UNIT_TIME * UNIT_TIME));
-    });
-    #define UNIT_ENERGY scale(ENERGY, picongpu::units::PIC, picongpu::units::SI)
 
-    /** Unit of EField: V/m */
-    PIC_DEF_UNIT(float_64, EFIELD, "efield", "??", "???", [&]()
+    UNIT_BASE(CHARGE, PIC, [&]()
     {
-        return
-            1.0 / (UNIT_TIME * UNIT_TIME / UNIT_MASS / UNIT_LENGTH * UNIT_CHARGE);
+        return -1.0 * SI::BASE_CHARGE_SI * particles::TYPICAL_NUM_PARTICLES_PER_MACROPARTICLE(base::SI);
     });
-    #define UNIT_EFIELD scale(EFIELD, picongpu::units::PIC, picongpu::units::SI)
 
-    //** Unit of BField: Tesla [T] = Vs/m^2 */
-    PIC_DEF_UNIT(float_64, BFIELD, "bfield", "??", "???", [&]()
+    PIC_DEF_CATEGORY(float_64, ENERGY, units::joule);
+    #define UNIT_ENERGY ENERGY(picongpu::base::PIC, picongpu::base::SI)
+
+    UNIT_BASE(ENERGY, PIC, [&]()
     {
-        return
-            (UNIT_MASS / (UNIT_TIME * UNIT_CHARGE));
+        return 1.0;
     });
-    #define UNIT_BFIELD scale(BFIELD, picongpu::units::PIC, picongpu::units::SI)
+
+    PIC_DEF_CATEGORY(float_64, EFIELD, units::volt/units::meter);
+    #define UNIT_EFIELD EFIELD(picongpu::base::PIC, picongpu::base::SI)
+
+    UNIT_BASE(EFIELD, PIC, [&]()
+    {
+        return 1.0;
+    });
+
+    PIC_DEF_CATEGORY(float_64, BFIELD, units::ampere/units::meter);
+    #define UNIT_BFIELD BFIELD(picongpu::base::PIC, picongpu::base::SI)
+
+    UNIT_BASE(BFIELD, PIC, [&]()
+    {
+        return 1.0;
+    });
 
 }

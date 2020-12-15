@@ -25,8 +25,12 @@
 #include "picongpu/simulation_defines.hpp"
 #include <pmacc/assert.hpp>
 
-#if 0
+#include "picongpu/plugins/output/images/PngCreator.hpp"
+#include "picongpu/plugins/output/images/Visualisation.hpp"
+#include "picongpu/plugins/PngPlugin.hpp"
+
 #include "picongpu/plugins/CountParticles.hpp"
+#if 0
 #include "picongpu/plugins/EnergyParticles.hpp"
 #include "picongpu/plugins/multi/Master.hpp"
 #include "picongpu/plugins/EnergyFields.hpp"
@@ -169,9 +173,10 @@ private:
             >::type;
         };
     };
-#if 0
+
     /* define stand alone plugins */
     using StandAlonePlugins = bmpl::vector<
+#if 0
         Checkpoint,
         EnergyFields
 #if (ENABLE_ADIOS == 1)
@@ -198,17 +203,20 @@ private:
         , plugins::multi::Master< hdf5::HDF5Writer >
 #endif
         , ResourceLog
+#endif
     >;
 
 
     /* define field plugins */
     using UnspecializedFieldPlugins = bmpl::vector<
 #if( PMACC_CUDA_ENABLED == 1 )
-        SliceFieldPrinterMulti< bmpl::_1 >
+//        SliceFieldPrinterMulti< bmpl::_1 >
 #endif
     >;
 
-    using AllFields = bmpl::vector< FieldB, FieldE, FieldJ >;
+    using AllFields = bmpl::vector<
+        //FieldB, FieldE, Field
+    >;
 
     using CombinedUnspecializedFieldPlugins = typename AllCombinations<
         bmpl::vector<
@@ -225,11 +233,15 @@ private:
 
     /* define species plugins */
     using UnspecializedSpeciesPlugins = bmpl::vector <
+#if 0
         plugins::multi::Master< EnergyParticles<bmpl::_1> >,
         plugins::multi::Master< CalcEmittance<bmpl::_1> >,
         plugins::multi::Master< BinEnergyParticles<bmpl::_1> >,
+#endif
         CountParticles<bmpl::_1>,
-        PngPlugin< Visualisation<bmpl::_1, PngCreator> >,
+        PngPlugin< Visualisation<bmpl::_1, PngCreator> >
+#if 0
+            ,
         plugins::transitionRadiation::TransitionRadiation<bmpl::_1>
 #if(ENABLE_OPENPMD == 1)
         , plugins::xrayScattering::XrayScattering<bmpl::_1>
@@ -246,6 +258,7 @@ private:
 #   if(ENABLE_HDF5 == 1)
         , PerSuperCell<bmpl::_1>
 #   endif
+#endif
 #endif
     >;
 
@@ -272,14 +285,14 @@ private:
         FieldPlugins,
         SpeciesPlugins
     >;
-#endif
+
     /**
      * Initializes the controller by adding all user plugins to its internal list.
      */
     virtual void init()
     {
-//        meta::ForEach<AllPlugins, PushBack<bmpl::_1> > pushBack;
-//        pushBack(plugins);
+        meta::ForEach<AllPlugins, PushBack<bmpl::_1> > pushBack;
+        pushBack(plugins);
     }
 
 public:

@@ -77,7 +77,7 @@ def plotError(h5file, slice_pos=[0.5, 0.5, 0.5]):
     # load physics constants and simulation parameters
     EPS0 = f["/data/{}".format(timestep)].attrs["eps0"]
     CELL_WIDTH = f["/data/{}".format(timestep)].attrs["cell_width"]
-    CELL_HEIGHT = f["/data/{}".format(timestep)].attrs["cell_height"]
+    CELL_HEIGHT(base::PIC) = f["/data/{}".format(timestep)].attrs["cell_height"]
     CELL_DEPTH = f["/data/{}".format(timestep)].attrs["cell_depth"]
 
     # load electric field
@@ -104,7 +104,7 @@ def plotError(h5file, slice_pos=[0.5, 0.5, 0.5]):
 
     # compute divergence of electric field according to Yee scheme
     div = ((Ex[1:, 1:, 1:] - Ex[1:, 1:, :-1]) / CELL_WIDTH +
-           (Ey[1:, 1:, 1:] - Ey[1:, :-1, 1:]) / CELL_HEIGHT +
+           (Ey[1:, 1:, 1:] - Ey[1:, :-1, 1:]) / CELL_HEIGHT(base::PIC) +
            (Ez[1:, 1:, 1:] - Ez[:-1, 1:, 1:]) / CELL_DEPTH)
 
     # compute difference between electric field divergence and charge density

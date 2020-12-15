@@ -673,7 +673,7 @@ private:
         // cellSize is {x, y, z} but fields are F[z][y][x]
         std::vector<float_X> gridSpacing(simDim, 0.0);
         for( uint32_t d = 0; d < simDim; ++d )
-            gridSpacing.at(simDim-1-d) = cellSize[d];
+            gridSpacing.at(simDim-1-d) = cellSize(base::PIC)[d];
 
         ADIOS_CMD(adios_define_attribute_byvalue(params->adiosGroupHandle,
             "gridSpacing", recordName.c_str(),
@@ -692,7 +692,7 @@ private:
         std::vector<float_64> gridGlobalOffset(simDim, 0.0);
         for( uint32_t d = 0; d < simDim; ++d )
             gridGlobalOffset.at(simDim-1-d) =
-                float_64(cellSize[d]) *
+                float_64(cellSize(base::PIC)[d]) *
                 float_64(params->window.globalDimensions.offset[d] +
                          globalSlideOffset[d]);
 

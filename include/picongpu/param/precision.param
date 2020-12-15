@@ -30,11 +30,19 @@
 
 #pragma once
 
+#include <pmacc/ppFunctions.hpp>
+#include <pmacc/attribute/FunctionSpecifier.hpp>
+#include <list>
+#include <boost/program_options.hpp>
+
+#include "unitSystem.hpp"
+
 #ifdef __CUDA_ARCH__
 #   define CREATE_VAR(...) __device__ __VA_ARGS__
 #else
 #   define CREATE_VAR(...) __VA_ARGS__
 #endif
+
 namespace picongpu
 {
 
@@ -59,3 +67,53 @@ namespace precisionTrigonometric = precisionPIConGPU;
 } // namespace picongpu
 
 #include "picongpu/unitless/precision.unitless"
+
+namespace picongpu
+{
+    PIC_DEF_CATEGORY(float_64, TIME, units::second);
+#define UNIT_TIME TIME(picongpu::base::PIC, picongpu::base::SI)
+
+    PIC_DEF_CATEGORY(float_64, LENGTH, units::meter);
+#define UNIT_LENGTH LENGTH(picongpu::base::PIC, picongpu::base::SI)
+
+    PIC_DEF_CATEGORY(float_X , MASS, units::kilogram);
+#define UNIT_MASS MASS(picongpu::base::PIC, picongpu::base::SI)
+
+    PIC_DEF_CATEGORY(float_64, CHARGE, units::ampere_hour);
+#define UNIT_CHARGE CHARGE(picongpu::base::PIC, picongpu::base::SI)
+
+    template<class T_Unit>
+    struct Scale;
+
+    template<class Units, typename T, template<typename> class NonLinearScale>
+    struct Scale<::units::unit_t<Units, T, NonLinearScale>>
+    {
+        using X = ::units::unit_t<Units, T, NonLinearScale>;
+        using UnitType = typename X::unit_type;
+        template<typename U1, typename U2>
+        HDINLINE auto convert(const U1 u1, const U2 u2)
+        {
+            return
+                myPow(LENGTH(u1, u2),1.0, std::abs(UnitType::base_unit_type::meter_ratio::num))
+                    * myPow(MASS(u1, u2),1.0, std::abs(UnitType::base_unit_type::kilogram_ratio::num))
+                    * myPow(TIME(u1, u2),1.0, std::abs(UnitType::base_unit_type::second_ratio::num))
+                    //* myPow(LENGTH(u1, u2),1.0, std::abs(UnitType::base_unit_type::radian_ratio::num))
+                    * myPow(CHARGE(u1, u2),1.0, std::abs(UnitType::base_unit_type::ampere_ratio::num))
+                //* myPow(LENGTH(u1, u2),1.0, std::abs(UnitType::base_unit_type::kelvin_ratio::num))
+                //* myPow(LENGTH(u1, u2),1.0, std::abs(UnitType::base_unit_type::mole_ratio::num))
+                //* myPow(LENGTH(u1, u2),1.0, std::abs(UnitType::base_unit_type::candela_ratio::num))
+                //* myPow(LENGTH(u1, u2),1.0, std::abs(UnitType::base_unit_type::byte_ratio::num))
+                ;
+        }
+
+    };
+
+    template<typename T, typename U1, typename U2>
+    HDINLINE auto scaling(T v, const U1 u1, const U2 u2)
+    {
+        //std::cout<<"rescale: "<<v<<std::endl;
+        return Scale<T>{}.convert(u1,u2) * v;
+    }
+
+} // namespace picongpu
+

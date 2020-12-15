@@ -73,7 +73,7 @@ namespace differentiation
                 T_direction
             >();
             return ( data( Index{} ) - data( lowerIndex ) ) /
-                cellSize[ T_direction ];
+                cellSize(base::PIC)[ T_direction ];
         }
     };
 

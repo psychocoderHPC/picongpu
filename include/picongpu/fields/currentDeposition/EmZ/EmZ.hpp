@@ -93,7 +93,7 @@ struct EmZ
     {
         floatD_X deltaPos;
         for ( uint32_t d = 0; d < simDim; ++d )
-            deltaPos[d] = ( velocity[d] * DELTA_T ) / cellSize[d];
+            deltaPos[d] = ( velocity[d] * DELTA_T(base::PIC) ) / cellSize(base::PIC)[d];
 
         /*note: all positions are normalized to the grid*/
         const floatD_X posStart( posEnd - deltaPos );
@@ -114,7 +114,7 @@ struct EmZ
         }
 
         Line< floatD_X > line;
-        const float_X chargeDensity = charge / CELL_VOLUME;
+        const float_X chargeDensity = charge / CELL_VOLUME(base::PIC);
 
         /* Esirkepov implementation for the current deposition */
         emz::DepositCurrent<

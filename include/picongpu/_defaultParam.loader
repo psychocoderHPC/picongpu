@@ -26,16 +26,18 @@
 #pragma once
 
 #include "picongpu/param/dimension.param"
+#include "picongpu/param/precision.param"
+#include "picongpu/param/variables.hpp"
 #if(BOOST_LANG_CUDA || BOOST_COMP_HIP)
 #   include "picongpu/param/mallocMC.param"
 #endif
 #include "picongpu/param/memory.param"
 #include "picongpu/param/random.param"
-#include "picongpu/param/precision.param"
 #include "picongpu/param/physicalConstants.param"
 //#include "picongpu/param/flylite.param"
 #include "picongpu/param/speciesConstants.param"
 #include "picongpu/param/speciesAttributes.param"
+
 //#include "picongpu/param/synchrotronPhotons.param"
 #include "picongpu/param/grid.param"
 #include "picongpu/param/pusher.param"

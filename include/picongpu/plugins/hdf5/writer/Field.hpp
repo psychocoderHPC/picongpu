@@ -275,7 +275,7 @@ struct Field
         // cellSize is {x, y, z} but fields are F[z][y][x]
         std::vector<float_X> gridSpacing(simDim, 0.0);
         for( uint32_t d = 0; d < simDim; ++d )
-            gridSpacing.at(simDim-1-d) = cellSize[d];
+            gridSpacing.at(simDim-1-d) = cellSize(base::PIC)[d];
         params->dataCollector->writeAttribute(params->currentStep,
                                               splashFloatXType, recordName.c_str(),
                                               "gridSpacing",
@@ -286,7 +286,7 @@ struct Field
         std::vector<float_64> gridGlobalOffset(simDim, 0.0);
         for( uint32_t d = 0; d < simDim; ++d )
             gridGlobalOffset.at(simDim-1-d) =
-                float_64(cellSize[d]) *
+                float_64(cellSize(base::PIC)[d]) *
                 float_64(splashGlobalDomainOffset[d]);
         params->dataCollector->writeAttribute(params->currentStep,
                                               ctDouble, recordName.c_str(),

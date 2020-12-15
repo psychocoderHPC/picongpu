@@ -51,11 +51,11 @@ namespace currentSolver
 
             // normalize deltaPos to innerCell units [0.; 1.)
             //   that means: dx_real   = v.x() * dt
-            //               dx_inCell = v.x() * dt / cellSize.x()
+            //               dx_inCell = v.x() * dt / cellSize(base::PIC).x()
             const float3_X deltaPos(
-                                    velocity.x() * deltaTime / cellSize.x(),
-                                    velocity.y() * deltaTime / cellSize.y(),
-                                    velocity.z() * deltaTime / cellSize.z());
+                                    velocity.x() * deltaTime / cellSize(base::PIC).x(),
+                                    velocity.y() * deltaTime / cellSize(base::PIC).y(),
+                                    velocity.z() * deltaTime / cellSize(base::PIC).z());
 
             const PosType oldPos = (PosType) (precisionCast<float_X > (pos) - deltaPos);
 
@@ -128,32 +128,32 @@ namespace currentSolver
 
             // j = rho * v
             //   = rho * dr / dt
-            //const float_X rho = charge * (1.0 / (CELL_WIDTH * CELL_HEIGHT * CELL_DEPTH));
+            //const float_X rho = charge * (1.0 / (CELL_WIDTH * CELL_HEIGHT(base::PIC) * CELL_DEPTH));
             //const float_X rho_dt = rho * (1.0 / deltaTime);
 
             // now carefully:
             // deltaPos is in "inCell" coordinates, that means:
-            //   deltaPos.x() = deltaPos_real.x() / cellSize.x()
+            //   deltaPos.x() = deltaPos_real.x() / cellSize(base::PIC).x()
             // to calculate the current density in realUnits it is
             //   j.x() = rho * deltaPos_real.x() / dt
-            //       = rho * deltaPos.x() * cellSize.x() / dt
+            //       = rho * deltaPos.x() * cellSize(base::PIC).x() / dt
             // So put adding the constant directly to rho results in:
             //   const float_X rho_dtX = rho * CELL_WIDTH;
-            //   const float_X rho_dtY = rho * CELL_HEIGHT;
+            //   const float_X rho_dtY = rho * CELL_HEIGHT(base::PIC);
             //   const float_X rho_dtZ = rho * CELL_DEPTH;
 
             // This is exactly the same like:
             // j = Q / A / t
-            //   j.x() = Q.x() * (1.0 / (CELL_HEIGHT * CELL_DEPTH * deltaTime));
+            //   j.x() = Q.x() * (1.0 / (CELL_HEIGHT(base::PIC) * CELL_DEPTH * deltaTime));
             //   j.y() = Q.y() * (1.0 / (CELL_WIDTH * CELL_DEPTH * deltaTime));
-            //   j.z() = Q.z() * (1.0 / (CELL_WIDTH * CELL_HEIGHT * deltaTime));
+            //   j.z() = Q.z() * (1.0 / (CELL_WIDTH * CELL_HEIGHT(base::PIC) * deltaTime));
             // with the difference, that (imagine a moving quader)
             //   Q.x() = charge * deltaPos_real.x() / cellsize.x()
             //       = charge * deltaPos.x() / 1.0
             //
-            const float_X rho_dtX = charge * (float_X(1.0) / (CELL_HEIGHT * CELL_DEPTH * deltaTime));
-            const float_X rho_dtY = charge * (float_X(1.0) / (CELL_WIDTH * CELL_DEPTH * deltaTime));
-            const float_X rho_dtZ = charge * (float_X(1.0) / (CELL_WIDTH * CELL_HEIGHT * deltaTime));
+            const float_X rho_dtX = charge * (float_X(1.0) / (CELL_HEIGHT(base::PIC) * CELL_DEPTH(base::PIC) * deltaTime));
+            const float_X rho_dtY = charge * (float_X(1.0) / (CELL_WIDTH(base::PIC) * CELL_DEPTH(base::PIC) * deltaTime));
+            const float_X rho_dtZ = charge * (float_X(1.0) / (CELL_WIDTH(base::PIC) * CELL_HEIGHT(base::PIC) * deltaTime));
 
             auto const atomicOp = typename T_Strategy::BlockReductionOp{};
 

@@ -248,10 +248,11 @@ namespace writeMeta
                       adiosUInt32Type.type, 1, (void*)&slides ));
 
             /* openPMD: required time attributes */
+            auto delta_t = DELTA_T(base::PIC);
             ADIOS_CMD(adios_define_attribute_byvalue(threadParams->adiosGroupHandle,
                       "dt", threadParams->adiosBasePath.c_str(),
-                      adiosFloatXType.type, 1, (void*)&DELTA_T ));
-            const float_X time = float_X( threadParams->currentStep ) * DELTA_T;
+                      adiosFloatXType.type, 1, (void*)&delta_t ));
+            const float_X time = float_X( threadParams->currentStep ) * DELTA_T(base::PIC);
             ADIOS_CMD(adios_define_attribute_byvalue(threadParams->adiosGroupHandle,
                       "time", threadParams->adiosBasePath.c_str(),
                       adiosFloatXType.type, 1, (void*)&time ));
@@ -263,14 +264,14 @@ namespace writeMeta
             log<picLog::INPUT_OUTPUT > ("ADIOS: meta: grid");
             ADIOS_CMD(adios_define_attribute_byvalue(threadParams->adiosGroupHandle,
                       "cell_width", threadParams->adiosBasePath.c_str(),
-                      adiosFloatXType.type, 1, (void*)&cellSize[0] ));
+                      adiosFloatXType.type, 1, (void*)&cellSize(base::PIC)[0] ));
             ADIOS_CMD(adios_define_attribute_byvalue(threadParams->adiosGroupHandle,
                       "cell_height", threadParams->adiosBasePath.c_str(),
-                      adiosFloatXType.type, 1, (void*)&cellSize[1] ));
+                      adiosFloatXType.type, 1, (void*)&cellSize(base::PIC)[1] ));
 
             ADIOS_CMD(adios_define_attribute_byvalue(threadParams->adiosGroupHandle,
                       "cell_depth", threadParams->adiosBasePath.c_str(),
-                      adiosFloatXType.type, 1, (void*)&cellSize[2] ));
+                      adiosFloatXType.type, 1, (void*)&cellSize(base::PIC)[2] ));
 
 
             /* write base units */

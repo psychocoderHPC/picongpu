@@ -1,9 +1,38 @@
-#pragma once
-
-#include <boost/program_options.hpp>
-#include <pmacc/ppFunctions.hpp>
-#include <pmacc/attribute/FunctionSpecifier.hpp>
 #include <iostream>
+#include <list>
+#include <array>
+
+#define PRINT_DO(v) #v
+#define PRINT(v) PRINT_DO(v)
+
+#define DEPAREN(X) ESC(ISH X)
+#define ISH(...) ISH __VA_ARGS__
+#define ESC(...) ESC_(__VA_ARGS__)
+#define ESC_(...) VAN ## __VA_ARGS__
+#define VANISH
+
+#if 0
+#define PMACC_JOIN_DO(x, y) x##y
+#define PMACC_JOIN(x, y) PMACC_JOIN_DO(x,y)
+
+#if !defined(__CUDACC__)
+    #define HDINLINE __device__ __host__
+    #define HINLINE __host__
+#else
+#define HDINLINE
+#define HINLINE
+#define __constant__
+#define __global__
+#endif
+
+
+
+#if defined(__CUDACC__)
+#   define PMACC_NO_NVCC_HDWARNING _Pragma("hd_warning_disable")
+#else
+#   define PMACC_NO_NVCC_HDWARNING
+#endif
+#endif
 
 #define PRINT_DO(v) #v
 #define PRINT(v) PRINT_DO(v)
@@ -18,14 +47,74 @@
 struct PMACC_JOIN(name,_t) {};      \
 constexpr PMACC_JOIN(name,_t) name
 
+
+
+#include "units.h"
+
+#define PIC_UNIT_FRACTION_DEF(namespaceName ,fraction, name) constexpr auto PMACC_JOIN(fraction, name) = namespaceName::PMACC_JOIN(PMACC_JOIN(fraction, name),_t)(1.0)
+#define PIC_UNIT_DEF(namespaceName , name)                          \
+    constexpr auto name = namespaceName::PMACC_JOIN(name,_t)(1.0); \
+    PIC_UNIT_FRACTION_DEF(namespaceName, femto, name);             \
+    PIC_UNIT_FRACTION_DEF(namespaceName, pico, name);               \
+    PIC_UNIT_FRACTION_DEF(namespaceName, nano, name);               \
+    PIC_UNIT_FRACTION_DEF(namespaceName, micro, name);              \
+    PIC_UNIT_FRACTION_DEF(namespaceName, milli, name);              \
+    PIC_UNIT_FRACTION_DEF(namespaceName, centi, name);              \
+    PIC_UNIT_FRACTION_DEF(namespaceName, deci, name);               \
+    PIC_UNIT_FRACTION_DEF(namespaceName, deca, name);               \
+    PIC_UNIT_FRACTION_DEF(namespaceName, hecto, name);              \
+    PIC_UNIT_FRACTION_DEF(namespaceName, kilo, name);               \
+    PIC_UNIT_FRACTION_DEF(namespaceName, mega, name);               \
+    PIC_UNIT_FRACTION_DEF(namespaceName, giga, name);               \
+    PIC_UNIT_FRACTION_DEF(namespaceName, tera, name);               \
+    PIC_UNIT_FRACTION_DEF(namespaceName, peta, name)
+
+namespace picongpu
+{
+    namespace units
+    {
+
+        PIC_UNIT_DEF(::units::length, meter);
+
+        PIC_UNIT_DEF(::units::mass, gram);
+
+        PIC_UNIT_DEF(::units::time, second);
+
+        PIC_UNIT_DEF(::units::angle, radian);
+
+        PIC_UNIT_DEF(::units::current, ampere);
+        constexpr auto scalar = ::units::dimensionless::scalar_t(1.0);
+
+        constexpr auto celsius = ::units::temperature::celsius_t(1.0);
+        constexpr auto fahrenheit = ::units::temperature::fahrenheit_t(1.0);
+        constexpr auto kelvin = ::units::temperature::kelvin_t(1.0);
+
+        constexpr auto mole = ::units::substance::mole_t(1.0);
+
+        PIC_UNIT_DEF(::units::luminous_intensity, candela);
+
+        PIC_UNIT_DEF(::units::charge, coulomb);
+        PIC_UNIT_DEF(::units::charge, ampere_hour);
+        PIC_UNIT_DEF(::units::energy, joule);
+        PIC_UNIT_DEF(::units::voltage, volt);
+
+        PIC_UNIT_DEF(::units::solid_angle, steradian);
+
+        PIC_UNIT_DEF(::units::frequency, hertz);
+
+    } // namespace units
+} // namespace picongpu
+
+#include <type_traits>
+
+
 namespace picongpu
 {
 
-    namespace units
+    namespace base
     {
         UNIT_SYSTEN(SI);
         UNIT_SYSTEN(PIC);
-        UNIT_SYSTEN(RENE);
     };
     namespace detail
     {
@@ -33,21 +122,21 @@ namespace picongpu
         struct Param;
 
         template<typename T_Param, typename T_FromUnit, typename T_UnitTo>
-        struct Unit;
+        struct Category;
 
     } // namespace detail
 
 
 
 
-    struct IGlobalVariable
+    struct IGlobalVariableHelp
     {
 
         virtual void help(boost::program_options::options_description& desc) = 0;
 
     };
 
-    struct IGlobalUnit
+    struct IGlobalCategory
     {
 
         virtual void convert() = 0;
@@ -87,12 +176,12 @@ namespace picongpu
             return instance;
         }
 
-        void announce(IGlobalVariable *handle)
+        void announce(IGlobalVariableHelp *handle)
         {
             data.push_back(handle);
         }
 
-        void announceUnitConversion(IGlobalUnit *handle)
+        void announceUnitConversion(IGlobalCategory *handle)
         {
             units.push_back(handle);
         }
@@ -118,8 +207,6 @@ namespace picongpu
             {
                 d->help(desc);
             }
-
-
         }
 
         void update()
@@ -135,22 +222,22 @@ namespace picongpu
             }
         }
 
-        std::list<IGlobalVariable *> data;
-        std::list<IGlobalUnit *> units;
+        std::list<IGlobalVariableHelp *> data;
+        std::list<IGlobalCategory *> units;
         std::list<IGlobalVariableConversion *> vars;
         std::list<IGlobalSetDefault *> defs;
     };
 
-} // namespace picongpu
-
-template<typename T>
-void setGlobalVarValue(T& ptr, const T& value)
-{
-    ptr = value;
-};
 
 
-#if( CUPLA_DEVICE_COMPILE == 1) //we are on gpu
+    template<typename T>
+    void setGlobalVarValue(T& ptr, const T& value)
+    {
+        ptr = value;
+    };
+
+
+#if( CUPLA_DEVICE_COMPILE == 1)
 #   define PICONGPU_VAR_NAMESPACE picongpu_var_device
 #else
 #   define PICONGPU_VAR_NAMESPACE picongpu_var_host
@@ -166,6 +253,20 @@ void setGlobalVarValue(T& ptr, const T& value)
        DEPAREN(type) name;                                     \
     } /*namespace pmacc_static_const_vector_device + id */     \
 
+
+    template<typename T_From, typename T_To>
+    HDINLINE auto convert(const T_From from, const T_To to) -> typename std::enable_if<!std::is_fundamental<T_From>::value,T_To>::type
+    {
+        T_To tmp = from;
+        return tmp;
+    }
+
+    template< typename T_From, typename T_To>
+    HDINLINE auto convert(const T_From from, const T_To) -> typename std::enable_if<std::is_fundamental<T_From>::value,T_To>::type
+    {
+        return T_To(from);
+    }
+
 #define REG_VAR_DEFAULT(name, ...)  \
 namespace PMACC_JOIN(simulation_,__COUNTER__)                                                                                  \
 {                                                                                                                       \
@@ -177,9 +278,10 @@ namespace PMACC_JOIN(simulation_,__COUNTER__)                                   
         }                                                                                                               \
         void setDefault() override                                                                                      \
         {                                                                                                               \
-            std::cout<<"set default"<< PRINT(name) << std::endl;                                                        \
-            auto f = [&](){ return __VA_ARGS__;};                                                                        \
-            setGlobalVarValue(PICONGPU_VAR_NAMESPACE::PMACC_JOIN(name, _SI) ,f());                                                        \
+            using destinationType = decltype(PICONGPU_VAR_NAMESPACE::PMACC_JOIN(name, _SI));                        \
+            auto f = [&](){ return (__VA_ARGS__);};                                                       \
+            std::cout<<"set default "<< PRINT(name)<< " " << convert(f(),name.unit()) << std::endl;                                          \
+            setGlobalVarValue(PICONGPU_VAR_NAMESPACE::PMACC_JOIN(name, _SI) ,static_cast<destinationType>(convert(f(),name.unit()).value()));                              \
         }                                                                                                               \
     };                                                                                                                  \
     static GloablObjectDefault dummyDefault;                                                                            \
@@ -189,7 +291,7 @@ namespace PMACC_JOIN(simulation_,__COUNTER__)                                   
                                                                                                                         \
 namespace PMACC_JOIN(simulation_,__COUNTER__)                                                                                  \
 {                                                                                                                       \
-    struct GloablCmdVar : IGlobalVariable                                                                               \
+    struct GloablCmdVar : IGlobalVariableHelp                                                                               \
     {                                                                                                                   \
         GloablCmdVar()                                                                                                  \
         {                                                                                                               \
@@ -199,8 +301,8 @@ namespace PMACC_JOIN(simulation_,__COUNTER__)                                   
         {                                                                                                               \
             using destinationType = decltype(PICONGPU_VAR_NAMESPACE::PMACC_JOIN(name, _SI));                                                                                                            \
             desc.add_options()                                                                                          \
-                (cmdName, po::value<destinationType>(&PICONGPU_VAR_NAMESPACE::PMACC_JOIN(name, _SI))->default_value(PICONGPU_VAR_NAMESPACE::PMACC_JOIN(name, _SI)), cmdDescription);                          \
-            std::cout<<cmdName <<" : " <<cmdDescription <<" : default = "<< PICONGPU_VAR_NAMESPACE::PMACC_JOIN(name, _SI)<<std::endl; \
+            (cmdName, po::value<destinationType>(&PICONGPU_VAR_NAMESPACE::PMACC_JOIN(name, _SI))->default_value(PICONGPU_VAR_NAMESPACE::PMACC_JOIN(name, _SI)), cmdDescription);                          \
+            std::cout<<cmdName <<" : " <<cmdDescription <<" : default = "<< name(base::SI) * name.unit() <<std::endl; \
         }                                                                                                               \
     };                                                                                                                  \
     static GloablCmdVar dummy;                                                                                          \
@@ -213,7 +315,7 @@ namespace PMACC_JOIN(simulation_,__COUNTER__)                                   
                                                                                                         \
 namespace PMACC_JOIN(simulation_,__COUNTER__)                                  \
 {                                                                                                       \
-    struct GloablObject : IGlobalUnit                                                                   \
+    struct GloablObject : IGlobalCategory                                                                   \
     {                                                                                                   \
         GloablObject()                                                                                  \
         {                                                                                               \
@@ -250,7 +352,7 @@ namespace PMACC_JOIN(simulation_,__COUNTER__)                                   
             std::cout<<"fill "<< PRINT(PMACC_JOIN(name, PMACC_JOIN(_, unitSystem))) << std::endl;       \
             using destinationType = decltype(PICONGPU_VAR_NAMESPACE::VAR_NAME(name, unitSystem));       \
             auto f = __VA_ARGS__;                                                                       \
-            setGlobalVarValue(PICONGPU_VAR_NAMESPACE::VAR_NAME(name, unitSystem), static_cast<destinationType>(f()));                                   \
+            setGlobalVarValue(PICONGPU_VAR_NAMESPACE::VAR_NAME(name, unitSystem), static_cast<destinationType>(f(name(base::unitSystem))));                                   \
             destinationType* ptr = nullptr;                          \
             cudaGetSymbolAddress((void **)&ptr, picongpu_var_device::VAR_NAME(name, unitSystem));   \
             uploadToDevice(ptr, PICONGPU_VAR_NAMESPACE::VAR_NAME(name, unitSystem));                    \
@@ -260,109 +362,33 @@ namespace PMACC_JOIN(simulation_,__COUNTER__)                                   
 }
 
 
-template<typename T_Param, typename T_Unit = picongpu::units::SI_t>
-HDINLINE auto getParam(T_Param const param, T_Unit unit = T_Unit{})
-{
-    return picongpu::detail::Param<T_Param, T_Unit>::get();
-}
 
-
-template<typename T_Param, typename T_FromUnit, typename T_ToUnit>
-HDINLINE auto scale(T_Param const param, T_FromUnit const, T_ToUnit const)
-{
-    return picongpu::detail::Unit<T_Param, T_FromUnit, T_ToUnit>::get();
-}
-
-
-template<typename T_Lhs, typename T_Op, typename T_Rhs>
-struct Expr
-{
-
-};
-
-struct Mul
-{
-
-};
-
-// function template for the + operator
-template<typename T_Lhs, typename T_Rhs>
-Expr<T_Lhs,Mul,T_Rhs> operator*(const T_Lhs a, const T_Rhs b){
-    return Expr<T_Lhs,Mul,T_Rhs>(a,b);
-}
-
-#define DEF_UNIT(definition, nameCategory, nameSingular, nameAbbreviation)  \
+#define DEF_CATEGORY_ALIAS(definition, baseUnit)                            \
 struct PMACC_JOIN(definition, _t)                                           \
 {                                                                           \
-    static std::string category()                                           \
+    static auto unit()                                                      \
     {                                                                       \
-        return nameCategory;                                                \
+        return decltype(baseUnit)(1.);                                      \
     }                                                                       \
-    static std::string name()                                               \
+    template<typename U1>                                                   \
+    HDINLINE auto operator()(const U1 u1) const                                   \
     {                                                                       \
-        return nameSingular;                                                \
+        return  picongpu::detail::Category<PMACC_JOIN(definition, _t), U1, base::SI_t>::get();             \
     }                                                                       \
-    static std::string abbreviation()                                       \
+    template<typename U1,typename U2>                                                   \
+    HDINLINE auto operator()(const U1 u1, const U2 u2) const                                   \
     {                                                                       \
-        return nameAbbreviation;                                            \
+        return  picongpu::detail::Category<PMACC_JOIN(definition, _t), U1, U2>::get();             \
     }                                                                       \
 };                                                                          \
 constexpr PMACC_JOIN(definition, _t) definition
 
-#define PIC_DEF_UNIT(type, definition, nameCategory, nameSingular, nameAbbreviation, ...) \
-    DEF_UNIT(definition, nameCategory, nameSingular, nameAbbreviation);                   \
-    UNIT_ADD(type, definition, PIC);                                                      \
-    UNIT_BASE(definition, PIC, __VA_ARGS__)
 
-#define DEF_ALIAS(name)                                                     \
-struct PMACC_JOIN(name, _t)                                                 \
-{                                                                           \
-    template<typename T_ToUnit = picongpu::units::PIC_t>                              \
-    HDINLINE auto operator()( T_ToUnit const unit = T_ToUnit{} ) const      \
-    {                                                                       \
-        return getParam(PMACC_JOIN(name, _t){}, unit);                      \
-    }                                                                       \
-};                                                                          \
-constexpr PMACC_JOIN(name, _t) name
-
-
-#define CREATE_GLOBAL_VAR(type, name, unitSystem)                           \
-PICONGPU_VAR_DECL(type,  PMACC_JOIN(name, PMACC_JOIN(_, unitSystem)));      \
-static HDINLINE auto name(picongpu::units::PMACC_JOIN(unitSystem,_t) const) \
-{                                                       \
-    return PICONGPU_VAR_NAMESPACE::PMACC_JOIN(name, PMACC_JOIN(_, unitSystem));      \
-}
-
-
-
-
-#define INIT(name, unitSystem, ...)                                         \
-    REG_PARAM_CONVERSION(name, unitSystem, __VA_ARGS__)
-
-#define DEF_GLOBAL_VAR(type, name, ...) \
-    CREATE_GLOBAL_VAR(type, name, SI);                                      \
-    INIT(name, SI, __VA_ARGS__)
-
-#define PIC_DEF_GLOBAL_VAR(type, name, siLambda, typeUnitPic, picLambda) \
-DEF_GLOBAL_VAR(type, name, DEPAREN(siLambda)); \
-GLOBAL_VAR_ADD(typeUnitPic, name, PIC); \
-INIT(name, PIC, DEPAREN(picLambda))
-
-
-
-#define DEF_PARAMETER(type, name, cmd, help)                                \
-    CREATE_GLOBAL_VAR(type, name, SI);                                      \
-    REG_CMD_VAR(name, cmd, help)
-
-#define PARAM_ADD(type, name, unitSystem)  CREATE_GLOBAL_VAR(type, name, unitSystem)
-#define GLOBAL_VAR_ADD(type, name, unitSystem)  CREATE_GLOBAL_VAR(type, name, unitSystem)
-
-
-#define UNIT_ADD_DO(type, name, fromSystem, unitSystem)                                                                 \
+#define ADD_CATEGORY_DO(type, name, fromSystem, unitSystem)                                                                 \
 PICONGPU_VAR_DECL(type,UNIT_VAR_NAME(name, fromSystem, unitSystem));                                                    \
 namespace detail{                                                                                                       \
     template<>                                                                                                          \
-    struct Unit<PMACC_JOIN(name, _t), PMACC_JOIN(picongpu::units::fromSystem,_t),PMACC_JOIN(picongpu::units::unitSystem,_t)>                \
+    struct Category<PMACC_JOIN(name, _t), PMACC_JOIN(picongpu::base::fromSystem,_t),PMACC_JOIN(picongpu::base::unitSystem,_t)>                \
     {                                                                                                                   \
         static HDINLINE auto get()                                                                                      \
         {                                                                                                               \
@@ -371,9 +397,80 @@ namespace detail{                                                               
     };                                                                                                                  \
 }
 
-#define UNIT_ADD(type, name, unitSystem)                    \
-    UNIT_ADD_DO(type, name, SI, unitSystem);                \
-    UNIT_ADD_DO(type, name, unitSystem, SI)
+#define ADD_CATEGORY(type, name, unitSystem)                    \
+    ADD_CATEGORY_DO(type, name, SI, unitSystem);                \
+    ADD_CATEGORY_DO(type, name, unitSystem, SI)
+
+
+#define PIC_DEF_CATEGORY(type, definition, baseUnit) \
+    DEF_CATEGORY_ALIAS(definition, baseUnit);                   \
+    ADD_CATEGORY(type, definition, PIC);
+
+
+
+
+#define DEF_ALIAS(name, baseUnit)                                                     \
+struct PMACC_JOIN(name, _t)                                                 \
+{                                                                                     \
+    PMACC_NO_NVCC_HDWARNING\
+    template<typename T_ToUnit>                              \
+    HDINLINE auto operator()( T_ToUnit const unitSystem ) const      \
+    {                                                                       \
+        return PMACC_JOIN(get_,name)(unitSystem);                    \
+    }                                                                       \
+    HDINLINE static auto unit()                                                    \
+    {                                                  \
+        return baseUnit;                                                  \
+    }   \
+    template<typename U1, typename U2> \
+    HDINLINE static auto sfactor(const U1 u1, const U2 u2)                                                    \
+    {                                                  \
+        return scaling(unit(), u1,u2).value();                                                  \
+    }                                                                                      \
+};                                                                          \
+constexpr PMACC_JOIN(name, _t) name
+
+
+
+#define CREATE_GLOBAL_VAR(type, name, unitSystem)                           \
+    PICONGPU_VAR_DECL(type,  PMACC_JOIN(name, PMACC_JOIN(_, unitSystem))); \
+                                                                            \
+HDINLINE auto PMACC_JOIN(get_,name)(picongpu::base::PMACC_JOIN(unitSystem,_t) const) \
+{                                                       \
+    return PICONGPU_VAR_NAMESPACE::PMACC_JOIN(name, PMACC_JOIN(_, unitSystem));      \
+}
+
+
+#define INIT(name, unitSystem)                                         \
+    REG_PARAM_CONVERSION(name, unitSystem, [&](auto x){return name(picongpu::base::SI) * scaling(PMACC_JOIN(name,_t)::unit(), base::SI, base::unitSystem);})
+
+
+#define GLOBAL_VAR_CONVERSION(name, unitSystem, ...)                                         \
+    REG_PARAM_CONVERSION(name, unitSystem, __VA_ARGS__)
+
+
+#define DEF_GLOBAL_VAR(type, name, unit, ...) \
+    CREATE_GLOBAL_VAR(type, name, SI); \
+    DEF_ALIAS(name, unit);                \
+    REG_PARAM_CONVERSION(name, SI, __VA_ARGS__)
+
+
+#define DEF_PARAMETER(type, name, cmd, help, unit)                                \
+    CREATE_GLOBAL_VAR(type, name, SI);                                            \
+    DEF_ALIAS(name, unit);                                                                             \
+    REG_CMD_VAR(name, cmd, help)
+
+#define PIC_DEF_PARAMETER(type, name, cmd, help, unit)                                \
+    CREATE_GLOBAL_VAR(type, name, SI);                                            \
+    DEF_ALIAS(name, unit);                                                                             \
+    REG_CMD_VAR(name, cmd, help)                                                      \
+    INIT(name, PIC);
+
+
+#define GLOBAL_VAR_ADD(type, name, unitSystem)  \
+    CREATE_GLOBAL_VAR(type, name, unitSystem)
+
+
 
 #define PARAM_DEFAULT(name, ...)                            \
     REG_VAR_DEFAULT(name, __VA_ARGS__)
@@ -389,13 +486,13 @@ namespace detail{                                                               
 
 
 
-#define LEGACY_UNIT(name, unitName)                     \
-template<typename T_UnitSystem>                         \
-static HDINLINE auto name(T_UnitSystem const unitSystem) \
-{                                                       \
-    return scale(unitName, unitSystem, picongpu::units::SI);      \
-}                                                       \
-static HDINLINE auto name()                              \
-{                                                       \
-    return scale(unitName, picongpu::units::PIC, picongpu::units::SI);      \
-}
+    template<typename T_Scale, typename T>
+    constexpr auto myPow(T_Scale scale, T v, int exp) -> T
+    {
+        return exp == 0 ? v : myPow(scale, v * scale, exp - 1);
+    }
+
+
+
+} // namespace picongpu
+

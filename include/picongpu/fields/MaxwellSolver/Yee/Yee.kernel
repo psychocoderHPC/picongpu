@@ -113,7 +113,7 @@ namespace yee
             cupla::__syncthreads( acc );
 
             const float_X c2 = SPEED_OF_LIGHT * SPEED_OF_LIGHT;
-            const float_X dt = DELTA_T;
+            const float_X dt = DELTA_T(base::PIC);
 
             ForEachIdx<
                 IdxConfig<
@@ -211,7 +211,7 @@ namespace yee
 
             cupla::__syncthreads( acc );
 
-            const float_X dt = DELTA_T;
+            const float_X dt = DELTA_T(base::PIC);
 
             ForEachIdx<
                 IdxConfig<

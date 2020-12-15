@@ -25,68 +25,35 @@
 namespace picongpu
 {
 
-    namespace SI
-    {
-        /** Duration of one timestep
-         *  unit: seconds */
-        CREATE_VAR(
-            float_64, DELTA_T_SI,
-            float_X, DELTA_T,
-            "detlat_t", "delta time is .....",
-            {
-                how to normalize;
-            }
-        );
 
-        __device__ float_64 DELTA_T_SI;
-        __device__ float_X DELTA_T;
+    //CREATE_VAR(float_64 DELTA_T_SI);
+    /** equals X
+     *  unit: meter */
+    PARAM_DEFAULT(DELTA_T, 1.79e-16);
 
-        void help_DELTA_T()
-        {
-            boost::arg(detlat_t, ppm.setvalue(DELTA_T),  "detlat_t", "delta time is .....");
-        }
+    /** equals X
+      *  unit: meter */
+    PARAM_DEFAULT(CELL_WIDTH, 9.34635e-8);
+    /** equals Y
+     *  unit: meter */
+    PARAM_DEFAULT(CELL_HEIGHT, CELL_WIDTH(base::SI));
+    /** equals Z
+     *  unit: meter */
+    PARAM_DEFAULT(CELL_DEPTH, CELL_WIDTH(base::SI));
 
-        void set_DELTA_T()
-        {
-            how to normalize;
-        }
+    /** Note on units in reduced dimensions
+     *
+     * In 2D3V simulations, the CELL_DEPTH_SI (Z) cell length
+     * is still used for normalization of densities, etc.
+     *
+     * A 2D3V simulation in a cartesian PIC simulation such as
+     * ours only changes the degrees of freedom in motion for
+     * (macro) particles and all (field) information in z
+     * travels instantaneous, making the 2D3V simulation
+     * behave like the interaction of infinite "wire particles"
+     * in fields with perfect symmetry in Z.
+     */
 
-        struct RegisterPOaram_DETLTA_T
-        {
-            RegisterPOaram()
-            {
-                register(DETLTA_T);
-            }
-        }
-        static tmp_DETLTA_T = RegisterPOaram_DETLTA_T();
-
-
-        /** equals X
-         *  unit: meter */
-
-        /** equals X
-          *  unit: meter */
-        CREATE_VAR( float_64 CELL_WIDTH_SI = 9.34635e-8);
-        /** equals Y
-         *  unit: meter */
-        CREATE_VAR( float_64 CELL_HEIGHT_SI /*= CELL_WIDTH_SI*/);
-        /** equals Z
-         *  unit: meter */
-        CREATE_VAR( float_64 CELL_DEPTH_SI /*= CELL_WIDTH_SI*/);
-
-        /** Note on units in reduced dimensions
-         *
-         * In 2D3V simulations, the CELL_DEPTH_SI (Z) cell length
-         * is still used for normalization of densities, etc.
-         *
-         * A 2D3V simulation in a cartesian PIC simulation such as
-         * ours only changes the degrees of freedom in motion for
-         * (macro) particles and all (field) information in z
-         * travels instantaneous, making the 2D3V simulation
-         * behave like the interaction of infinite "wire particles"
-         * in fields with perfect symmetry in Z.
-         */
-    } //namespace SI
 
     //! Defines the size of the absorbing zone (in cells)
     constexpr uint32_t ABSORBER_CELLS[3][2] = {

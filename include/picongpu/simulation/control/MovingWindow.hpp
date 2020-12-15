@@ -81,9 +81,9 @@ private:
             const uint32_t gpuNumberOfCellsInMoveDirection = subGrid.getLocalDomain().size[moveDirection];
 
             /* unit PIConGPU length */
-            const float_64 cellSizeInMoveDirection = float_64(cellSize[moveDirection]);
+            const float_64 cellSizeInMoveDirection = float_64(cellSize(base::PIC)[moveDirection]);
 
-            const float_64 deltaWayPerStep = (windowMovingSpeed * float_64(DELTA_T));
+            const float_64 deltaWayPerStep = (windowMovingSpeed * float_64(DELTA_T(base::PIC)));
 
             /* How many cells the virtual particle with speed of light is pushed forward
              * at the begin of the simulation.

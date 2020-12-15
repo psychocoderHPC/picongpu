@@ -136,6 +136,7 @@ public:
 
     virtual void pluginRegisterHelp(po::options_description& desc)
     {
+        GlobalRegister::inst().loadHelp(desc);
         SimulationHelper<simDim>::pluginRegisterHelp(desc);
         desc.add_options()
             ("versionOnce", po::value<bool>(&showVersionOnce)->zero_tokens(), "print version information once and start")
@@ -265,6 +266,8 @@ public:
         domainAdjuster(gridSizeGlobal, gridSizeLocal, gridOffset);
 
         Environment<simDim>::get().initGrids(gridSizeGlobal, gridSizeLocal, gridOffset);
+
+        GlobalRegister::inst().update();
 
         if( !slidingWindow )
         {

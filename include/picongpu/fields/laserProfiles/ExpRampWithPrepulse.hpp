@@ -92,7 +92,7 @@ namespace expRampWithPrepulse
         /* initialize the laser not in the first cell is equal to a negative shift
          * in time
          */
-        static constexpr float_X laserTimeShift = Params::initPlaneY * CELL_HEIGHT / SPEED_OF_LIGHT;
+        static constexpr float_X laserTimeShift = Params::initPlaneY * CELL_HEIGHT(base::PIC) / SPEED_OF_LIGHT;
 
         /* a symmetric pulse will be initialized at position z=0 for
          * a time of RAMP_INIT * PULSE_LENGTH + LASER_NOFOCUS_CONSTANT = INIT_TIME.
@@ -159,7 +159,7 @@ namespace acc
             constexpr uint8_t planeNormalDir = 1u;
             DataSpace< simDim > offsetToCenterOfPlane( m_offsetToTotalDomain );
             offsetToCenterOfPlane[ planeNormalDir ] = 0; // do not shift origin of plane normal
-            floatD_X const pos = precisionCast< float_X >( localCell + offsetToCenterOfPlane ) * cellSize.shrink< simDim >();
+            floatD_X const pos = precisionCast< float_X >( localCell + offsetToCenterOfPlane ) * cellSize(base::PIC).shrink< simDim >();
             // @todo add half-cells via traits::FieldPosition< Solver::NumicalCellType, FieldE >()
 
             // transversal position only
@@ -181,7 +181,7 @@ namespace acc
                  *
                  * The `correctionFactor` assume that the wave is moving in y direction.
                  */
-                auto const correctionFactor = ( SPEED_OF_LIGHT * DELTA_T ) / CELL_HEIGHT * 2._X;
+                auto const correctionFactor = ( SPEED_OF_LIGHT * DELTA_T(base::PIC) ) / CELL_HEIGHT(base::PIC) * 2._X;
 
                 // jump over the guard of the electric field
                 m_dataBoxE( localCell + SuperCellSize::toRT() * GuardSize::toRT() ) +=  correctionFactor * m_elong;
@@ -341,7 +341,7 @@ namespace acc
              * in time
              */
             const float_64 runTime = Unitless::time_start_init - Unitless::laserTimeShift +
-                DELTA_T * currentStep;
+                DELTA_T(base::PIC) * currentStep;
 
             phase = float_X( Unitless::w * runTime ) + Unitless::LASER_PHASE;
 

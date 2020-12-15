@@ -36,7 +36,7 @@ namespace derivedAttributes
     BoundElectronDensity::getUnit() const
     {
         const float_64 UNIT_VOLUME = UNIT_LENGTH * UNIT_LENGTH * UNIT_LENGTH;
-        return particles::TYPICAL_NUM_PARTICLES_PER_MACROPARTICLE / UNIT_VOLUME;
+        return particles::TYPICAL_NUM_PARTICLES_PER_MACROPARTICLE(base::PIC) / UNIT_VOLUME;
     }
 
     template< class T_Particle >
@@ -49,7 +49,7 @@ namespace derivedAttributes
 
         // calculate new attribute
         float_X const boundElectronDensity = weighting * boundElectrons /
-            ( particles::TYPICAL_NUM_PARTICLES_PER_MACROPARTICLE * CELL_VOLUME );
+            ( particles::TYPICAL_NUM_PARTICLES_PER_MACROPARTICLE(base::PIC) * CELL_VOLUME(base::PIC) );
 
         return boundElectronDensity;
     }

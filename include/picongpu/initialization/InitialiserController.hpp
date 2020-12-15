@@ -118,9 +118,9 @@ public:
             const float_32 charge = frame::getCharge<FrameType>();
             const float_32 mass = frame::getMass<FrameType>();
             const auto densityRatio = traits::GetDensityRatio< T_Species >::type::getValue( );
-            const auto density = BASE_DENSITY * densityRatio;
+            const auto density = BASE_DENSITY(base::PIC) * densityRatio;
             log<picLog::PHYSICS >("species %2%: omega_p * dt <= 0.1 ? %1%") %
-                                 (sqrt(density * charge / mass * charge / EPS0) * DELTA_T) %
+                                 (sqrt(density * charge / mass * charge / EPS0(base::PIC)) * DELTA_T(base::PIC)) %
                                   FrameType::getName();
         }
     };
@@ -133,8 +133,8 @@ public:
         if (Environment<simDim>::get().GridController().getGlobalRank() == 0)
         {
             log<picLog::PHYSICS >("Courant c*dt <= %1% ? %2%") %
-                                 (1./math::sqrt(INV_CELL2_SUM)) %
-                                 (SPEED_OF_LIGHT * DELTA_T);
+                                 (1./math::sqrt(INV_CELL2_SUM(base::PIC))) %
+                                 (SPEED_OF_LIGHT * DELTA_T(base::PIC));
 
             using SpeciesWithMass = typename pmacc::particles::traits::FilterByFlag<
                 VectorAllSpecies,
@@ -153,12 +153,12 @@ public:
 #if 0
             if (fields::laserProfiles::Selected::INIT_TIME > float_X(0.0))
                 log<picLog::PHYSICS >("y-cells per wavelength: %1%") %
-                                     (fields::laserProfiles::Selected::WAVE_LENGTH / CELL_HEIGHT);
+                                     (fields::laserProfiles::Selected::WAVE_LENGTH / CELL_HEIGHT(base::PIC));
 #endif
             const int localNrOfCells = cellDescription->getGridLayout().getDataSpaceWithoutGuarding().productOfComponents();
             log<picLog::PHYSICS >("macro particles per device: %1%") %
                                  (localNrOfCells * particles::TYPICAL_PARTICLES_PER_CELL * (bmpl::size<VectorAllSpecies>::type::value));
-            log<picLog::PHYSICS >("typical macro particle weighting: %1%") % (particles::TYPICAL_NUM_PARTICLES_PER_MACROPARTICLE);
+            log<picLog::PHYSICS >("typical macro particle weighting: %1%") % (particles::TYPICAL_NUM_PARTICLES_PER_MACROPARTICLE(base::PIC));
 
 
             log<picLog::PHYSICS >("UNIT_SPEED %1%") % UNIT_SPEED;

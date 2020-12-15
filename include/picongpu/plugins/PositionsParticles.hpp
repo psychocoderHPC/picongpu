@@ -76,7 +76,7 @@ struct SglParticle
     {
         floatD_64 pos;
         for(uint32_t i=0;i<simDim;++i)
-            pos[i]=( v.getGlobalCell()[i] * cellSize[i]*UNIT_LENGTH);
+            pos[i]=( v.getGlobalCell()[i] * cellSize(base::PIC)[i]*UNIT_LENGTH);
 
         const float3_64 mom( precisionCast<float_64>(v.momentum.x()) * UNIT_MASS * UNIT_SPEED,
                              precisionCast<float_64>(v.momentum.y()) * UNIT_MASS * UNIT_SPEED,
@@ -212,7 +212,7 @@ public:
         /*FORMAT OUTPUT*/
         if (positionParticle.mass != float_X(0.0))
             std::cout << "[ANALYSIS] [" << rank << "] [COUNTER] [" << pluginPrefix << "] [" << currentStep << "] "
-            << std::setprecision(16) << float_64(currentStep) * SI::DELTA_T_SI << " "
+            << std::setprecision(16) << float_64(currentStep) * DELTA_T(base::SI) << " "
             << positionParticle << "\n"; // no flush
     }
 

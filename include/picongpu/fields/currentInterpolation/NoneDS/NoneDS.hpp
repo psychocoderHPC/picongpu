@@ -180,9 +180,9 @@ namespace detail
 
             DataSpace< dim > const self;
 
-            const ComponentJ deltaT = DELTA_T;
-            ComponentJ const constE = ( float_X( 1.0 )  / EPS0 ) * deltaT;
-            ComponentJ const constB = ( float_X( 0.25 ) / EPS0 ) * deltaT * deltaT;
+            const ComponentJ deltaT = DELTA_T(base::PIC);
+            ComponentJ const constE = ( float_X( 1.0 )  / EPS0(base::PIC) ) * deltaT;
+            ComponentJ const constB = ( float_X( 0.25 ) / EPS0(base::PIC) ) * deltaT * deltaT;
 
             detail::LinearInterpolateComponentPlaneUpper<
                 dim,

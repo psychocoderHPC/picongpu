@@ -78,7 +78,7 @@ struct Push
 
     TypeMomentum mom = particle[ momentum_ ];
 
-    const float_X deltaT = DELTA_T;
+    const float_X deltaT = DELTA_T(base::PIC);
     const uint32_t dimMomentum = GetNComponents<TypeMomentum>::value;
     // the transver data type adjust to 3D3V, 2D3V, 2D2V, ...
     using VariableType = pmacc::math::Vector< picongpu::float_X, simDim + dimMomentum >;
@@ -143,7 +143,7 @@ struct Push
       for(uint32_t i=0; i<picongpu::simDim; ++i)
       {
           posInterpolation[i] = var[i];
-          pos[i] = var[i] * cellSize[i];
+          pos[i] = var[i] * cellSize(base::PIC)[i];
       }
 
       auto fieldE = fieldEFunc( posInterpolation,
@@ -167,7 +167,7 @@ struct Push
       const float_X charge2 = charge*charge;
       const float3_X beta = velocity / c;
 
-      const float_X prefactorRR = 2./3. * charge2 * charge2 / (4.*PI*EPS0 * mass*mass * c2*c2);
+      const float_X prefactorRR = 2./3. * charge2 * charge2 / (4.*PI*EPS0(base::PIC) * mass*mass * c2*c2);
       const float3_X lorentz = fieldE + conversionMomentum2Beta * c * pmacc::math::cross(mom, fieldB);
       const float_X fieldETimesBeta = pmacc::math::dot(fieldE, mom) * conversionMomentum2Beta;
       const float3_X radReactionVec = c * (pmacc::math::cross(fieldE, fieldB) +
@@ -180,7 +180,7 @@ struct Push
 
       VariableType returnVar;
       for(uint32_t i=0; i<picongpu::simDim; ++i)
-        returnVar[i] = diffPos[i] / cellSize[i];
+        returnVar[i] = diffPos[i] / cellSize(base::PIC)[i];
 
       for(uint32_t i=0; i<dimMomentum; ++i)
         returnVar[simDim+i] = diffMom[i];

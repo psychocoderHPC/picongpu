@@ -89,7 +89,7 @@ namespace ionization
                                 * math::exp(-float_X(2./3.) * charExpArg);
 
                 /* simulation time step in atomic units */
-                const float_X timeStepAU = float_X(DELTA_T / ATOMIC_UNIT_TIME);
+                const float_X timeStepAU = float_X(DELTA_T(base::PIC) / ATOMIC_UNIT_TIME);
                 /* ionization probability
                  *
                  * probability = rate * time step

@@ -26,32 +26,135 @@
 
 namespace picongpu
 {
-    // normed grid parameter
-    CREATE_VAR( float_X DELTA_T); // = float_X( SI::DELTA_T_SI / UNIT_TIME ));
-    CREATE_VAR( float_X CELL_WIDTH); // = float_X( SI::CELL_WIDTH_SI / UNIT_LENGTH ));
-    CREATE_VAR( float_X CELL_HEIGHT); // = float_X( SI::CELL_HEIGHT_SI / UNIT_LENGTH ));
-    CREATE_VAR( float_X CELL_DEPTH); // = float_X( SI::CELL_DEPTH_SI / UNIT_LENGTH ));
-    CREATE_VAR( float3_X cellSize); // = {CELL_WIDTH, CELL_HEIGHT, CELL_DEPTH});
+    CREATE_GLOBAL_VAR(float3_X, cellSize, PIC);
+    DEF_GLOBAL_VAR(float3_64, cellSize, CELL_WIDTH.unit(), [=](auto x)
+    {
+        x.x() = CELL_WIDTH(base::SI);
+        x.y() = CELL_HEIGHT(base::SI);
+        x.z() = CELL_DEPTH(base::SI);
+        return x;
+    });
 
-    // always a 3D cell, even in 1D3V or 2D3V
-    CREATE_VAR( float_X CELL_VOLUME); // = CELL_WIDTH * CELL_HEIGHT * CELL_DEPTH);
+    GLOBAL_VAR_CONVERSION(cellSize, PIC, [=](auto x)
+    {
+        for (int i = 0; i < cellSize(base::SI).dim; ++i)
+            x[i] = cellSize(base::SI)[i] * cellSize.sfactor(base::SI, base::PIC);
+        return x;
+    });
 
     // only used for CFL checks
-#if (SIMDIM==DIM3)
-    CREATE_VAR( float_X INV_CELL2_SUM);
-#if 0
-    =
-        1.0 / ( CELL_WIDTH  * CELL_WIDTH  ) +
-        1.0 / ( CELL_HEIGHT * CELL_HEIGHT ) +
-        1.0 / ( CELL_DEPTH  * CELL_DEPTH  ));
-#endif
-#elif(SIMDIM==DIM2)
-    constexpr float_X INV_CELL2_SUM =
-        1.0 / ( CELL_WIDTH  * CELL_WIDTH  ) +
-        1.0 / ( CELL_HEIGHT * CELL_HEIGHT );
-#else
-    constexpr float_X INV_CELL2_SUM =
-        1.0 / ( CELL_WIDTH  * CELL_WIDTH );
-#endif
+    CREATE_GLOBAL_VAR(float_X, INV_CELL2_SUM, PIC);
+    DEF_GLOBAL_VAR(float_64, INV_CELL2_SUM, units::scalar, [=](auto tmp)
+    {
+        tmp = 0.;
+        for(uint32_t d = 0u; d < simDim; ++d)
+            tmp += 1.0 / (cellSize(base::SI)[d] * cellSize(base::SI)[d]);
+        return tmp;
+    });
 
+    GLOBAL_VAR_CONVERSION(INV_CELL2_SUM, PIC, [=](auto tmp)
+    {
+        tmp = 0.0;
+        for(uint32_t d = 0u; d < simDim; ++d)
+            tmp += 1.0 / (cellSize(base::PIC)[d] * cellSize(base::PIC)[d]);
+        return tmp;
+    });
+
+    CREATE_GLOBAL_VAR(float_X, CELL_VOLUME, PIC);
+    DEF_GLOBAL_VAR(float_64, CELL_VOLUME, units::scalar, [=](auto tmp)
+    {
+        return cellSize(base::SI).productOfComponents();
+    });
+
+    GLOBAL_VAR_CONVERSION(CELL_VOLUME, PIC, [=](auto tmp)
+    {
+        return cellSize(base::PIC).productOfComponents();
+    });
+
+#if 0
+    // normed grid parameter
+
+
+    UNIT_BASE(UNIT_TIME, PIC, [&]()
+    {
+        return DELTA_T(base::SI);
+    });
+
+    UNIT_BASE(UNIT_LENGTH, PIC, [&]()
+    {
+        return CELL_WIDTH(base::SI);
+    });
+
+    INIT(DELTA_T, PIC, [&]()
+    {
+        return DELTA_T(base::SI) / UNIT_TIME;
+    });
+
+    INIT(CELL_WIDTH, PIC, [&]()
+    {
+        return CELL_WIDTH(base::SI) / UNIT_LENGTH;
+    });
+
+    INIT(CELL_HEIGHT, PIC, [&]()
+    {
+        return CELL_HEIGHT(base::SI) / UNIT_LENGTH;
+    });
+
+    INIT(CELL_DEPTH, PIC, [&]()
+    {
+        return CELL_DEPTH(base::SI) / UNIT_LENGTH;
+    });
+
+    // always a 3D cell, even in 1D3V or 2D3V
+    DEF_GLOBAL_VAR(float3_64, cellSize, [&]()
+    {
+        return float3_64(CELL_WIDTH(base::SI), CELL_HEIGHT(base::SI), CELL_DEPTH(base::SI));
+    });
+    GLOBAL_VAR_ADD(float3_X, cellSize, PIC);
+
+    INIT(cellSize, PIC, [&]()
+    {
+        return cellSize(base::SI) * scale(LENGTH, base::SI, base::PIC);
+    });
+
+    // volume of a cell
+    PIC_DEF_GLOBAL_VAR(float_64, CELL_VOLUME,
+        (
+            [&]()
+            {
+                return cellSize(base::SI).productOfComponents();
+            }
+        ),
+        float_X,
+        (
+            [&]()
+            {
+                return cellSize(base::PIC).productOfComponents();
+            }
+        )
+    );
+
+    // only used for CFL checks
+    PIC_DEF_GLOBAL_VAR(float_64, INV_CELL2_SUM,
+        (
+            [&]()
+            {
+                float_64 tmp = 0.;
+                for(uint32_t d = 0u; d < simDim; ++d)
+                    tmp += 1.0 / (cellSize(base::SI)[d] * cellSize(base::SI)[d]);
+                return tmp;
+            }
+        ),
+        float_X,
+        (
+            [&]()
+            {
+                float_64 tmp = 0.;
+                for(uint32_t d = 0u; d < simDim; ++d)
+                    tmp += 1.0 / (cellSize(base::PIC)[d] * cellSize(base::PIC)[d]);
+                return static_cast<float_X>(tmp);
+            }
+        )
+    );
+#endif
 }

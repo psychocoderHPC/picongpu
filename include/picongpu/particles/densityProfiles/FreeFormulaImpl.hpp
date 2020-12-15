@@ -50,7 +50,7 @@ namespace densityProfiles
         HDINLINE float_X operator()( DataSpace< simDim > const & totalCellOffset )
         {
             float_64 const unitLength( UNIT_LENGTH ); // workaround to use UNIT_LENGTH on device
-            float3_64 const cellSize_SI( precisionCast< float_64 >( cellSize ) * unitLength );
+            float3_64 const cellSize_SI( precisionCast< float_64 >( cellSize(base::PIC) ) * unitLength );
             floatD_64 const position_SI( precisionCast< float_64 >( totalCellOffset ) * cellSize_SI.shrink<simDim>( ) );
 
             return UserFunctor::operator()(

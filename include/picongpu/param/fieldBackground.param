@@ -50,9 +50,9 @@ namespace picongpu
             /* example: periodicity of 20 microns ( = 2.0e-5 m) */
             constexpr float_64 period_SI(20.0e-6);
             /* calculate cells -> SI [m] */
-            const float_64 y_SI = cellIdx.y() * SI::CELL_HEIGHT_SI;
+            const float_64 y_SI = cellIdx.y() * CELL_HEIGHT(base::SI);
             /* note: you can also transform the time step to seconds by
-             *       multiplying with DELTA_T_SI */
+             *       multiplying with DELTA_T(base::PIC)_SI */
 
             /* specify your E-Field in V/m and convert to PIConGPU units */
             const float_X sinArg = precisionCast<float_X>( y_SI / period_SI * 2.0 * PI );
@@ -83,9 +83,9 @@ namespace picongpu
             /* example: periodicity of 20 microns ( = 2.0e-5 m) */
             constexpr float_64 period_SI(20.0e-6);
             /* calculate cells -> SI -> [m] */
-            const float_64 y_SI = cellIdx.y() * SI::CELL_HEIGHT_SI;
+            const float_64 y_SI = cellIdx.y() * CELL_HEIGHT(base::SI);
             /* note: you can also transform the time step to seconds by
-             *       multiplying with DELTA_T_SI */
+             *       multiplying with DELTA_T(base::PIC)_SI */
 
             /* specify your B-Field in T and convert to PIConGPU units */
             const float_X sinArg = precisionCast<float_X>( y_SI / period_SI * 2.0 * PI );
@@ -116,9 +116,9 @@ namespace picongpu
             /* example: periodicity of 20 microns ( = 2.0e-5 m) */
             constexpr float_64 period_SI(20.0e-6);
             /* calculate cells -> SI -> m to microns*/
-            const float_64 y_SI = cellIdx.y() * SI::CELL_HEIGHT_SI * 1.0e6;
+            const float_64 y_SI = cellIdx.y() * CELL_HEIGHT(base::SI) * 1.0e6;
             /* note: you can also transform the time step to seconds by
-             *       multiplying with DELTA_T_SI */
+             *       multiplying with DELTA_T(base::PIC)_SI */
 
             /* specify your J-Field in A/m^2 and convert to PIConGPU units */
             const float_X sinArg = precisionCast<float_X>( y_SI / period_SI * 2.0 * PI );

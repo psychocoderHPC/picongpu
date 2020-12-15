@@ -89,9 +89,9 @@ namespace Pml
     CREATE_VAR( float_64 SIGMA_OPT_SI[ 3 ]);
     #if 0
      = {
-        0.8 * ( SIGMA_KAPPA_GRADING_ORDER + 1.0 ) / ( SI::Z0_SI * SI::CELL_WIDTH_SI ),
-        0.8 * ( SIGMA_KAPPA_GRADING_ORDER + 1.0 ) / ( SI::Z0_SI * SI::CELL_HEIGHT_SI ),
-        0.8 * ( SIGMA_KAPPA_GRADING_ORDER + 1.0 ) / ( SI::Z0_SI * SI::CELL_DEPTH_SI )
+        0.8 * ( SIGMA_KAPPA_GRADING_ORDER + 1.0 ) / ( SI::Z0_SI * CELL_WIDTH(base::SI)_SI ),
+        0.8 * ( SIGMA_KAPPA_GRADING_ORDER + 1.0 ) / ( SI::Z0_SI * CELL_HEIGHT(base::SI) ),
+        0.8 * ( SIGMA_KAPPA_GRADING_ORDER + 1.0 ) / ( SI::Z0_SI * CELL_DEPTH(base::SI) )
     });
 #endif
     // Muptiplier to express SIGMA_MAX_SI with SIGMA_OPT_SI

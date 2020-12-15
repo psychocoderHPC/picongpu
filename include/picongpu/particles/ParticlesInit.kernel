@@ -66,7 +66,7 @@ namespace picongpu
 #endif
         float_X const densityRatioOfSpecies = traits::GetDensityRatio< T_Species >::type::getValue( );
 
-        float_X const value = densityFunctor( totalGpuCellIdx ) * BASE_DENSITY * densityRatioOfSpecies;
+        float_X const value = densityFunctor( totalGpuCellIdx ) * BASE_DENSITY(base::PIC) * densityRatioOfSpecies;
         return value;
     }
 
@@ -233,7 +233,7 @@ namespace picongpu
                     /** @bug volatile is required for CUDA 9.2 and sm_60 else the compiler will
                      * optimize out `if(realParticlesPerCell > 0.0_X)` later on.
                      */
-                    volatile float_X const realParticlesPerCell = realDensity * CELL_VOLUME;
+                    volatile float_X const realParticlesPerCell = realDensity * CELL_VOLUME(base::PIC);
 
                     // create an independent position functor for each cell in the supercell
                     positionFunctorCtx[ idx ] = positionFunctor(

@@ -230,7 +230,7 @@ namespace helperFields
                             {
                                 // artifical norm for reduce
                                 float_X const normedWeighting = weighting /
-                                    float_X( particles::TYPICAL_NUM_PARTICLES_PER_MACROPARTICLE );
+                                    float_X( particles::TYPICAL_NUM_PARTICLES_PER_MACROPARTICLE(base::PIC) );
 
                                 cupla::atomicAdd(
                                     acc,
