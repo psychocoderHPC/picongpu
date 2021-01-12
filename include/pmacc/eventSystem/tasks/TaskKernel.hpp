@@ -26,12 +26,21 @@
 #include "pmacc/eventSystem/tasks/StreamTask.hpp"
 #include "pmacc/eventSystem/streams/EventStream.hpp"
 
+#include <flexP/flexP.hpp>
+
 namespace pmacc
 {
     class TaskKernel : public StreamTask
     {
+        using RegionType = decltype(flexP::make_Region(std::declval<flexP::region::Info>()));
+        RegionType kernelRegion;
+
     public:
-        TaskKernel(std::string kernelName) : StreamTask(), kernelName(kernelName), canBeChecked(false)
+        TaskKernel(std::string kernelName)
+            : StreamTask()
+            , kernelName(kernelName)
+            , canBeChecked(false)
+            , kernelRegion(flexP::make_Region(flexP_region(kernelName, flexP::region::Kernel)))
         {
         }
 

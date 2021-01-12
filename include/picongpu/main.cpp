@@ -25,6 +25,7 @@
 #include <pmacc/types.hpp>
 
 #include <picongpu/simulation_defines.hpp>
+#include <flexP/flexP.hpp>
 
 #include <cstdlib>
 #include <iostream>
@@ -77,6 +78,7 @@ namespace
  */
 int main(int argc, char** argv)
 {
+    flexP::init();
     try
     {
         return runSimulation(argc, argv);

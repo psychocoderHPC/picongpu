@@ -211,6 +211,9 @@ if(CUDAMEMTEST_ENABLE)
                      "${CMAKE_CURRENT_BINARY_DIR}/build_mpiInfo")
 endif()
 
+add_subdirectory("${PIConGPUapp_SOURCE_DIR}/../../thirdParty/flexP"
+        "${CMAKE_CURRENT_BINARY_DIR}/build_flexP")
+
 
 ################################################################################
 # PIConGPU options
@@ -438,6 +441,9 @@ target_link_libraries(picongpu-hostonly PUBLIC ${LIBS})
 cupla_add_executable(picongpu
      ${ACCSRCFILES}
 )
+
+target_link_libraries(picongpu PRIVATE ${CMAKE_DL_LIBS})
+target_link_libraries(picongpu PRIVATE flexP::flexP)
 
 target_link_libraries(picongpu PUBLIC ${LIBS} picongpu-hostonly)
 

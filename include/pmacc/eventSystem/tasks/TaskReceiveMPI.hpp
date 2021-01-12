@@ -34,8 +34,14 @@ namespace pmacc
     template<class TYPE, unsigned DIM>
     class TaskReceiveMPI : public MPITask
     {
+        using RegionType = decltype(flexP::make_Region(std::declval<flexP::region::Info>()));
+        RegionType region;
+
     public:
-        TaskReceiveMPI(Exchange<TYPE, DIM>* exchange) : MPITask(), exchange(exchange)
+        TaskReceiveMPI(Exchange<TYPE, DIM>* exchange)
+            : MPITask()
+            , exchange(exchange)
+            , region(flexP::make_Region(flexP_region("MPI_Receive", flexP::region::Copy)))
         {
         }
 

@@ -39,8 +39,13 @@ namespace pmacc
     template<class TYPE, unsigned DIM>
     class TaskCopyDeviceToHostBase : public StreamTask
     {
+        using RegionType = decltype(flexP::make_Region(std::declval<flexP::region::Info>()));
+        RegionType region;
+
     public:
-        TaskCopyDeviceToHostBase(DeviceBuffer<TYPE, DIM>& src, HostBuffer<TYPE, DIM>& dst) : StreamTask()
+        TaskCopyDeviceToHostBase(DeviceBuffer<TYPE, DIM>& src, HostBuffer<TYPE, DIM>& dst)
+            : StreamTask()
+            , region(flexP::make_Region(flexP_region("Copy_d2h", flexP::region::Copy)))
         {
             this->host = &dst;
             this->device = &src;

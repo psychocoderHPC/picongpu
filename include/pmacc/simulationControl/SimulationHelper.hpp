@@ -34,16 +34,85 @@
 #include "pmacc/pluginSystem/containsStep.hpp"
 #include "pmacc/pluginSystem/toTimeSlice.hpp"
 
+#include <flexP/flexP.hpp>
+
 #include <boost/filesystem.hpp>
 #include <iostream>
 #include <iomanip>
 #include <fstream>
 #include <string>
 #include <vector>
-
+#include <chrono>
 
 namespace pmacc
 {
+    struct GetTime
+    {
+        auto operator()()
+        {
+            using Clock = std::chrono::high_resolution_clock;
+            Environment<>::get().Manager().waitForAllTasks();
+            auto time(Clock::now().time_since_epoch());
+            return time;
+        }
+    };
+
+    struct StopTime
+    {
+        template<typename T_StartData>
+        auto operator()(const T_StartData& startData)
+        {
+            auto end = GetTime{}();
+            auto duration = end - startData;
+            return duration;
+        }
+    };
+
+    struct StopStatistic
+    {
+        uint32_t step;
+        uint32_t n;
+        double& avgTime;
+        StopStatistic(double& avg, uint32_t const currentStep, uint32_t const statEveryNSteps)
+            : avgTime(avg)
+            , step(currentStep)
+            , n(statEveryNSteps)
+        {
+        }
+
+        template<typename T>
+        auto operator()(const T& startTime)
+        {
+            auto end = GetTime{}();
+            auto duration = end - startTime;
+            auto duration_ns = std::chrono::duration_cast<std::chrono::milliseconds>(duration).count();
+            avgTime += double(duration_ns);
+
+            if(step > 2 && (step + 1) % n == 0)
+            {
+                double avg = avgTime / double(n);
+                avgTime = 0.0;
+                flexP::fire_Event(
+                    flexP_event("average", flexP::event::Generic),
+                    {{"value", std::to_string(avg)},
+                     {"unit", "ms"},
+                     {"step begin", std::to_string(step - n + 1)},
+                     {"step end", std::to_string(step + 1)}});
+            }
+
+            return duration_ns;
+        }
+    };
+
+    auto serializeDuration = [](auto duration) {
+        auto duration_ns = std::chrono::duration_cast<std::chrono::nanoseconds>(duration).count();
+        std::map<std::string, std::string> map;
+        map["duration"] = std::to_string(duration_ns);
+
+        return map;
+    };
+
+
     /**
      * Abstract base class for simulations.
      *
@@ -253,6 +322,11 @@ namespace pmacc
                 /* dump 0% output */
                 dumpTimes(tSimCalculation, tRound, roundAvg, currentStep);
 
+                constexpr uint32_t perfAverageSteps = 50;
+
+                double accumulatedTimesteps = 0.0;
+                double accumulatedTimestepsPlugins = 0.0;
+
 
                 /** \todo currently we assume this is the only point in the simulation
                  *        that is allowed to manipulate `currentStep`. Else, one needs to
@@ -261,20 +335,40 @@ namespace pmacc
                  */
                 while(currentStep < Environment<>::get().SimulationDescription().getRunSteps())
                 {
-                    tRound.toggleStart();
-                    runOneStep(currentStep);
-                    tRound.toggleEnd();
-                    roundAvg += tRound.getInterval();
+                    {
+                        auto loopCalculation = flexP::make_Region(
+                            flexP_region("statistic runOnStep", flexP::region::Loop),
+                            flexP::create_regionActions(
+                                []() { return GetTime{}(); },
+                                StopStatistic(accumulatedTimesteps, currentStep, perfAverageSteps),
+                                [](const auto&) -> flexP::SerializedDataType { return {}; }));
+
+                        tRound.toggleStart();
+                        runOneStep(currentStep);
+                        tRound.toggleEnd();
+
+                        roundAvg += tRound.getInterval();
+                    }
 
                     /* NEXT TIMESTEP STARTS HERE */
                     currentStep++;
                     Environment<>::get().SimulationDescription().setCurrentStep(currentStep);
+
                     /* output times after a round */
                     dumpTimes(tSimCalculation, tRound, roundAvg, currentStep);
 
                     movingWindowCheck(currentStep);
-                    /* dump at the beginning of the simulated step */
-                    dumpOneStep(currentStep);
+                    Environment<>::get().SimulationDescription().setCurrentStep(currentStep);
+                    {
+                        auto dumpRegion = flexP::make_Region(
+                            flexP_region("statistic plugin", flexP::region::Loop),
+                            flexP::create_regionActions(
+                                []() { return GetTime{}(); },
+                                StopStatistic(accumulatedTimestepsPlugins, currentStep, perfAverageSteps),
+                                [](const auto&) -> flexP::SerializedDataType { return {}; }));
+                        /* dump at the beginning of the simulated step */
+                        dumpOneStep(currentStep);
+                    }
                 }
 
                 // simulatation end

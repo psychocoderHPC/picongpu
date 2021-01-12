@@ -26,6 +26,7 @@
 #include "pmacc/communication/ICommunicator.hpp"
 #include "pmacc/eventSystem/tasks/MPITask.hpp"
 #include "pmacc/memory/buffers/Exchange.hpp"
+#include "../../../../thirdParty/flexP/include/flexP/Info.hpp"
 
 #include <mpi.h>
 
@@ -34,8 +35,14 @@ namespace pmacc
     template<class TYPE, unsigned DIM>
     class TaskSendMPI : public MPITask
     {
+        using RegionType = decltype(flexP::make_Region(std::declval<flexP::region::Info>()));
+        RegionType region;
+
     public:
-        TaskSendMPI(Exchange<TYPE, DIM>* exchange) : MPITask(), exchange(exchange)
+        TaskSendMPI(Exchange<TYPE, DIM>* exchange)
+            : MPITask()
+            , exchange(exchange)
+            , region(flexP::make_Region(flexP_region("MPI_Send", flexP::region::Copy)))
         {
         }
 

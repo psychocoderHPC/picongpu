@@ -32,6 +32,7 @@
 #include "pmacc/eventSystem/tasks/StreamTask.hpp"
 #include "pmacc/nvidia/gpuEntryFunction.hpp"
 #include "pmacc/traits/GetNumWorkers.hpp"
+#include "Factory.tpp"
 
 #include <boost/type_traits/remove_pointer.hpp>
 #include <boost/type_traits.hpp>
@@ -184,12 +185,16 @@ namespace pmacc
     template<class T_ValueType, unsigned T_dim>
     class TaskSetValue<T_ValueType, T_dim, true> : public TaskSetValueBase<T_ValueType, T_dim>
     {
+        using RegionType = decltype(flexP::make_Region(std::declval<flexP::region::Info>()));
+        RegionType region;
+
     public:
         typedef T_ValueType ValueType;
         static constexpr uint32_t dim = T_dim;
 
         TaskSetValue(DeviceBuffer<ValueType, dim>& dst, const ValueType& value)
             : TaskSetValueBase<ValueType, dim>(dst, value)
+            , region(flexP::make_Region(flexP_region("Copy_setValue", flexP::region::Fill)))
         {
         }
 

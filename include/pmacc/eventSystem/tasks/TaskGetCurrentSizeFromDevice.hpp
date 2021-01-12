@@ -37,8 +37,13 @@ namespace pmacc
     template<class TYPE, unsigned DIM>
     class TaskGetCurrentSizeFromDevice : public StreamTask
     {
+        using RegionType = decltype(flexP::make_Region(std::declval<flexP::region::Info>()));
+        RegionType region;
+
     public:
-        TaskGetCurrentSizeFromDevice(DeviceBuffer<TYPE, DIM>& buffer) : StreamTask()
+        TaskGetCurrentSizeFromDevice(DeviceBuffer<TYPE, DIM>& buffer)
+            : StreamTask()
+            , region(flexP::make_Region(flexP_region("Copy_getCurrentSize", flexP::region::Copy)))
         {
             this->buffer = &buffer;
         }

@@ -149,14 +149,14 @@ namespace pmacc
             template<typename... T_Args>
             HINLINE void operator()(T_Args const&... args) const
             {
-                std::string const kernelName = typeid(m_kernel.m_kernelFunctor).name();
+                std::string const kernelName = demangle(typeid(m_kernel.m_kernelFunctor).name());
                 std::string const kernelInfo = kernelName + std::string(" [") + m_kernel.m_file + std::string(":")
                     + std::to_string(m_kernel.m_line) + std::string(" ]");
 
                 CUDA_CHECK_KERNEL_MSG(cuplaDeviceSynchronize(), std::string("Crash before kernel call ") + kernelInfo);
 
                 pmacc::TaskKernel* taskKernel
-                    = pmacc::Environment<>::get().Factory().createTaskKernel(typeid(kernelName).name());
+                    = pmacc::Environment<>::get().Factory().createTaskKernel(kernelName);
 
                 DataSpace<traits::GetNComponents<T_VectorGrid>::value> gridExtent(m_gridExtent);
 
