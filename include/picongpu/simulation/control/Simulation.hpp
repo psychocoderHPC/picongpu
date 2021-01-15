@@ -93,6 +93,7 @@
 #include <pmacc/particles/memory/buffers/MallocMCBuffer.hpp>
 #include <pmacc/particles/traits/FilterByFlag.hpp>
 #include <pmacc/particles/traits/FilterByIdentifier.hpp>
+#include <pmacc/simulationControl/PerfData.hpp>
 
 #include <boost/mpl/int.hpp>
 
@@ -332,6 +333,9 @@ namespace picongpu
             const uint32_t userSeed = random::seed::ISeed<random::SeedGenerator>{}();
             const uint32_t seed = std::hash<std::string>{}(std::to_string(userSeed));
 
+            Environment<>::get().Manager().waitForAllTasks();
+            double const startRngInit = PerfData::inst().getTime();
+
             using RNGFactory = pmacc::random::RNGProvider<simDim, random::Generator>;
             auto rngFactory = std::make_unique<RNGFactory>(Environment<simDim>::get().SubGrid().getLocalDomain().size);
             if(Environment<simDim>::get().GridController().getGlobalRank() == 0)
@@ -343,6 +347,10 @@ namespace picongpu
             pmacc::GridController<simDim>& gridCon = pmacc::Environment<simDim>::get().GridController();
             rngFactory->init(gridCon.getScalarPosition() ^ seed);
             dc.consume(std::move(rngFactory));
+
+            Environment<>::get().Manager().waitForAllTasks();
+            double const endRngInit = PerfData::inst().getTime();
+            PerfData::inst().pushRegions("pic-init-rng", endRngInit - startRngInit);
 
             // Initialize synchrotron functions, if there are synchrotron photon species
             if(!bmpl::empty<AllSynchrotronPhotonsSpecies>::value)
@@ -492,10 +500,15 @@ namespace picongpu
                 }
                 else
                 {
+                    Environment<>::get().Manager().waitForAllTasks();
+                    double const startFillSpecies = PerfData::inst().getTime();
                     initialiserController->init();
                     meta::ForEach<particles::InitPipeline, pmacc::functor::Call<bmpl::_1>> initSpecies;
                     initSpecies(0);
                     particles::debyeLength::check(*cellDescription);
+                    Environment<>::get().Manager().waitForAllTasks();
+                    double const endFillSpecies = PerfData::inst().getTime();
+                    PerfData::inst().pushRegions("pic-fill-species", endFillSpecies - startFillSpecies);
                 }
             }
 
