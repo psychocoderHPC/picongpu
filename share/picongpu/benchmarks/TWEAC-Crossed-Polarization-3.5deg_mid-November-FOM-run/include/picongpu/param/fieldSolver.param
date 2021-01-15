@@ -35,40 +35,39 @@
 
 namespace picongpu
 {
-namespace fields
-{
+    namespace fields
+    {
+        /** Current Interpolation
+         *
+         * CurrentInterpolation is used to set a method performing the
+         * interpolate/assign operation from the generated currents of particle
+         * species to the electro-magnetic fields.
+         *
+         * Allowed values are:
+         *   - None:
+         *     - default for staggered grids/Yee-scheme
+         *     - updates E
+         *   - Binomial: 2nd order Binomial filter
+         *     - smooths the current before assignment in staggered grid
+         *     - updates E & breaks local charge conservation slightly
+         *   - NoneDS:
+         *     - experimental assignment for all-centered/directional splitting
+         *     - updates E & B at the same time
+         */
+        using CurrentInterpolation = currentInterpolation::Binomial;
 
-    /** Current Interpolation
-     *
-     * CurrentInterpolation is used to set a method performing the
-     * interpolate/assign operation from the generated currents of particle
-     * species to the electro-magnetic fields.
-     *
-     * Allowed values are:
-     *   - None:
-     *     - default for staggered grids/Yee-scheme
-     *     - updates E
-     *   - Binomial: 2nd order Binomial filter
-     *     - smooths the current before assignment in staggered grid
-     *     - updates E & breaks local charge conservation slightly
-     *   - NoneDS:
-     *     - experimental assignment for all-centered/directional splitting
-     *     - updates E & B at the same time
-     */
-    using CurrentInterpolation = currentInterpolation::Binomial;
+        /** FieldSolver
+         *
+         * Field Solver Selection:
+         *  - Yee< CurrentInterpolation > : standard Yee solver
+         *  - YeePML< CurrentInterpolation >: standard Yee solver with PML absorber
+         *      warning: requires a substantial amount of additional memory,
+         *      equal to 12 scalar fields
+         *  - Lehe< CurrentInterpolation >: Num. Cherenkov free field solver in a chosen direction
+         *  - DirSplitting< CurrentInterpolation >: Sentoku's Directional Splitting Method
+         *  - None< CurrentInterpolation >: disable the vacuum update of E and B
+         */
+        using Solver = maxwellSolver::Yee<CurrentInterpolation>;
 
-    /** FieldSolver
-     *
-     * Field Solver Selection:
-     *  - Yee< CurrentInterpolation > : standard Yee solver
-     *  - YeePML< CurrentInterpolation >: standard Yee solver with PML absorber
-     *      warning: requires a substantial amount of additional memory,
-     *      equal to 12 scalar fields
-     *  - Lehe< CurrentInterpolation >: Num. Cherenkov free field solver in a chosen direction
-     *  - DirSplitting< CurrentInterpolation >: Sentoku's Directional Splitting Method
-     *  - None< CurrentInterpolation >: disable the vacuum update of E and B
-     */
-    using Solver = maxwellSolver::Yee< CurrentInterpolation >;
-
-} // namespace fields
+    } // namespace fields
 } // namespace picongpu

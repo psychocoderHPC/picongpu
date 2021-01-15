@@ -41,61 +41,54 @@
 
 namespace picongpu
 {
-namespace particles
-{
-namespace filter
-{
-    struct FunctorParticlesForwardPinhole
+    namespace particles
     {
-        static constexpr char const * name = "forwardPinhole";
-
-        template< typename T_Particle >
-        HDINLINE bool operator()(
-            T_Particle const & particle
-        )
+        namespace filter
         {
-            bool result = false;
-            float3_X const mom = particle[ momentum_ ];
-            float_X const absMom = math::abs( mom );
-
-            if( absMom > float_X( 0. ) )
+            struct FunctorParticlesForwardPinhole
             {
-                /* Place detector in y direction, "infinite distance" to target,
-                 * and 7.6 degree opening angle (4cm pinhole after 30cm to detector).
-                 */
-                constexpr float_X openingAngle = 7.59464 * PI / 180.;
-                float_X const dotP = mom.y() / absMom;
-                float_X const degForw = math::acos( dotP );
+                static constexpr char const* name = "forwardPinhole";
 
-                if( math::abs( degForw ) <= openingAngle * float_X( 0.5 ) )
-                    result = true;
-            }
-            return result;
-        }
-    };
+                template<typename T_Particle>
+                HDINLINE bool operator()(T_Particle const& particle)
+                {
+                    bool result = false;
+                    float3_X const mom = particle[momentum_];
+                    float_X const absMom = math::abs(mom);
 
-    using ParticlesForwardPinhole = generic::Free<
-       FunctorParticlesForwardPinhole
-    >;
-    
-    /** Plugins: collection of all available particle filters
-     *
-     * Create a list of all filters here that you want to use in plugins.
-     *
-     * Note: filter All is defined in picongpu/particles/filter/filter.def
-     */
-    using AllParticleFilters = MakeSeq_t<
-        All,
-        ParticlesForwardPinhole
-    >;
+                    if(absMom > float_X(0.))
+                    {
+                        /* Place detector in y direction, "infinite distance" to target,
+                         * and 7.6 degree opening angle (4cm pinhole after 30cm to detector).
+                         */
+                        constexpr float_X openingAngle = 7.59464 * PI / 180.;
+                        float_X const dotP = mom.y() / absMom;
+                        float_X const degForw = math::acos(dotP);
 
-} // namespace filter
+                        if(math::abs(degForw) <= openingAngle * float_X(0.5))
+                            result = true;
+                    }
+                    return result;
+                }
+            };
 
-namespace traits
-{
-    /* if needed for generic "free" filters,
-     * place `SpeciesEligibleForSolver` traits for filters here
-     */
-} // namespace traits
-} // namespace particles
+            using ParticlesForwardPinhole = generic::Free<FunctorParticlesForwardPinhole>;
+
+            /** Plugins: collection of all available particle filters
+             *
+             * Create a list of all filters here that you want to use in plugins.
+             *
+             * Note: filter All is defined in picongpu/particles/filter/filter.def
+             */
+            using AllParticleFilters = MakeSeq_t<All, ParticlesForwardPinhole>;
+
+        } // namespace filter
+
+        namespace traits
+        {
+            /* if needed for generic "free" filters,
+             * place `SpeciesEligibleForSolver` traits for filters here
+             */
+        } // namespace traits
+    } // namespace particles
 } // namespace picongpu

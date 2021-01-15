@@ -33,27 +33,16 @@
 
 namespace picongpu
 {
-namespace particles
-{
-    /** InitPipeline defines in which order species are initialized
-     *
-     * the functors are called in order (from first to last functor)
-     */
-    using InitPipeline = bmpl::vector<
-        CreateDensity<
-            densityProfiles::FreeFormula,
-            startPosition::Random,
-            PIC_Electrons
-        >,
-        Manipulate<
-            manipulators::AssignYDriftPositive,
-            PIC_Electrons
-        >,
-        Manipulate<
-            manipulators::AddTemperature,
-            PIC_Electrons
-        >
-    >;
+    namespace particles
+    {
+        /** InitPipeline defines in which order species are initialized
+         *
+         * the functors are called in order (from first to last functor)
+         */
+        using InitPipeline = bmpl::vector<
+            CreateDensity<densityProfiles::FreeFormula, startPosition::Random, PIC_Electrons>,
+            Manipulate<manipulators::AssignYDriftPositive, PIC_Electrons>,
+            Manipulate<manipulators::AddTemperature, PIC_Electrons>>;
 
-} // namespace particles
+    } // namespace particles
 } // namespace picongpu

@@ -38,67 +38,61 @@
 
 namespace picongpu
 {
-namespace particles
-{
-
-    /** a particle with a weighting below MIN_WEIGHTING will not
-     *      be created / will be deleted
-     *
-     *  unit: none */
-    constexpr float_X MIN_WEIGHTING = 0.001;
-
-    /** Number of maximum particles per cell during density profile evaluation.
-     *
-     * Determines the weighting of a macro particle and with it, the number of
-     * particles "sampling" dynamics in phase space.
-     */
-    constexpr uint32_t TYPICAL_PARTICLES_PER_CELL = 25u;
-
-
-namespace startPosition
-{
-
-    struct RandomParameter
+    namespace particles
     {
-        /** Count of particles per cell at initial state
+        /** a particle with a weighting below MIN_WEIGHTING will not
+         *      be created / will be deleted
          *
          *  unit: none */
-        static constexpr uint32_t numParticlesPerCell = TYPICAL_PARTICLES_PER_CELL;
-    };
-    /** definition of random particle start */
-    using Random = RandomImpl< RandomParameter >;
+        constexpr float_X MIN_WEIGHTING = 0.001;
 
-} // namespace startPosition
-
-namespace manipulators
-{
-
-    CONST_VECTOR(float_X,3,DriftParamPositive_direction,0.0,1.0,0.0);
-    struct DriftParamPositive
-    {
-        /** Initial particle drift velocity for electrons and ions
-         *  Examples:
-         *    - No drift is equal to 1.0
-         *  unit: none
+        /** Number of maximum particles per cell during density profile evaluation.
+         *
+         * Determines the weighting of a macro particle and with it, the number of
+         * particles "sampling" dynamics in phase space.
          */
-        static constexpr float_64 gamma = 1.21;
-        const DriftParamPositive_direction_t direction;
-    };
-    using AssignYDriftPositive = unary::Drift<
-        DriftParamPositive,
-        nvidia::functors::Assign
-    >;
+        constexpr uint32_t TYPICAL_PARTICLES_PER_CELL = 25u;
 
-    struct TemperatureParam
-    {
-        /* Initial temperature
-         *  unit: keV
-         */
-        static constexpr float_64 temperature = 0.0005;
-    };
-    using AddTemperature = unary::Temperature< TemperatureParam >;
 
-} // namespace manipulators
+        namespace startPosition
+        {
+            struct RandomParameter
+            {
+                /** Count of particles per cell at initial state
+                 *
+                 *  unit: none */
+                static constexpr uint32_t numParticlesPerCell = TYPICAL_PARTICLES_PER_CELL;
+            };
+            /** definition of random particle start */
+            using Random = RandomImpl<RandomParameter>;
 
-} // namespace particles
+        } // namespace startPosition
+
+        namespace manipulators
+        {
+            CONST_VECTOR(float_X, 3, DriftParamPositive_direction, 0.0, 1.0, 0.0);
+            struct DriftParamPositive
+            {
+                /** Initial particle drift velocity for electrons and ions
+                 *  Examples:
+                 *    - No drift is equal to 1.0
+                 *  unit: none
+                 */
+                static constexpr float_64 gamma = 1.21;
+                const DriftParamPositive_direction_t direction;
+            };
+            using AssignYDriftPositive = unary::Drift<DriftParamPositive, nvidia::functors::Assign>;
+
+            struct TemperatureParam
+            {
+                /* Initial temperature
+                 *  unit: keV
+                 */
+                static constexpr float_64 temperature = 0.0005;
+            };
+            using AddTemperature = unary::Temperature<TemperatureParam>;
+
+        } // namespace manipulators
+
+    } // namespace particles
 } // namespace picongpu

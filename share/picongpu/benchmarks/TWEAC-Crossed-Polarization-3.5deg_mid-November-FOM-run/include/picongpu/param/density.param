@@ -34,82 +34,79 @@
 
 namespace picongpu
 {
-namespace SI
-{
-    /** Base density in particles per m^3 in the density profiles.
-     *
-     * This is often taken as reference maximum density in normalized profiles.
-     * Individual particle species can define a `densityRatio` flag relative
-     * to this value.
-     *
-     * unit: ELEMENTS/m^3
-     */
-    constexpr float_64 BASE_DENSITY_SI = 0.8e23;
-} // namespace SI
-
-namespace densityProfiles
-{
-    struct FreeFormulaFunctor
+    namespace SI
     {
-        /** This formula uses SI quantities only.
-         *  The profile will be multiplied by BASE_DENSITY_SI.
+        /** Base density in particles per m^3 in the density profiles.
          *
-         * @param position_SI total offset including all slides [meter]
-         * @param cellSize_SI cell sizes [meter]
+         * This is often taken as reference maximum density in normalized profiles.
+         * Individual particle species can define a `densityRatio` flag relative
+         * to this value.
          *
-         * @return float_X density [normalized to 1.0]
+         * unit: ELEMENTS/m^3
          */
-        HDINLINE float_X
-        operator()(
-            const floatD_64& position_SI,
-            const float3_64& cellSize_SI
-        )
+        constexpr float_64 BASE_DENSITY_SI = 0.8e23;
+    } // namespace SI
+
+    namespace densityProfiles
+    {
+        struct FreeFormulaFunctor
         {
-            const float_64 y = position_SI.y();
-            const float_64 z = position_SI.z();
-
-            /** height of vacuum area on bottom border
-             *      this vacuum is really important because of the laser initialization,
-             *      which is done in the first cell of the simulation
-             *  unit: meter */
-            constexpr float_64 VACUUM_Y_SI = 100.0 * picongpu::SI::CELL_HEIGHT_SI;
-            constexpr float_64 VACUUM_Z_SI = 148.0 * picongpu::SI::CELL_DEPTH_SI;
-            constexpr float_64 Z_GRADIENT_SI = 32.0 * picongpu::SI::CELL_DEPTH_SI;
-
-            constexpr float_64 SIM_BOX_Z = 8820. * picongpu::SI::CELL_DEPTH_SI; // MATCH THIS WITH Z-COMPONENT OF "TBG_gridsize" IN CFG_FILE !!!
-
-            constexpr float_64 PLASMA_Z_LENGTH_SI = SIM_BOX_Z - float_X( 2.0 ) * VACUUM_Z_SI;
-
-            constexpr float_64 INITIAL_UPRAMP = 0.0e-6; // unit: meter
-            constexpr float_64 LOW_DENSITY_PLATEAU = 0.0e-6; // unit: meter
-            /* No Upramp, direct high density for equal macro particle density (FOM ONLY).
-             * Put here 2-5 times the plasma oscillation length of the BASE_DENSITY_SI.
+            /** This formula uses SI quantities only.
+             *  The profile will be multiplied by BASE_DENSITY_SI.
+             *
+             * @param position_SI total offset including all slides [meter]
+             * @param cellSize_SI cell sizes [meter]
+             *
+             * @return float_X density [normalized to 1.0]
              */
-            constexpr float_64 TORCH_UPRAMP = 0.0e-6; // unit: meter
-            /* Used to be twice the upramp length on Piz Daint. */
-            constexpr float_64 HIGH_DENSITY_PLATEAU = 1000.0e-6; // unit: meter
-            constexpr float_64 DOWNRAMP_1 = 30.e-6; // unit: meter
-            constexpr float_64 DOWNRAMP_2 = 0.0e-6; // unit: meter
+            HDINLINE float_X operator()(const floatD_64& position_SI, const float3_64& cellSize_SI)
+            {
+                const float_64 y = position_SI.y();
+                const float_64 z = position_SI.z();
 
-            constexpr float_64 REL_DENSITY_LOW = 0.0;
-            constexpr float_64 REL_DENSITY_HIGH = 2.0; // Old value of previous TWEAC scenarios was: 2.0
-            constexpr float_64 REL_DENSITY_MEDIUM = 1.0; // old value was: sqrt(2.0)
-            constexpr float_64 REL_DENSITY_BASE = 1.0; // always one, use BASE_DENSITY_SI to change base density
-                                                       // just here to avoid "magic" 1.0s in the code
+                /** height of vacuum area on bottom border
+                 *      this vacuum is really important because of the laser initialization,
+                 *      which is done in the first cell of the simulation
+                 *  unit: meter */
+                constexpr float_64 VACUUM_Y_SI = 100.0 * picongpu::SI::CELL_HEIGHT_SI;
+                constexpr float_64 VACUUM_Z_SI = 148.0 * picongpu::SI::CELL_DEPTH_SI;
+                constexpr float_64 Z_GRADIENT_SI = 32.0 * picongpu::SI::CELL_DEPTH_SI;
 
-            float_X REL_DENSITY = REL_DENSITY_BASE; // temporaray value to save the relative density
-                                                    // at the actual position
+                constexpr float_64 SIM_BOX_Z = 8820.
+                    * picongpu::SI::CELL_DEPTH_SI; // MATCH THIS WITH Z-COMPONENT OF "TBG_gridsize" IN CFG_FILE !!!
 
-            /* Plot of density profile
+                constexpr float_64 PLASMA_Z_LENGTH_SI = SIM_BOX_Z - float_X(2.0) * VACUUM_Z_SI;
 
-            REL_DENSITY_HIGH___|        ___
-            REL_DENSITY_MEDIUM_|       /   \
-            REL_DENSITY_LOW____|    __/     `.
-            REL_DENSITY_BASE___|   /          `._______
-                               |  /
-                               |----------------------------  y
-                                 A B C D E  F  G   H
-            */
+                constexpr float_64 INITIAL_UPRAMP = 0.0e-6; // unit: meter
+                constexpr float_64 LOW_DENSITY_PLATEAU = 0.0e-6; // unit: meter
+                /* No Upramp, direct high density for equal macro particle density (FOM ONLY).
+                 * Put here 2-5 times the plasma oscillation length of the BASE_DENSITY_SI.
+                 */
+                constexpr float_64 TORCH_UPRAMP = 0.0e-6; // unit: meter
+                /* Used to be twice the upramp length on Piz Daint. */
+                constexpr float_64 HIGH_DENSITY_PLATEAU = 1000.0e-6; // unit: meter
+                constexpr float_64 DOWNRAMP_1 = 30.e-6; // unit: meter
+                constexpr float_64 DOWNRAMP_2 = 0.0e-6; // unit: meter
+
+                constexpr float_64 REL_DENSITY_LOW = 0.0;
+                constexpr float_64 REL_DENSITY_HIGH = 2.0; // Old value of previous TWEAC scenarios was: 2.0
+                constexpr float_64 REL_DENSITY_MEDIUM = 1.0; // old value was: sqrt(2.0)
+                constexpr float_64 REL_DENSITY_BASE = 1.0; // always one, use BASE_DENSITY_SI to change base density
+                                                           // just here to avoid "magic" 1.0s in the code
+
+                float_X REL_DENSITY = REL_DENSITY_BASE; // temporaray value to save the relative density
+                                                        // at the actual position
+
+                /* Plot of density profile
+
+                REL_DENSITY_HIGH___|        ___
+                REL_DENSITY_MEDIUM_|       /   \
+                REL_DENSITY_LOW____|    __/     `.
+                REL_DENSITY_BASE___|   /          `._______
+                                   |  /
+                                   |----------------------------  y
+                                     A B C D E  F  G   H
+                */
 #if 0
             // vacuum before gas (A)
             if ( y < VACUUM_Y_SI )
@@ -156,12 +153,12 @@ namespace densityProfiles
 
                 return REL_DENSITY * REL_DENSITY_BASE; // = BASE_DENSITY_SI = 0.32+e19 cm^-3
 #endif
-            // homogeneous density
-            return REL_DENSITY * REL_DENSITY_HIGH;
-        }
-    };
+                // homogeneous density
+                return REL_DENSITY * REL_DENSITY_HIGH;
+            }
+        };
 
-    /* definition of free formula profile */
-    using FreeFormula = FreeFormulaImpl< FreeFormulaFunctor >;
-} // namespace densityProfiles
+        /* definition of free formula profile */
+        using FreeFormula = FreeFormulaImpl<FreeFormulaFunctor>;
+    } // namespace densityProfiles
 } // namespace picongpu
