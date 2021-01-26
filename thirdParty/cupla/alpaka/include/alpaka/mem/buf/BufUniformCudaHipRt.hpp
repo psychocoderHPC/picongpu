@@ -251,6 +251,7 @@ namespace alpaka
                 ALPAKA_UNIFORM_CUDA_HIP_RT_CHECK(ALPAKA_API_PREFIX(SetDevice)(dev.m_iDevice));
                 // Allocate the buffer on this device.
                 void* memPtr;
+                std::cout<<"{ void * memPtr; CUDA_CHECK("<<"hipMalloc(&memPtr,"<< static_cast<std::size_t>(widthBytes) <<"llu));}"<<std::endl;
                 ALPAKA_UNIFORM_CUDA_HIP_RT_CHECK(
                     ALPAKA_API_PREFIX(Malloc)(&memPtr, static_cast<std::size_t>(widthBytes)));
 
@@ -291,7 +292,7 @@ namespace alpaka
                     // Set the current device.
                     ALPAKA_UNIFORM_CUDA_HIP_RT_CHECK(ALPAKA_API_PREFIX(SetDevice)(dev.m_iDevice));
 
-
+                    std::cout<<"{ size_t pitchBytes = 0; void * memPtr; CUDA_CHECK("<<"hipMallocPitch(&memPtr,&pitchBytes,"<< static_cast<std::size_t>(widthBytes) <<"llu,"<<static_cast<std::size_t>(height)<<"llu));}"<<std::endl;
                     // Allocate the buffer on this device.
                     ALPAKA_UNIFORM_CUDA_HIP_RT_CHECK(ALPAKA_API_PREFIX(MallocPitch)(
                         &memPtr,
@@ -341,6 +342,7 @@ namespace alpaka
                     // Set the current device.
                     ALPAKA_UNIFORM_CUDA_HIP_RT_CHECK(ALPAKA_API_PREFIX(SetDevice)(dev.m_iDevice));
                     // Allocate the buffer on this device.
+                    std::cout<<"{ size_t pitchBytes = 0; auto ex=make_hipExtent("<<extentVal.width<<"llu,"<<extentVal.height<<"llu,"<<extentVal.depth<<"llu); hipPitchedPtr pptr;pptr.ptr=nullptr; CUDA_CHECK("<<"hipMalloc3D(&pptr,ex));}"<<std::endl;
                     ALPAKA_UNIFORM_CUDA_HIP_RT_CHECK(ALPAKA_API_PREFIX(Malloc3D)(&pitchedPtrVal, extentVal));
                 }
 
@@ -350,6 +352,7 @@ namespace alpaka
                           << " pitch: " << pitchedPtrVal.pitch << " wb: " << pitchedPtrVal.xsize
                           << " h: " << pitchedPtrVal.ysize << std::endl;
 #    endif
+
 
                 return BufUniformCudaHipRt<TElem, DimInt<3u>, TIdx>(
                     dev,
