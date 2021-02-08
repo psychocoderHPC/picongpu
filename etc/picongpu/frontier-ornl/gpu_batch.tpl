@@ -41,7 +41,7 @@
 #SBATCH -e stderr
 
 ## calculations will be performed by tbg ##
-.TBG_queue="amdMI100"
+.TBG_queue=${TBG_QUEUE:-"amdMI100"}
 
 # settings that can be controlled by environment variables before submit
 .TBG_mailSettings=${MY_MAILNOTIFY:-"NONE"}
