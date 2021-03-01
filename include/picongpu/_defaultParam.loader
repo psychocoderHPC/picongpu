@@ -27,7 +27,7 @@
 
 #include "picongpu/param/dimension.param"
 #include "picongpu/param/precision.param"
-#if(BOOST_LANG_CUDA || BOOST_COMP_HIP)
+#if(1)
 #    include "picongpu/param/mallocMC.param"
 #endif
 #include "picongpu/param/memory.param"

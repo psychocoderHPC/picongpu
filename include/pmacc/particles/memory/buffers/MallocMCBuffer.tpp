@@ -43,8 +43,8 @@ namespace pmacc
     template<typename T_DeviceHeap>
     MallocMCBuffer<T_DeviceHeap>::~MallocMCBuffer()
     {
-        if(hostPtr != nullptr)
-            cudaHostUnregister(hostPtr);
+//        if(hostPtr != nullptr)
+//            cudaHostUnregister(hostPtr);
 
         __deleteArray(hostPtr);
     }
@@ -63,7 +63,7 @@ namespace pmacc
              * but with the some result (create page-locked memory)
              */
             hostPtr = new char[deviceHeapInfo.size];
-            CUDA_CHECK((cuplaError_t) cudaHostRegister(hostPtr, deviceHeapInfo.size, cudaHostRegisterDefault));
+//            CUDA_CHECK((cuplaError_t) cudaHostRegister(hostPtr, deviceHeapInfo.size, cudaHostRegisterDefault));
 
 
             this->hostBufferOffset = static_cast<int64_t>(reinterpret_cast<char*>(deviceHeapInfo.p) - hostPtr);

@@ -49,7 +49,7 @@ namespace picongpu
 {
     using namespace pmacc;
 
-#if(!BOOST_LANG_CUDA && !BOOST_COMP_HIP)
+#if(0)
     /* dummy because we are not using mallocMC with cupla
      * DeviceHeap is defined in `mallocMC.param`
      */

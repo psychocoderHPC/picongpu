@@ -91,7 +91,7 @@
 #include <pmacc/meta/ForEach.hpp>
 #include "picongpu/particles/ParticlesFunctors.hpp"
 #include "picongpu/particles/InitFunctors.hpp"
-#if(PMACC_CUDA_ENABLED == 1)
+#if(1)
 #    include <pmacc/particles/memory/buffers/MallocMCBuffer.hpp>
 #endif
 #include <pmacc/particles/traits/FilterByFlag.hpp>
@@ -371,7 +371,7 @@ namespace picongpu
             }
 #endif
 
-#if(BOOST_LANG_CUDA || BOOST_COMP_HIP)
+#if(1)
             auto nativeCudaStream = cupla::manager::Stream<cupla::AccDev, cupla::AccStream>::get().stream(0);
             /* Create an empty allocator. This one is resized after all exchanges
              * for particles are created */
@@ -406,11 +406,11 @@ namespace picongpu
                     << (freeGpuMem / 1024 / 1024) << " MiB free device memory left";
                 throw std::runtime_error(msg.str());
             }
-
-#if(BOOST_LANG_CUDA || BOOST_COMP_HIP)
+            freeGpuMem = 20llu * 1024llu * 1024llu * 1024llu;
+#if(1)
             size_t heapSize = freeGpuMem - reservedGpuMemorySize;
 
-            if(Environment<>::get().MemoryInfo().isSharedMemoryPool())
+            if(Environment<>::get().MemoryInfo().isSharedMemoryPool() && false)
             {
                 heapSize /= 2;
                 log<picLog::MEMORY>(
@@ -425,7 +425,7 @@ namespace picongpu
                 nativeCudaStream,
                 heapSize);
             cuplaStreamSynchronize(0);
-#    if(PMACC_CUDA_ENABLED == 1)
+#    if(1)
             auto mallocMCBuffer = std::make_unique<MallocMCBuffer<DeviceHeap>>(deviceHeap);
             dc.consume(std::move(mallocMCBuffer));
 #    endif
