@@ -6,6 +6,7 @@ stages:
 
 .base_generate-reduced-matrix:
   stage: generate
+  image: ubuntu:focal
   script:
     - apt update
     - apt install -y python3-pip
