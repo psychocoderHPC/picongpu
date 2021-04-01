@@ -156,8 +156,11 @@ namespace pmacc
 
             void globalSync()
             {
-                Manager().waitForAllTasks();
-                MPI_CHECK(MPI_Barrier(MPI_COMM_WORLD));
+                if(detail::EnvironmentContext::getInstance().isMpiInitialized())
+                {
+                    Manager().waitForAllTasks();
+                    MPI_CHECK(MPI_Barrier(MPI_COMM_WORLD));
+                }
             }
 
             /** cleanup the environment */
