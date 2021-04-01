@@ -89,9 +89,9 @@ namespace picongpu
                 constexpr float_64 DOWNRAMP_1 = 30.e-6; // unit: meter
                 constexpr float_64 DOWNRAMP_2 = 0.0e-6; // unit: meter
 #endif
-//                constexpr float_64 REL_DENSITY_LOW = 0.0;
+                //                constexpr float_64 REL_DENSITY_LOW = 0.0;
                 constexpr float_64 REL_DENSITY_HIGH = 2.0; // Old value of previous TWEAC scenarios was: 2.0
-//                constexpr float_64 REL_DENSITY_MEDIUM = 1.0; // old value was: sqrt(2.0)
+                //                constexpr float_64 REL_DENSITY_MEDIUM = 1.0; // old value was: sqrt(2.0)
                 constexpr float_64 REL_DENSITY_BASE = 1.0; // always one, use BASE_DENSITY_SI to change base density
                                                            // just here to avoid "magic" 1.0s in the code
 

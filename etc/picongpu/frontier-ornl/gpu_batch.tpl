@@ -61,7 +61,7 @@
 # host memory per node
 .TBG_memPerNode="$((TBG_memPerGPU * TBG_gpusPerNode))"
 
-# number of cores to block per GPU - 
+# number of cores to block per GPU -
 .TBG_coresPerGPU=2
 
 # We only start 1 MPI task per GPU
