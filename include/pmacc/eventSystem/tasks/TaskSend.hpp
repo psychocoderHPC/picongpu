@@ -69,8 +69,8 @@ namespace pmacc
                     /* Wait to be sure that all device work is finished before MPI is triggered.
                      * MPI will not wait for work in our device streams
                      */
-                    __getTransactionEvent().waitForFinished();
-                    state = ReadyForMPISend;
+                    mpiStreamWait = __getTransactionEvent();
+                    state = waitMPIStream;
                 }
                 else
                     Environment<>::get().Factory().createTaskCopyDeviceToHost(
@@ -84,6 +84,13 @@ namespace pmacc
         {
             switch(state)
             {
+            case waitMPIStream:
+                if(nullptr == Environment<>::get().Manager().getITaskIfNotFinished(mpiStreamWait.getTaskId()))
+                {
+                    state = ReadyForMPISend;
+                    return executeIntern();
+                }
+                break;
             case InitDone:
                 break;
             case ReadyForMPISend:
@@ -136,10 +143,12 @@ namespace pmacc
             InitDone,
             ReadyForMPISend,
             SendDone,
-            Finish
+            Finish,
+            waitMPIStream
         };
 
         Exchange<TYPE, DIM>* exchange;
+        EventTask mpiStreamWait;
         state_t state;
     };
 

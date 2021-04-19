@@ -48,15 +48,26 @@ namespace pmacc
                 /* Wait to be sure that all device work is finished before MPI is triggered.
                  * MPI will not wait for work in our device streams
                  */
-                __getTransactionEvent().waitForFinished();
+                mpiStreamWait = __getTransactionEvent();
+                state = waitMPIStream;
             }
-            Environment<>::get().Factory().createTaskReceiveMPI(exchange, this);
+            else
+                Environment<>::get().Factory().createTaskReceiveMPI(exchange, this);
         }
 
         bool executeIntern()
         {
             switch(state)
             {
+            case waitMPIStream:
+                if(nullptr == Environment<>::get().Manager().getITaskIfNotFinished(mpiStreamWait.getTaskId()))
+                {
+                    state = WaitForReceived;
+                    __startTransaction();
+                    Environment<>::get().Factory().createTaskReceiveMPI(exchange, this);
+                    __endTransaction();
+                }
+                break;
             case WaitForReceived:
                 break;
             case RunCopy:
@@ -172,7 +183,8 @@ namespace pmacc
             RunCopy,
             WaitForSetSize,
             WaitForFinish,
-            Finish
+            Finish,
+            waitMPIStream
 
         };
 
@@ -181,6 +193,7 @@ namespace pmacc
         state_t state;
         size_t newBufferSize;
         EventTask setSizeEvent;
+        EventTask mpiStreamWait;
     };
 
 } // namespace pmacc
