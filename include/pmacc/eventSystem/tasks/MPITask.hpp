@@ -49,25 +49,6 @@ namespace pmacc
         {
         }
 
-    protected:
-        /**
-         * Returns if the task is finished.
-         *
-         * @return if the task is finished.
-         */
-        inline bool isFinished()
-        {
-            return finished;
-        }
-
-        /**
-         * Sets the task to be finished.
-         */
-        inline void setFinished()
-        {
-            finished = true;
-        }
-
     private:
         bool finished;
     };

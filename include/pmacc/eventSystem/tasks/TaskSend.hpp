@@ -66,11 +66,8 @@ namespace pmacc
             {
                 if(Environment<>::get().isMpiDirectEnabled())
                 {
-                    /* Wait to be sure that all device work is finished before MPI is triggered.
-                     * MPI will not wait for work in our device streams
-                     */
-                    __getTransactionEvent().waitForFinished();
-                    state = ReadyForMPISend;
+                    Environment<>::get().Factory().createTaskSendMPI(exchange, this);
+                    state = SendDone;
                 }
                 else
                     Environment<>::get().Factory().createTaskCopyDeviceToHost(
@@ -140,7 +137,7 @@ namespace pmacc
         };
 
         Exchange<TYPE, DIM>* exchange;
-        state_t state;
+        state_t state = Constructor;
     };
 
 } // namespace pmacc
