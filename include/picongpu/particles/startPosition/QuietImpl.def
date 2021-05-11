@@ -21,7 +21,7 @@
 
 #include "picongpu/simulation_defines.hpp"
 
-#include "picongpu/particles/startPosition/generic/Free.def"
+#include "picongpu/particles/startPosition/generic/FreeBoundary.def"
 
 #include <boost/mpl/integral_c.hpp>
 
@@ -51,7 +51,7 @@ namespace picongpu
              * is equal.
              */
             template<typename T_ParamClass>
-            using QuietImpl = generic::Free<acc::QuietImpl<T_ParamClass>>;
+            using QuietImpl = generic::FreeBoundary<acc::QuietImpl<T_ParamClass>>;
 
         } // namespace startPosition
     } // namespace particles

@@ -21,7 +21,9 @@
 
 #include "picongpu/simulation_defines.hpp"
 
-#include "picongpu/particles/startPosition/generic/Free.def"
+#include "picongpu/particles/startPosition/generic/FreeBoundary.def"
+
+#include <pmacc/random/distributions/Uniform.hpp>
 
 #include <boost/mpl/integral_c.hpp>
 
@@ -48,11 +50,19 @@ namespace picongpu
                      * @param particle particle to be manipulated
                      * @param ... unused particles
                      */
-                    template<typename T_Particle, typename... T_Args>
-                    HDINLINE void operator()(T_Particle& particle, T_Args&&...)
+                    template<typename T_Acc, typename T_MetaData, typename T_Particle, typename... T_Args>
+                    HDINLINE void operator()(
+                        T_Acc const& acc,
+                        T_MetaData& meta,
+                        T_Particle& particle,
+                        T_Args&&...)
                     {
                         uint32_t maxNumMacroParticles
                             = pmacc::math::CT::volume<typename T_ParamClass::numParticlesPerDimension>::type::value;
+
+                        auto rng = meta.getRngHandle()
+                                       .template applyDistribution<pmacc::random::distributions::Uniform<uint32_t>>();
+                        auto rngValue = rng(acc);
 
                         /* reset the particle position if the operator is called more times
                          * than allowed (m_currentMacroParticles underflow protection for)
@@ -76,13 +86,14 @@ namespace picongpu
 
                         particle[position_]
                             = precisionCast<float_X>(inCellCoordinate) * spacing + spacing * float_X(0.5);
-                        particle[weighting_] = m_weighting;
+                        particle[weighting_] = m_weighting + rngValue;
 
                         --m_currentMacroParticles;
                     }
 
-                    template<typename T_Particle>
-                    HDINLINE uint32_t numberOfMacroParticles(float_X const realParticlesPerCell)
+                    template<typename T_Particle, typename T_MetaData>
+                    HDINLINE uint32_t
+                    numberOfMacroParticles(T_MetaData const& meta, float_X const realParticlesPerCell)
                     {
                         auto numParInCell = T_ParamClass::numParticlesPerDimension::toRT();
 
