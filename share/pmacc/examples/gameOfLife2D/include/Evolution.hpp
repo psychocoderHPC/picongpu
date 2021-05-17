@@ -95,8 +95,7 @@ namespace gol
 
                 cupla::__syncthreads(acc);
 
-                ForEachIdx<IdxConfig<cellsPerSuperCell, numWorkers>>{
-                    workerIdx}([&](uint32_t const linearIdx, uint32_t const) {
+                ForEachIdx<IdxConfig<cellsPerSuperCell, numWorkers>>{workerIdx}([&](uint32_t const linearIdx) {
                     // cell index within the superCell
                     DataSpace<DIM2> const cellIdx = DataSpaceOperations<DIM2>::template map<SuperCellSize>(linearIdx);
 
@@ -173,8 +172,7 @@ namespace gol
                 using Random = random::Random<Distribution, RngMethod, State*>;
                 Random rng(&state);
 
-                ForEachIdx<IdxConfig<cellsPerSuperCell, numWorkers>>{
-                    workerIdx}([&](uint32_t const linearIdx, uint32_t const) {
+                ForEachIdx<IdxConfig<cellsPerSuperCell, numWorkers>>{workerIdx}([&](uint32_t const linearIdx) {
                     // cell index within the superCell
                     DataSpace<DIM2> const cellIdx = DataSpaceOperations<DIM2>::template map<SuperCellSize>(linearIdx);
                     // write 1(white) if uniform random number 0<rng<1 is smaller than 'threshold'

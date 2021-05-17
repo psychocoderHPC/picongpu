@@ -29,7 +29,7 @@
 #include <pmacc/mappings/threads/ForEachIdx.hpp>
 #include <pmacc/mappings/threads/IdxConfig.hpp>
 #include <pmacc/mappings/threads/WorkerCfg.hpp>
-#include <pmacc/memory/CtxArray.hpp>
+#include <pmacc/memory/CtxVar.hpp>
 #include <pmacc/memory/boxes/DataBox.hpp>
 #include <pmacc/memory/boxes/PitchedBox.hpp>
 #include <pmacc/memory/shared/Allocate.hpp>
@@ -132,10 +132,10 @@ namespace picongpu
             ForEachIdx<ParticleDomCfg> forEachParticle(workerIdx);
 
             /* number of particles to create for each cell (virtual worker) */
-            memory::CtxArray<uint32_t, SuperCellDomCfg> numParsPerCellCtx(0);
+            memory::CtxVar<uint32_t, SuperCellDomCfg> numParsPerCellCtx(0);
 
             /* create for each virtual thread a position functor instance */
-            memory::CtxArray<
+            memory::CtxVar<
                 decltype(positionFunctor(
                     acc,
                     alpaka::core::declval<DataSpace<simDim> const>(),
@@ -150,15 +150,15 @@ namespace picongpu
             ForEachIdx<IdxConfig<1, numWorkers>> onlyMaster{workerIdx};
 
             /* reset shared memory flag if a virtual worker needs to create a particle */
-            onlyMaster([&](uint32_t const, uint32_t const) { finished = 1; });
+            onlyMaster([&]() { finished = 1; });
 
             cupla::__syncthreads(acc);
 
             // initialize the position functor for each cell in the supercell
-            ForEachIdx<IdxConfig<cellsPerSupercell, numWorkers>>{
-                workerIdx}([&](uint32_t const linearIdx, uint32_t const idx) {
+            ForEachIdx<IdxConfig<cellsPerSupercell, numWorkers>>{workerIdx}([&](DomainIdx const domIdx) {
                 /* cell index within the superCell */
-                DataSpace<simDim> const cellIdx = DataSpaceOperations<simDim>::template map<SuperCellSize>(linearIdx);
+                DataSpace<simDim> const cellIdx
+                    = DataSpaceOperations<simDim>::template map<SuperCellSize>(domIdx.lIdx());
 
                 /* cell offset to the begin of the simulation */
                 DataSpace<simDim> const totalCellOffset
@@ -171,21 +171,20 @@ namespace picongpu
                 volatile float_X const realParticlesPerCell = realDensity * CELL_VOLUME;
 
                 // create an independent position functor for each cell in the supercell
-                positionFunctorCtx[idx]
-                    = positionFunctor(acc, localSuperCellOffset, WorkerCfg<cellsPerSupercell>{linearIdx});
+                positionFunctorCtx[domIdx]
+                    = positionFunctor(acc, localSuperCellOffset, WorkerCfg<cellsPerSupercell>{domIdx.lIdx()});
 
                 if(realParticlesPerCell > 0.0_X)
-                    numParsPerCellCtx[idx]
-                        = positionFunctorCtx[idx].template numberOfMacroParticles<ParticleType>(realParticlesPerCell);
+                    numParsPerCellCtx[domIdx]
+                        = positionFunctorCtx[domIdx].template numberOfMacroParticles<ParticleType>(
+                            realParticlesPerCell);
 
-                if(numParsPerCellCtx[idx] > 0)
+                if(numParsPerCellCtx[domIdx] > 0)
                     kernel::atomicAllExch(
                         acc,
                         &finished,
                         0,
                         ::alpaka::hierarchy::Threads{}); // one or more cells have particles to create
-
-                return numParsPerCellCtx[idx];
             });
 
             cupla::__syncthreads(acc);
@@ -193,7 +192,7 @@ namespace picongpu
             if(finished == 1)
                 return; // if there is no particle which has to be created
 
-            onlyMaster([&](uint32_t const, uint32_t const) {
+            onlyMaster([&]() {
                 frame = pb.getEmptyFrame(acc);
                 pb.setAsLastFrame(acc, frame, superCellIdx);
             });
@@ -204,14 +203,14 @@ namespace picongpu
                 // wait that master updates the current used frame
                 cupla::__syncthreads(acc);
 
-                onlyMaster([&](uint32_t const, uint32_t const) { finished = 1; });
+                onlyMaster([&]() { finished = 1; });
 
                 cupla::__syncthreads(acc);
 
-                forEachParticle([&](uint32_t const linearIdx, uint32_t const idx) {
-                    if(numParsPerCellCtx[idx] > 0u)
+                forEachParticle([&](DomainIdx const domIdx) {
+                    if(numParsPerCellCtx[domIdx] > 0u)
                     {
-                        auto particle = frame[linearIdx];
+                        auto particle = frame[domIdx.lIdx()];
 
                         /** we now initialize all attributes of the new particle to their default values
                          *   some attributes, such as the position, localCellIdx, weighting or the
@@ -228,12 +227,12 @@ namespace picongpu
                             setToDefault(particle);
                         }
                         particle[multiMask_] = 1;
-                        particle[localCellIdx_] = linearIdx;
+                        particle[localCellIdx_] = domIdx.lIdx();
                         // initialize position and weighting
-                        positionFunctorCtx[idx](acc, particle);
+                        positionFunctorCtx[domIdx](acc, particle);
 
-                        numParsPerCellCtx[idx]--;
-                        if(numParsPerCellCtx[idx] > 0)
+                        numParsPerCellCtx[domIdx]--;
+                        if(numParsPerCellCtx[domIdx] > 0)
                             kernel::atomicAllExch(
                                 acc,
                                 &finished,
@@ -244,7 +243,7 @@ namespace picongpu
 
                 cupla::__syncthreads(acc);
 
-                onlyMaster([&](uint32_t const, uint32_t const) {
+                onlyMaster([&]() {
                     if(finished == 0)
                     {
                         frame = pb.getEmptyFrame(acc);

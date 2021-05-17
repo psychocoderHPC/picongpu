@@ -41,7 +41,7 @@
 #include <pmacc/mappings/threads/IdxConfig.hpp>
 #include <pmacc/math/Vector.hpp>
 #include <pmacc/math/operation.hpp>
-#include <pmacc/memory/CtxArray.hpp>
+#include <pmacc/memory/CtxVar.hpp>
 #include <pmacc/memory/shared/Allocate.hpp>
 #include <pmacc/meta/ForEach.hpp>
 #include <pmacc/mpi/MPIReduce.hpp>
@@ -116,7 +116,7 @@ namespace picongpu
             using SuperCellYDom = IdxConfig<SuperCellSize::y::value, numWorkers>;
 
 
-            ForEachIdx<SuperCellYDom>{workerIdx}([&](uint32_t const linearIdx, uint32_t const) {
+            ForEachIdx<SuperCellYDom>{workerIdx}([&](uint32_t const linearIdx) {
                 // set shared sums of x^2, ux^2, x*ux, particle counter to zero
                 shSumMom2[linearIdx] = 0.0_X;
                 shSumPos2[linearIdx] = 0.0_X;
@@ -137,9 +137,9 @@ namespace picongpu
             auto accFilter
                 = filter(acc, superCellIdx - mapper.getGuardingSuperCells(), WorkerCfg<numWorkers>{workerIdx});
 
-            memory::CtxArray<typename FramePtr::type::ParticleType, ParticleDomCfg> currentParticleCtx(
+            memory::CtxVar<typename FramePtr::type::ParticleType, ParticleDomCfg> currentParticleCtx(
                 workerIdx,
-                [&](uint32_t const linearIdx, uint32_t const) {
+                [&](uint32_t const linearIdx) {
                     auto particle = frame[linearIdx];
                     /* - only particles from the last frame must be checked
                      * - all other particles are always valid
@@ -154,9 +154,9 @@ namespace picongpu
                 // loop over all particles in the frame
                 ForEachIdx<ParticleDomCfg> forEachParticle(workerIdx);
 
-                forEachParticle([&](uint32_t const, uint32_t const idx) {
+                forEachParticle([&](DomainIdx const domIdx) {
                     /* get one particle */
-                    auto& particle = currentParticleCtx[idx];
+                    auto& particle = currentParticleCtx[domIdx];
                     if(accFilter(acc, particle))
                     {
                         float_X const weighting = particle[weighting_];
@@ -195,13 +195,13 @@ namespace picongpu
 
                 // set frame to next particle frame
                 frame = pb.getPreviousFrame(frame);
-                forEachParticle([&](uint32_t const linearIdx, uint32_t const idx) {
+                forEachParticle([&](DomainIdx const domIdx) {
                     /* Update particle for the next round.
                      * The frame list is traversed from the last to the first frame.
                      * Only the last frame can contain gaps therefore all following
                      * frames are fully filled with particles.
                      */
-                    currentParticleCtx[idx] = frame[linearIdx];
+                    currentParticleCtx[domIdx] = frame[domIdx.lIdx()];
                 });
             }
 
@@ -212,7 +212,7 @@ namespace picongpu
             const int gOffset
                 = ((superCellIdx - mapper.getGuardingSuperCells()) * MappingDesc::SuperCellSize::toRT()).y();
 
-            ForEachIdx<SuperCellYDom>{workerIdx}([&](uint32_t const linearIdx, uint32_t const) {
+            ForEachIdx<SuperCellYDom>{workerIdx}([&](uint32_t const linearIdx) {
                 cupla::atomicAdd(
                     acc,
                     &(gSumMom2[gOffset + linearIdx]),

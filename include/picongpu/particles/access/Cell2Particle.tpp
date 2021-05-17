@@ -67,7 +67,7 @@ namespace picongpu
         PMACC_SMEM(acc, particlesInSuperCell, uint16_t);                                                              \
         ForEachIdx<IdxConfig<1, numWorkers>> onlyMaster{workerIdx};                                                   \
                                                                                                                       \
-        onlyMaster([&](uint32_t const, uint32_t const) {                                                              \
+        onlyMaster([&]() {                                                                                            \
             frame = pb.getLastFrame(superCellIdx);                                                                    \
             particlesInSuperCell = pb.getSuperCell(superCellIdx).getSizeLastFrame();                                  \
         });                                                                                                           \
@@ -83,7 +83,7 @@ namespace picongpu
         {                                                                                                             \
             using ParticleDomCfg = IdxConfig<maxParticlesInFrame, numWorkers>;                                        \
             ForEachIdx<ParticleDomCfg> forEachParticle(workerIdx);                                                    \
-            forEachParticle([&](uint32_t const linearThreadIdx, uint32_t const) {                                     \
+            forEachParticle([&](uint32_t const linearThreadIdx) {                                                     \
                 if(linearThreadIdx < particlesInSuperCell)                                                            \
                 {                                                                                                     \
                     if(accFilter(acc, frame[linearThreadIdx]))                                                        \
@@ -91,7 +91,7 @@ namespace picongpu
                 }                                                                                                     \
             });                                                                                                       \
             cupla::__syncthreads(acc);                                                                                \
-            onlyMaster([&](uint32_t const, uint32_t const) {                                                          \
+            onlyMaster([&]() {                                                                                        \
                 frame = pb.getPreviousFrame(frame);                                                                   \
                 particlesInSuperCell = pmacc::math::CT::volume<SuperCellSize>::type::value;                           \
             });                                                                                                       \

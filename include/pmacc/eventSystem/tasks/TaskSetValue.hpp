@@ -116,7 +116,7 @@ namespace pmacc
             constexpr uint32_t numWorkers = T_numWorkers;
             uint32_t const workerIdx = cupla::threadIdx(acc).x;
 
-            ForEachIdx<IdxConfig<T_xChunkSize, numWorkers>>{workerIdx}([&](uint32_t const linearIdx, uint32_t const) {
+            ForEachIdx<IdxConfig<T_xChunkSize, numWorkers>>{workerIdx}([&](uint32_t const linearIdx) {
                 auto virtualWorkerIdx(SizeVecType::create(0));
                 virtualWorkerIdx.x() = linearIdx;
 

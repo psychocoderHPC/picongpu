@@ -95,7 +95,7 @@ namespace picongpu
 
                         using SuperCellDomCfg = IdxConfig<cellsPerSuperCell, numWorkers>;
 
-                        ForEachIdx<SuperCellDomCfg>{workerIdx}([&](uint32_t const linearIdx, uint32_t const) {
+                        ForEachIdx<SuperCellDomCfg>{workerIdx}([&](uint32_t const linearIdx) {
                             /* cell index within the superCell */
                             DataSpace<simDim> const cellIdx
                                 = DataSpaceOperations<simDim>::template map<SuperCellSize>(linearIdx);

@@ -117,18 +117,17 @@ namespace picongpu
                         using MasterOnly = IdxConfig<1, numWorkers>;
 
                         // get frame lists of this supercell
-                        ForEachIdx<MasterOnly>{workerIdx}([&](uint32_t const, uint32_t const) {
+                        ForEachIdx<MasterOnly>{workerIdx}([&]() {
                             frame = pb.getLastFrame(superCellIdx);
                             particlesInSuperCell = pb.getSuperCell(superCellIdx).getSizeLastFrame();
                         });
 
                         // empty the histogram to contain only zeroes
-                        ForEachIdx<IdxConfig<numWorkers, numWorkers>>{workerIdx}(
-                            [&](uint32_t const linearIdx, uint32_t const) {
-                                /* set all bins to 0 */
-                                for(int i = linearIdx; i < numBins; i += numWorkers)
-                                    shLocalEnergyHistogram[i] = float_X(0.);
-                            });
+                        ForEachIdx<IdxConfig<numWorkers, numWorkers>>{workerIdx}([&](uint32_t const linearIdx) {
+                            /* set all bins to 0 */
+                            for(int i = linearIdx; i < numBins; i += numWorkers)
+                                shLocalEnergyHistogram[i] = float_X(0.);
+                        });
 
                         cupla::__syncthreads(acc);
 
@@ -141,7 +140,7 @@ namespace picongpu
                         {
                             // move over all particles in a frame
                             ForEachIdx<IdxConfig<maxParticlesPerFrame, numWorkers>>{
-                                workerIdx}([&](uint32_t const linearIdx, uint32_t const) {
+                                workerIdx}([&](uint32_t const linearIdx) {
                                 if(linearIdx < particlesInSuperCell)
                                 {
                                     auto const particle = frame[linearIdx];
@@ -184,7 +183,7 @@ namespace picongpu
                             cupla::__syncthreads(acc);
 
                             // go to next frame
-                            ForEachIdx<MasterOnly>{workerIdx}([&](uint32_t const, uint32_t const) {
+                            ForEachIdx<MasterOnly>{workerIdx}([&]() {
                                 frame = pb.getPreviousFrame(frame);
                                 particlesInSuperCell = maxParticlesPerFrame;
                             });
@@ -192,15 +191,14 @@ namespace picongpu
                         }
 
                         // write histogram back to global memory (add)
-                        ForEachIdx<IdxConfig<numWorkers, numWorkers>>{workerIdx}(
-                            [&](uint32_t const linearIdx, uint32_t const) {
-                                for(int i = linearIdx; i < numBins; i += numWorkers)
-                                    cupla::atomicAdd(
-                                        acc,
-                                        &(localEnergyHistogram[i]),
-                                        shLocalEnergyHistogram[i],
-                                        ::alpaka::hierarchy::Blocks{});
-                            });
+                        ForEachIdx<IdxConfig<numWorkers, numWorkers>>{workerIdx}([&](uint32_t const linearIdx) {
+                            for(int i = linearIdx; i < numBins; i += numWorkers)
+                                cupla::atomicAdd(
+                                    acc,
+                                    &(localEnergyHistogram[i]),
+                                    shLocalEnergyHistogram[i],
+                                    ::alpaka::hierarchy::Blocks{});
+                        });
                     }
                 };
 

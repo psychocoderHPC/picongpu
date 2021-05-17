@@ -73,7 +73,7 @@ namespace picongpu
                     = LaserFunctor::Unitless::initPlaneY % SuperCellSize::y::value;
 
                 mappings::threads::ForEachIdx<mappings::threads::IdxConfig<planeSize, numWorkers>>{
-                    workerIdx}([&](uint32_t const linearIdx, uint32_t const) {
+                    workerIdx}([&](uint32_t const linearIdx) {
                     auto accLaserFunctor
                         = laserFunctor(acc, localSuperCellOffset, mappings::threads::WorkerCfg<numWorkers>{workerIdx});
 

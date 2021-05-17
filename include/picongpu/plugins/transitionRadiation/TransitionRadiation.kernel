@@ -184,7 +184,7 @@ namespace picongpu
                              * the current super cell and evaluate the total number of
                              * particles in this frame.
                              */
-                            onlyMaster([&](uint32_t const, uint32_t const) { counter_s = 0; });
+                            onlyMaster([&]() { counter_s = 0; });
 
                             cupla::__syncthreads(acc);
 
@@ -193,7 +193,7 @@ namespace picongpu
                             // loop over all particles in the frame
                             ForEachIdx<ParticleDomCfg> forEachParticle{workerIdx};
 
-                            forEachParticle([&](uint32_t const linearIdx, uint32_t const) {
+                            forEachParticle([&](uint32_t const linearIdx) {
                                 // only threads with particles are running
                                 if(linearIdx < particlesInFrame)
                                 {

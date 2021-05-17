@@ -26,7 +26,7 @@
 #include "pmacc/mappings/threads/ForEachIdx.hpp"
 #include "pmacc/mappings/threads/IdxConfig.hpp"
 #include "pmacc/mappings/threads/WorkerCfg.hpp"
-#include "pmacc/memory/CtxArray.hpp"
+#include "pmacc/memory/CtxVar.hpp"
 #include "pmacc/memory/buffers/GridBuffer.hpp"
 #include "pmacc/traits/GetNumWorkers.hpp"
 #include "pmacc/traits/GetValueType.hpp"
@@ -114,9 +114,8 @@ namespace pmacc
 
                     using MasterOnly = IdxConfig<1, numWorkers>;
 
-                    ForEachIdx<MasterOnly>{workerIdx}([&](uint32_t const, uint32_t const) {
-                        destFunc(acc, destBuffer[cupla::blockIdx(acc).x], s_mem[0]);
-                    });
+                    ForEachIdx<MasterOnly>{workerIdx}(
+                        [&]() { destFunc(acc, destBuffer[cupla::blockIdx(acc).x], s_mem[0]); });
                 }
 
                 /** reduce a buffer
@@ -167,33 +166,29 @@ namespace pmacc
 
                     using VirtualWorkerCfg = IdxConfig<T_blockSize, T_WorkerCfg::numWorkers>;
 
-                    pmacc::memory::CtxArray<uint32_t, VirtualWorkerCfg> linearReduceThreadIdxCtx(
+                    pmacc::memory::CtxVar<uint32_t, VirtualWorkerCfg> linearReduceThreadIdxCtx(
                         workerCfg.getWorkerIdx(),
-                        [&](uint32_t const linearIdx, uint32_t const) {
-                            return blockIndex * T_blockSize + linearIdx;
-                        });
+                        [&](uint32_t const linearIdx) { return blockIndex * T_blockSize + linearIdx; });
 
-                    pmacc::memory::CtxArray<bool, VirtualWorkerCfg> isActiveCtx(
+                    pmacc::memory::CtxVar<bool, VirtualWorkerCfg> isActiveCtx(
                         workerCfg.getWorkerIdx(),
-                        [&](uint32_t const, uint32_t const idx) {
-                            return linearReduceThreadIdxCtx[idx] < bufferSize;
-                        });
+                        [&](DomainIdx const domIdx) { return linearReduceThreadIdxCtx[domIdx] < bufferSize; });
 
                     ForEachIdx<VirtualWorkerCfg> forEachVirtualThread(workerCfg.getWorkerIdx());
 
-                    forEachVirtualThread([&](uint32_t const linearIdx, uint32_t const idx) {
-                        if(isActiveCtx[idx])
+                    forEachVirtualThread([&](DomainIdx const domIdx) {
+                        if(isActiveCtx[domIdx])
                         {
                             /*fill shared mem*/
-                            Type r_value = srcBuffer[linearReduceThreadIdxCtx[idx]];
+                            Type r_value = srcBuffer[linearReduceThreadIdxCtx[domIdx]];
                             /*reduce not read global memory to shared*/
-                            uint32_t i = linearReduceThreadIdxCtx[idx] + numReduceThreads;
+                            uint32_t i = linearReduceThreadIdxCtx[domIdx] + numReduceThreads;
                             while(i < bufferSize)
                             {
                                 func(acc, r_value, srcBuffer[i]);
                                 i += numReduceThreads;
                             }
-                            sharedMem[linearIdx] = r_value;
+                            sharedMem[domIdx.lIdx()] = r_value;
                         }
                     });
 
@@ -212,10 +207,11 @@ namespace pmacc
                          */
                         chunk_count = (chunk_count + 1u) / 2u;
 
-                        forEachVirtualThread([&](uint32_t const linearIdx, uint32_t const idx) {
-                            isActiveCtx[idx] = (linearReduceThreadIdxCtx[idx] < bufferSize)
+                        forEachVirtualThread([&](DomainIdx const domIdx) {
+                            uint32_t const linearIdx = domIdx.lIdx();
+                            isActiveCtx[domIdx] = (linearReduceThreadIdxCtx[domIdx] < bufferSize)
                                 && !(linearIdx != 0u && linearIdx >= active_threads);
-                            if(isActiveCtx[idx])
+                            if(isActiveCtx[domIdx])
                                 func(acc, sharedMem[linearIdx], sharedMem[linearIdx + chunk_count]);
 
                             cupla::__syncthreads(acc);

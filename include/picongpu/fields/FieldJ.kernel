@@ -32,7 +32,7 @@
 #include <pmacc/mappings/threads/IdxConfig.hpp>
 #include <pmacc/mappings/threads/ThreadCollective.hpp>
 #include <pmacc/math/operation.hpp>
-#include <pmacc/memory/CtxArray.hpp>
+#include <pmacc/memory/CtxVar.hpp>
 #include <pmacc/memory/boxes/CachedBox.hpp>
 #include <pmacc/particles/frame_types.hpp>
 #include <pmacc/particles/memory/boxes/ParticlesBox.hpp>
@@ -104,36 +104,36 @@ namespace picongpu
                 using VirtualWorkerDomCfg = IdxConfig<numParticlesPerFrame * numVirtualBlocks, numWorkers>;
 
                 /* each virtual worker is part of one virtual block */
-                memory::CtxArray<uint32_t, VirtualWorkerDomCfg> virtualBlockIdCtx(
+                memory::CtxVar<uint32_t, VirtualWorkerDomCfg> virtualBlockIdCtx(
                     workerIdx,
-                    [&](uint32_t const linearIdx, uint32_t const) { return linearIdx / numParticlesPerFrame; });
+                    [&](uint32_t const linearIdx) { return linearIdx / numParticlesPerFrame; });
 
                 /* linear virtual worker index in the virtual block*/
-                memory::CtxArray<uint32_t, VirtualWorkerDomCfg> virtualLinearIdCtx(
+                memory::CtxVar<uint32_t, VirtualWorkerDomCfg> virtualLinearIdCtx(
                     workerIdx,
-                    [&](uint32_t const linearIdx, uint32_t const idx) {
+                    [&](DomainIdx const domIdx) {
                         /* map virtualLinearIdCtx to the range [0;numParticlesPerFrame) */
-                        return linearIdx - (virtualBlockIdCtx[idx] * numParticlesPerFrame);
+                        return domIdx.lIdx() - (virtualBlockIdCtx[domIdx] * numParticlesPerFrame);
                     });
 
                 /* each virtual worker stores the currently used frame */
-                memory::CtxArray<FramePtr, VirtualWorkerDomCfg> frameCtx;
+                memory::CtxVar<FramePtr, VirtualWorkerDomCfg> frameCtx;
 
-                memory::CtxArray<lcellId_t, VirtualWorkerDomCfg> particlesInSuperCellCtx(0u);
+                memory::CtxVar<lcellId_t, VirtualWorkerDomCfg> particlesInSuperCellCtx(0u);
 
                 /* loop over all virtual workers */
                 ForEachIdx<VirtualWorkerDomCfg> forEachVirtualWorker(workerIdx);
 
-                forEachVirtualWorker([&](uint32_t const, uint32_t const idx) {
-                    frameCtx[idx] = boxPar.getLastFrame(block);
-                    if(frameCtx[idx].isValid() && virtualBlockIdCtx[idx] == 0u)
-                        particlesInSuperCellCtx[idx] = boxPar.getSuperCell(block).getSizeLastFrame();
+                forEachVirtualWorker([&](DomainIdx const domIdx) {
+                    frameCtx[domIdx] = boxPar.getLastFrame(block);
+                    if(frameCtx[domIdx].isValid() && virtualBlockIdCtx[domIdx] == 0u)
+                        particlesInSuperCellCtx[domIdx] = boxPar.getSuperCell(block).getSizeLastFrame();
 
                     /* select N-th (N=virtualBlockId) frame from the end of the list */
-                    for(uint32_t i = 1; i <= virtualBlockIdCtx[idx] && frameCtx[idx].isValid(); ++i)
+                    for(uint32_t i = 1; i <= virtualBlockIdCtx[domIdx] && frameCtx[domIdx].isValid(); ++i)
                     {
-                        particlesInSuperCellCtx[idx] = numParticlesPerFrame;
-                        frameCtx[idx] = boxPar.getPreviousFrame(frameCtx[idx]);
+                        particlesInSuperCellCtx[domIdx] = numParticlesPerFrame;
+                        frameCtx[domIdx] = boxPar.getPreviousFrame(frameCtx[domIdx]);
                     }
                 });
 
@@ -151,30 +151,30 @@ namespace picongpu
                 while(true)
                 {
                     bool isOneFrameValid = false;
-                    forEachVirtualWorker([&](uint32_t const, uint32_t const idx) {
-                        isOneFrameValid = isOneFrameValid || frameCtx[idx].isValid();
+                    forEachVirtualWorker([&](DomainIdx const domIdx) {
+                        isOneFrameValid = isOneFrameValid || frameCtx[domIdx].isValid();
                     });
 
                     if(!isOneFrameValid)
                         break;
 
-                    forEachVirtualWorker([&](uint32_t const, uint32_t const idx) {
+                    forEachVirtualWorker([&](DomainIdx const domIdx) {
                         /* this test is only important for the last frame
                          * if the frame is not the last one then: `particlesInSuperCell == numParticlesPerFrame`
                          */
-                        if(frameCtx[idx].isValid() && virtualLinearIdCtx[idx] < particlesInSuperCellCtx[idx])
+                        if(frameCtx[domIdx].isValid() && virtualLinearIdCtx[domIdx] < particlesInSuperCellCtx[domIdx])
                         {
-                            frameSolver(acc, *frameCtx[idx], virtualLinearIdCtx[idx], cachedJ);
+                            frameSolver(acc, *frameCtx[domIdx], virtualLinearIdCtx[domIdx], cachedJ);
                         }
                     });
 
-                    forEachVirtualWorker([&](uint32_t const, uint32_t const idx) {
-                        if(frameCtx[idx].isValid())
+                    forEachVirtualWorker([&](DomainIdx const domIdx) {
+                        if(frameCtx[domIdx].isValid())
                         {
-                            particlesInSuperCellCtx[idx] = numParticlesPerFrame;
-                            for(int i = 0; i < numVirtualBlocks && frameCtx[idx].isValid(); ++i)
+                            particlesInSuperCellCtx[domIdx] = numParticlesPerFrame;
+                            for(int i = 0; i < numVirtualBlocks && frameCtx[domIdx].isValid(); ++i)
                             {
-                                frameCtx[idx] = boxPar.getPreviousFrame(frameCtx[idx]);
+                                frameCtx[domIdx] = boxPar.getPreviousFrame(frameCtx[domIdx]);
                             }
                         }
                     });
@@ -276,19 +276,18 @@ namespace picongpu
 
                 cupla::__syncthreads(acc);
 
-                ForEachIdx<IdxConfig<cellsPerSuperCell, numWorkers>>{workerIdx}(
-                    [&](uint32_t const linearIdx, uint32_t const) {
-                        /* cell index within the superCell */
-                        DataSpace<simDim> const cellIdx
-                            = DataSpaceOperations<simDim>::template map<SuperCellSize>(linearIdx);
-                        DataSpace<simDim> const cell(blockCell + cellIdx);
+                ForEachIdx<IdxConfig<cellsPerSuperCell, numWorkers>>{workerIdx}([&](uint32_t const linearIdx) {
+                    /* cell index within the superCell */
+                    DataSpace<simDim> const cellIdx
+                        = DataSpaceOperations<simDim>::template map<SuperCellSize>(linearIdx);
+                    DataSpace<simDim> const cell(blockCell + cellIdx);
 
-                        // Amperes Law:
-                        //   Change of the dE = - j / EPS0 * dt
-                        //                        j = current density (= current per area)
-                        //                          = fieldJ
-                        currentInterpolationFunctor(fieldE.shift(cell), fieldB.shift(cell), cachedJ.shift(cellIdx));
-                    });
+                    // Amperes Law:
+                    //   Change of the dE = - j / EPS0 * dt
+                    //                        j = current density (= current per area)
+                    //                          = fieldJ
+                    currentInterpolationFunctor(fieldE.shift(cell), fieldB.shift(cell), cachedJ.shift(cellIdx));
+                });
             }
         };
 

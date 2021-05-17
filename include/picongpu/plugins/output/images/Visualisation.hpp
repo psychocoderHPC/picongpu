@@ -41,7 +41,7 @@
 #include <pmacc/mappings/threads/ForEachIdx.hpp>
 #include <pmacc/mappings/threads/IdxConfig.hpp>
 #include <pmacc/math/Vector.hpp>
-#include <pmacc/memory/CtxArray.hpp>
+#include <pmacc/memory/CtxVar.hpp>
 #include <pmacc/memory/boxes/DataBox.hpp>
 #include <pmacc/memory/boxes/DataBoxDim1Access.hpp>
 #include <pmacc/memory/boxes/PitchedBox.hpp>
@@ -266,7 +266,7 @@ namespace picongpu
             // each cell in a supercell is handled as a virtual worker
             ForEachIdx<SupercellDomCfg> forEachCell(workerIdx);
 
-            forEachCell([&](uint32_t const linearIdx, uint32_t const) {
+            forEachCell([&](uint32_t const linearIdx) {
                 // cell index within the superCell
                 DataSpace<simDim> const cellIdx = DataSpaceOperations<simDim>::template map<SuperCellSize>(linearIdx);
                 // offset to the origin of the local domain + guarding cells
@@ -383,20 +383,21 @@ namespace picongpu
             /* true if the virtual worker is processing a pixel within the resulting image,
              * else false
              */
-            memory::CtxArray<bool, SupercellDomCfg> isImageThreadCtx(false);
+            memory::CtxVar<bool, SupercellDomCfg> isImageThreadCtx(false);
 
             DataSpace<simDim> const suplercellIdx = mapper.getSuperCellIndex(DataSpace<simDim>(cupla::blockIdx(acc)));
             // offset of the supercell (in cells) to the origin of the local domain
             DataSpace<simDim> const supercellCellOffset(
                 (suplercellIdx - mapper.getGuardingSuperCells()) * SuperCellSize::toRT());
 
-            onlyMaster([&](uint32_t const, uint32_t const) { superCellParticipate = 0; });
+            onlyMaster([&]() { superCellParticipate = 0; });
 
             cupla::__syncthreads(acc);
 
-            forEachCell([&](uint32_t const linearIdx, uint32_t const idx) {
+            forEachCell([&](DomainIdx const domIdx) {
                 // cell index within the superCell
-                DataSpace<simDim> const cellIdx = DataSpaceOperations<simDim>::template map<SuperCellSize>(linearIdx);
+                DataSpace<simDim> const cellIdx
+                    = DataSpaceOperations<simDim>::template map<SuperCellSize>(domIdx.lIdx());
 
                 // cell offset to origin of the local domain
                 DataSpace<simDim> const realCell(supercellCellOffset + cellIdx);
@@ -407,7 +408,7 @@ namespace picongpu
                 {
                     // atomic avoids: WAW Error in cuda-memcheck racecheck
                     kernel::atomicAllExch(acc, &superCellParticipate, 1, ::alpaka::hierarchy::Threads{});
-                    isImageThreadCtx[idx] = true;
+                    isImageThreadCtx[domIdx] = true;
                 }
             });
 
@@ -428,13 +429,14 @@ namespace picongpu
                 // pitch in byte
                 SuperCellSize::toRT()[transpose.x()] * sizeof(float_X)));
 
-            forEachCell([&](uint32_t const linearIdx, uint32_t const idx) {
+            forEachCell([&](DomainIdx const domIdx) {
                 /* cell index within the superCell */
-                DataSpace<simDim> const cellIdx = DataSpaceOperations<simDim>::template map<SuperCellSize>(linearIdx);
+                DataSpace<simDim> const cellIdx
+                    = DataSpaceOperations<simDim>::template map<SuperCellSize>(domIdx.lIdx());
 
                 DataSpace<DIM2> const localCell(cellIdx[transpose.x()], cellIdx[transpose.y()]);
 
-                if(isImageThreadCtx[idx])
+                if(isImageThreadCtx[domIdx])
                 {
                     counter(localCell) = float_X(0.0);
                 }
@@ -451,7 +453,7 @@ namespace picongpu
 
             while(frame.isValid())
             {
-                forEachParticle([&](uint32_t const linearIdx, uint32_t const idx) {
+                forEachParticle([&](uint32_t const linearIdx) {
                     auto particle = frame[linearIdx];
                     if(particle[multiMask_] == 1)
                     {
@@ -485,12 +487,12 @@ namespace picongpu
             // wait that all worker finsihed the reduce operation
             cupla::__syncthreads(acc);
 
-            forEachCell([&](uint32_t const linearIdx, uint32_t const idx) {
-                if(isImageThreadCtx[idx])
+            forEachCell([&](DomainIdx const domIdx) {
+                if(isImageThreadCtx[domIdx])
                 {
                     // cell index within the superCell
                     DataSpace<simDim> const cellIdx
-                        = DataSpaceOperations<simDim>::template map<SuperCellSize>(linearIdx);
+                        = DataSpaceOperations<simDim>::template map<SuperCellSize>(domIdx.lIdx());
                     // cell offset to origin of the local domain
                     DataSpace<simDim> const realCell(supercellCellOffset + cellIdx);
                     // index in image
@@ -562,7 +564,7 @@ namespace picongpu
                 // each virtual worker works on a cell
                 ForEachIdx<SupercellDomCfg> forEachCell(workerIdx);
 
-                forEachCell([&](uint32_t const linearIdx, uint32_t const) {
+                forEachCell([&](uint32_t const linearIdx) {
                     uint32_t tid = cupla::blockIdx(acc).x * T_blockSize + linearIdx;
                     if(tid >= n)
                         return;
@@ -605,7 +607,7 @@ namespace picongpu
                 // each virtual worker works on a cell
                 ForEachIdx<SupercellDomCfg> forEachCell(workerIdx);
 
-                forEachCell([&](uint32_t const linearIdx, uint32_t const) {
+                forEachCell([&](uint32_t const linearIdx) {
                     uint32_t const tid = cupla::blockIdx(acc).x * T_blockSize + linearIdx;
                     if(tid >= n)
                         return;

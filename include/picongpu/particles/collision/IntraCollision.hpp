@@ -139,11 +139,10 @@ namespace picongpu
                     cupla::__syncthreads(acc);
 
                     // shuffle indices list
-                    forEachFrameElem([&](uint32_t const linearIdx, uint32_t const) {
-                        parCellList[linearIdx].shuffle(acc, rngHandle);
-                    });
+                    forEachFrameElem(
+                        [&](uint32_t const linearIdx) { parCellList[linearIdx].shuffle(acc, rngHandle); });
 
-                    memory::CtxArray<
+                    memory::CtxVar<
                         decltype(collisionFunctor(
                             acc,
                             alpaka::core::declval<DataSpace<simDim> const>(),
@@ -158,19 +157,19 @@ namespace picongpu
                         FrameDomCfg>
                         collisionFunctorCtx{};
 
-                    forEachFrameElem([&](uint32_t const linearIdx, uint32_t const idx) {
-                        uint32_t const sizeAll = parCellList[linearIdx].size;
+                    forEachFrameElem([&](DomainIdx const domIdx) {
+                        uint32_t const sizeAll = parCellList[domIdx.lIdx()].size;
                         if(sizeAll < 2u)
                             return;
                         // skip particle offset counter
-                        uint32_t* listAll = parCellList[linearIdx].ptrToIndicies;
+                        uint32_t* listAll = parCellList[domIdx.lIdx()].ptrToIndicies;
                         uint32_t potentialPartners = sizeAll - 1u + sizeAll % 2u;
-                        collisionFunctorCtx[idx] = collisionFunctor(
+                        collisionFunctorCtx[domIdx] = collisionFunctor(
                             acc,
                             localSuperCellOffset,
                             WorkerCfg<T_numWorkers>{workerIdx},
-                            densityArray[linearIdx],
-                            densityArray[linearIdx],
+                            densityArray[domIdx.lIdx()],
+                            densityArray[domIdx.lIdx()],
                             potentialPartners,
                             coulombLog);
                         for(uint32_t i = 0; i < sizeAll; i += 2)
@@ -181,16 +180,18 @@ namespace picongpu
                             // RelativisticBinaryCollision functor has an additional 1/2 factor for intraCollisions.
                             // We should instead let RelativisticBinaryCollision know which type of collision it is
                             // and multiply the 1/2 inside the functor.
-                            collisionFunctorCtx[idx].duplicationCorrection = duplicationCorrection(i, sizeAll) * 2u;
-                            (collisionFunctorCtx[idx])(detail::makeCollisionContext(acc, rngHandle), parEven, parOdd);
+                            collisionFunctorCtx[domIdx].duplicationCorrection = duplicationCorrection(i, sizeAll) * 2u;
+                            (collisionFunctorCtx[domIdx])(
+                                detail::makeCollisionContext(acc, rngHandle),
+                                parEven,
+                                parOdd);
                         }
                     });
 
                     cupla::__syncthreads(acc);
 
-                    forEachFrameElem([&](uint32_t const linearIdx, uint32_t const) {
-                        parCellList[linearIdx].finalize(acc, deviceHeapHandle);
-                    });
+                    forEachFrameElem(
+                        [&](uint32_t const linearIdx) { parCellList[linearIdx].finalize(acc, deviceHeapHandle); });
                 }
             };
 

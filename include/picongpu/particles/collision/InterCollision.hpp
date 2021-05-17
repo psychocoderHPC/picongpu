@@ -168,7 +168,7 @@ namespace picongpu
                     cupla::__syncthreads(acc);
 
                     // shuffle indices list of the longest particle list
-                    forEachFrameElem([&](uint32_t const linearIdx, uint32_t const idx) {
+                    forEachFrameElem([&](uint32_t const linearIdx) {
                         // find longer list
                         auto* longParList = parCellList0[linearIdx].size >= parCellList1[linearIdx].size
                             ? &parCellList0[linearIdx]
@@ -176,7 +176,7 @@ namespace picongpu
                         (*longParList).shuffle(acc, rngHandle);
                     });
 
-                    memory::CtxArray<
+                    memory::CtxVar<
                         decltype(collisionFunctor(
                             acc,
                             alpaka::core::declval<DataSpace<simDim> const>(),
@@ -191,7 +191,8 @@ namespace picongpu
                         FrameDomCfg>
                         collisionFunctorCtx{};
 
-                    forEachFrameElem([&](uint32_t const linearIdx, uint32_t const idx) {
+                    forEachFrameElem([&](DomainIdx const domIdx) {
+                        uint32_t const linearIdx = domIdx.lIdx();
                         if(parCellList0[linearIdx].size >= parCellList1[linearIdx].size)
                         {
                             inCellCollisions(
@@ -212,7 +213,7 @@ namespace picongpu
                                 firstFrame1,
                                 coulombLog,
                                 collisionFunctorCtx,
-                                idx);
+                                domIdx);
                         }
                         else
                         {
@@ -234,13 +235,13 @@ namespace picongpu
                                 firstFrame0,
                                 coulombLog,
                                 collisionFunctorCtx,
-                                idx);
+                                domIdx);
                         }
                     });
 
                     cupla::__syncthreads(acc);
 
-                    forEachFrameElem([&](uint32_t const linearIdx, uint32_t const) {
+                    forEachFrameElem([&](uint32_t const linearIdx) {
                         parCellList0[linearIdx].finalize(acc, deviceHeapHandle);
                         parCellList1[linearIdx].finalize(acc, deviceHeapHandle);
                     });
@@ -278,11 +279,11 @@ namespace picongpu
                     T_FrameShort const& frameShort,
                     float_X const& coulombLog,
                     T_CollisionFunctorCtx& collisionFunctorCtx,
-                    uint32_t idx
+                    pmacc::mappings::threads::DomainIdx domIdx
 
                 ) const
                 {
-                    collisionFunctorCtx[idx] = collisionFunctor(
+                    collisionFunctorCtx[domIdx] = collisionFunctor(
                         acc,
                         localSuperCellOffset,
                         threads::WorkerCfg<T_numWorkers>{workerIdx},
@@ -296,8 +297,9 @@ namespace picongpu
                     {
                         auto parLong = detail::getParticle(pBoxLong, frameLong, listLong[i]);
                         auto parShort = detail::getParticle(pBoxShort, frameShort, listShort[i % sizeShort]);
-                        collisionFunctorCtx[idx].duplicationCorrection = duplicationCorrection(i, sizeShort, sizeLong);
-                        (collisionFunctorCtx[idx])(detail::makeCollisionContext(acc, rngHandle), parLong, parShort);
+                        collisionFunctorCtx[domIdx].duplicationCorrection
+                            = duplicationCorrection(i, sizeShort, sizeLong);
+                        (collisionFunctorCtx[domIdx])(detail::makeCollisionContext(acc, rngHandle), parLong, parShort);
                     }
                 }
             };

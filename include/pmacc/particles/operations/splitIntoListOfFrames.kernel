@@ -29,7 +29,7 @@
 #include "pmacc/mappings/threads/IdxConfig.hpp"
 #include "pmacc/math/Vector.hpp"
 #include "pmacc/memory/Array.hpp"
-#include "pmacc/memory/CtxArray.hpp"
+#include "pmacc/memory/CtxVar.hpp"
 #include "pmacc/memory/shared/Allocate.hpp"
 #include "pmacc/particles/frame_types.hpp"
 #include "pmacc/traits/GetNumWorkers.hpp"
@@ -118,7 +118,7 @@ namespace pmacc
 
                         ForEachIdx<IdxConfig<1, numWorkers>> onlyMaster{workerIdx};
 
-                        onlyMaster([&](uint32_t const, uint32_t const) {
+                        onlyMaster([&]() {
                             /* apply for work for the full block, counter[0] contains the
                              * offset in srcFrame to load N particles
                              */
@@ -133,63 +133,64 @@ namespace pmacc
 
                         using ParticleDomCfg = IdxConfig<particlesPerFrame, numWorkers>;
 
-                        memory::CtxArray<int, ParticleDomCfg> srcParticleIdxCtx{};
+                        memory::CtxVar<int, ParticleDomCfg> srcParticleIdxCtx{};
 
-                        memory::CtxArray<bool, ParticleDomCfg> hasValidParticleCtx{};
+                        memory::CtxVar<bool, ParticleDomCfg> hasValidParticleCtx{};
 
                         // loop over all particles in the frame
                         ForEachIdx<ParticleDomCfg> forEachParticle(workerIdx);
 
-                        forEachParticle([&](uint32_t const linearIdx, uint32_t const idx) {
-                            destFramePtr[linearIdx] = DestFramePtr{};
-                            sharedLinearSuperCellIds[linearIdx] = -1;
+                        forEachParticle([&](DomainIdx const domIdx) {
+                            destFramePtr[domIdx.lIdx()] = DestFramePtr{};
+                            sharedLinearSuperCellIds[domIdx.lIdx()] = -1;
 
-                            srcParticleIdxCtx[idx] = sharedSrcParticleOffset + linearIdx;
-                            hasValidParticleCtx[idx] = srcParticleIdxCtx[idx] < maxParticles;
+                            srcParticleIdxCtx[domIdx] = sharedSrcParticleOffset + domIdx.lIdx();
+                            hasValidParticleCtx[domIdx] = srcParticleIdxCtx[domIdx] < maxParticles;
                         });
 
                         cupla::__syncthreads(acc);
 
                         // supercell index of the particle relative to the origin of the local domain
-                        memory::CtxArray<DataSpace<numDims>, ParticleDomCfg> particlesSuperCellCtx{};
+                        memory::CtxVar<DataSpace<numDims>, ParticleDomCfg> particlesSuperCellCtx{};
 
                         // linear cell index of the particle within the destination frame
-                        memory::CtxArray<lcellId_t, ParticleDomCfg> lCellIdxCtx(INV_LOC_IDX);
+                        memory::CtxVar<lcellId_t, ParticleDomCfg> lCellIdxCtx(INV_LOC_IDX);
 
-                        memory::CtxArray<int, ParticleDomCfg> linearParticlesSuperCellCtx(-1);
+                        memory::CtxVar<int, ParticleDomCfg> linearParticlesSuperCellCtx(-1);
 
-                        forEachParticle([&](uint32_t const linearIdx, uint32_t const idx) {
-                            if(hasValidParticleCtx[idx])
+                        forEachParticle([&](DomainIdx const domIdx) {
+                            if(hasValidParticleCtx[domIdx])
                             {
                                 // offset of the particle relative to the origin of the local domain
                                 DataSpace<numDims> const particleCellOffset
-                                    = srcFrame[srcParticleIdxCtx[idx]][domainCellIdxIdentifier]
+                                    = srcFrame[srcParticleIdxCtx[domIdx]][domainCellIdxIdentifier]
                                     - localDomainCellOffset;
-                                particlesSuperCellCtx[idx] = particleCellOffset / SuperCellSize::toRT();
-                                linearParticlesSuperCellCtx[idx]
-                                    = DataSpaceOperations<numDims>::map(numSuperCells, particlesSuperCellCtx[idx]);
-                                sharedLinearSuperCellIds[linearIdx] = linearParticlesSuperCellCtx[idx];
+                                particlesSuperCellCtx[domIdx] = particleCellOffset / SuperCellSize::toRT();
+                                linearParticlesSuperCellCtx[domIdx]
+                                    = DataSpaceOperations<numDims>::map(numSuperCells, particlesSuperCellCtx[domIdx]);
+                                sharedLinearSuperCellIds[domIdx.lIdx()] = linearParticlesSuperCellCtx[domIdx];
                                 DataSpace<numDims> const localCellIdx(
-                                    particleCellOffset - particlesSuperCellCtx[idx] * SuperCellSize::toRT());
-                                lCellIdxCtx[idx]
+                                    particleCellOffset - particlesSuperCellCtx[domIdx] * SuperCellSize::toRT());
+                                lCellIdxCtx[domIdx]
                                     = DataSpaceOperations<numDims>::template map<SuperCellSize>(localCellIdx);
                             }
                         });
 
                         cupla::__syncthreads(acc);
 
-                        memory::CtxArray<int, ParticleDomCfg> masterVirtualThreadIdxCtx(
+                        memory::CtxVar<int, ParticleDomCfg> masterVirtualThreadIdxCtx(
                             workerIdx,
-                            [&](uint32_t const linearIdx, uint32_t const) { return linearIdx - 1; });
+                            [&](uint32_t const linearIdx) { return linearIdx - 1; });
 
-                        forEachParticle([&](uint32_t const linearIdx, uint32_t const idx) {
-                            if(hasValidParticleCtx[idx])
+                        forEachParticle([&](DomainIdx const domIdx) {
+                            if(hasValidParticleCtx[domIdx])
                             {
-                                auto& vThreadMasterIdx = masterVirtualThreadIdxCtx[idx];
+                                auto& vThreadMasterIdx = masterVirtualThreadIdxCtx[domIdx];
                                 /* search master thread index */
                                 while(vThreadMasterIdx >= 0)
                                 {
-                                    if(linearParticlesSuperCellCtx[idx] != sharedLinearSuperCellIds[vThreadMasterIdx])
+                                    if(linearParticlesSuperCellCtx[domIdx]
+                                       != sharedLinearSuperCellIds[vThreadMasterIdx])
                                         break;
 
                                     --vThreadMasterIdx;
@@ -197,31 +198,31 @@ namespace pmacc
                                 ++vThreadMasterIdx;
 
                                 // load empty frame if virtual thread is the master
-                                if(vThreadMasterIdx == linearIdx)
+                                if(vThreadMasterIdx == domIdx.lIdx())
                                 {
                                     /* counter[2] -> number of used frames */
                                     kernel::atomicAllInc(acc, &(counter[2]), ::alpaka::hierarchy::Blocks{});
                                     DestFramePtr tmpFrame = destBox.getEmptyFrame(acc);
-                                    destFramePtr[linearIdx] = tmpFrame;
+                                    destFramePtr[domIdx.lIdx()] = tmpFrame;
                                     destBox.setAsFirstFrame(
                                         acc,
                                         tmpFrame,
-                                        particlesSuperCellCtx[idx] + cellDesc.getGuardingSuperCells());
+                                        particlesSuperCellCtx[domIdx] + cellDesc.getGuardingSuperCells());
                                 }
                             }
                         });
 
                         cupla::__syncthreads(acc);
 
-                        forEachParticle([&](uint32_t const linearIdx, uint32_t const idx) {
-                            if(hasValidParticleCtx[idx])
+                        forEachParticle([&](DomainIdx const domIdx) {
+                            if(hasValidParticleCtx[domIdx])
                             {
                                 /* copy attributes and activate particle*/
-                                auto parDest = destFramePtr[masterVirtualThreadIdxCtx[idx]][linearIdx];
+                                auto parDest = destFramePtr[masterVirtualThreadIdxCtx[domIdx]][domIdx.lIdx()];
                                 auto parDestDeselect = deselect<bmpl::vector2<localCellIdx, multiMask>>(parDest);
 
-                                assign(parDestDeselect, srcFrame[srcParticleIdxCtx[idx]]);
-                                parDest[localCellIdx_] = lCellIdxCtx[idx];
+                                assign(parDestDeselect, srcFrame[srcParticleIdxCtx[domIdx]]);
+                                parDest[localCellIdx_] = lCellIdxCtx[domIdx];
                                 parDest[multiMask_] = 1;
                                 /* counter[1] -> number of loaded particles
                                  * this counter is evaluated on host side

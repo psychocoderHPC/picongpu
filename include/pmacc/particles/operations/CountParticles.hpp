@@ -90,7 +90,7 @@ namespace pmacc
 
             ForEachIdx<IdxConfig<1, numWorkers>> onlyMaster{workerIdx};
 
-            onlyMaster([&](uint32_t const, uint32_t const) {
+            onlyMaster([&]() {
                 frame = pb.getLastFrame(superCellIdx);
                 particlesInSuperCell = pb.getSuperCell(superCellIdx).getSizeLastFrame();
                 counter = 0;
@@ -109,7 +109,7 @@ namespace pmacc
 
             while(frame.isValid())
             {
-                forEachParticle([&](uint32_t const linearIdx, uint32_t const idx) {
+                forEachParticle([&](uint32_t const linearIdx) {
                     if(linearIdx < particlesInSuperCell)
                     {
                         bool const useParticle = filter(*frame, linearIdx);
@@ -124,7 +124,7 @@ namespace pmacc
 
                 cupla::__syncthreads(acc);
 
-                onlyMaster([&](uint32_t const, uint32_t const) {
+                onlyMaster([&]() {
                     frame = pb.getPreviousFrame(frame);
                     particlesInSuperCell = frameSize;
                 });
@@ -132,7 +132,7 @@ namespace pmacc
                 cupla::__syncthreads(acc);
             }
 
-            onlyMaster([&](uint32_t const, uint32_t const) {
+            onlyMaster([&]() {
                 cupla::atomicAdd(acc, gCounter, static_cast<uint64_cu>(counter), ::alpaka::hierarchy::Blocks{});
             });
         }

@@ -288,7 +288,7 @@ namespace picongpu
                         // Threads process values of the supercell in parallel
                         constexpr auto numCellsPerSuperCell = pmacc::math::CT::volume<SuperCellSize>::type::value;
                         ForEachIdx<IdxConfig<numCellsPerSuperCell, numWorkers>>{
-                            workerIdx}([&](uint32_t const linearIdx, uint32_t const) {
+                            workerIdx}([&](uint32_t const linearIdx) {
                             constexpr auto c2 = SPEED_OF_LIGHT * SPEED_OF_LIGHT;
                             constexpr auto dt = DELTA_T;
 
@@ -401,7 +401,7 @@ namespace picongpu
                         // Threads process values of the supercell in parallel
                         constexpr auto numCellsPerSuperCell = pmacc::math::CT::volume<SuperCellSize>::type::value;
                         ForEachIdx<IdxConfig<numCellsPerSuperCell, numWorkers>>{
-                            workerIdx}([&](uint32_t const linearIdx, uint32_t const) {
+                            workerIdx}([&](uint32_t const linearIdx) {
                             constexpr auto dt = DELTA_T;
                             constexpr auto halfDt = 0.5_X * dt;
                             auto const idxInSuperCell

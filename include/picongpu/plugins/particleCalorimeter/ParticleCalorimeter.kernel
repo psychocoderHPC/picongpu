@@ -87,7 +87,7 @@ namespace picongpu
                 using ParticleDomCfg = IdxConfig<maxParticlesInFrame, numWorkers>;
 
                 // loop over all particles in the frame
-                ForEachIdx<ParticleDomCfg>{workerIdx}([&](uint32_t const linearIdx, uint32_t const) {
+                ForEachIdx<ParticleDomCfg>{workerIdx}([&](uint32_t const linearIdx) {
                     auto particle = particlesFrame[linearIdx];
                     if(linearIdx >= numParticles)
                     {

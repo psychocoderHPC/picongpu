@@ -34,7 +34,7 @@
 #include <pmacc/mappings/threads/ForEachIdx.hpp>
 #include <pmacc/mappings/threads/IdxConfig.hpp>
 #include <pmacc/math/operation.hpp>
-#include <pmacc/memory/CtxArray.hpp>
+#include <pmacc/memory/CtxVar.hpp>
 #include <pmacc/memory/shared/Allocate.hpp>
 #include <pmacc/meta/ForEach.hpp>
 #include <pmacc/mpi/MPIReduce.hpp>
@@ -101,7 +101,7 @@ namespace picongpu
             using MasterOnly = IdxConfig<1, numWorkers>;
 
 
-            ForEachIdx<MasterOnly>{workerIdx}([&](uint32_t const, uint32_t const) {
+            ForEachIdx<MasterOnly>{workerIdx}([&]() {
                 // set shared kinetic energy to zero
                 shEnergyKin = float_X(0.0);
                 // set shared total energy to zero
@@ -122,9 +122,9 @@ namespace picongpu
             auto accFilter
                 = filter(acc, superCellIdx - mapper.getGuardingSuperCells(), WorkerCfg<numWorkers>{workerIdx});
 
-            memory::CtxArray<typename FramePtr::type::ParticleType, ParticleDomCfg> currentParticleCtx(
+            memory::CtxVar<typename FramePtr::type::ParticleType, ParticleDomCfg> currentParticleCtx(
                 workerIdx,
-                [&](uint32_t const linearIdx, uint32_t const) {
+                [&](uint32_t const linearIdx) {
                     auto particle = frame[linearIdx];
                     /* - only particles from the last frame must be checked
                      * - all other particles are always valid
@@ -139,9 +139,9 @@ namespace picongpu
                 // loop over all particles in the frame
                 ForEachIdx<ParticleDomCfg> forEachParticle(workerIdx);
 
-                forEachParticle([&](uint32_t const linearIdx, uint32_t const idx) {
+                forEachParticle([&](DomainIdx const domIdx) {
                     /* get one particle */
-                    auto& particle = currentParticleCtx[idx];
+                    auto& particle = currentParticleCtx[domIdx];
                     if(accFilter(acc, particle))
                     {
                         float3_X const mom = particle[momentum_];
@@ -164,13 +164,13 @@ namespace picongpu
 
                 // set frame to next particle frame
                 frame = pb.getPreviousFrame(frame);
-                forEachParticle([&](uint32_t const linearIdx, uint32_t const idx) {
+                forEachParticle([&](DomainIdx const domIdx) {
                     /* Update particle for the next round.
                      * The frame list is traverse from the last to the first frame.
                      * Only the last frame can contain gaps therefore all following
                      * frames are filled with fully particles.
                      */
-                    currentParticleCtx[idx] = frame[linearIdx];
+                    currentParticleCtx[domIdx] = frame[domIdx.lIdx()];
                 });
             }
 
@@ -182,7 +182,7 @@ namespace picongpu
             cupla::__syncthreads(acc);
 
             // add energies on global level using global memory
-            ForEachIdx<MasterOnly>{workerIdx}([&](uint32_t const, uint32_t const) {
+            ForEachIdx<MasterOnly>{workerIdx}([&]() {
                 // add kinetic energy
                 cupla::atomicAdd(
                     acc,

@@ -126,7 +126,7 @@ namespace picongpu
                             = DataSpace<simDim>(cupla::blockIdx(acc)) * SuperCellSize::toRT();
 
                         mappings::threads::ForEachIdx<mappings::threads::IdxConfig<planeSize, T_numWorkers>>{
-                            workerIdx}([&](uint32_t const linearIdx, uint32_t const) {
+                            workerIdx}([&](uint32_t const linearIdx) {
                             auto cellIdxInSuperCell
                                 = DataSpaceOperations<simDim>::template map<T_BlockDescription>(linearIdx);
                             auto const gridIdx = beginGridIdx + supercellOffsetCells + cellIdxInSuperCell;

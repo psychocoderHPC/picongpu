@@ -94,8 +94,7 @@ namespace pmacc
 
                     auto const numGuardSuperCells = mapper.getGuardingSuperCells();
 
-                    ForEachIdx<IdxConfig<numCells, numWorkers>>{
-                        workerIdx}([&](uint32_t const linearIdx, uint32_t const) {
+                    ForEachIdx<IdxConfig<numCells, numWorkers>>{workerIdx}([&](uint32_t const linearIdx) {
                         // cell index within the superCell
                         DataSpace<dim> const cellIdx
                             = DataSpaceOperations<dim>::template map<SuperCellSize>(linearIdx);

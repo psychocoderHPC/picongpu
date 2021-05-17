@@ -72,7 +72,7 @@ namespace pmacc
                     // each virtual worker initialize one rng state
                     ForEachIdx<SupercellDomCfg> forEachCell(workerIdx);
 
-                    forEachCell([&](uint32_t const linearIdx, uint32_t const) {
+                    forEachCell([&](uint32_t const linearIdx) {
                         uint32_t const linearTid = cupla::blockIdx(acc).x * T_blockSize + linearIdx;
 
                         if(linearTid >= boxSize.productOfComponents())

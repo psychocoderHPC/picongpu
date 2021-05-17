@@ -27,7 +27,7 @@
 #include <pmacc/kernel/atomic.hpp>
 #include <pmacc/mappings/threads/ForEachIdx.hpp>
 #include <pmacc/mappings/threads/IdxConfig.hpp>
-#include <pmacc/memory/CtxArray.hpp>
+#include <pmacc/memory/CtxVar.hpp>
 #include <pmacc/memory/shared/Allocate.hpp>
 
 
@@ -105,7 +105,7 @@ namespace picongpu
             // loop over all particles in a frame
             ForEachIdx<ParticlesDomCfg> forEachParticle(workerIdx);
 
-            memory::CtxArray<int, ParticlesDomCfg> storageOffsetCtx{};
+            memory::CtxVar<int, ParticlesDomCfg> storageOffsetCtx{};
 
 
             DataSpace<simDim> const supcerCellIdx = mapper.getSuperCellIndex(DataSpace<simDim>(cupla::blockIdx(acc)));
@@ -122,7 +122,7 @@ namespace picongpu
 
             ForEachIdx<IdxConfig<1, numWorkers>> onlyMaster{workerIdx};
 
-            onlyMaster([&](uint32_t const, uint32_t const) {
+            onlyMaster([&]() {
                 localCounter = 0;
                 srcFramePtr = srcBox.getFirstFrame(supcerCellIdx);
             });
@@ -132,30 +132,30 @@ namespace picongpu
             // move over all Frames in the supercell
             while(srcFramePtr.isValid())
             {
-                forEachParticle([&](uint32_t const localIdx, uint32_t const idx) {
-                    auto parSrc = (srcFramePtr[localIdx]);
-                    storageOffsetCtx[idx] = -1;
+                forEachParticle([&](DomainIdx const domIdx) {
+                    auto parSrc = (srcFramePtr[domIdx.lIdx()]);
+                    storageOffsetCtx[domIdx] = -1;
                     // count particle in frame
-                    if(parSrc[multiMask_] == 1 && filter(*srcFramePtr, localIdx))
+                    if(parSrc[multiMask_] == 1 && filter(*srcFramePtr, domIdx.lIdx()))
                         if(accParFilter(acc, parSrc))
-                            storageOffsetCtx[idx]
+                            storageOffsetCtx[domIdx]
                                 = kernel::atomicAllInc(acc, &localCounter, ::alpaka::hierarchy::Threads{});
                 });
                 cupla::__syncthreads(acc);
 
-                onlyMaster([&](uint32_t const, uint32_t const) {
+                onlyMaster([&]() {
                     // reserve host memory for particle
                     globalOffset = cupla::atomicAdd(acc, counter, localCounter, ::alpaka::hierarchy::Blocks{});
                 });
 
                 cupla::__syncthreads(acc);
 
-                forEachParticle([&](uint32_t const localIdx, uint32_t const idx) {
-                    if(storageOffsetCtx[idx] != -1)
+                forEachParticle([&](DomainIdx const domIdx) {
+                    if(storageOffsetCtx[domIdx] != -1)
                     {
-                        auto parDest = destFrame[globalOffset + storageOffsetCtx[idx]];
+                        auto parDest = destFrame[globalOffset + storageOffsetCtx[domIdx]];
                         auto parDestNoDomainIdx = deselect<T_Identifier>(parDest);
-                        auto parSrc = (srcFramePtr[localIdx]);
+                        auto parSrc = (srcFramePtr[domIdx.lIdx()]);
                         assign(parDestNoDomainIdx, parSrc);
                         // calculate cell index for user-defined domain
                         DataSpace<simDim> const localCell(
@@ -166,7 +166,7 @@ namespace picongpu
 
                 cupla::__syncthreads(acc);
 
-                onlyMaster([&](uint32_t const, uint32_t const) {
+                onlyMaster([&]() {
                     // get next frame in supercell
                     srcFramePtr = srcBox.getNextFrame(srcFramePtr);
                     localCounter = 0;

@@ -101,7 +101,7 @@ namespace pmacc
                                 using ParticleDomCfg = IdxConfig<frameSize, numWorkers>;
 
                                 // loop over all particles in the frame
-                                ForEachIdx<ParticleDomCfg>{workerIdx}([&](uint32_t const linearIdx, uint32_t const) {
+                                ForEachIdx<ParticleDomCfg>{workerIdx}([&](uint32_t const linearIdx) {
                                     // particle index within the supercell
                                     uint32_t parIdx = parOffset + linearIdx;
                                     auto particle = frame[linearIdx];

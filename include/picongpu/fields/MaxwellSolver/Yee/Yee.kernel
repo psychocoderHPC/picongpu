@@ -94,14 +94,13 @@ namespace picongpu
                         constexpr float_X c2 = SPEED_OF_LIGHT * SPEED_OF_LIGHT;
                         constexpr float_X dt = DELTA_T;
 
-                        ForEachIdx<IdxConfig<cellsPerSuperCell, numWorkers>>{workerIdx}(
-                            [&](uint32_t const linearIdx, uint32_t const) {
-                                /* cell index within the superCell */
-                                DataSpace<simDim> const cellIdx
-                                    = DataSpaceOperations<simDim>::template map<SuperCellSize>(linearIdx);
+                        ForEachIdx<IdxConfig<cellsPerSuperCell, numWorkers>>{workerIdx}([&](uint32_t const linearIdx) {
+                            /* cell index within the superCell */
+                            DataSpace<simDim> const cellIdx
+                                = DataSpaceOperations<simDim>::template map<SuperCellSize>(linearIdx);
 
-                                fieldE(blockCell + cellIdx) += curl(cachedB.shift(cellIdx)) * c2 * dt;
-                            });
+                            fieldE(blockCell + cellIdx) += curl(cachedB.shift(cellIdx)) * c2 * dt;
+                        });
                     }
                 };
 
@@ -160,14 +159,13 @@ namespace picongpu
 
                         constexpr float_X dt = DELTA_T;
 
-                        ForEachIdx<IdxConfig<cellsPerSuperCell, numWorkers>>{workerIdx}(
-                            [&](uint32_t const linearIdx, uint32_t const) {
-                                /* cell index within the superCell */
-                                DataSpace<simDim> const cellIdx
-                                    = DataSpaceOperations<simDim>::template map<SuperCellSize>(linearIdx);
+                        ForEachIdx<IdxConfig<cellsPerSuperCell, numWorkers>>{workerIdx}([&](uint32_t const linearIdx) {
+                            /* cell index within the superCell */
+                            DataSpace<simDim> const cellIdx
+                                = DataSpaceOperations<simDim>::template map<SuperCellSize>(linearIdx);
 
-                                fieldB(blockCell + cellIdx) -= curl(cachedE.shift(cellIdx)) * float_X(0.5) * dt;
-                            });
+                            fieldB(blockCell + cellIdx) -= curl(cachedE.shift(cellIdx)) * float_X(0.5) * dt;
+                        });
                     }
                 };
 
