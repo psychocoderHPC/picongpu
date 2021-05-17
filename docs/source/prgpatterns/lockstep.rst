@@ -19,13 +19,38 @@ Code which is implemented by the *lockstep programming model* is free of any dep
 To simplify the implementation, each index within a domain can be seen as a *virtual worker* which is processing one data element (like the common workflow to programming CUDA).
 Each *worker* :math:`i` can be executed as :math:`N_i` *virtual workers* (:math:`1:N_i`).
 
+To transfer information from a virtual working between lock steps you can use a context variable ``CtxVar``, similar to a temporary local variable in a function.
+
+Functors passed into lock step routines can have three different parameter signatures.
+
+* No parameter, if the work is independent of the domain size
+
+.. code-block:: bash
+
+[&](){ }
+
+
+* An unsigned 32bit integral parameter if the work depends on indices within the domain ``range [0,domain size)``
+
+.. code-block:: bash
+
+[&](uint32_t const linearIdx){}
+
+
+* ``DomainIdx`` as parameter. DomainIdx is holing the linear index within the domain and meta information to access a context variables.
+
+.. code-block:: bash
+
+[&](pmacc::mappings::threads::DomainIdx const domIdx){}
+
+
 pmacc helpers
 -------------
 
 .. doxygenstruct:: pmacc::mappings::threads::IdxConfig
    :project: PIConGPU
 
-.. doxygenstruct:: pmacc::memory::CtxArray
+.. doxygenstruct:: pmacc::memory::CtxVar
    :project: PIConGPU
 
 .. doxygenstruct:: pmacc::mappings::threads::ForEachIdx
@@ -52,9 +77,14 @@ Collective Loop
         >;
         ForEachIdx< ParticleDomCfg > forEachParticle( workerIdx );
         forEachParticle(
-           [&]( uint32_t const linearIdx, uint32_t const idx )
+           [&]( DomainIdx const domIdx )
            {
                // independent work
+           }
+        forEachParticle(
+           [&]( uint32_t const linearIdx )
+           {
+               // independent work based on the linear index
            }
        );
     }
@@ -73,13 +103,13 @@ Non-Collective Loop
         numWorkers
     >;
     ForEachIdx< ParticleDomCfg > forEachParticle( workerIdx );
-    memory::CtxArray< int, ParticleDomCfg > vWorkerIdx( 0 );
+    memory::CtxVar< int, ParticleDomCfg > vWorkerIdx( 0 );
     forEachParticle(
-        [&]( uint32_t const linearIdx, uint32_t const idx )
+        [&]( auto const domIdx )
         {
-            vWorkerIdx[ idx ] = linearIdx;
+            vWorkerIdx[ domIdx ] = domIdx.lIdx();
             for( int i = 0; i < 100; i++ )
-                vWorkerIdx[ idx ]++;
+                vWorkerIdx[ domIdx ]++;
         }
     );
 
@@ -96,21 +126,55 @@ Create a Context Variable
         frameSize,
         numWorkers
     >;
-    memory::CtxArray< int, ParticleDomCfg > vIdx(
+    memory::CtxVar< int, ParticleDomCfg > vIdx(
         workerIdx,
-        [&]( uint32_t const linearIdx, uint32_t const ) -> int32_t
+        [&]( DomainIdx const domIdx ) -> int32_t
         {
-            return linearIdx;
+            return domIdx.lIdx();
         }
     );
 
     // is equal to
 
-    memory::CtxArray< int, ParticleDomCfg > vIdx;
-    ForEachIdx< ParticleDomCfg > forEachParticle{ workerIdx }(
-        [&]( uint32_t const linearIdx, uint32_t const idx )
+    memory::CtxVar< int, ParticleDomCfg > vIdx;
+    ForEachIdx< ParticleDomCfg >{ workerIdx }(
+        [&]( DomainIdx const domIdx )
         {
-            vIdx[ idx ] = linearIdx;
+            vIdx[ domIdx ] = domIdx.lIdx();
+        }
+    );
+
+
+* Data from a context variable can be accessed within independent lock steps.
+
+.. code-block:: cpp
+
+    uint32_t const workerIdx = cupla::threadIdx( acc ).x;
+    using ExampleDomCfg = IdxConfig<
+        42,
+        numWorkers
+    >;
+    memory::CtxVar< int, ExampleDomCfg > vIdx(
+        workerIdx,
+        [&]( DomainIdx const domIdx ) -> int32_t
+        {
+            return domIdx.lIdx();
+        }
+    );
+
+    ForEachIdx< ExampleDomCfg > forEachExample{ workerIdx };
+
+    forEachExample(
+        [&]( DomainIdx const domIdx )
+        {
+            printf( "virtual worker linear idx: %u == %u\n", vIdx[ domIdx ], domIdx.lIdx() );
+        }
+    );
+
+    forEachExample(
+        [&]( DomainIdx const domIdx )
+        {
+            printf( "nothing changed: %u == %u\n", vIdx[ domIdx ], domIdx.lIdx() );
         }
     );
 
@@ -138,10 +202,7 @@ Using a Master Worker
 
     // manipulate shared memory
     onlyMaster(
-        [&](
-            uint32_t const,
-            uint32_t const
-        )
+        [&]( )
         {
             finished = true;
         }

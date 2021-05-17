@@ -21,6 +21,7 @@
 
 #pragma once
 
+#include "pmacc/mappings/threads/DomainIdx.hpp"
 #include "pmacc/mappings/threads/IdxConfig.hpp"
 #include "pmacc/types.hpp"
 
@@ -67,17 +68,20 @@ namespace pmacc
                 /** execute a functor
                  *
                  * @param functor is called for each index which is mapped to the worker
-                 *
-                 * The functor must fulfill the following interface:
-                 * @code
-                 * template< typename ... T_Args >
-                 * void operator()( uint32_t const linearIdx, uint32_t const idx, T_Args && ... );
-                 * @endcode
+                 * @param args optional arguments forwarded to the functor
                  *
                  * @{
                  */
+
+                /** The functor must fulfill the following interface:
+                 * @code
+                 * template< uint32_t T_domainSize, typename ... T_Args >
+                 * void operator()( DomainIdx< T_domainSize > const domIdx, T_Args && ... );
+                 * @endcode
+                 */
                 template<typename T_Functor, typename... T_Args>
-                HDINLINE void operator()(T_Functor&& functor, T_Args&&... args) const
+                HDINLINE auto operator()(T_Functor&& functor, T_Args&&... args) const
+                    -> decltype(functor(std::declval<DomainIdx const>(), std::forward<T_Args>(args)...))
                 {
                     for(uint32_t i = 0u; i < numCollIter; ++i)
                     {
@@ -89,7 +93,59 @@ namespace pmacc
                             {
                                 uint32_t const localIdx = beginIdx + j;
                                 if(innerLoopCondition || localIdx < domainSize)
-                                    functor(localIdx, beginWorker + j, std::forward<T_Args>(args)...);
+                                    functor(DomainIdx(localIdx, beginWorker + j), std::forward<T_Args>(args)...);
+                            }
+                        }
+                    }
+                }
+
+                /** The functor must fulfill the following interface:
+                 * @code
+                 * template< uint32_t T_domainSize, typename ... T_Args >
+                 * void operator()( uint32_t const linearIdx, T_Args && ... );
+                 * @endcode
+                 */
+                template<typename T_Functor, typename... T_Args>
+                HDINLINE auto operator()(T_Functor&& functor, T_Args&&... args) const
+                    -> decltype(functor(std::declval<uint32_t const>(), std::forward<T_Args>(args)...))
+                {
+                    for(uint32_t i = 0u; i < numCollIter; ++i)
+                    {
+                        uint32_t const beginWorker = i * simdSize;
+                        uint32_t const beginIdx = beginWorker * workerSize + simdSize * m_workerIdx;
+                        if(outerLoopCondition || !innerLoopCondition || beginIdx < domainSize)
+                        {
+                            for(uint32_t j = 0u; j < simdSize; ++j)
+                            {
+                                uint32_t const localIdx = beginIdx + j;
+                                if(innerLoopCondition || localIdx < domainSize)
+                                    functor(localIdx, std::forward<T_Args>(args)...);
+                            }
+                        }
+                    }
+                }
+
+                /** The functor must fulfill the following interface:
+                 * @code
+                 * template< uint32_t T_domainSize, typename ... T_Args >
+                 * void operator()( T_Args && ... );
+                 * @endcode
+                 */
+                template<typename T_Functor, typename... T_Args>
+                HDINLINE auto operator()(T_Functor&& functor, T_Args&&... args) const
+                    -> decltype(functor(std::forward<T_Args>(args)...))
+                {
+                    for(uint32_t i = 0u; i < numCollIter; ++i)
+                    {
+                        uint32_t const beginWorker = i * simdSize;
+                        uint32_t const beginIdx = beginWorker * workerSize + simdSize * m_workerIdx;
+                        if(outerLoopCondition || !innerLoopCondition || beginIdx < domainSize)
+                        {
+                            for(uint32_t j = 0u; j < simdSize; ++j)
+                            {
+                                uint32_t const localIdx = beginIdx + j;
+                                if(innerLoopCondition || localIdx < domainSize)
+                                    functor(std::forward<T_Args>(args)...);
                             }
                         }
                     }
