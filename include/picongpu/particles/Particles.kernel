@@ -28,10 +28,8 @@
 #include "picongpu/particles/InterpolationForPusher.hpp"
 
 #include <pmacc/kernel/atomic.hpp>
-#include <pmacc/mappings/threads/ForEachIdx.hpp>
-#include <pmacc/mappings/threads/IdxConfig.hpp>
+#include <pmacc/lockstep.hpp>
 #include <pmacc/mappings/threads/ThreadCollective.hpp>
-#include <pmacc/mappings/threads/WorkerCfg.hpp>
 #include <pmacc/math/operation.hpp>
 #include <pmacc/memory/boxes/CachedBox.hpp>
 #include <pmacc/memory/boxes/DataBox.hpp>
@@ -88,7 +86,6 @@ namespace picongpu
             T_Mapping const mapper) const
         {
             using namespace pmacc::particles::operations;
-            using namespace mappings::threads;
 
             using DestFramePtr = typename T_DestParBox::FramePtr;
             using SrcFramePtr = typename T_SrcParBox::FramePtr;
@@ -106,7 +103,7 @@ namespace picongpu
             // offset of the superCell (in cells, without any guards) to the origin of the local domain
             DataSpace<simDim> const localSuperCellOffset = superCellIdx - mapper.getGuardingSuperCells();
 
-            ForEachIdx<IdxConfig<1, numWorker>> onlyMaster{workerIdx};
+            auto onlyMaster = lockstep::makeMaster<numWorker>(workerIdx);
 
             onlyMaster([&]() {
                 srcFrame = srcBox.getFirstFrame(superCellIdx);
@@ -117,18 +114,16 @@ namespace picongpu
                 }
             });
 
-            auto accManipulator = manipulateFunctor(acc, localSuperCellOffset, WorkerCfg<numWorker>{workerIdx});
-            auto accSrcFilter = srcFilterFunctor(acc, localSuperCellOffset, WorkerCfg<numWorker>{workerIdx});
+            auto accManipulator = manipulateFunctor(acc, localSuperCellOffset, lockstep::Worker<numWorker>{workerIdx});
+            auto accSrcFilter = srcFilterFunctor(acc, localSuperCellOffset, lockstep::Worker<numWorker>{workerIdx});
 
             cupla::__syncthreads(acc);
 
             // move over all Frames
             while(srcFrame.isValid())
             {
-                using ParticleDomCfg = IdxConfig<frameSize, numWorker>;
-
                 // loop over all particles in the frame
-                ForEachIdx<ParticleDomCfg>{workerIdx}([&](uint32_t const linearIdx) {
+                lockstep::makeForEach<frameSize, numWorker>(workerIdx)([&](uint32_t const linearIdx) {
                     auto parDest = destFrame[linearIdx];
                     auto parSrc = srcFrame[linearIdx];
                     if(parSrc[multiMask_] != 1)
@@ -204,8 +199,6 @@ namespace picongpu
             T_ParticleFunctor particleFunctor,
             T_Mapping mapper) const
         {
-            using namespace mappings::threads;
-
             constexpr uint32_t frameSize = pmacc::math::CT::volume<SuperCellSize>::type::value;
             constexpr uint32_t numWorkers = T_numWorkers;
 
@@ -218,15 +211,13 @@ namespace picongpu
             // relative offset (in cells) to the supercell (including the guard)
             DataSpace<simDim> const superCellOffset = block * SuperCellSize::toRT();
 
-            using ParticleDomCfg = IdxConfig<frameSize, numWorkers>;
-
             PMACC_SMEM(acc, mustShift, int);
 
             // current processed frame
             FramePtr frame;
             lcellId_t particlesInSuperCell;
 
-            ForEachIdx<IdxConfig<1, numWorkers>> onlyMaster{workerIdx};
+            auto onlyMaster = lockstep::makeMaster<numWorkers>(workerIdx);
 
             onlyMaster([&]() { mustShift = 0; });
 
@@ -257,7 +248,7 @@ namespace picongpu
             while(frame.isValid())
             {
                 // loop over all particles in the frame
-                ForEachIdx<ParticleDomCfg>{workerIdx}([&](uint32_t const linearIdx) {
+                lockstep::makeForEach<frameSize, numWorkers>(workerIdx)([&](uint32_t const linearIdx) {
                     if(linearIdx < particlesInSuperCell)
                     {
                         particleFunctor(acc, *frame, linearIdx, cachedB, cachedE, currentStep, mustShift);

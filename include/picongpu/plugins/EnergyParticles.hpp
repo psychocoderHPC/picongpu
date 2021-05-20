@@ -30,11 +30,9 @@
 #include "picongpu/plugins/multi/multi.hpp"
 
 #include <pmacc/dataManagement/DataConnector.hpp>
+#include <pmacc/lockstep.hpp>
 #include <pmacc/mappings/kernel/AreaMapping.hpp>
-#include <pmacc/mappings/threads/ForEachIdx.hpp>
-#include <pmacc/mappings/threads/IdxConfig.hpp>
 #include <pmacc/math/operation.hpp>
-#include <pmacc/memory/CtxVar.hpp>
 #include <pmacc/memory/shared/Allocate.hpp>
 #include <pmacc/meta/ForEach.hpp>
 #include <pmacc/mpi/MPIReduce.hpp>
@@ -77,8 +75,6 @@ namespace picongpu
         template<typename T_ParBox, typename T_DBox, typename T_Mapping, typename T_Acc, typename T_Filter>
         DINLINE void operator()(T_Acc const& acc, T_ParBox pb, T_DBox gEnergy, T_Mapping mapper, T_Filter filter) const
         {
-            using namespace mappings::threads;
-
             constexpr uint32_t numWorkers = T_numWorkers;
             constexpr uint32_t numParticlesPerFrame
                 = pmacc::math::CT::volume<typename T_ParBox::FrameType::SuperCellSize>::type::value;
@@ -92,16 +88,13 @@ namespace picongpu
             // shared total energy
             PMACC_SMEM(acc, shEnergy, float_X);
 
-            using ParticleDomCfg = IdxConfig<numParticlesPerFrame, numWorkers>;
-
             // sum kinetic energy for all particles touched by the virtual thread
             float_X localEnergyKin(0.0);
             float_X localEnergy(0.0);
 
-            using MasterOnly = IdxConfig<1, numWorkers>;
+            auto masterOnly = lockstep::makeMaster<numWorkers>(workerIdx);
 
-
-            ForEachIdx<MasterOnly>{workerIdx}([&]() {
+            masterOnly([&]() {
                 // set shared kinetic energy to zero
                 shEnergyKin = float_X(0.0);
                 // set shared total energy to zero
@@ -120,10 +113,12 @@ namespace picongpu
                 return;
 
             auto accFilter
-                = filter(acc, superCellIdx - mapper.getGuardingSuperCells(), WorkerCfg<numWorkers>{workerIdx});
+                = filter(acc, superCellIdx - mapper.getGuardingSuperCells(), lockstep::Worker<numWorkers>{workerIdx});
 
-            memory::CtxVar<typename FramePtr::type::ParticleType, ParticleDomCfg> currentParticleCtx(
-                workerIdx,
+            auto forEachParticleInFrame = lockstep::makeForEach<numParticlesPerFrame, numWorkers>(workerIdx);
+
+            auto currentParticleCtx = lockstep::makeVar<typename FramePtr::type::ParticleType>(
+
                 [&](uint32_t const linearIdx) {
                     auto particle = frame[linearIdx];
                     /* - only particles from the last frame must be checked
@@ -132,16 +127,15 @@ namespace picongpu
                     if(particle[multiMask_] != 1)
                         particle.setHandleInvalid();
                     return particle;
-                });
+                },
+                forEachParticleInFrame);
 
             while(frame.isValid())
             {
                 // loop over all particles in the frame
-                ForEachIdx<ParticleDomCfg> forEachParticle(workerIdx);
-
-                forEachParticle([&](DomainIdx const domIdx) {
+                forEachParticleInFrame([&](lockstep::Idx const idx) {
                     /* get one particle */
-                    auto& particle = currentParticleCtx[domIdx];
+                    auto& particle = currentParticleCtx[idx];
                     if(accFilter(acc, particle))
                     {
                         float3_X const mom = particle[momentum_];
@@ -164,13 +158,13 @@ namespace picongpu
 
                 // set frame to next particle frame
                 frame = pb.getPreviousFrame(frame);
-                forEachParticle([&](DomainIdx const domIdx) {
+                forEachParticleInFrame([&](lockstep::Idx const idx) {
                     /* Update particle for the next round.
                      * The frame list is traverse from the last to the first frame.
                      * Only the last frame can contain gaps therefore all following
                      * frames are filled with fully particles.
                      */
-                    currentParticleCtx[domIdx] = frame[domIdx.lIdx()];
+                    currentParticleCtx[idx] = frame[idx];
                 });
             }
 
@@ -182,7 +176,7 @@ namespace picongpu
             cupla::__syncthreads(acc);
 
             // add energies on global level using global memory
-            ForEachIdx<MasterOnly>{workerIdx}([&]() {
+            masterOnly([&]() {
                 // add kinetic energy
                 cupla::atomicAdd(
                     acc,

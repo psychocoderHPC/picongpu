@@ -24,9 +24,8 @@
 #include "picongpu/plugins/xrayScattering/XrayScattering.hpp"
 
 #include <pmacc/dimensions/DataSpaceOperations.hpp>
+#include <pmacc/lockstep.hpp>
 #include <pmacc/mappings/kernel/AreaMapping.hpp>
-#include <pmacc/mappings/threads/ForEachIdx.hpp>
-#include <pmacc/mappings/threads/IdxConfig.hpp>
 
 #include <cstdio>
 
@@ -89,8 +88,6 @@ namespace picongpu
                     uint32_t const blockIdxLin = cupla::blockIdx(acc).x;
 
                     using complex_X = pmacc::math::Complex<float_X>;
-                    using namespace pmacc::mappings::threads;
-                    using namespace pmacc;
                     // Storage for positions in the beam coordinate system.
                     PMACC_SMEM(acc, positions, memory::Array<float2_X, blockSize>);
                     // Storage for (form factor density * beam intensity factor).
@@ -98,7 +95,7 @@ namespace picongpu
 
                     uint32_t const linAccessBlockBegin = blockIdxLin * blockSize;
 
-                    ForEachIdx<IdxConfig<blockSize, numWorkers>>{workerIdx}([&](uint32_t const linearIdx) {
+                    lockstep::makeForEach<blockSize, numWorkers>(workerIdx)([&](uint32_t const linearIdx) {
                         // Each thread reads one field value and saves it together
                         // with its position, in UNIT_LENGTH, in the global domain.
                         DataSpace<simDim> const cellPosition(

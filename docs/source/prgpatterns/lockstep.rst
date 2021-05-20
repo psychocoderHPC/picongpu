@@ -37,17 +37,17 @@ Functors passed into lock step routines can have three different parameter signa
 [&](uint32_t const linearIdx){}
 
 
-* ``DomainIdx`` as parameter. DomainIdx is holing the linear index within the domain and meta information to access a context variables.
+* ``lockstep::Idx`` as parameter. lockstep::Idx is holing the linear index within the domain and meta information to access a context variables.
 
 .. code-block:: bash
 
-[&](pmacc::mappings::threads::DomainIdx const domIdx){}
+[&](pmacc::mappings::threads::lockstep::Idx const idx){}
 
 
 pmacc helpers
 -------------
 
-.. doxygenstruct:: pmacc::mappings::threads::IdxConfig
+.. doxygenstruct:: pmacc::mappings::threads::DomainCfg
    :project: PIConGPU
 
 .. doxygenstruct:: pmacc::memory::CtxVar
@@ -71,13 +71,13 @@ Collective Loop
     while( frame.isValid() )
     {
         uint32_t const workerIdx = cupla::threadIdx( acc ).x;
-        using ParticleDomCfg = IdxConfig<
+        using ParticleDomCfg = DomainCfg<
             frameSize,
             numWorker
         >;
         ForEachIdx< ParticleDomCfg > forEachParticle( workerIdx );
         forEachParticle(
-           [&]( DomainIdx const domIdx )
+           [&]( lockstep::Idx const idx )
            {
                // independent work
            }
@@ -98,18 +98,18 @@ Non-Collective Loop
 .. code-block:: cpp
 
     uint32_t const workerIdx = cupla::threadIdx( acc ).x;
-    using ParticleDomCfg = IdxConfig<
+    using ParticleDomCfg = DomainCfg<
         frameSize,
         numWorkers
     >;
     ForEachIdx< ParticleDomCfg > forEachParticle( workerIdx );
     memory::CtxVar< int, ParticleDomCfg > vWorkerIdx( 0 );
     forEachParticle(
-        [&]( auto const domIdx )
+        [&]( auto const idx )
         {
-            vWorkerIdx[ domIdx ] = domIdx.lIdx();
+            vWorkerIdx[ idx ] = idx;
             for( int i = 0; i < 100; i++ )
-                vWorkerIdx[ domIdx ]++;
+                vWorkerIdx[ idx ]++;
         }
     );
 
@@ -122,15 +122,15 @@ Create a Context Variable
 .. code-block:: cpp
 
     uint32_t const workerIdx = cupla::threadIdx( acc ).x;
-    using ParticleDomCfg = IdxConfig<
+    using ParticleDomCfg = DomainCfg<
         frameSize,
         numWorkers
     >;
     memory::CtxVar< int, ParticleDomCfg > vIdx(
         workerIdx,
-        [&]( DomainIdx const domIdx ) -> int32_t
+        [&]( lockstep::Idx const idx ) -> int32_t
         {
-            return domIdx.lIdx();
+            return idx;
         }
     );
 
@@ -138,9 +138,9 @@ Create a Context Variable
 
     memory::CtxVar< int, ParticleDomCfg > vIdx;
     ForEachIdx< ParticleDomCfg >{ workerIdx }(
-        [&]( DomainIdx const domIdx )
+        [&]( lockstep::Idx const idx )
         {
-            vIdx[ domIdx ] = domIdx.lIdx();
+            vIdx[ idx ] = idx;
         }
     );
 
@@ -150,31 +150,31 @@ Create a Context Variable
 .. code-block:: cpp
 
     uint32_t const workerIdx = cupla::threadIdx( acc ).x;
-    using ExampleDomCfg = IdxConfig<
+    using ExampleDomCfg = DomainCfg<
         42,
         numWorkers
     >;
     memory::CtxVar< int, ExampleDomCfg > vIdx(
         workerIdx,
-        [&]( DomainIdx const domIdx ) -> int32_t
+        [&]( lockstep::Idx const idx ) -> int32_t
         {
-            return domIdx.lIdx();
+            return idx;
         }
     );
 
     ForEachIdx< ExampleDomCfg > forEachExample{ workerIdx };
 
     forEachExample(
-        [&]( DomainIdx const domIdx )
+        [&]( lockstep::Idx const idx )
         {
-            printf( "virtual worker linear idx: %u == %u\n", vIdx[ domIdx ], domIdx.lIdx() );
+            printf( "virtual worker linear idx: %u == %u\n", vIdx[ idx ], idx );
         }
     );
 
     forEachExample(
-        [&]( DomainIdx const domIdx )
+        [&]( lockstep::Idx const idx )
         {
-            printf( "nothing changed: %u == %u\n", vIdx[ domIdx ], domIdx.lIdx() );
+            printf( "nothing changed: %u == %u\n", vIdx[ idx ], idx );
         }
     );
 
@@ -194,7 +194,7 @@ Using a Master Worker
 
     uint32_t const workerIdx = cupla::threadIdx( acc ).x;
     ForEachIdx<
-        IdxConfig<
+        DomainCfg<
             1,
             numWorkers
         >

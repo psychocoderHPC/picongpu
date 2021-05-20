@@ -19,9 +19,7 @@
 
 #pragma once
 
-#include <pmacc/mappings/threads/ForEachIdx.hpp>
-#include <pmacc/mappings/threads/IdxConfig.hpp>
-#include <pmacc/mappings/threads/WorkerCfg.hpp>
+#include <pmacc/lockstep.hpp>
 #include <pmacc/math/MapTuple.hpp>
 #include <pmacc/math/Vector.hpp>
 #include <pmacc/memory/shared/Allocate.hpp>
@@ -55,7 +53,6 @@ namespace picongpu
         Functor functor,                                                                                              \
         T_Filter filter BOOST_PP_ENUM_TRAILING(N, NORMAL_ARGS, _))                                                    \
     {                                                                                                                 \
-        using namespace mappings::threads;                                                                            \
         constexpr uint32_t numWorkers = T_numWorkers;                                                                 \
         constexpr lcellId_t maxParticlesInFrame                                                                       \
             = pmacc::math::CT::volume<typename TParticlesBox::FrameType::SuperCellSize>::type::value;                 \
@@ -65,7 +62,7 @@ namespace picongpu
         using Frame = typename TParticlesBox::FrameType;                                                              \
         PMACC_SMEM(acc, frame, FramePtr);                                                                             \
         PMACC_SMEM(acc, particlesInSuperCell, uint16_t);                                                              \
-        ForEachIdx<IdxConfig<1, numWorkers>> onlyMaster{workerIdx};                                                   \
+        auto onlyMaster = lockstep::makeMaster<numWorkers>(workerIdx);                                                \
                                                                                                                       \
         onlyMaster([&]() {                                                                                            \
             frame = pb.getLastFrame(superCellIdx);                                                                    \
@@ -76,13 +73,11 @@ namespace picongpu
         if(!frame.isValid())                                                                                          \
             return; /* leave kernel if we have no frames*/                                                            \
                                                                                                                       \
-        auto accFilter                                                                                                \
-            = filter(acc, superCellIdx - GuardSize::toRT(), mappings::threads::WorkerCfg<numWorkers>{workerIdx});     \
+        auto accFilter = filter(acc, superCellIdx - GuardSize::toRT(), lockstep::Worker<numWorkers>{workerIdx});      \
                                                                                                                       \
         while(frame.isValid())                                                                                        \
         {                                                                                                             \
-            using ParticleDomCfg = IdxConfig<maxParticlesInFrame, numWorkers>;                                        \
-            ForEachIdx<ParticleDomCfg> forEachParticle(workerIdx);                                                    \
+            auto forEachParticle = lockstep::makeForEach<maxParticlesInFrame, numWorkers>(workerIdx);                 \
             forEachParticle([&](uint32_t const linearThreadIdx) {                                                     \
                 if(linearThreadIdx < particlesInSuperCell)                                                            \
                 {                                                                                                     \

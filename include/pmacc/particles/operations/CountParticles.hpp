@@ -22,9 +22,8 @@
 #pragma once
 
 #include "pmacc/kernel/atomic.hpp"
+#include "pmacc/lockstep.hpp"
 #include "pmacc/mappings/kernel/AreaMapping.hpp"
-#include "pmacc/mappings/threads/ForEachIdx.hpp"
-#include "pmacc/mappings/threads/IdxConfig.hpp"
 #include "pmacc/memory/buffers/GridBuffer.hpp"
 #include "pmacc/memory/shared/Allocate.hpp"
 #include "pmacc/particles/memory/dataTypes/FramePointer.hpp"
@@ -68,8 +67,6 @@ namespace pmacc
             T_Mapping const mapper,
             T_ParticleFilter parFilter) const
         {
-            using namespace mappings::threads;
-
             using Frame = typename T_PBox::FrameType;
             using FramePtr = typename T_PBox::FramePtr;
             constexpr uint32_t dim = T_Mapping::Dim;
@@ -88,7 +85,7 @@ namespace pmacc
 
             DataSpace<dim> const superCellIdx(mapper.getSuperCellIndex(DataSpace<dim>(cupla::blockIdx(acc))));
 
-            ForEachIdx<IdxConfig<1, numWorkers>> onlyMaster{workerIdx};
+            auto onlyMaster = lockstep::makeMaster<numWorkers>(workerIdx);
 
             onlyMaster([&]() {
                 frame = pb.getLastFrame(superCellIdx);
@@ -102,10 +99,12 @@ namespace pmacc
                 return; // end kernel if we have no frames
             filter.setSuperCellPosition((superCellIdx - mapper.getGuardingSuperCells()) * mapper.getSuperCellSize());
 
-            auto accParFilter
-                = parFilter(acc, superCellIdx - mapper.getGuardingSuperCells(), WorkerCfg<numWorkers>{workerIdx});
+            auto accParFilter = parFilter(
+                acc,
+                superCellIdx - mapper.getGuardingSuperCells(),
+                lockstep::Worker<numWorkers>{workerIdx});
 
-            ForEachIdx<IdxConfig<frameSize, numWorkers>> forEachParticle(workerIdx);
+            auto forEachParticle = lockstep::makeForEach<frameSize, numWorkers>(workerIdx);
 
             while(frame.isValid())
             {

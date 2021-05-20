@@ -21,9 +21,9 @@
 
 #pragma once
 
-#include "pmacc/mappings/threads/DomainIdx.hpp"
-#include "pmacc/mappings/threads/ForEachIdx.hpp"
-#include "pmacc/mappings/threads/IdxConfig.hpp"
+#include "pmacc/lockstep/Config.hpp"
+#include "pmacc/lockstep/ForEach.hpp"
+#include "pmacc/lockstep/Idx.hpp"
 #include "pmacc/memory/Array.hpp"
 #include "pmacc/types.hpp"
 
@@ -32,7 +32,7 @@
 
 namespace pmacc
 {
-    namespace memory
+    namespace lockstep
     {
         /** Variable used by virtual worker
          *
@@ -45,24 +45,24 @@ namespace pmacc
          * Data stored in a context variable should only be used with a lock step
          * programming construct e.g. ForEachIdx<>
          */
-        template<typename T_Type, typename T_IdxConfig>
-        struct CtxVar
-            : protected Array<T_Type, T_IdxConfig::numCollIter * T_IdxConfig::simdSize>
-            , T_IdxConfig
+        template<typename T_Type, typename T_Config>
+        struct Variable
+            : protected memory::Array<T_Type, T_Config::numCollIter * T_Config::simdSize>
+            , T_Config
         {
-            using T_IdxConfig::domainSize;
-            using T_IdxConfig::numCollIter;
-            using T_IdxConfig::simdSize;
-            using T_IdxConfig::workerSize;
+            using T_Config::domainSize;
+            using T_Config::numCollIter;
+            using T_Config::numWorkers;
+            using T_Config::simdSize;
 
-            using BaseArray = Array<T_Type, T_IdxConfig::numCollIter * T_IdxConfig::simdSize>;
+            using BaseArray = memory::Array<T_Type, T_Config::numCollIter * T_Config::simdSize>;
 
             /** default constructor
              *
              * Data member are uninitialized.
              * This method must be called collectively by all workers.
              */
-            CtxVar() = default;
+            Variable() = default;
 
             /** constructor
              *
@@ -71,13 +71,17 @@ namespace pmacc
              *
              * @param value element assigned to each member
              */
-            HDINLINE explicit CtxVar(T_Type const& value) : BaseArray(value)
+            HDINLINE explicit Variable(T_Type const& value) : BaseArray(value)
             {
             }
 
             /** disable copy constructor
              */
-            HDINLINE CtxVar(CtxVar const&) = delete;
+            HDINLINE Variable(Variable const&) = delete;
+
+            HDINLINE Variable(Variable&&) = default;
+
+            HDINLINE Variable& operator=(Variable&&) = default;
 
             /** constructor
              *
@@ -90,10 +94,10 @@ namespace pmacc
              * @param functor functor to initialize the member ( need to implement `::operator(size_type idx)`)
              * @param args user defined arguments those should forwarded to the functor
              */
-            template<typename T_Functor, typename... T_Args>
-            HDINLINE explicit CtxVar(uint32_t const workerIdx, T_Functor&& functor, T_Args&&... args)
+            template<typename T_Functor>
+            HDINLINE explicit Variable(uint32_t const& workerIdx, T_Functor&& functor)
             {
-                initData(workerIdx, std::forward<T_Functor>(functor), std::forward<T_Args>(args)...);
+                initData(workerIdx, std::forward<T_Functor>(functor));
             }
 
             /** get element for the worker
@@ -103,14 +107,14 @@ namespace pmacc
              *
              * @{
              */
-            HDINLINE typename BaseArray::const_reference operator[](mappings::threads::DomainIdx const domIdx) const
+            HDINLINE typename BaseArray::const_reference operator[](Idx const idx) const
             {
-                return reinterpret_cast<T_Type const*>(BaseArray::data())[domIdx.workerElemIdx];
+                return reinterpret_cast<T_Type const*>(BaseArray::data())[idx.workerElemIdx];
             }
 
-            HDINLINE typename BaseArray::reference operator[](mappings::threads::DomainIdx const domIdx)
+            HDINLINE typename BaseArray::reference operator[](Idx const idx)
             {
-                return reinterpret_cast<T_Type*>(BaseArray::data())[domIdx.workerElemIdx];
+                return reinterpret_cast<T_Type*>(BaseArray::data())[idx.workerElemIdx];
             }
             /** @} */
 
@@ -127,37 +131,17 @@ namespace pmacc
             /** The functor must fulfill the following interface:
              * @code
              * template< uint32_t T_domainSize, typename ... T_Args >
-             * auto operator()( DomainIdx< T_domainSize > const domIdx, T_Args && ... );
+             * auto operator()( lockstep::Idx< T_domainSize > const idx );
+             * // or
+             * template< uint32_t T_domainSize >
+             * auto operator()( uint32_t const linearIdx );
              * @endcode
              */
-            template<typename T_Functor, typename... T_Args>
-            HDINLINE auto initData(uint32_t const workerIdx, T_Functor&& functor, T_Args&&... args)
-                -> std::enable_if_t<
-                    sizeof(decltype(
-                        functor(std::declval<mappings::threads::DomainIdx const>(), std::forward<T_Args>(args)...)))
-                    != 0>
+            template<typename T_Functor>
+            HDINLINE auto initData(uint32_t const workerIdx, T_Functor&& functor)
+                -> std::enable_if_t<sizeof(decltype(functor(std::declval<lockstep::Idx const>()))) != 0>
             {
-                mappings::threads::ForEachIdx<T_IdxConfig>{workerIdx}(
-                    [&, this](mappings::threads::DomainIdx const domIdx) {
-                        (*this)[domIdx] = functor(domIdx, std::forward<T_Args>(args)...);
-                    });
-            }
-
-            /** The functor must fulfill the following interface:
-             * @code
-             * template< uint32_t T_domainSize, typename ... T_Args >
-             * auto operator()( uint32_t const linearIdx, T_Args && ... );
-             * @endcode
-             */
-            template<typename T_Functor, typename... T_Args>
-            HDINLINE auto initData(uint32_t const workerIdx, T_Functor&& functor, T_Args&&... args)
-                -> std::enable_if_t<
-                    sizeof(decltype(functor(std::declval<uint32_t const>(), std::forward<T_Args>(args)...))) != 0>
-            {
-                mappings::threads::ForEachIdx<T_IdxConfig>{workerIdx}(
-                    [&, this](mappings::threads::DomainIdx const domIdx) {
-                        (*this)[domIdx] = functor(domIdx.lIdx(), std::forward<T_Args>(args)...);
-                    });
+                ForEach<T_Config>{workerIdx}([&, this](Idx idx) { (*this)[idx] = functor(idx); });
             }
 
             /** The functor must fulfill the following interface:
@@ -166,18 +150,46 @@ namespace pmacc
              * auto operator()( T_Args && ... );
              * @endcode
              */
-            template<typename T_Functor, typename... T_Args>
-            HDINLINE auto initData(uint32_t const workerIdx, T_Functor&& functor, T_Args&&... args)
-                -> std::enable_if_t<sizeof(decltype(functor(std::forward<T_Args>(args)...))) != 0>
+            template<typename T_Functor>
+            HDINLINE auto initData(uint32_t const workerIdx, T_Functor&& functor)
+                -> std::enable_if_t<sizeof(decltype(functor())) != 0>
             {
-                mappings::threads::ForEachIdx<T_IdxConfig>{workerIdx}(
-                    [&, this](mappings::threads::DomainIdx const domIdx) {
-                        (*this)[domIdx] = functor(std::forward<T_Args>(args)...);
-                    });
+                ForEach<T_Config>{workerIdx}([&, this](lockstep::Idx const idx) { (*this)[idx] = functor(); });
             }
 
             /** @} */
         };
 
-    } // namespace memory
+
+        template<typename T_Type, uint32_t T_domainSize, uint32_t T_numWorkers, uint32_t T_simdSize>
+        HDINLINE auto makeVar(ForEach<Config<T_domainSize, T_numWorkers, T_simdSize>> const& forEach)
+        {
+            return Variable<T_Type, typename ForEach<Config<T_domainSize, T_numWorkers, T_simdSize>>::BaseConfig>();
+        }
+
+        template<typename T_Type, uint32_t T_domainSize, uint32_t T_numWorkers, uint32_t T_simdSize>
+        HDINLINE auto makeVar(
+            ForEach<Config<T_domainSize, T_numWorkers, T_simdSize>> const& forEach,
+            T_Type const& value)
+        {
+            return Variable<T_Type, typename ForEach<Config<T_domainSize, T_numWorkers, T_simdSize>>::BaseConfig>(
+                value);
+        }
+
+        template<
+            typename T_Type,
+            uint32_t T_domainSize,
+            uint32_t T_numWorkers,
+            uint32_t T_simdSize,
+            typename T_Functor>
+        HDINLINE auto makeVar(
+            T_Functor&& functor,
+            ForEach<Config<T_domainSize, T_numWorkers, T_simdSize>> const& forEach)
+        {
+            return Variable<T_Type, typename ForEach<Config<T_domainSize, T_numWorkers, T_simdSize>>::BaseConfig>(
+                forEach.getWorkerIdx(),
+                std::forward<T_Functor>(functor));
+        }
+
+    } // namespace lockstep
 } // namespace pmacc

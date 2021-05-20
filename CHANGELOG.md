@@ -846,7 +846,7 @@ and Sebastian Hahn for contributing to this release!
  - documentation:
    - new subtitle #2734
    - Lockstep Programming Model #2026 #2064
-   - `IdxConfig` append documentation #2022
+   - `DomainCfg` append documentation #2022
    - `multiMask`: Refactor Documentation #2119
    - `CtxArray` #2390
    - Update openPMD Post-Processing #2322 #2733

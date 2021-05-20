@@ -23,10 +23,7 @@
 #pragma once
 
 
-#include "pmacc/mappings/threads/ForEachIdx.hpp"
-#include "pmacc/mappings/threads/IdxConfig.hpp"
-#include "pmacc/mappings/threads/WorkerCfg.hpp"
-#include "pmacc/memory/CtxVar.hpp"
+#include "pmacc/lockstep.hpp"
 #include "pmacc/memory/buffers/GridBuffer.hpp"
 #include "pmacc/traits/GetNumWorkers.hpp"
 #include "pmacc/traits/GetValueType.hpp"
@@ -92,13 +89,11 @@ namespace pmacc
                     T_Functor func,
                     T_DestFunctor destFunc) const
                 {
-                    using namespace mappings::threads;
-
                     constexpr uint32_t numWorkers = T_numWorkers;
                     uint32_t const workerIdx = cupla::threadIdx(acc).x;
 
                     uint32_t const numGlobalVirtualThreadCount = cupla::gridDim(acc).x * T_blockSize;
-                    WorkerCfg<numWorkers> workerCfg(workerIdx);
+                    lockstep::Worker<numWorkers> workerCfg(workerIdx);
 
                     sharedMemExtern(s_mem, Type);
 
@@ -112,9 +107,7 @@ namespace pmacc
                         s_mem,
                         cupla::blockIdx(acc).x);
 
-                    using MasterOnly = IdxConfig<1, numWorkers>;
-
-                    ForEachIdx<MasterOnly>{workerIdx}(
+                    lockstep::makeMaster<numWorkers>(workerIdx)(
                         [&]() { destFunc(acc, destBuffer[cupla::blockIdx(acc).x], s_mem[0]); });
                 }
 
@@ -162,33 +155,30 @@ namespace pmacc
                     T_SharedBuffer& sharedMem,
                     size_t const blockIndex = 0u) const
                 {
-                    using namespace mappings::threads;
+                    auto forEachBlockElem
+                        = lockstep::makeForEach<T_blockSize, T_WorkerCfg::numWorkers>(workerCfg.getWorkerIdx());
 
-                    using VirtualWorkerCfg = IdxConfig<T_blockSize, T_WorkerCfg::numWorkers>;
+                    auto linearReduceThreadIdxCtx = lockstep::makeVar<uint32_t>(
+                        [&](uint32_t const linearIdx) { return blockIndex * T_blockSize + linearIdx; },
+                        forEachBlockElem);
 
-                    pmacc::memory::CtxVar<uint32_t, VirtualWorkerCfg> linearReduceThreadIdxCtx(
-                        workerCfg.getWorkerIdx(),
-                        [&](uint32_t const linearIdx) { return blockIndex * T_blockSize + linearIdx; });
+                    auto isActiveCtx = lockstep::makeVar<bool>(
+                        [&](lockstep::Idx const idx) { return linearReduceThreadIdxCtx[idx] < bufferSize; },
+                        forEachBlockElem);
 
-                    pmacc::memory::CtxVar<bool, VirtualWorkerCfg> isActiveCtx(
-                        workerCfg.getWorkerIdx(),
-                        [&](DomainIdx const domIdx) { return linearReduceThreadIdxCtx[domIdx] < bufferSize; });
-
-                    ForEachIdx<VirtualWorkerCfg> forEachVirtualThread(workerCfg.getWorkerIdx());
-
-                    forEachVirtualThread([&](DomainIdx const domIdx) {
-                        if(isActiveCtx[domIdx])
+                    forEachBlockElem([&](lockstep::Idx const idx) {
+                        if(isActiveCtx[idx])
                         {
                             /*fill shared mem*/
-                            Type r_value = srcBuffer[linearReduceThreadIdxCtx[domIdx]];
+                            Type r_value = srcBuffer[linearReduceThreadIdxCtx[idx]];
                             /*reduce not read global memory to shared*/
-                            uint32_t i = linearReduceThreadIdxCtx[domIdx] + numReduceThreads;
+                            uint32_t i = linearReduceThreadIdxCtx[idx] + numReduceThreads;
                             while(i < bufferSize)
                             {
                                 func(acc, r_value, srcBuffer[i]);
                                 i += numReduceThreads;
                             }
-                            sharedMem[domIdx.lIdx()] = r_value;
+                            sharedMem[idx] = r_value;
                         }
                     });
 
@@ -207,11 +197,11 @@ namespace pmacc
                          */
                         chunk_count = (chunk_count + 1u) / 2u;
 
-                        forEachVirtualThread([&](DomainIdx const domIdx) {
-                            uint32_t const linearIdx = domIdx.lIdx();
-                            isActiveCtx[domIdx] = (linearReduceThreadIdxCtx[domIdx] < bufferSize)
+                        forEachBlockElem([&](lockstep::Idx const idx) {
+                            uint32_t const linearIdx = idx;
+                            isActiveCtx[idx] = (linearReduceThreadIdxCtx[idx] < bufferSize)
                                 && !(linearIdx != 0u && linearIdx >= active_threads);
-                            if(isActiveCtx[domIdx])
+                            if(isActiveCtx[idx])
                                 func(acc, sharedMem[linearIdx], sharedMem[linearIdx + chunk_count]);
 
                             cupla::__syncthreads(acc);

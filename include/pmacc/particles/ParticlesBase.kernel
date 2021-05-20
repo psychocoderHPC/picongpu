@@ -21,11 +21,9 @@
 
 #include "pmacc/dimensions/DataSpaceOperations.hpp"
 #include "pmacc/kernel/atomic.hpp"
+#include "pmacc/lockstep.hpp"
 #include "pmacc/mappings/kernel/ExchangeMapping.hpp"
-#include "pmacc/mappings/threads/ForEachIdx.hpp"
-#include "pmacc/mappings/threads/IdxConfig.hpp"
 #include "pmacc/memory/Array.hpp"
-#include "pmacc/memory/CtxVar.hpp"
 #include "pmacc/memory/shared/Allocate.hpp"
 #include "pmacc/particles/memory/boxes/ExchangePopDataBox.hpp"
 #include "pmacc/particles/memory/boxes/ExchangePushDataBox.hpp"
@@ -74,7 +72,6 @@ namespace pmacc
         DINLINE void operator()(T_Acc const& acc, T_ParBox pb, T_Mapping mapper) const
         {
             using namespace particles::operations;
-            using namespace mappings::threads;
 
             constexpr uint32_t frameSize = math::CT::volume<typename T_Mapping::SuperCellSize>::type::value;
             constexpr uint32_t dim = T_Mapping::Dim;
@@ -92,9 +89,7 @@ namespace pmacc
 
             uint32_t const workerIdx = cupla::threadIdx(acc).x;
 
-            using MasterOnly = IdxConfig<1, numWorkers>;
-
-            ForEachIdx<MasterOnly>{workerIdx}([&]() {
+            lockstep::makeMaster<numWorkers>(workerIdx)([&]() {
                 lastFrame = pb.getLastFrame(superCellIdx);
                 numGaps = 0;
                 numParticles = 0;
@@ -105,34 +100,32 @@ namespace pmacc
 
             if(lastFrame.isValid())
             {
-                using ParticleDomCfg = IdxConfig<frameSize, numWorkers>;
+                /* loop over all particles in the frame */
+                auto forEachParticle = lockstep::makeForEach<frameSize, numWorkers>(workerIdx);
 
                 /* context if an element within the frame is a particle */
-                memory::CtxVar<bool, ParticleDomCfg> isParticleCtx(workerIdx, [&](uint32_t const linearIdx) {
-                    return lastFrame[linearIdx][multiMask_];
-                });
-
-                /* loop over all particles in the frame */
-                ForEachIdx<ParticleDomCfg> forEachParticle(workerIdx);
+                auto isParticleCtx = lockstep::makeVar<bool>(
+                    [&](uint32_t const linearIdx) { return lastFrame[linearIdx][multiMask_]; },
+                    forEachParticle);
 
                 // count particles in last frame
-                forEachParticle([&](DomainIdx const domIdx) {
-                    if(isParticleCtx[domIdx])
+                forEachParticle([&](lockstep::Idx const idx) {
+                    if(isParticleCtx[idx])
                         kernel::atomicAllInc(acc, &numParticles, ::alpaka::hierarchy::Threads{});
                 });
 
                 cupla::__syncthreads(acc);
 
-                forEachParticle([&](DomainIdx const domIdx) {
-                    if(domIdx.lIdx() < numParticles && isParticleCtx[domIdx] == false)
+                forEachParticle([&](lockstep::Idx const idx) {
+                    if(idx < numParticles && isParticleCtx[idx] == false)
                     {
                         int const localGapIdx = kernel::atomicAllInc(acc, &numGaps, ::alpaka::hierarchy::Threads{});
-                        gapIndices_sh[localGapIdx] = domIdx.lIdx();
+                        gapIndices_sh[localGapIdx] = idx;
                     }
                 });
                 cupla::__syncthreads(acc);
-                forEachParticle([&](DomainIdx const domIdx) {
-                    if(domIdx.lIdx() >= numParticles && isParticleCtx[domIdx])
+                forEachParticle([&](lockstep::Idx const idx) {
+                    if(idx >= numParticles && isParticleCtx[idx])
                     {
                         // any particle search a gap
                         int const srcGapIdx = kernel::atomicAllInc(acc, &srcGap, ::alpaka::hierarchy::Threads{});
@@ -144,13 +137,13 @@ namespace pmacc
                          * we have to enabled particles explicitly
                          */
                         auto parDest = deselect<multiMask>(parDestFull);
-                        auto parSrc = (lastFrame[domIdx.lIdx()]);
+                        auto parSrc = (lastFrame[idx]);
                         assign(parDest, parSrc);
                         parSrc[multiMask_] = 0; // delete old particle
                     }
                 });
             }
-            ForEachIdx<MasterOnly>{workerIdx}([&]() {
+            lockstep::makeMaster<numWorkers>(workerIdx)([&]() {
                 // there is no need to add a zero to the global memory
                 if(numParticles != 0)
                 {
@@ -191,7 +184,6 @@ namespace pmacc
         DINLINE void operator()(T_Acc const& acc, T_ParBox pb, T_Mapping const mapper) const
         {
             using namespace particles::operations;
-            using namespace mappings::threads;
 
             using FramePtr = typename T_ParBox::FramePtr;
 
@@ -215,7 +207,7 @@ namespace pmacc
 
             uint32_t numParticlesPerSuperCell = 0u;
 
-            ForEachIdx<IdxConfig<1, numWorkers>> onlyMaster{workerIdx};
+            auto onlyMaster = lockstep::makeMaster<numWorkers>(workerIdx);
 
             onlyMaster([&]() {
                 firstFrame = pb.getFirstFrame(superCellIdx);
@@ -233,17 +225,16 @@ namespace pmacc
 
                 cupla::__syncthreads(acc);
 
-                using ParticleDomCfg = IdxConfig<frameSize, numWorkers>;
                 // loop over all particles in the frame
-                ForEachIdx<ParticleDomCfg> forEachParticle(workerIdx);
+                auto forEachParticle = lockstep::makeForEach<frameSize, numWorkers>(workerIdx);
 
-                memory::CtxVar<int, ParticleDomCfg> localGapIdxCtx(INV_LOC_IDX);
+                auto localGapIdxCtx = lockstep::makeVar<int>(forEachParticle, INV_LOC_IDX);
 
                 // find gaps in firstFrame
-                forEachParticle([&](DomainIdx const domIdx) {
-                    if(firstFrame[domIdx.lIdx()][multiMask_] == 0)
+                forEachParticle([&](lockstep::Idx const idx) {
+                    if(firstFrame[idx][multiMask_] == 0)
                     {
-                        localGapIdxCtx[domIdx] = kernel::atomicAllInc(acc, &numGaps, ::alpaka::hierarchy::Threads{});
+                        localGapIdxCtx[idx] = kernel::atomicAllInc(acc, &numGaps, ::alpaka::hierarchy::Threads{});
                     }
                 });
 
@@ -265,11 +256,11 @@ namespace pmacc
                     cupla::__syncthreads(acc);
 
                     // copy particles from lastFrame to the gaps in firstFrame
-                    forEachParticle([&](DomainIdx const domIdx) {
-                        if(localGapIdxCtx[domIdx] < numParticles)
+                    forEachParticle([&](lockstep::Idx const idx) {
+                        if(localGapIdxCtx[idx] < numParticles)
                         {
-                            int const parIdx = particleIndices_sh[localGapIdxCtx[domIdx]];
-                            auto parDestFull = firstFrame[domIdx.lIdx()];
+                            int const parIdx = particleIndices_sh[localGapIdxCtx[idx]];
+                            auto parDestFull = firstFrame[idx];
                             // enable particle
                             parDestFull[multiMask_] = 1;
                             /* we not update multiMask because copy from mem to mem is to slow
@@ -374,9 +365,7 @@ namespace pmacc
             DataSpace<dim> superCellIdx = mapper.getSuperCellIndex(DataSpace<dim>(cupla::blockIdx(acc)));
             uint32_t const workerIdx = cupla::threadIdx(acc).x;
 
-            using namespace mappings::threads;
-
-            ForEachIdx<IdxConfig<1, numWorkers>>{workerIdx}([&]() {
+            lockstep::makeMaster<numWorkers>(workerIdx)([&]() {
                 mustShift = pb.getSuperCell(superCellIdx).mustShift();
                 if(mustShift)
                 {
@@ -389,36 +378,35 @@ namespace pmacc
             if(!mustShift || !frame.isValid())
                 return;
 
-            using ExchangeDomCfg = IdxConfig<numExchanges, numWorkers>;
+            auto forEachExchange = lockstep::makeForEach<numExchanges, numWorkers>(workerIdx);
 
-            memory::CtxVar<int32_t, ExchangeDomCfg> newParticleInFrame(0);
+            auto newParticleInFrame = lockstep::makeVar<int32_t>(forEachExchange, 0);
 
-            memory::CtxVar<DataSpace<dim>, ExchangeDomCfg> relativeCtx(
-                workerIdx,
+            auto relativeCtx = lockstep::makeVar<DataSpace<dim>>(
                 [&](uint32_t const linearIdx) -> DataSpace<dim> {
                     return superCellIdx + Mask::getRelativeDirections<dim>(linearIdx + 1);
-                });
+                },
+                forEachExchange);
 
-            ForEachIdx<ExchangeDomCfg> forEachExchange(workerIdx);
 
             /* if a partially filled last frame exists for the neighboring supercell,
              * each master thread (one master per direction) will load it
              */
-            forEachExchange([&](DomainIdx const domIdx) {
-                uint32_t const linearIdx = domIdx.lIdx();
+            forEachExchange([&](lockstep::Idx const idx) {
+                uint32_t const linearIdx = idx;
                 destFramesCounter[linearIdx] = 0;
                 destFrames[linearIdx] = FramePtr();
                 destFrames[linearIdx + numExchanges] = FramePtr();
                 /* load last frame of neighboring supercell */
-                FramePtr tmpFrame(pb.getLastFrame(relativeCtx[domIdx]));
+                FramePtr tmpFrame(pb.getLastFrame(relativeCtx[idx]));
 
                 if(tmpFrame.isValid())
                 {
-                    int32_t const particlesInFrame = pb.getSuperCell(relativeCtx[domIdx]).getSizeLastFrame();
+                    int32_t const particlesInFrame = pb.getSuperCell(relativeCtx[idx]).getSizeLastFrame();
                     // do not use the neighbor's last frame if it is full
                     if(particlesInFrame < frameSize)
                     {
-                        newParticleInFrame[domIdx] = -particlesInFrame;
+                        newParticleInFrame[idx] = -particlesInFrame;
                         destFrames[linearIdx] = tmpFrame;
                         destFramesCounter[linearIdx] = particlesInFrame;
                     }
@@ -430,34 +418,32 @@ namespace pmacc
             /* iterate over the frame list of the current supercell */
             while(frame.isValid())
             {
-                using ParticleDomCfg = IdxConfig<frameSize, numWorkers>;
+                auto forEachParticle = lockstep::makeForEach<frameSize, numWorkers>(workerIdx);
 
-                ForEachIdx<ParticleDomCfg> forEachParticle(workerIdx);
+                auto destParticleIdxCtx = lockstep::makeVar<lcellId_t>(forEachParticle, INV_LOC_IDX);
+                auto directionCtx = lockstep::makeVar<int>(forEachParticle);
 
-                memory::CtxVar<lcellId_t, ParticleDomCfg> destParticleIdxCtx(INV_LOC_IDX);
-                memory::CtxVar<int, ParticleDomCfg> directionCtx;
-
-                forEachParticle([&](DomainIdx const domIdx) {
+                forEachParticle([&](lockstep::Idx const idx) {
                     /* set to value to of multiMask to a value in range [-2, EXCHANGES - 1]
                      * -2 is no particle
                      * -1 is particle but it is not shifted (stays in supercell)
                      * >=0 particle moves in a certain direction
                      *     (@see ExchangeType in types.h)
                      */
-                    directionCtx[domIdx] = frame[domIdx.lIdx()][multiMask_] - 2;
-                    if(directionCtx[domIdx] >= 0)
+                    directionCtx[idx] = frame[idx][multiMask_] - 2;
+                    if(directionCtx[idx] >= 0)
                     {
-                        destParticleIdxCtx[domIdx] = cupla::atomicAdd(
+                        destParticleIdxCtx[idx] = cupla::atomicAdd(
                             acc,
-                            &(destFramesCounter[directionCtx[domIdx]]),
+                            &(destFramesCounter[directionCtx[idx]]),
                             1,
                             ::alpaka::hierarchy::Threads{});
                     }
                 });
                 cupla::__syncthreads(acc);
 
-                forEachExchange([&](DomainIdx const domIdx) {
-                    uint32_t const linearIdx = domIdx.lIdx();
+                forEachExchange([&](lockstep::Idx const idx) {
+                    uint32_t const linearIdx = idx;
                     /* If the master thread (responsible for a certain direction) did not
                      * obtain a `low frame` from the neighboring super cell before the loop,
                      * it will create one now.
@@ -473,20 +459,20 @@ namespace pmacc
                         {
                             FramePtr tmpFrame(pb.getEmptyFrame(acc));
                             destFrames[linearIdx] = tmpFrame;
-                            pb.setAsLastFrame(acc, tmpFrame, relativeCtx[domIdx]);
+                            pb.setAsLastFrame(acc, tmpFrame, relativeCtx[idx]);
                         }
                         /* check if a `high frame` is needed */
                         if(destFramesCounter[linearIdx] > frameSize)
                         {
                             FramePtr tmpFrame(pb.getEmptyFrame(acc));
                             destFrames[linearIdx + numExchanges] = tmpFrame;
-                            pb.setAsLastFrame(acc, tmpFrame, relativeCtx[domIdx]);
+                            pb.setAsLastFrame(acc, tmpFrame, relativeCtx[idx]);
                         }
                     }
                 });
                 cupla::__syncthreads(acc);
 
-                forEachParticle([&](DomainIdx const domIdx) {
+                forEachParticle([&](lockstep::Idx const idx) {
                     /* All threads with a valid index in the neighbor's frame, valid index
                      * range is [0, frameSize * 2-1], will copy their particle to the new
                      * frame.
@@ -494,16 +480,16 @@ namespace pmacc
                      * The default value for indexes (in the destination frame) is
                      * above this range (INV_LOC_IDX) for all particles that are not shifted.
                      */
-                    if(destParticleIdxCtx[domIdx] < frameSize * 2)
+                    if(destParticleIdxCtx[idx] < frameSize * 2)
                     {
-                        if(destParticleIdxCtx[domIdx] >= frameSize)
+                        if(destParticleIdxCtx[idx] >= frameSize)
                         {
                             /* use `high frame` */
-                            directionCtx[domIdx] += numExchanges;
-                            destParticleIdxCtx[domIdx] -= frameSize;
+                            directionCtx[idx] += numExchanges;
+                            destParticleIdxCtx[idx] -= frameSize;
                         }
-                        auto dstParticle = destFrames[directionCtx[domIdx]][destParticleIdxCtx[domIdx]];
-                        auto srcParticle = frame[domIdx.lIdx()];
+                        auto dstParticle = destFrames[directionCtx[idx]][destParticleIdxCtx[idx]];
+                        auto srcParticle = frame[idx];
                         dstParticle[multiMask_] = 1;
                         srcParticle[multiMask_] = 0;
                         auto dstFilteredParticle = particles::operations::deselect<multiMask>(dstParticle);
@@ -512,15 +498,15 @@ namespace pmacc
                 });
                 cupla::__syncthreads(acc);
 
-                forEachExchange([&](DomainIdx const domIdx) {
-                    uint32_t const linearIdx = domIdx.lIdx();
+                forEachExchange([&](lockstep::Idx const idx) {
+                    uint32_t const linearIdx = idx;
                     /* if the `low frame` is full, each master thread
                      * uses the `high frame` (is invalid, if still empty) as the next
                      * `low frame` for the following iteration of the loop
                      */
                     if(destFramesCounter[linearIdx] >= frameSize)
                     {
-                        newParticleInFrame[domIdx] += frameSize;
+                        newParticleInFrame[idx] += frameSize;
                         destFramesCounter[linearIdx] -= frameSize;
                         destFrames[linearIdx] = destFrames[linearIdx + numExchanges];
                         destFrames[linearIdx + numExchanges] = FramePtr();
@@ -533,17 +519,17 @@ namespace pmacc
                 cupla::__syncthreads(acc);
             }
 
-            forEachExchange([&](DomainIdx const domIdx) {
-                newParticleInFrame[domIdx] += destFramesCounter[domIdx.lIdx()];
-                if(newParticleInFrame[domIdx] > 0)
+            forEachExchange([&](lockstep::Idx const idx) {
+                newParticleInFrame[idx] += destFramesCounter[idx];
+                if(newParticleInFrame[idx] > 0)
                 {
                     /* Each master thread updates the number of particles
                      * for the neighbor frame. The number of particles in the neighbor
                      * frame must be correct because fill gaps is only called on the
                      * current used supercell.
                      */
-                    auto& superCell = pb.getSuperCell(relativeCtx[domIdx]);
-                    superCell.setNumParticles(superCell.getNumParticles() + newParticleInFrame[domIdx]);
+                    auto& superCell = pb.getSuperCell(relativeCtx[idx]);
+                    superCell.setNumParticles(superCell.getNumParticles() + newParticleInFrame[idx]);
                 }
             });
 
@@ -573,7 +559,6 @@ namespace pmacc
         DINLINE void operator()(T_Acc const& acc, T_ParticleBox pb, T_Mapping const mapper) const
         {
             using namespace particles::operations;
-            using namespace mappings::threads;
 
             using ParticleBox = T_ParticleBox;
             using FrameType = typename ParticleBox::FrameType;
@@ -588,7 +573,7 @@ namespace pmacc
 
             PMACC_SMEM(acc, frame, FramePtr);
 
-            ForEachIdx<IdxConfig<1, numWorkers>> onlyMaster{workerIdx};
+            auto onlyMaster = lockstep::makeMaster<numWorkers>(workerIdx);
 
             onlyMaster([&]() { frame = pb.getLastFrame(superCellIdx); });
 
@@ -596,9 +581,8 @@ namespace pmacc
 
             while(frame.isValid())
             {
-                using ParticleDomCfg = IdxConfig<frameSize, numWorkers>;
                 // loop over all particles in the frame
-                ForEachIdx<ParticleDomCfg> forEachParticle(workerIdx);
+                auto forEachParticle = lockstep::makeForEach<frameSize, numWorkers>(workerIdx);
 
                 forEachParticle([&](uint32_t const linearIdx) {
                     auto particle = (frame[linearIdx]);
@@ -652,7 +636,6 @@ namespace pmacc
             T_Mapping const mapper) const
         {
             using namespace particles::operations;
-            using namespace mappings::threads;
 
             PMACC_CONSTEXPR_CAPTURE uint32_t dim = T_Mapping::Dim;
             constexpr uint32_t frameSize = math::CT::volume<typename T_ParBox::FrameType::SuperCellSize>::type::value;
@@ -680,7 +663,7 @@ namespace pmacc
              */
             PMACC_SMEM(acc, allParticlesCopied, bool);
 
-            ForEachIdx<IdxConfig<1, numWorkers>> onlyMaster{workerIdx};
+            auto onlyMaster = lockstep::makeMaster<numWorkers>(workerIdx);
 
             onlyMaster([&]() {
                 allParticlesCopied = true;
@@ -691,24 +674,23 @@ namespace pmacc
 
             while(frame.isValid() && allParticlesCopied)
             {
-                using ParticleDomCfg = IdxConfig<frameSize, numWorkers>;
+                // loop over all particles in the frame
+                auto forEachParticle = lockstep::makeForEach<frameSize, numWorkers>(workerIdx);
 
                 /* the index of the gap in the exchange box where the particle
                  * is copied to
                  */
-                memory::CtxVar<lcellId_t, ParticleDomCfg> exchangeGapIdxCtx(INV_LOC_IDX);
+                auto exchangeGapIdxCtx = lockstep::makeVar<lcellId_t>(forEachParticle, INV_LOC_IDX);
 
                 onlyMaster([&]() { numParticles = 0; });
 
                 cupla::__syncthreads(acc);
 
-                // loop over all particles in the frame
-                ForEachIdx<ParticleDomCfg> forEachParticle(workerIdx);
 
-                forEachParticle([&](DomainIdx const domIdx) {
-                    if(frame[domIdx.lIdx()][multiMask_] == 1)
+                forEachParticle([&](lockstep::Idx const idx) {
+                    if(frame[idx][multiMask_] == 1)
                     {
-                        exchangeGapIdxCtx[domIdx]
+                        exchangeGapIdxCtx[idx]
                             = kernel::atomicAllInc(acc, &numParticles, ::alpaka::hierarchy::Threads{});
                     }
                 });
@@ -730,12 +712,11 @@ namespace pmacc
 
                     cupla::__syncthreads(acc);
 
-                    forEachParticle([&](DomainIdx const domIdx) {
-                        if(exchangeGapIdxCtx[domIdx] != INV_LOC_IDX
-                           && exchangeGapIdxCtx[domIdx] < exchangeChunk.getSize())
+                    forEachParticle([&](lockstep::Idx const idx) {
+                        if(exchangeGapIdxCtx[idx] != INV_LOC_IDX && exchangeGapIdxCtx[idx] < exchangeChunk.getSize())
                         {
-                            auto parDest = exchangeChunk[exchangeGapIdxCtx[domIdx]][0];
-                            auto parSrc = frame[domIdx.lIdx()];
+                            auto parDest = exchangeChunk[exchangeGapIdxCtx[idx]][0];
+                            auto parSrc = frame[idx];
                             assign(parDest, parSrc);
                             parSrc[multiMask_] = 0;
                         }
@@ -787,7 +768,6 @@ namespace pmacc
             T_Mapping const mapper) const
         {
             using namespace particles::operations;
-            using namespace mappings::threads;
 
             PMACC_CONSTEXPR_CAPTURE uint32_t dim = T_Mapping::Dim;
             constexpr uint32_t frameSize = math::CT::volume<typename T_ParBox::FrameType::SuperCellSize>::type::value;
@@ -801,17 +781,16 @@ namespace pmacc
             PMACC_SMEM(acc, elementCount, int);
             PMACC_SMEM(acc, exchangeChunk, TileDataBox<T_ExchangeValueType>);
 
-            using MasterOnly = IdxConfig<1, numWorkers>;
+
+            auto onlyMaster = lockstep::makeMaster<numWorkers>(workerIdx);
 
             /* compressed index of the the supercell
              * can be uncompressed with `DataSpaceOperations< >::extend()`
              */
-            memory::CtxVar<DataSpace<dim - 1>, MasterOnly> compressedSuperCellIdxCtx{};
+            auto compressedSuperCellIdxCtx = lockstep::makeVar<DataSpace<dim - 1>>(onlyMaster);
 
-            ForEachIdx<MasterOnly> onlyMaster{workerIdx};
-
-            onlyMaster([&](DomainIdx const domIdx) {
-                exchangeChunk = exchangeBox.get(cupla::blockIdx(acc).x, compressedSuperCellIdxCtx[domIdx]);
+            onlyMaster([&](lockstep::Idx const idx) {
+                exchangeChunk = exchangeBox.get(cupla::blockIdx(acc).x, compressedSuperCellIdxCtx[idx]);
                 elementCount = exchangeChunk.getSize();
                 if(elementCount > 0)
                 {
@@ -822,7 +801,7 @@ namespace pmacc
             cupla::__syncthreads(acc);
 
             // loop over all particles in the frame
-            ForEachIdx<IdxConfig<frameSize, numWorkers>> forEachParticle{workerIdx};
+            auto forEachParticle = lockstep::makeForEach<frameSize, numWorkers>(workerIdx);
 
             forEachParticle([&](uint32_t const linearIdx) {
                 if(linearIdx < elementCount)
@@ -841,13 +820,13 @@ namespace pmacc
              */
             cupla::__syncthreads(acc);
 
-            onlyMaster([&](DomainIdx const domIdx) {
+            onlyMaster([&](lockstep::Idx const idx) {
                 if(elementCount > 0)
                 {
                     // compute the super cell position in target frame to insert into
                     //! @todo: offset == simulation border should be passed to this func instead of being created here
                     DataSpace<dim> dstSuperCell = DataSpaceOperations<dim - 1>::extend(
-                        compressedSuperCellIdxCtx[domIdx],
+                        compressedSuperCellIdxCtx[idx],
                         mapper.getExchangeType(),
                         mapper.getGridSuperCells(),
                         mapper.getGuardingSuperCells());

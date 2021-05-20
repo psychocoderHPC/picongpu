@@ -24,10 +24,9 @@
 #include "picongpu/simulation/control/MovingWindow.hpp"
 
 #include <pmacc/dimensions/DataSpace.hpp>
+#include <pmacc/lockstep.hpp>
 #include <pmacc/mappings/kernel/MappingDescription.hpp>
 #include <pmacc/mappings/simulation/SubGrid.hpp>
-#include <pmacc/mappings/threads/ForEachIdx.hpp>
-#include <pmacc/mappings/threads/IdxConfig.hpp>
 #include <pmacc/traits/GetNumWorkers.hpp>
 
 
@@ -79,7 +78,6 @@ namespace picongpu
                 uint32_t const currentStep,
                 T_Mapping mapper) const
             {
-                using namespace mappings::threads;
                 constexpr uint32_t cellsPerSupercell = pmacc::math::CT::volume<SuperCellSize>::type::value;
                 constexpr uint32_t numWorker = T_numWorkers;
 
@@ -89,7 +87,7 @@ namespace picongpu
                 DataSpace<simDim> const blockCell = block * SuperCellSize::toRT();
                 DataSpace<simDim> const guardCells = mapper.getGuardingSuperCells() * SuperCellSize::toRT();
 
-                ForEachIdx<IdxConfig<cellsPerSupercell, numWorker>>{workerIdx}([&](uint32_t const linearIdx) {
+                lockstep::makeForEach<cellsPerSupercell, numWorker>(workerIdx)([&](uint32_t const linearIdx) {
                     // cell index within the superCell
                     DataSpace<simDim> const cellIdx
                         = DataSpaceOperations<simDim>::template map<SuperCellSize>(linearIdx);

@@ -33,9 +33,8 @@
 
 #include <pmacc/dataManagement/DataConnector.hpp>
 #include <pmacc/dimensions/DataSpace.hpp>
+#include <pmacc/lockstep.hpp>
 #include <pmacc/mappings/kernel/AreaMapping.hpp>
-#include <pmacc/mappings/threads/ForEachIdx.hpp>
-#include <pmacc/mappings/threads/IdxConfig.hpp>
 #include <pmacc/math/Vector.hpp>
 #include <pmacc/math/operation.hpp>
 #include <pmacc/memory/shared/Allocate.hpp>
@@ -96,7 +95,6 @@ namespace picongpu
             T_Mapping const mapper,
             T_Filter filter) const
         {
-            using namespace pmacc::mappings::threads;
             using SuperCellSize = typename MappingDesc::SuperCellSize;
             using FramePtr = typename T_ParBox::FramePtr;
             constexpr uint32_t maxParticlesPerFrame = pmacc::math::CT::volume<SuperCellSize>::type::value;
@@ -117,16 +115,14 @@ namespace picongpu
 
             uint32_t const workerIdx = cupla::threadIdx(acc).x;
 
-            using MasterOnly = IdxConfig<1, numWorkers>;
-
             DataSpace<simDim> const superCellIdx(mapper.getSuperCellIndex(DataSpace<simDim>(cupla::blockIdx(acc))));
 
-            ForEachIdx<MasterOnly>{workerIdx}([&]() {
+            lockstep::makeMaster<numWorkers>(workerIdx)([&]() {
                 frame = pb.getLastFrame(superCellIdx);
                 particlesInSuperCell = pb.getSuperCell(superCellIdx).getSizeLastFrame();
             });
 
-            ForEachIdx<IdxConfig<numWorkers, numWorkers>>{workerIdx}([&](uint32_t const linearIdx) {
+            lockstep::makeForEach<numWorkers, numWorkers>(workerIdx)([&](uint32_t const linearIdx) {
                 /* set all bins to 0 */
                 for(int i = linearIdx; i < realNumBins; i += numWorkers)
                     shBin[i] = float_X(0.);
@@ -138,12 +134,12 @@ namespace picongpu
                 return; /* end kernel if we have no frames */
 
             auto accFilter
-                = filter(acc, superCellIdx - mapper.getGuardingSuperCells(), WorkerCfg<numWorkers>{workerIdx});
+                = filter(acc, superCellIdx - mapper.getGuardingSuperCells(), lockstep::Worker<numWorkers>{workerIdx});
 
             while(frame.isValid())
             {
                 // move over all particles in a frame
-                ForEachIdx<IdxConfig<maxParticlesPerFrame, numWorkers>>{workerIdx}([&](uint32_t const linearIdx) {
+                lockstep::makeForEach<maxParticlesPerFrame, numWorkers>(workerIdx)([&](uint32_t const linearIdx) {
                     if(linearIdx < particlesInSuperCell)
                     {
                         auto const particle = frame[linearIdx];
@@ -197,14 +193,14 @@ namespace picongpu
 
                 cupla::__syncthreads(acc);
 
-                ForEachIdx<MasterOnly>{workerIdx}([&]() {
+                lockstep::makeMaster<numWorkers>(workerIdx)([&]() {
                     frame = pb.getPreviousFrame(frame);
                     particlesInSuperCell = maxParticlesPerFrame;
                 });
                 cupla::__syncthreads(acc);
             }
 
-            ForEachIdx<IdxConfig<numWorkers, numWorkers>>{workerIdx}([&](uint32_t const linearIdx) {
+            lockstep::makeForEach<numWorkers, numWorkers>(workerIdx)([&](uint32_t const linearIdx) {
                 for(int i = linearIdx; i < realNumBins; i += numWorkers)
                     cupla::atomicAdd(acc, &(gBins[i]), float_64(shBin[i]), ::alpaka::hierarchy::Blocks{});
             });
