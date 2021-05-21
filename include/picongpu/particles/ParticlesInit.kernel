@@ -125,8 +125,8 @@ namespace picongpu
             auto forEachParticle = lockstep::makeForEach<frameSize, numWorkers>(workerIdx);
 
             /* number of particles to create for each cell (virtual worker) */
-            auto numParsPerCellCtx = lockstep::makeVar<uint32_t>(forEachCellInSuperCell, 0);
-
+            auto numParsPerCellCtx = lockstep::makeVar<uint32_t>(forEachCellInSuperCell, 0u);
+#if 0
             /* create for each virtual thread a position functor instance */
             auto positionFunctorCtx = lockstep::makeVar<decltype(positionFunctor(
                 acc,
@@ -135,7 +135,7 @@ namespace picongpu
                  * is creating **exactly one** functor
                  */
                 alpaka::core::declval<lockstep::Worker<cellsPerSupercell> const>()))>(forEachCellInSuperCell);
-
+#endif
             auto onlyMaster = lockstep::makeMaster<numWorkers>(workerIdx);
 
             /* reset shared memory flag if a virtual worker needs to create a particle */
@@ -144,7 +144,7 @@ namespace picongpu
             cupla::__syncthreads(acc);
 
             // initialize the position functor for each cell in the supercell
-            forEachCellInSuperCell([&](lockstep::Idx const idx) {
+            auto positionFunctorCtx = forEachCellInSuperCell([&](lockstep::Idx const idx) {
                 /* cell index within the superCell */
                 DataSpace<simDim> const cellIdx = DataSpaceOperations<simDim>::template map<SuperCellSize>(idx);
 
@@ -159,12 +159,12 @@ namespace picongpu
                 volatile float_X const realParticlesPerCell = realDensity * CELL_VOLUME;
 
                 // create an independent position functor for each cell in the supercell
-                positionFunctorCtx[idx]
+                auto posFunctor
                     = positionFunctor(acc, localSuperCellOffset, forEachCellInSuperCell.getWorkerCfg());
 
                 if(realParticlesPerCell > 0.0_X)
                     numParsPerCellCtx[idx]
-                        = positionFunctorCtx[idx].template numberOfMacroParticles<ParticleType>(realParticlesPerCell);
+                        = posFunctor.template numberOfMacroParticles<ParticleType>(realParticlesPerCell);
 
                 if(numParsPerCellCtx[idx] > 0)
                     kernel::atomicAllExch(
@@ -172,6 +172,8 @@ namespace picongpu
                         &finished,
                         0,
                         ::alpaka::hierarchy::Threads{}); // one or more cells have particles to create
+
+                return posFunctor;
             });
 
             cupla::__syncthreads(acc);

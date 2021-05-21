@@ -144,42 +144,43 @@ namespace pmacc
 
                         cupla::__syncthreads(acc);
 
-                        // supercell index of the particle relative to the origin of the local domain
-                        auto particlesSuperCellCtx = lockstep::makeVar<DataSpace<numDims>>(forEachParticle);
-
                         // linear cell index of the particle within the destination frame
                         auto lCellIdxCtx = lockstep::makeVar<lcellId_t>(forEachParticle, INV_LOC_IDX);
 
                         auto linearParticlesSuperCellCtx = lockstep::makeVar<int>(forEachParticle, -1);
 
-                        forEachParticle([&](lockstep::Idx const idx) {
-                            if(hasValidParticleCtx[idx])
-                            {
-                                // offset of the particle relative to the origin of the local domain
-                                DataSpace<numDims> const particleCellOffset
-                                    = srcFrame[srcParticleIdxCtx[idx]][domainCellIdxIdentifier]
-                                    - localDomainCellOffset;
-                                particlesSuperCellCtx[idx] = particleCellOffset / SuperCellSize::toRT();
-                                linearParticlesSuperCellCtx[idx]
-                                    = DataSpaceOperations<numDims>::map(numSuperCells, particlesSuperCellCtx[idx]);
-                                sharedLinearSuperCellIds[idx] = linearParticlesSuperCellCtx[idx];
-                                DataSpace<numDims> const localCellIdx(
-                                    particleCellOffset - particlesSuperCellCtx[idx] * SuperCellSize::toRT());
-                                lCellIdxCtx[idx]
-                                    = DataSpaceOperations<numDims>::template map<SuperCellSize>(localCellIdx);
-                            }
-                        });
+                        // supercell index of the particle relative to the origin of the local domain
+                        auto particlesSuperCellCtx
+                            = forEachParticle([&](lockstep::Idx const idx) -> DataSpace<numDims> {
+                                  DataSpace<numDims> particlesSuperCellIdx;
+                                  if(hasValidParticleCtx[idx])
+                                  {
+                                      // offset of the particle relative to the origin of the local domain
+                                      DataSpace<numDims> const particleCellOffset
+                                          = srcFrame[srcParticleIdxCtx[idx]][domainCellIdxIdentifier]
+                                          - localDomainCellOffset;
+                                      particlesSuperCellIdx = particleCellOffset / SuperCellSize::toRT();
+                                      linearParticlesSuperCellCtx[idx]
+                                          = DataSpaceOperations<numDims>::map(numSuperCells, particlesSuperCellIdx);
+                                      sharedLinearSuperCellIds[idx] = linearParticlesSuperCellCtx[idx];
+                                      DataSpace<numDims> const localCellIdx(
+                                          particleCellOffset - particlesSuperCellIdx * SuperCellSize::toRT());
+                                      lCellIdxCtx[idx]
+                                          = DataSpaceOperations<numDims>::template map<SuperCellSize>(localCellIdx);
+                                  }
+                                  return particlesSuperCellIdx;
+                              });
 
                         cupla::__syncthreads(acc);
 
-                        auto masterVirtualThreadIdxCtx = lockstep::makeVar<int>(
-                            [&](uint32_t const linearIdx) -> int { return linearIdx - 1; },
-                            forEachParticle);
+                        // auto masterVirtualThreadIdxCtx
+                        //     = forEachParticle([&](uint32_t const linearIdx) -> int { return linearIdx - 1; });
 
-                        forEachParticle([&](lockstep::Idx const idx) {
+                        auto masterVirtualThreadIdxCtx = forEachParticle([&](lockstep::Idx const idx) -> int {
+                            int vThreadMasterIdx = static_cast<int>(idx) - 1;
                             if(hasValidParticleCtx[idx])
                             {
-                                auto& vThreadMasterIdx = masterVirtualThreadIdxCtx[idx];
+                                // auto& vThreadMasterIdx = masterVirtualThreadIdxCtx[idx];
                                 /* search master thread index */
                                 while(vThreadMasterIdx >= 0)
                                 {
@@ -203,6 +204,7 @@ namespace pmacc
                                         particlesSuperCellCtx[idx] + cellDesc.getGuardingSuperCells());
                                 }
                             }
+                            return vThreadMasterIdx;
                         });
 
                         cupla::__syncthreads(acc);

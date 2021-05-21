@@ -23,6 +23,7 @@
 
 #include "pmacc/lockstep/Config.hpp"
 #include "pmacc/lockstep/Idx.hpp"
+#include "pmacc/lockstep/Variable.hpp"
 #include "pmacc/lockstep/Worker.hpp"
 #include "pmacc/types.hpp"
 
@@ -55,7 +56,7 @@ namespace pmacc
              * @param workerIdx index of the worker: range [0;workerSize)
              */
             HDINLINE
-            ForEach(uint32_t const workerIdx) : Worker<numWorkers>(workerIdx)
+            ForEach(uint32_t const workerIdx) : Worker<numWorkers>(std::move(workerIdx))
             {
             }
 
@@ -84,8 +85,13 @@ namespace pmacc
              * void operator()( uint32_t const linearIdx );
              * @endcode
              */
-            template<typename T_Functor>
-            HDINLINE auto operator()(T_Functor&& functor) const -> decltype(functor(std::declval<Idx const>()))
+
+            template<
+                typename T_Functor,
+                std::enable_if_t<
+                    std::is_void<decltype(std::declval<T_Functor>()(std::declval<Idx const>()))>::value,
+                    int> = 0>
+            HDINLINE auto operator()(T_Functor&& functor) const
             {
                 for(uint32_t i = 0u; i < numCollIter; ++i)
                 {
@@ -102,6 +108,46 @@ namespace pmacc
                     }
                 }
             }
+#if 0
+            template<typename T_Type, typename T_Functor>
+            HDINLINE auto exec(T_Functor&& functor) const -> Variable<T_Type, T_Config>
+            {
+                // auto tmp = makeVar<T_Type>(*this);
+                // this->operator()([&](Idx const& idx) { tmp[idx] = functor(idx); });
+                return Variable<T_Type, BaseConfig>(*this, std::forward<T_Functor>(functor));
+            }
+#endif
+            template<
+                typename T_Functor,
+                std::enable_if_t<
+                    !std::is_void<decltype(std::declval<T_Functor>()(std::declval<Idx const>()))>::value,
+                    int> = 0>
+            HDINLINE auto operator()(T_Functor&& functor) const
+                -> Variable<ALPAKA_DECAY_T(decltype(functor(std::declval<Idx const>()))), T_Config>
+            {
+                auto tmp = makeVar<ALPAKA_DECAY_T(decltype(functor(std::declval<Idx const>())))>(*this);
+                this->operator()([&](Idx const& idx) { tmp[idx] = std::move(functor(idx)); });
+#if 0
+                for(uint32_t i = 0u; i < numCollIter; ++i)
+                {
+                    uint32_t const beginWorker = i * simdSize;
+                    uint32_t const beginIdx = beginWorker * numWorkers + simdSize * this->getWorkerIdx();
+                    if(outerLoopCondition || !innerLoopCondition || beginIdx < domainSize)
+                    {
+                        for(uint32_t j = 0u; j < simdSize; ++j)
+                        {
+                            uint32_t const localIdx = beginIdx + j;
+                            if(innerLoopCondition || localIdx < domainSize)
+                            {
+                                auto const idx = Idx(localIdx, beginWorker + j);
+                                tmp[idx] = functor(idx);
+                            }
+                        }
+                    }
+                }
+#endif
+                return tmp;
+            }
 
             /** The functor must fulfill the following interface:
              * @code
@@ -109,8 +155,10 @@ namespace pmacc
              * void operator()( T_Args && ... );
              * @endcode
              */
-            template<typename T_Functor>
-            HDINLINE auto operator()(T_Functor&& functor) const -> decltype(functor())
+            template<
+                typename T_Functor,
+                std::enable_if_t<std::is_void<decltype(std::declval<T_Functor>()())>::value, int> = 0>
+            HDINLINE auto operator()(T_Functor&& functor) const
             {
                 for(uint32_t i = 0u; i < numCollIter; ++i)
                 {
@@ -127,6 +175,37 @@ namespace pmacc
                     }
                 }
             }
+
+            template<
+                typename T_Functor,
+                std::enable_if_t<!std::is_void<decltype(std::declval<T_Functor>()())>::value, int> = 0>
+            HDINLINE auto operator()(T_Functor&& functor) const
+                -> Variable<ALPAKA_DECAY_T(decltype(functor())), T_Config>
+            {
+                auto tmp = makeVar<ALPAKA_DECAY_T(decltype(functor()))>(*this);
+                this->operator()([&](Idx const& idx) { tmp[idx] = std::move(functor()); });
+#if 0
+                for(uint32_t i = 0u; i < numCollIter; ++i)
+                {
+                    uint32_t const beginWorker = i * simdSize;
+                    uint32_t const beginIdx = beginWorker * numWorkers + simdSize * this->getWorkerIdx();
+                    if(outerLoopCondition || !innerLoopCondition || beginIdx < domainSize)
+                    {
+                        for(uint32_t j = 0u; j < simdSize; ++j)
+                        {
+                            uint32_t const localIdx = beginIdx + j;
+                            if(innerLoopCondition || localIdx < domainSize)
+                            {
+                                auto const idx = Idx(localIdx, beginWorker + j);
+                                tmp[idx] = functor();
+                            }
+                        }
+                    }
+                }
+#endif
+                return tmp;
+            }
+
 
             /** @} */
 

@@ -117,9 +117,9 @@ namespace picongpu
 
             auto forEachParticleInFrame = lockstep::makeForEach<numParticlesPerFrame, numWorkers>(workerIdx);
 
-            auto currentParticleCtx = lockstep::makeVar<typename FramePtr::type::ParticleType>(
+            auto currentParticleCtx = forEachParticleInFrame(
 
-                [&](uint32_t const linearIdx) {
+                [&](uint32_t const linearIdx) -> typename FramePtr::type::ParticleType {
                     auto particle = frame[linearIdx];
                     /* - only particles from the last frame must be checked
                      * - all other particles are always valid
@@ -127,8 +127,7 @@ namespace picongpu
                     if(particle[multiMask_] != 1)
                         particle.setHandleInvalid();
                     return particle;
-                },
-                forEachParticleInFrame);
+                });
 
             while(frame.isValid())
             {

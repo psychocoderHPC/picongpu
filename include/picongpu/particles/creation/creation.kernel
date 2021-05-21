@@ -182,11 +182,9 @@ namespace picongpu
                      */
                     while(sourceFrame.isValid())
                     {
-                        auto isParticleCtx = lockstep::makeVar<bool>(
-                            [&](uint32_t const linearIdx) {
-                                return static_cast<bool>(sourceFrame[linearIdx][multiMask_]);
-                            },
-                            forEachParticle);
+                        auto isParticleCtx = forEachParticle([&](uint32_t const linearIdx) -> bool {
+                            return static_cast<bool>(sourceFrame[linearIdx][multiMask_]);
+                        });
                         forEachParticle([&](lockstep::Idx const idx) {
                             bool const isParticle = static_cast<bool>(sourceFrame[idx][multiMask_]);
                             numNewParticlesCtx[idx] = 0u;

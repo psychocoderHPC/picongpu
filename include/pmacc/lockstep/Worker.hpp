@@ -49,7 +49,7 @@ namespace pmacc
              *
              * @param workerIdx worker index
              */
-            HDINLINE Worker(uint32_t const workerIdx) : m_workerIdx(workerIdx)
+            HDINLINE Worker(uint32_t const workerIdx) : m_workerIdx(std::move(workerIdx))
             {
             }
 

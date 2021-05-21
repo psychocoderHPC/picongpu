@@ -32,7 +32,7 @@ namespace pmacc
         struct Variable;
 
         //! Hold current index within a lockstep-domain
-        struct Idx
+        struct alignas(64) Idx
         {
             /** Constructor
              *
@@ -40,8 +40,8 @@ namespace pmacc
              * @param workerElemIndex virtual workers linear index of the work item
              */
             HDINLINE Idx(uint32_t const domElemIndex, uint32_t const workerElemIndex)
-                : domElemIdx(domElemIndex)
-                , workerElemIdx(workerElemIndex)
+                : domElemIdx(std::move(domElemIndex))
+                , workerElemIdx(std::move(workerElemIndex))
             {
             }
 
@@ -59,9 +59,9 @@ namespace pmacc
 
         private:
             //! virtual workers linear index of the work item
-            uint32_t const workerElemIdx;
+            PMACC_ALIGN(workerElemIdx, uint32_t const);
             //! linear index within the domain
-            uint32_t const domElemIdx;
+            PMACC_ALIGN(domElemIdx, uint32_t const);
         };
 
 

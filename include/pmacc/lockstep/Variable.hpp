@@ -22,7 +22,6 @@
 #pragma once
 
 #include "pmacc/lockstep/Config.hpp"
-#include "pmacc/lockstep/ForEach.hpp"
 #include "pmacc/lockstep/Idx.hpp"
 #include "pmacc/memory/Array.hpp"
 #include "pmacc/types.hpp"
@@ -34,6 +33,9 @@ namespace pmacc
 {
     namespace lockstep
     {
+        template<typename T_Config>
+        struct ForEach;
+
         /** Variable used by virtual worker
          *
          * This object is designed to hold context variables in lock step
@@ -46,7 +48,7 @@ namespace pmacc
          * programming construct e.g. ForEachIdx<>
          */
         template<typename T_Type, typename T_Config>
-        struct Variable
+        struct alignas(alignof(T_Type)) Variable
             : protected memory::Array<T_Type, T_Config::numCollIter * T_Config::simdSize>
             , T_Config
         {
@@ -71,7 +73,8 @@ namespace pmacc
              *
              * @param value element assigned to each member
              */
-            HDINLINE explicit Variable(T_Type const& value) : BaseArray(value)
+            template<typename... T_Args>
+            HDINLINE explicit Variable(T_Args&&... args) : BaseArray(std::forward<T_Args>(args)...)
             {
             }
 
@@ -83,23 +86,6 @@ namespace pmacc
 
             HDINLINE Variable& operator=(Variable&&) = default;
 
-            /** constructor
-             *
-             * Initialize each member with the result of the given functor.
-             * This method must be called collectively by all workers.
-             *
-             * @tparam T_Functor type of the user functor
-             * @tparam T_Args type of user parameters
-             * @param w of worker range: [0;workerSize)
-             * @param functor functor to initialize the member ( need to implement `::operator(size_type idx)`)
-             * @param args user defined arguments those should forwarded to the functor
-             */
-            template<typename T_Functor>
-            HDINLINE explicit Variable(uint32_t const& workerIdx, T_Functor&& functor)
-            {
-                initData(workerIdx, std::forward<T_Functor>(functor));
-            }
-
             /** get element for the worker
              *
              * @tparam T_Idx any type which can be implicit casted to an integral type
@@ -109,57 +95,15 @@ namespace pmacc
              */
             HDINLINE typename BaseArray::const_reference operator[](Idx const idx) const
             {
-                return reinterpret_cast<T_Type const*>(BaseArray::data())[idx.workerElemIdx];
+                return BaseArray::operator[](idx.workerElemIdx);
             }
 
             HDINLINE typename BaseArray::reference operator[](Idx const idx)
             {
-                return reinterpret_cast<T_Type*>(BaseArray::data())[idx.workerElemIdx];
+                return BaseArray::operator[](idx.workerElemIdx);
             }
-            /** @} */
-
-        private:
-            /** initialize the context variable
-             *
-             * @param workerIdx index of worker range: [0;workerSize)
-             * @param functor functor to initialize the member ( need to implement `::operator(size_type idx)`)
-             * @param args user defined arguments those should forwarded to the functor
-             *
-             * @{
-             */
-
-            /** The functor must fulfill the following interface:
-             * @code
-             * template< uint32_t T_domainSize, typename ... T_Args >
-             * auto operator()( lockstep::Idx< T_domainSize > const idx );
-             * // or
-             * template< uint32_t T_domainSize >
-             * auto operator()( uint32_t const linearIdx );
-             * @endcode
-             */
-            template<typename T_Functor>
-            HDINLINE auto initData(uint32_t const workerIdx, T_Functor&& functor)
-                -> std::enable_if_t<sizeof(decltype(functor(std::declval<lockstep::Idx const>()))) != 0>
-            {
-                ForEach<T_Config>{workerIdx}([&, this](Idx idx) { (*this)[idx] = functor(idx); });
-            }
-
-            /** The functor must fulfill the following interface:
-             * @code
-             * template< uint32_t T_domainSize, typename ... T_Args >
-             * auto operator()( T_Args && ... );
-             * @endcode
-             */
-            template<typename T_Functor>
-            HDINLINE auto initData(uint32_t const workerIdx, T_Functor&& functor)
-                -> std::enable_if_t<sizeof(decltype(functor())) != 0>
-            {
-                ForEach<T_Config>{workerIdx}([&, this](lockstep::Idx const idx) { (*this)[idx] = functor(); });
-            }
-
             /** @} */
         };
-
 
         template<typename T_Type, uint32_t T_domainSize, uint32_t T_numWorkers, uint32_t T_simdSize>
         HDINLINE auto makeVar(ForEach<Config<T_domainSize, T_numWorkers, T_simdSize>> const& forEach)
@@ -167,28 +111,26 @@ namespace pmacc
             return Variable<T_Type, typename ForEach<Config<T_domainSize, T_numWorkers, T_simdSize>>::BaseConfig>();
         }
 
-        template<typename T_Type, uint32_t T_domainSize, uint32_t T_numWorkers, uint32_t T_simdSize>
-        HDINLINE auto makeVar(
-            ForEach<Config<T_domainSize, T_numWorkers, T_simdSize>> const& forEach,
-            T_Type const& value)
-        {
-            return Variable<T_Type, typename ForEach<Config<T_domainSize, T_numWorkers, T_simdSize>>::BaseConfig>(
-                value);
-        }
-
+#if 0
         template<
             typename T_Type,
             uint32_t T_domainSize,
             uint32_t T_numWorkers,
             uint32_t T_simdSize,
-            typename T_Functor>
-        HDINLINE auto makeVar(
-            T_Functor&& functor,
-            ForEach<Config<T_domainSize, T_numWorkers, T_simdSize>> const& forEach)
+            typename... T_Args>
+        HDINLINE auto makeVar(ForEach<Config<T_domainSize, T_numWorkers, T_simdSize>> const& forEach, T_Args&&... args)
         {
             return Variable<T_Type, typename ForEach<Config<T_domainSize, T_numWorkers, T_simdSize>>::BaseConfig>(
-                forEach.getWorkerIdx(),
-                std::forward<T_Functor>(functor));
+                std::forward<T_Args>(args)...);
+        }
+#endif
+        template<typename T_Type, uint32_t T_domainSize, uint32_t T_numWorkers, uint32_t T_simdSize>
+        HDINLINE auto makeVar(
+            ForEach<Config<T_domainSize, T_numWorkers, T_simdSize>> const& forEach,
+            T_Type const& args)
+        {
+            return Variable<T_Type, typename ForEach<Config<T_domainSize, T_numWorkers, T_simdSize>>::BaseConfig>(
+                args);
         }
 
     } // namespace lockstep

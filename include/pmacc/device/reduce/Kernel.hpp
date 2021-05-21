@@ -158,13 +158,11 @@ namespace pmacc
                     auto forEachBlockElem
                         = lockstep::makeForEach<T_blockSize, T_WorkerCfg::numWorkers>(workerCfg.getWorkerIdx());
 
-                    auto linearReduceThreadIdxCtx = lockstep::makeVar<uint32_t>(
-                        [&](uint32_t const linearIdx) { return blockIndex * T_blockSize + linearIdx; },
-                        forEachBlockElem);
+                    auto linearReduceThreadIdxCtx = forEachBlockElem(
+                        [&](uint32_t const linearIdx) -> uint32_t { return blockIndex * T_blockSize + linearIdx; });
 
-                    auto isActiveCtx = lockstep::makeVar<bool>(
-                        [&](lockstep::Idx const idx) { return linearReduceThreadIdxCtx[idx] < bufferSize; },
-                        forEachBlockElem);
+                    auto isActiveCtx = forEachBlockElem(
+                        [&](lockstep::Idx const idx) -> bool { return linearReduceThreadIdxCtx[idx] < bufferSize; });
 
                     forEachBlockElem([&](lockstep::Idx const idx) {
                         if(isActiveCtx[idx])
