@@ -72,11 +72,11 @@ namespace picongpu
 #ifndef BOOST_COMP_HIP
                                     // TODO: took it from ParticleBox.hpp but HIP should support printf, though
                                     // maby only with HCC_ENABLE_PRINTF set.
-                                    printf(
-                                        "%s in collisions:  mallocMC out of memory (try %i of %i)\n",
-                                        (numTries + 1) == maxTries ? "ERROR" : "WARNING",
-                                        numTries + 1,
-                                        maxTries);
+//                                    printf(
+//                                        "%s in collisions:  mallocMC out of memory (try %i of %i)\n",
+//                                        (numTries + 1) == maxTries ? "ERROR" : "WARNING",
+//                                        numTries + 1,
+//                                        maxTries);
 #endif
                                 }
                             }

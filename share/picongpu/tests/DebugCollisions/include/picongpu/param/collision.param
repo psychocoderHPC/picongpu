@@ -1,0 +1,80 @@
+/* Copyright 2019-2021 Rene Widera, Pawel Ordyna
+ *
+ * This file is part of PIConGPU.
+ *
+ * PIConGPU is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * PIConGPU is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with PIConGPU.
+ * If not, see <http://www.gnu.org/licenses/>.
+ */
+
+#pragma once
+
+#include "picongpu/particles/collision/collision.def"
+
+
+namespace picongpu
+{
+    namespace particles
+    {
+        namespace collision
+        {
+            namespace precision
+            {
+                using float_COLL = float_64;
+            } // namespace precision
+
+            /* collisions between electrons and ions*/
+            struct ParamsElectronIon
+            {
+               static constexpr float_X coulombLog = 5.0_X;
+            };
+            /* collisions between different ion species */
+            struct ParamsIonIon
+            {
+               static constexpr float_X coulombLog = 10.0_X;
+            };
+            /* collisions between the same species */
+            struct ParamsIntraSpecies
+            {
+               static constexpr float_X coulombLog = 10.0_X;
+            };
+            using PairsElectronIon = MakeSeq_t<
+                Pair<Electrons, Hydrogen>,
+                Pair<Electrons, Carbon>,
+                Pair<Electrons, Oxygen>
+                >;
+            using PairsIonIon = MakeSeq_t<
+                Pair<Hydrogen, Carbon>,
+                Pair<Hydrogen, Oxygen>,
+                Pair<Carbon, Oxygen>
+                >;
+            using PairsIntraSpecies = MakeSeq_t<
+                Pair<Electrons, Electrons>,
+                Pair<Hydrogen, Hydrogen>,
+                Pair<Carbon, Carbon>,
+                Pair<Oxygen, Oxygen>
+                >;
+
+            /** CollisionPipeline defines in which order species interact with each other
+             *
+             * the functors are called in order (from first to last functor)
+             */
+            using CollisionPipeline = bmpl::vector<
+                    Collider<binary::RelativisticBinaryCollision, PairsElectronIon, ParamsElectronIon>,
+                    Collider<binary::RelativisticBinaryCollision, PairsIonIon, ParamsIonIon>,
+                    Collider<binary::RelativisticBinaryCollision, PairsIntraSpecies, ParamsIntraSpecies>
+                >;
+
+        } // namespace collision
+    } // namespace particles
+} // namespace picongpu

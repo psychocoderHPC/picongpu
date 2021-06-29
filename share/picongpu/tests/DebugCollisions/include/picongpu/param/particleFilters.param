@@ -1,0 +1,186 @@
+/* Copyright 2013-2021 Rene Widera
+ *
+ * This file is part of PIConGPU.
+ *
+ * PIConGPU is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * PIConGPU is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with PIConGPU.
+ * If not, see <http://www.gnu.org/licenses/>.
+ */
+
+/** @file
+ *
+ * A common task in both modeling and in situ processing (output) is the
+ * selection of particles of a particle species by attributes. Users can
+ * define such selections as particle filters in this file.
+ *
+ * Particle filters are simple mappings assigning each particle of a species
+ * either `true` or `false` (ignore / filter out).
+ *
+ * All active filters need to be listed in `AllParticleFilters`. They are then
+ * combined with `VectorAllSpecies` at compile-time, e.g. for plugins.
+ */
+
+#pragma once
+
+#include "picongpu/traits/attribute/GetMass.hpp"
+#include "picongpu/particles/filter/filter.def"
+#include "picongpu/particles/traits/SpeciesEligibleForSolver.hpp"
+
+#include <pmacc/traits/HasIdentifiers.hpp>
+#include <pmacc/traits/HasFlag.hpp>
+
+namespace picongpu
+{
+    namespace particles
+    {
+        namespace filter
+        {
+
+
+            struct FunctorParticlesForwardPinhole
+            {
+                static constexpr char const * name = "fwPinhole";
+                static constexpr float_X openingAngle_degrees()
+                {
+                     return 4.5;
+                }
+
+                template< typename T_Particle >
+                HDINLINE bool operator()(
+                    T_Particle const & particle
+                )
+                {
+                    bool result = false;
+                    float3_X const mom = particle[ momentum_ ];
+                    float_X const absMom = math::abs( mom );
+
+                    if( absMom > float_X( 0. ) )
+                    {
+                        /* place detector in y direction, "infinite distance" to target,
+                         * and five degree opening angle
+                         */
+                        constexpr float_X openingAngle =
+                            openingAngle_degrees() * PI / 180.;
+                        float_X const dotP = mom.y() / absMom;
+                        float_X const degForw = math::acos( dotP );
+
+                        if( math::abs( degForw ) <= openingAngle * float_X( 0.5 ) )
+                            result = true;
+                    }
+                    return result;
+                }
+            };
+            struct FunctorParticlesForwardRCF : FunctorParticlesForwardPinhole
+            {
+                static constexpr char const * name = "fwRCF";
+                constexpr float_X openingAngle_degrees() const
+                {
+                     return 30.0;
+                }
+            };
+            using ParticlesForwardRCF = generic::Free<
+              FunctorParticlesForwardRCF
+            >;
+            using ParticlesForwardPinhole = generic::Free<
+              FunctorParticlesForwardPinhole
+            >;
+
+            /** Struct that filters position in z direction,
+             * creating a y-x-slice
+             */
+            struct FunctorRelativeGlobalPositionYXSlice
+            {
+                static constexpr char const * name = "yxSlice";
+
+                /* lowerBound is included in the range */
+                static constexpr float_X lowerBound = 0.49;
+                /* upperBound is excluded in the range */
+                static constexpr float_X upperBound = 0.51;
+                /* dimension for the filter
+                 * x = 0; y= 1; z = 2
+                 */
+                static constexpr uint32_t dimension = 2u;
+            };
+
+            using YXSlice = filter::RelativeGlobalDomainPosition<
+                FunctorRelativeGlobalPositionYXSlice
+            >;
+
+            /** Struct that filters position in x direction,
+             * creating a y-z-slice
+             */
+            struct FunctorRelativeGlobalPositionYZSlice
+            {
+                static constexpr char const * name = "yzSlice";
+
+                /* lowerBound is included in the range */
+                static constexpr float_X lowerBound = 0.49;
+                /* upperBound is excluded in the range */
+                static constexpr float_X upperBound = 0.51;
+                /* dimension for the filter
+                 * x = 0; y= 1; z = 2
+                 */
+                static constexpr uint32_t dimension = 0u;
+            };
+
+            using YZSlice = filter::RelativeGlobalDomainPosition<
+                FunctorRelativeGlobalPositionYZSlice
+            >;
+
+
+            /** Plugins: collection of all available particle filters
+             *
+             * Create a list of all filters here that you want to use in plugins.
+             *
+             * Note: filter All is defined in picongpu/particles/filter/filter.def
+             */
+            using AllParticleFilters = MakeSeq_t<
+                All,
+                ParticlesForwardPinhole,
+                ParticlesForwardRCF,
+                YXSlice,
+                YZSlice
+            >;
+
+
+        } // namespace filter
+
+        namespace traits
+        {
+            /* if needed for generic "free" filters,
+             * place `SpeciesEligibleForSolver` traits for filters here
+             */
+            template<typename T_Species>
+            struct SpeciesEligibleForSolver<T_Species, filter::ParticlesForwardPinhole>
+            {
+                using FrameType = typename T_Species::FrameType;
+                // This filter needs at least the momentum.
+                using RequiredIdentifiers = MakeSeq_t<momentum>;
+
+                using SpeciesHasIdentifiers = typename pmacc::traits::HasIdentifiers<FrameType, RequiredIdentifiers>::type;
+                using type = SpeciesHasIdentifiers;
+            };
+
+            template<typename T_Species>
+            struct SpeciesEligibleForSolver<T_Species, filter::ParticlesForwardRCF>
+            {
+                using FrameType = typename T_Species::FrameType;
+                // This filter needs at least the momentum.
+                using RequiredIdentifiers = MakeSeq_t<momentum>;
+
+                using SpeciesHasIdentifiers = typename pmacc::traits::HasIdentifiers<FrameType, RequiredIdentifiers>::type;
+                using type = SpeciesHasIdentifiers;
+            };
+        } // namespace traits
+    } // namespace particles
+} // namespace picongpu
