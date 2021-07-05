@@ -1,0 +1,125 @@
+/* Copyright 2021 Klaus Steiniger
+ *
+ * This file is part of PIConGPU.
+ *
+ * PIConGPU is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * PIConGPU is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with PIConGPU.
+ * If not, see <http://www.gnu.org/licenses/>.
+ */
+
+/** @file TwtsBackgroundLaser.param
+ *
+ * Common definitions of the TWTS Laser
+ */
+
+#pragma once
+
+/** Load pre-defined templates */
+#include "picongpu/fields/background/templates/twtsfast/twtsfast.hpp"
+
+#include "picongpu/param/grid.param"
+
+/** Define common parameters of the TWEAC laser pulses
+ */
+namespace picongpu
+{
+  namespace fields
+  {
+    namespace background
+    {
+      struct TwtsParam
+      {
+        /** unit: meter */
+        static constexpr float_64 WAVE_LENGTH_SI = 0.8e-6;
+
+        /** Convert the normalized laser strength parameter a0 to Volt per meter */
+        static constexpr float_64 UNITCONV_A0_to_Amplitude_SI = -2.0 * PI / WAVE_LENGTH_SI
+        * ::picongpu::SI::ELECTRON_MASS_SI * ::picongpu::SI::SPEED_OF_LIGHT_SI
+        * ::picongpu::SI::SPEED_OF_LIGHT_SI / ::picongpu::SI::ELECTRON_CHARGE_SI;
+
+        /** unit: W / m^2 */
+        // calculate: _A0 = 8.549297e-6 * sqrt( Intensity[W/m^2] ) * wavelength[m] (linearly polarized)
+
+        /** unit: none */
+        static constexpr float_64 _A0  = 3.5;
+
+        /** unit: Volt / meter */
+        static constexpr float_64 AMPLITUDE_SI = _A0 * UNITCONV_A0_to_Amplitude_SI;
+
+        /** unit: Volt / meter */
+        //static constexpr float_64 AMPLITUDE_SI = <Or give meaningful value here>;
+
+        /** Pulse length: sigma of std. gauss for intensity (E^2)
+        *  PULSE_LENGTH_SI = FWHM_of_Intensity   / [ 2*sqrt{ 2* ln(2) } ]
+        *                                          [    2.354820045     ]
+        *  Info:             FWHM_of_Intensity = FWHM_Illumination
+        *                      = what a experimentalist calls "pulse duration"
+        *
+        *  unit: seconds (1 sigma) */
+        static constexpr float_64 PULSE_LENGTH_SI = 10.e-15 / 2.354820045;
+
+        /** beam waist: distance from the axis where the pulse intensity (E^2)
+        *              decreases to its 1/e^2-th part,
+        *              at the focus position of the laser
+        * W0_SI = FWHM_of_Intensity / sqrt{ 2* ln(2) }
+        *                             [   1.17741    ]
+        *
+        *  unit: meter */
+        static constexpr float_64 W0_SI = 1.2e-6;
+
+        /** the distance to the laser focus in y-direction [m]
+         *
+         * unit: meter */
+        static constexpr float_64 FOCUS_Y_SI = 1680 * SI::CELL_HEIGHT_SI; //30.e-6;
+
+        /** interaction angle between TWTS laser propagation vector and
+        *  the y-axis [default = 90.*(PI/180.)]
+        * unit: rad */
+        static constexpr float_64 PHI = 5.00 * (PI/180.);
+
+
+        /** propagation speed of overlap normalized to
+        *  the speed of light [default = 1.0]
+        * unit: none */
+        static constexpr float_64 BETA_0 = 1.0;
+
+        /** manual time delay if auto_tdelay is false
+        *
+        * unit: s */
+        static constexpr float_64 TDELAY = 0.; //66.7e-6 / SI::SPEED_OF_LIGHT_SI;
+
+        /** calculate the time delay such that the TWTS pulse is not
+        *  inside the simulation volume at simulation start timestep = 0 [default = true]
+        * unit: none */
+        static constexpr bool AUTO_TDELAY = false;
+
+        /** determines the TWTS laser polarization, which is either normal or parallel
+        *  to the laser pulse front tilt plane [ default= LINEAR_X , LINEAR_YZ ]
+        * unit: none */
+        /** NOT USED IN SMALL ANGLE SETUPS
+        using epolarization = ::picongpu::templates::twtsfast::EField;
+        static constexpr epolarization::PolarizationType POLARIZATION_E = epolarization::LINEAR_X;
+
+        using bpolarization = ::picongpu::templates::twtsfast::BField;
+        static constexpr bpolarization::PolarizationType POLARIZATION_B = bpolarization::LINEAR_X;
+        */
+
+        /** TWTS fields are normalized, such that peak amplitude equals unity. */
+        // vx = sqrt( 1 - vy^2 )
+        static constexpr float_X NORM_E_B_12 = 0.704395;
+        // vy = 1 / sqrt( 1 + cos(2*phi) )
+        static constexpr float_X NORM_E_B_34 = 0.709808;
+      };
+    }
+  }
+}

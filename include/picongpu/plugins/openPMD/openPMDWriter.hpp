@@ -1178,11 +1178,12 @@ Please pick either of the following:
                         meta::ForEach<FileOutputFields, GetFields<bmpl::_1>> ForEachGetFields;
                         ForEachGetFields(threadParams);
                     }
-
+#if 0
                     // move over all field data sources
                     meta::ForEach<typename Help::AllFieldSources, CallGetFields<bmpl::_1>>{}(
                         vectorOfDataSourceNames,
                         threadParams);
+#endif
                 }
                 log<picLog::INPUT_OUTPUT>("openPMD: ( end ) writing fields.");
 
@@ -1201,45 +1202,19 @@ Please pick either of the following:
                 }
                 else
                 {
-                    // dump data if data source "species_all" is selected
-                    if(dumpAllParticles)
-                    {
-                        // move over all species defined in FileOutputParticles
-                        meta::ForEach<FileOutputParticles, WriteSpecies<plugins::misc::UnfilteredSpecies<bmpl::_1>>>
-                            writeSpecies;
-                        writeSpecies(threadParams, particleOffset);
-                    }
 
                     // move over all species data sources
+#if 0
                     meta::ForEach<typename Help::AllEligibleSpeciesSources, CallWriteSpecies<bmpl::_1>>{}(
                         vectorOfDataSourceNames,
                         threadParams,
                         particleOffset);
+#endif
                 }
                 log<picLog::INPUT_OUTPUT>("openPMD: ( end ) writing particle species.");
 
 
-                auto idProviderState = IdProvider<simDim>::getState();
-                log<picLog::INPUT_OUTPUT>("openPMD: Writing IdProvider state (StartId: %1%, NextId: %2%, "
-                                          "maxNumProc: %3%)")
-                    % idProviderState.startId % idProviderState.nextId % idProviderState.maxNumProc;
 
-                WriteNDScalars<uint64_t, uint64_t> writeIdProviderStartId(
-                    "picongpu",
-                    "idProvider",
-                    "startId",
-                    "maxNumProc");
-                WriteNDScalars<uint64_t, uint64_t> writeIdProviderNextId("picongpu", "idProvider", "nextId");
-                writeIdProviderStartId(*threadParams, idProviderState.startId, idProviderState.maxNumProc);
-                writeIdProviderNextId(*threadParams, idProviderState.nextId);
-
-                /* attributes written here are pure meta data */
-                WriteMeta writeMetaAttributes;
-                writeMetaAttributes(*threadParams->openPMDSeries, threadParams->currentStep);
-
-                // avoid deadlock between not finished pmacc tasks and mpi calls in
-                // openPMD
-                __getTransactionEvent().waitForFinished();
                 mThreadParams.openPMDSeries->WRITE_ITERATIONS[mThreadParams.currentStep].close();
 
                 return;
