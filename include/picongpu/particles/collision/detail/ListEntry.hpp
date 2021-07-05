@@ -106,6 +106,7 @@ namespace picongpu
                         if(ptrToIndicies != nullptr)
                         {
 #if(BOOST_LANG_CUDA || BOOST_COMP_HIP)
+
                             deviceHeapHandle.free(acc, (void*) ptrToIndicies);
                             ptrToIndicies = nullptr;
 #else
@@ -256,7 +257,7 @@ namespace picongpu
                 DINLINE void prepareList(
                     T_Acc const& acc,
                     T_ForEach forEach,
-                    T_DeviceHeapHandle deviceHeapHandle,
+                    T_DeviceHeapHandle& deviceHeapHandle,
                     T_ParBox& parBox,
                     T_FramePtr firstFrame,
                     uint32_t const numParticlesInSupercell,
@@ -277,15 +278,15 @@ namespace picongpu
                     });
                     cupla::__syncthreads(acc);
 
-                    detail::updateLinkedList(
-                        acc,
-                        forEach,
-                        parBox,
-                        firstFrame,
-                        numParticlesInSupercell,
-                        parCellList,
-                        filter);
-                    cupla::__syncthreads(acc);
+//                    detail::updateLinkedList(
+//                        acc,
+//                        forEach,
+//                        parBox,
+//                        firstFrame,
+//                        numParticlesInSupercell,
+//                        parCellList,
+//                        filter);
+//                    cupla::__syncthreads(acc);
                 }
             } // namespace detail
         } // namespace collision

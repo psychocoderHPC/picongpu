@@ -21,3 +21,4 @@
 
 #include "picongpu/particles/collision/Collider.def"
 #include "picongpu/particles/collision/binary/RelativisticBinaryCollision.def"
+#include "picongpu/particles/collision/binary/DoNothing.def"

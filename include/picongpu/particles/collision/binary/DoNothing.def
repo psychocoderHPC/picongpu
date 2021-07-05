@@ -1,4 +1,4 @@
-/* Copyright 2019-2021 Rene Widera, Axel Huebl, Pawel Ordyna
+/* Copyright 2015-2021 Rene Widera, Pawel Ordyna
  *
  * This file is part of PIConGPU.
  *
@@ -17,9 +17,20 @@
  * If not, see <http://www.gnu.org/licenses/>.
  */
 
+
 #pragma once
 
-#include "picongpu/particles/collision/Collider.hpp"
-#include "picongpu/particles/collision/binary/RelativisticBinaryCollision.hpp"
-#include "picongpu/particles/collision/binary/DoNothing.hpp"
+namespace picongpu
+{
+    namespace particles
+    {
+        namespace collision
+        {
+            namespace binary
+            {
+                struct DoNothing;
 
+            } // namespace binary
+        } // namespace collision
+    } // namespace particles
+} // namespace picongpu

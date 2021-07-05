@@ -158,80 +158,80 @@ namespace picongpu
                         nppc,
                         accFilter1);
 
-                    cellDensity(acc, forEachFrameElem, firstFrame0, pb0, parCellList0, densityArray0, accFilter0);
-                    cellDensity(acc, forEachFrameElem, firstFrame1, pb1, parCellList1, densityArray1, accFilter1);
-                    cupla::__syncthreads(acc);
-
-                    // shuffle indices list of the longest particle list
-                    forEachFrameElem([&](uint32_t const linearIdx) {
-                        // find longer list
-                        auto* longParList = parCellList0[linearIdx].size >= parCellList1[linearIdx].size
-                            ? &parCellList0[linearIdx]
-                            : &parCellList1[linearIdx];
-                        (*longParList).shuffle(acc, rngHandle);
-                    });
-
-                    auto collisionFunctorCtx = lockstep::makeVar<decltype(collisionFunctor(
-                        acc,
-                        alpaka::core::declval<DataSpace<simDim> const>(),
-                        /* frameSize is used because each virtual worker
-                         * is creating **exactly one** functor
-                         */
-                        alpaka::core::declval<lockstep::Worker<frameSize> const>(),
-                        alpaka::core::declval<float_X const>(),
-                        alpaka::core::declval<float_X const>(),
-                        alpaka::core::declval<uint32_t const>(),
-                        alpaka::core::declval<float_X const>()))>(forEachFrameElem);
-
-                    forEachFrameElem([&](lockstep::Idx const idx) {
-                        uint32_t const linearIdx = idx;
-                        if(parCellList0[linearIdx].size >= parCellList1[linearIdx].size)
-                        {
-                            inCellCollisions(
-                                acc,
-                                rngHandle,
-                                collisionFunctor,
-                                localSuperCellOffset,
-                                workerIdx,
-                                densityArray0[linearIdx],
-                                densityArray1[linearIdx],
-                                parCellList0[linearIdx].ptrToIndicies,
-                                parCellList1[linearIdx].ptrToIndicies,
-                                parCellList0[linearIdx].size,
-                                parCellList1[linearIdx].size,
-                                pb0,
-                                pb1,
-                                firstFrame0,
-                                firstFrame1,
-                                coulombLog,
-                                collisionFunctorCtx,
-                                idx);
-                        }
-                        else
-                        {
-                            inCellCollisions(
-                                acc,
-                                rngHandle,
-                                collisionFunctor,
-                                localSuperCellOffset,
-                                workerIdx,
-                                densityArray1[linearIdx],
-                                densityArray0[linearIdx],
-                                parCellList1[linearIdx].ptrToIndicies,
-                                parCellList0[linearIdx].ptrToIndicies,
-                                parCellList1[linearIdx].size,
-                                parCellList0[linearIdx].size,
-                                pb1,
-                                pb0,
-                                firstFrame1,
-                                firstFrame0,
-                                coulombLog,
-                                collisionFunctorCtx,
-                                idx);
-                        }
-                    });
-
-                    cupla::__syncthreads(acc);
+//                    cellDensity(acc, forEachFrameElem, firstFrame0, pb0, parCellList0, densityArray0, accFilter0);
+//                    cellDensity(acc, forEachFrameElem, firstFrame1, pb1, parCellList1, densityArray1, accFilter1);
+//                    cupla::__syncthreads(acc);
+//
+//                    // shuffle indices list of the longest particle list
+//                    forEachFrameElem([&](uint32_t const linearIdx) {
+//                        // find longer list
+//                        auto* longParList = parCellList0[linearIdx].size >= parCellList1[linearIdx].size
+//                            ? &parCellList0[linearIdx]
+//                            : &parCellList1[linearIdx];
+//                        (*longParList).shuffle(acc, rngHandle);
+//                    });
+//
+//                    auto collisionFunctorCtx = lockstep::makeVar<decltype(collisionFunctor(
+//                        acc,
+//                        alpaka::core::declval<DataSpace<simDim> const>(),
+//                        /* frameSize is used because each virtual worker
+//                         * is creating **exactly one** functor
+//                         */
+//                        alpaka::core::declval<lockstep::Worker<frameSize> const>(),
+//                        alpaka::core::declval<float_X const>(),
+//                        alpaka::core::declval<float_X const>(),
+//                        alpaka::core::declval<uint32_t const>(),
+//                        alpaka::core::declval<float_X const>()))>(forEachFrameElem);
+//
+//                    forEachFrameElem([&](lockstep::Idx const idx) {
+//                        uint32_t const linearIdx = idx;
+//                        if(parCellList0[linearIdx].size >= parCellList1[linearIdx].size)
+//                        {
+//                            inCellCollisions(
+//                                acc,
+//                                rngHandle,
+//                                collisionFunctor,
+//                                localSuperCellOffset,
+//                                workerIdx,
+//                                densityArray0[linearIdx],
+//                                densityArray1[linearIdx],
+//                                parCellList0[linearIdx].ptrToIndicies,
+//                                parCellList1[linearIdx].ptrToIndicies,
+//                                parCellList0[linearIdx].size,
+//                                parCellList1[linearIdx].size,
+//                                pb0,
+//                                pb1,
+//                                firstFrame0,
+//                                firstFrame1,
+//                                coulombLog,
+//                                collisionFunctorCtx,
+//                                idx);
+//                        }
+//                        else
+//                        {
+//                            inCellCollisions(
+//                                acc,
+//                                rngHandle,
+//                                collisionFunctor,
+//                                localSuperCellOffset,
+//                                workerIdx,
+//                                densityArray1[linearIdx],
+//                                densityArray0[linearIdx],
+//                                parCellList1[linearIdx].ptrToIndicies,
+//                                parCellList0[linearIdx].ptrToIndicies,
+//                                parCellList1[linearIdx].size,
+//                                parCellList0[linearIdx].size,
+//                                pb1,
+//                                pb0,
+//                                firstFrame1,
+//                                firstFrame0,
+//                                coulombLog,
+//                                collisionFunctorCtx,
+//                                idx);
+//                        }
+//                    });
+//
+//                    cupla::__syncthreads(acc);
 
                     forEachFrameElem([&](uint32_t const linearIdx) {
                         parCellList0[linearIdx].finalize(acc, deviceHeapHandle);
@@ -336,7 +336,8 @@ namespace picongpu
                     auto species1 = dc.get<Species1>(FrameType1::getName(), true);
 
                     // Use mapping information from the first species:
-                    auto const mapper = makeAreaMapper<CORE + BORDER>(species0->getCellDescription());
+
+                    StrideMapping<CORE + BORDER, 3, MappingDesc> mapper(species0->getCellDescription());
 
                     constexpr uint32_t numWorkers
                         = pmacc::traits::GetNumWorkers<pmacc::math::CT::volume<SuperCellSize>::type::value>::value;
@@ -345,6 +346,7 @@ namespace picongpu
                     using RNGFactory = pmacc::random::RNGProvider<simDim, random::Generator>;
                     constexpr float_X coulombLog = T_Params::coulombLog;
 
+                    do{
                     PMACC_KERNEL(InterCollision<numWorkers>{})
                     (mapper.getGridDim(), numWorkers)(
                         species0->getDeviceParticlesBox(),
@@ -356,6 +358,7 @@ namespace picongpu
                         coulombLog,
                         particles::filter::IUnary<Filter0>{currentStep},
                         particles::filter::IUnary<Filter1>{currentStep});
+                    } while(mapper.next());
                 }
             };
 

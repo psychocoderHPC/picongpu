@@ -70,9 +70,9 @@ namespace picongpu
              * the functors are called in order (from first to last functor)
              */
             using CollisionPipeline = bmpl::vector<
-                    Collider<binary::RelativisticBinaryCollision, PairsElectronIon, ParamsElectronIon>,
-                    Collider<binary::RelativisticBinaryCollision, PairsIonIon, ParamsIonIon>,
-                    Collider<binary::RelativisticBinaryCollision, PairsIntraSpecies, ParamsIntraSpecies>
+                    Collider<binary::DoNothing, PairsElectronIon, ParamsElectronIon>,
+                    Collider<binary::DoNothing, PairsIonIon, ParamsIonIon>,
+                    Collider<binary::DoNothing, PairsIntraSpecies, ParamsIntraSpecies>
                 >;
 
         } // namespace collision

@@ -56,7 +56,7 @@ namespace picongpu
          *                              Absorbing Boundary Conditions (PML)
          *  - None: disable the vacuum update of E and B
          */
-        using Solver = maxwellSolver::YeePML<>;
+        using Solver = maxwellSolver::Yee;
 
     } // namespace fields
 } // namespace picongpu
