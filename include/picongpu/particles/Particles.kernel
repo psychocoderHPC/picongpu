@@ -223,16 +223,16 @@ namespace picongpu
 
             frame = pb.getLastFrame(block);
             particlesInSuperCell = pb.getSuperCell(block).getSizeLastFrame();
-
+#if 0
             auto cachedB = CachedBox::create<0, typename T_BBox::ValueType>(acc, T_DataDomain());
             auto cachedE = CachedBox::create<1, typename T_EBox::ValueType>(acc, T_DataDomain());
-
+#endif
             cupla::__syncthreads(acc);
 
             // end kernel if we have no frames
             if(!frame.isValid())
                 return;
-
+#if 0
             pmacc::math::operation::Assign assign;
             ThreadCollective<T_DataDomain, numWorkers> collective{workerIdx};
 
@@ -241,7 +241,10 @@ namespace picongpu
 
             auto fieldEBlock = fieldE.shift(superCellOffset);
             collective(acc, assign, cachedE, fieldEBlock);
-
+#else
+            auto fieldBBlock = fieldB.shift(superCellOffset);
+            auto fieldEBlock = fieldE.shift(superCellOffset);
+#endif
             cupla::__syncthreads(acc);
 
             // move over frames and call frame solver
@@ -251,7 +254,7 @@ namespace picongpu
                 lockstep::makeForEach<frameSize, numWorkers>(workerIdx)([&](uint32_t const linearIdx) {
                     if(linearIdx < particlesInSuperCell)
                     {
-                        particleFunctor(acc, *frame, linearIdx, cachedB, cachedE, currentStep, mustShift);
+                        particleFunctor(acc, *frame, linearIdx, fieldBBlock, fieldEBlock, currentStep, mustShift);
                     }
                 });
                 // independent for each worker
