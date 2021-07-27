@@ -224,8 +224,12 @@ namespace picongpu
             frame = pb.getLastFrame(block);
             particlesInSuperCell = pb.getSuperCell(block).getSizeLastFrame();
 
-            auto cachedB = CachedBox::create<0, typename T_BBox::ValueType>(acc, T_DataDomain());
-            auto cachedE = CachedBox::create<1, typename T_EBox::ValueType>(acc, T_DataDomain());
+            auto cachedBx = CachedBox::create<0, float_X>(acc, T_DataDomain());
+            auto cachedBy = CachedBox::create<1, float_X>(acc, T_DataDomain());
+            auto cachedBz = CachedBox::create<2, float_X>(acc, T_DataDomain());
+            auto cachedEx = CachedBox::create<3, float_X>(acc, T_DataDomain());
+            auto cachedEy = CachedBox::create<4, float_X>(acc, T_DataDomain());
+            auto cachedEz = CachedBox::create<5, float_X>(acc, T_DataDomain());
 
             cupla::__syncthreads(acc);
 
@@ -233,14 +237,41 @@ namespace picongpu
             if(!frame.isValid())
                 return;
 
-            pmacc::math::operation::Assign assign;
             ThreadCollective<T_DataDomain, numWorkers> collective{workerIdx};
 
             auto fieldBBlock = fieldB.shift(superCellOffset);
-            collective(acc, assign, cachedB, fieldBBlock);
+            collective(
+                acc,
+                [](auto const&, auto& dest, auto const& src) { dest = src.x(); },
+                cachedBx,
+                fieldBBlock);
+            collective(
+                acc,
+                [](auto const&, auto& dest, auto const& src) { dest = src.y(); },
+                cachedBy,
+                fieldBBlock);
+            collective(
+                acc,
+                [](auto const&, auto& dest, auto const& src) { dest = src.z(); },
+                cachedBz,
+                fieldBBlock);
 
             auto fieldEBlock = fieldE.shift(superCellOffset);
-            collective(acc, assign, cachedE, fieldEBlock);
+            collective(
+                acc,
+                [](auto const&, auto& dest, auto const& src) { dest = src.x(); },
+                cachedEx,
+                fieldEBlock);
+            collective(
+                acc,
+                [](auto const&, auto& dest, auto const& src) { dest = src.y(); },
+                cachedEy,
+                fieldEBlock);
+            collective(
+                acc,
+                [](auto const&, auto& dest, auto const& src) { dest = src.z(); },
+                cachedEz,
+                fieldEBlock);
 
             cupla::__syncthreads(acc);
 
@@ -251,7 +282,18 @@ namespace picongpu
                 lockstep::makeForEach<frameSize, numWorkers>(workerIdx)([&](uint32_t const linearIdx) {
                     if(linearIdx < particlesInSuperCell)
                     {
-                        particleFunctor(acc, *frame, linearIdx, cachedB, cachedE, currentStep, mustShift);
+                        particleFunctor(
+                            acc,
+                            *frame,
+                            linearIdx,
+                            cachedBx,
+                            cachedBy,
+                            cachedBz,
+                            cachedEx,
+                            cachedEy,
+                            cachedEz,
+                            currentStep,
+                            mustShift);
                     }
                 });
                 // independent for each worker
@@ -277,21 +319,30 @@ namespace picongpu
     template<class PushAlgo, class TVec, class T_Field2ParticleInterpolation>
     struct PushParticlePerFrame
     {
-        template<class FrameType, class BoxB, class BoxE, typename T_Acc>
+        template<
+            class FrameType,
+            class BoxBx,
+            class BoxBy,
+            class BoxBz,
+            class BoxEx,
+            class BoxEy,
+            class BoxEz,
+            typename T_Acc>
         DINLINE void operator()(
             T_Acc const& acc,
             FrameType& frame,
             int localIdx,
-            BoxB& bBox,
-            BoxE& eBox,
+            BoxBx& bBoxx,
+            BoxBy& bBoxy,
+            BoxBz& bBoxz,
+            BoxEx& eBoxx,
+            BoxEy& eBoxy,
+            BoxEz& eBoxz,
             uint32_t const currentStep,
             int& mustShift)
         {
             using Block = TVec;
             using Field2ParticleInterpolation = T_Field2ParticleInterpolation;
-
-            using BType = typename BoxB::ValueType;
-            using EType = typename BoxE::ValueType;
 
             auto particle = frame[localIdx];
 
@@ -304,10 +355,14 @@ namespace picongpu
             const traits::FieldPosition<fields::CellType, FieldB> fieldPosB;
 
             auto functorEfield = CreateInterpolationForPusher<Field2ParticleInterpolation>()(
-                eBox.shift(localCell).toCursor(),
+                eBoxx.shift(localCell).toCursor(),
+                eBoxy.shift(localCell).toCursor(),
+                eBoxz.shift(localCell).toCursor(),
                 fieldPosE());
             auto functorBfield = CreateInterpolationForPusher<Field2ParticleInterpolation>()(
-                bBox.shift(localCell).toCursor(),
+                bBoxx.shift(localCell).toCursor(),
+                bBoxy.shift(localCell).toCursor(),
+                bBoxz.shift(localCell).toCursor(),
                 fieldPosB());
 
             /** @todo this functor should only manipulate the momentum and all changes

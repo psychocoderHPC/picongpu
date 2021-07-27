@@ -90,6 +90,26 @@ namespace picongpu
             return result;
         }
 
+        template<class Cursor, class VecVector>
+        HDINLINE typename Cursor::ValueType operator()(
+            Cursor field,
+            const floatD_X& particlePos,
+            const VecVector& fieldPos,
+            int i)
+        {
+            /**\brief:
+             * The following calls seperate the vector interpolation into
+             * independent scalar interpolations.
+             */
+            using Supports = typename pmacc::math::CT::make_Int<simDim, supp>::type;
+
+            floatD_X particlePosShifted = particlePos;
+            ShiftCoordinateSystem<Supports>()(field, particlePosShifted, fieldPos[i]);
+            return InterpolationMethod::template interpolate<AssignmentFunction, begin, end>(
+                field,
+                particlePosShifted);
+        }
+
         static pmacc::traits::StringProperty getStringProperties()
         {
             GetStringProperties<InterpolationMethod> propList;

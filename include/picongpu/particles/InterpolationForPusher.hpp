@@ -28,35 +28,51 @@ namespace picongpu
      * field to particle interpolator that can be used in the
      * particle pusher
      */
-    template<typename T_Field2PartInt, typename T_MemoryType, typename T_FieldPosition>
+    template<
+        typename T_Field2PartInt,
+        typename T_MemoryTypex,
+        typename T_MemoryTypey,
+        typename T_MemoryTypez,
+        typename T_FieldPosition>
     struct InterpolationForPusher
     {
         using Field2PartInt = T_Field2PartInt;
 
         HDINLINE
-        InterpolationForPusher(const T_MemoryType& mem, const T_FieldPosition& fieldPos)
-            : m_mem(mem)
+        InterpolationForPusher(
+            const T_MemoryTypex& memx,
+            const T_MemoryTypey& memy,
+            const T_MemoryTypez& memz,
+            const T_FieldPosition& fieldPos)
+            : m_memx(memx)
+            , m_memy(memy)
+            , m_memz(memz)
             , m_fieldPos(fieldPos)
         {
         }
-
+#if 0
         /* apply shift policy before interpolation */
         template<typename T_PosType, typename T_ShiftPolicy>
         HDINLINE float3_X operator()(const T_PosType& pos, const T_ShiftPolicy& shiftPolicy) const
         {
             return Field2PartInt()(shiftPolicy.memory(m_mem, pos), shiftPolicy.position(pos), m_fieldPos);
         }
-
+#endif
         /* interpolation using given memory and position */
         template<typename T_PosType>
         HDINLINE float3_X operator()(const T_PosType& pos) const
         {
-            return Field2PartInt()(m_mem, pos, m_fieldPos);
+            return float3_X(
+                Field2PartInt()(m_memx, pos, m_fieldPos, 0),
+                Field2PartInt()(m_memy, pos, m_fieldPos, 1),
+                Field2PartInt()(m_memz, pos, m_fieldPos, 2));
         }
 
 
     private:
-        PMACC_ALIGN(m_mem, T_MemoryType);
+        PMACC_ALIGN(m_memx, T_MemoryTypex);
+        PMACC_ALIGN(m_memy, T_MemoryTypey);
+        PMACC_ALIGN(m_memz, T_MemoryTypez);
         PMACC_ALIGN(m_fieldPos, const T_FieldPosition);
     };
 
@@ -68,12 +84,20 @@ namespace picongpu
     template<typename T_Field2PartInt>
     struct CreateInterpolationForPusher
     {
-        template<typename T_MemoryType, typename T_FieldPosition>
-        HDINLINE InterpolationForPusher<T_Field2PartInt, T_MemoryType, T_FieldPosition> operator()(
-            const T_MemoryType& mem,
+        template<typename T_MemoryTypex, typename T_MemoryTypey, typename T_MemoryTypez, typename T_FieldPosition>
+        HDINLINE InterpolationForPusher<T_Field2PartInt, T_MemoryTypex, T_MemoryTypey, T_MemoryTypez, T_FieldPosition>
+        operator()(
+            const T_MemoryTypex& memx,
+            const T_MemoryTypey& memy,
+            const T_MemoryTypez& memz,
             const T_FieldPosition& fieldPos)
         {
-            return InterpolationForPusher<T_Field2PartInt, T_MemoryType, T_FieldPosition>(mem, fieldPos);
+            return InterpolationForPusher<
+                T_Field2PartInt,
+                T_MemoryTypex,
+                T_MemoryTypey,
+                T_MemoryTypez,
+                T_FieldPosition>(memx, memy, memz, fieldPos);
         }
     };
 

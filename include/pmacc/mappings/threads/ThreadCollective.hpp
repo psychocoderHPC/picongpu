@@ -79,7 +79,7 @@ namespace pmacc
          *             of data domain GUARD
          */
         template<typename T_Functor, typename... T_Args, typename T_Acc>
-        DINLINE void operator()(T_Acc const& acc, T_Functor& functor, T_Args&&... args)
+        DINLINE void operator()(T_Acc const& acc, T_Functor&& functor, T_Args&&... args)
         {
             lockstep::makeForEach<math::CT::volume<DomainSize>::type::value, numWorkers>(m_workerIdx)(
                 [&](uint32_t const linearIdx) {
