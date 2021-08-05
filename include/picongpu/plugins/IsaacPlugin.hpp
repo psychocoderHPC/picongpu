@@ -147,12 +147,15 @@ namespace picongpu
 
                     PMACC_CASSERT_MSG(_please_allocate_at_least_one_FieldTmp_in_memory_param, fieldTmpNumSlots > 0);
                     auto fieldTmp = dc.get<FieldTmp>(FieldTmp::getUniqueId(0), true);
-                    auto particles = dc.get<ParticleType>(ParticleType::FrameType::getName(), true);
+
+                    auto particles0 = dc.get<PIC_Electrons>(PIC_Electrons::FrameType::getName(), true);
+                    auto particles1 = dc.get<PIC_Ions>(PIC_Ions::FrameType::getName(), true);
 
                     fieldTmp->getGridBuffer().getDeviceBuffer().setValue(FieldTmp::ValueType(0.0));
-                    fieldTmp->template computeValue<CORE + BORDER, FrameSolver, ParticleFilter>(
-                        *particles,
-                        *currentStep);
+
+                    fieldTmp->template computeValue<CORE + BORDER, FrameSolver, ParticleFilter>(*particles0, *currentStep);
+                    fieldTmp->template computeValue<CORE + BORDER, FrameSolver, ParticleFilter>(*particles1, *currentStep);
+
                     EventTask fieldTmpEvent = fieldTmp->asyncCommunication(__getTransactionEvent());
 
                     __setTransactionEvent(fieldTmpEvent);
