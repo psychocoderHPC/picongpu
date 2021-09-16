@@ -43,6 +43,12 @@ namespace picongpu
                     //! Pointer to the actual data stored on the device heap.
                     uint32_t* ptrToIndicies;
 
+                    ALPAKA_FN_HOST_ACC
+                    static auto applyPadding(uint32_t bytes) -> size_t
+                    {
+                        constexpr auto bitsToClear = 4096u - 1;
+                        return (bytes + bitsToClear) & ~bitsToClear;
+                    }
                     /* Initialize storage, allocate memory.
                      *
                      * @param acc alpaka accelerator
@@ -59,7 +65,7 @@ namespace picongpu
                             for(int numTries = 0; numTries < maxTries; ++numTries)
                             {
 #if(BOOST_LANG_CUDA || BOOST_COMP_HIP) // Allocate memory on a GPU device
-                                ptrToIndicies = (uint32_t*) deviceHeapHandle.malloc(acc, sizeof(uint32_t) * numPar);
+                                ptrToIndicies = (uint32_t*) deviceHeapHandle.malloc(acc, applyPadding(sizeof(uint32_t) * numPar));
 #else // No cuda or hip means the device heap is the host heap.
                                 ptrToIndicies = new uint32_t[numPar];
 #endif

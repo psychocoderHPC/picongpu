@@ -415,7 +415,7 @@ namespace mallocMC
                 const uint32 filllevel = alpaka::atomicOp<alpaka::AtomicAdd>(acc, (uint32*) &(_ptes[page].count), 1u);
                 // recheck chunck size (it could be that the page got freed in
                 // the meanwhile...)
-                if(!resetfreedpages || _ptes[page].chunksize == chunksize)
+                if(!resetfreedpages || (filllevel < pagesize && _ptes[page].chunksize == chunksize))
                 {
                     if(chunksize <= HierarchyThreshold)
                     {
@@ -432,7 +432,10 @@ namespace mallocMC
                     {
                         const uint32 chunksinpage = alpaka::math::min(acc, pagesize / chunksize, 32u);
                         if(filllevel < chunksinpage)
+                        {
+                            //printf("addChunkNoHierarchy with chunksize: %u on page %u\n", chunksize, page);
                             chunk_ptr = addChunkNoHierarchy(acc, chunksize, page, chunksinpage);
+                        }
                     }
                 }
 
@@ -462,10 +465,16 @@ namespace mallocMC
                 uint32 startblock = _firstfreeblock;
                 uint32 ptetry = startpage + startblock * pagesperblock;
                 uint32 checklevel = regionsize * 3 / 4;
+
                 for(uint32 finder = 0; finder < 2; ++finder)
                 {
-                    for(uint32 b = startblock; b < accessblocks; ++b)
+                    for(uint32 x = 0; x < accessblocks; ++x)
                     {
+                        uint32 b = (startblock + x) % accessblocks;
+                        if(((startblock + x) % accessblocks) == 0)
+                        {
+                            ptetry = 0;
+                        }
                         while(ptetry < (b + 1) * pagesperblock)
                         {
                             const uint32 region = ptetry / regionsize;
@@ -521,7 +530,8 @@ namespace mallocMC
                         // randomize the thread writing the info
                         // if(warpid() + laneid() == 0)
                         if(b > startblock)
-                            _firstfreeblock = b;
+                            //_firstfreeblock = b;
+                            alpaka::atomicOp<alpaka::AtomicExch>(acc, (uint32*) &_firstfreeblock, b);
                     }
 
                     // we are really full :/ so lets search every page for a
@@ -598,7 +608,8 @@ namespace mallocMC
                 if(oldfilllevel == pagesize / 2 / chunksize)
                 {
                     const uint32 region = page / regionsize;
-                    _regions[region] = 0;
+                    //_regions[region] = 0;
+                    alpaka::atomicOp<alpaka::AtomicExch>(acc, (uint32*) (_regions + region), 0u);
                     const uint32 block = region * regionsize * accessblocks / _numpages;
                     if(warpid() + laneid() == 0)
                         alpaka::atomicOp<alpaka::AtomicMin>(acc, (uint32*) &_firstfreeblock, block);
@@ -775,6 +786,7 @@ namespace mallocMC
                     return allocChunked(acc, bytes);
                 else
                     // allocate a range of pages
+                    printf("pagebased: %u\n", bytes);
                     return allocPageBased(acc, bytes);
             }
 
@@ -871,6 +883,17 @@ namespace mallocMC
                 //  printf("c size_t memsize   %llu byte\n", memsize);
                 //  printf("c void *memory     %p\n", page);
                 //}
+                if(linid == 0)
+                {
+                    printf("memsize: %llu\n",(unsigned long long) memsize);
+                    printf("(((unsigned long long) regionsize) * (sizeof(PTE) + pagesize) + sizeof(uint32)): %llu\n", (((unsigned long long) regionsize) * (sizeof(PTE) + pagesize) + sizeof(uint32)));
+                    printf("HierarchyThreshold: %u\n",HierarchyThreshold);
+                    printf("pagesize: %u\n", pagesize);
+                    printf("sizeof(PTE): %u\n", (uint32_t)sizeof(PTE));
+                    printf("numregions: %u\n", numregions);
+                    printf("regionsize: %u\n", regionsize);
+                    printf("numpages = numregions * regionsize: %u\n", numpages);
+                }
 
                 for(uint32 i = linid; i < numpages; i += totalThreads)
                 {
@@ -1017,7 +1040,6 @@ namespace mallocMC
                     {
                         const uint32 maxchunksize = alpaka::math::min(acc, +pagesize, wastefactor * (uint32) slotSize);
                         const uint32 region = currentpage / regionsize;
-                        const uint32 regionfilllevel = _regions[region];
 
                         uint32 chunksize = _ptes[currentpage].chunksize;
                         if(chunksize >= slotSize && chunksize <= maxchunksize)
