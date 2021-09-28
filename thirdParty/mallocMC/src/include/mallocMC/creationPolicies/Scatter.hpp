@@ -466,6 +466,8 @@ namespace mallocMC
                 uint32 ptetry = startpage + startblock * pagesperblock;
                 uint32 checklevel = regionsize * 3 / 4;
 
+                bool io = true;
+
                 for(uint32 finder = 0; finder < 2; ++finder)
                 {
                     for(uint32 x = 0; x < accessblocks; ++x)
@@ -481,6 +483,10 @@ namespace mallocMC
                             const uint32 regionfilllevel = _regions[region];
                             if(regionfilllevel < checklevel)
                             {
+                                if(io)
+                                {
+                                    printf("test region: %u filllevel: %u of %u; byte: %u\n",region, regionfilllevel, checklevel, bytes);
+                                }
                                 for(; ptetry < (region + 1) * regionsize; ++ptetry)
                                 {
                                     const uint32 chunksize = _ptes[ptetry].chunksize;
@@ -518,9 +524,10 @@ namespace mallocMC
                                 }
                                 // could not alloc in region, tell that
                                 if(regionfilllevel + 1 <= regionsize)
-                                    alpaka::atomicOp<alpaka::AtomicMax>(
+                                    alpaka::atomicOp<alpaka::AtomicCas>(
                                         acc,
                                         (uint32*) (_regions + region),
+                                        regionfilllevel,
                                         regionfilllevel + 1);
                             }
                             else
@@ -539,6 +546,8 @@ namespace mallocMC
                     startblock = 0;
                     checklevel = regionsize + 1;
                     ptetry = 0;
+
+                    io = true;
                 }
                 return 0;
             }
@@ -611,7 +620,8 @@ namespace mallocMC
                     //_regions[region] = 0;
                     alpaka::atomicOp<alpaka::AtomicExch>(acc, (uint32*) (_regions + region), 0u);
                     const uint32 block = region * regionsize * accessblocks / _numpages;
-                    if(warpid() + laneid() == 0)
+                    //if(warpid() + laneid() == 0)
+                    if( block < _firstfreeblock)
                         alpaka::atomicOp<alpaka::AtomicMin>(acc, (uint32*) &_firstfreeblock, block);
                 }
             }
