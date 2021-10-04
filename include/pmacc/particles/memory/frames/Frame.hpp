@@ -34,39 +34,149 @@
 #include "pmacc/traits/HasIdentifier.hpp"
 #include "pmacc/types.hpp"
 
+#include <boost/mp11.hpp>
+#include <boost/mp11/mpl.hpp>
 #include <boost/mpl/contains.hpp>
 #include <boost/mpl/find.hpp>
 #include <boost/mpl/list.hpp>
 #include <boost/mpl/map.hpp>
 #include <boost/utility/result_of.hpp>
 
+#include <llama/llama.hpp>
+
 namespace pmacc
 {
     namespace pmath = pmacc::math;
 
+    namespace detail
+    {
+        template<typename PICValueType>
+        using MakeLlamaField = llama::Field<PICValueType, typename traits::Resolve<PICValueType>::type::type>;
+
+        template<typename ValueTypeSeq>
+        using ValueTypeSeqToList =
+            typename boost::mpl::copy<ValueTypeSeq, boost::mpl::back_inserter<boost::mp11::mp_list<>>>::type;
+
+        template<typename ValueTypeSeq>
+        using RecordDimFromValueTypeSeq = boost::mp11::
+            mp_rename<boost::mp11::mp_transform<MakeLlamaField, ValueTypeSeqToList<ValueTypeSeq>>, llama::Record>;
+
+        template<std::size_t T_size, typename T_ParticleDescription, typename T_MemoryLayout>
+        struct ViewHolder
+        {
+        private:
+            using IndexType = int; // TODO(bgruber): where do I get this type from?
+            inline static constexpr IndexType particlesPerFrame
+                = (T_size == llama::dyn) ? static_cast<IndexType>(llama::dyn) : static_cast<IndexType>(T_size);
+            using RawRecordDim = RecordDimFromValueTypeSeq<typename T_ParticleDescription::ValueTypeSeq>;
+            using SplitRecordDim = llama::TransformLeaves<RawRecordDim, pmath::ReplaceVectorByArray>;
+
+        public:
+            using RecordDim = std::conditional_t<T_MemoryLayout::splitVector, SplitRecordDim, RawRecordDim>;
+            using ArrayExtents = llama::ArrayExtents<IndexType, particlesPerFrame>;
+            using Mapping = std::conditional_t<
+                particlesPerFrame == 1,
+                llama::mapping::One<ArrayExtents, RecordDim>,
+                typename T_MemoryLayout::template fn<ArrayExtents, RecordDim>>;
+            static_assert(
+                particlesPerFrame == llama::dyn || Mapping::blobCount == 1,
+                "For statically sizes frames, only mappings with a single blob are supported");
+            using BlobType = std::conditional_t<
+                particlesPerFrame == llama::dyn,
+                std::byte*,
+                llama::Array<std::byte, Mapping{ArrayExtents{}}.blobSize(0)>>;
+            using View = llama::View<Mapping, BlobType>;
+
+        private:
+            inline static constexpr std::size_t alignment
+                = particlesPerFrame == llama::dyn ? alignof(std::byte*) : llama::alignOf<RecordDim>;
+
+        public:
+            alignas(alignment) View view;
+
+            ViewHolder() = default;
+
+            HDINLINE ViewHolder(IndexType size) : view{Mapping{ArrayExtents{size}}}
+            {
+            }
+
+            HDINLINE auto& blobs()
+            {
+                return view.storageBlobs;
+            }
+
+            HDINLINE auto blobSize(int i)
+            {
+                return view.mapping().blobSize(i);
+            }
+        };
+
+        /** Proxy reference for particle attributes which are backed by a LLAMA RecordRef. This could become obsolete
+         * when LLAMA's RecordRef supports operator= from TupleLike objects. Ask bgruber about it every now and then.
+         */
+        template<typename RecordRef>
+        struct LlamaParticleAttribute
+        {
+            template<typename OtherRecordRef>
+            auto operator=(const LlamaParticleAttribute<OtherRecordRef>& lpa) -> LlamaParticleAttribute&
+            {
+                rr = lpa.rr;
+                return *this;
+            }
+
+            template<typename OtherRecordRef>
+            auto operator=(LlamaParticleAttribute<OtherRecordRef>&& lpa) -> LlamaParticleAttribute&
+            {
+                rr = lpa.rr;
+                return *this;
+            }
+
+            template<typename T>
+            auto operator=(T&& t) -> LlamaParticleAttribute&
+            {
+                rr.store(std::forward<T>(t));
+                return *this;
+            }
+
+            template<typename T>
+            operator T() const
+            {
+                return rr.template loadAs<T>();
+            }
+
+            RecordRef rr;
+        };
+    } // namespace detail
+
     /** Frame is a storage for arbitrary number >0 of Particles with attributes
      *
-     * @tparam T_CreatePairOperator unary template operator to create a boost pair
-     *                              from single type ( pair<name,dataType> )
-     *                              @see MapTupel
+     * @tparam T_size Static number of particles this frame stores, or llama::dyn for dynamic size
      * @tparam T_ValueTypeSeq sequence with value_identifier
      * @tparam T_MethodsList sequence of classes with particle methods
      *                       (e.g. calculate mass, gamma, ...)
      * @tparam T_Flags sequence with identifiers to add flags on a frame
      *                 (e.g. useSolverXY, calcRadiation, ...)
+     * @tparam T_MemoryLayout Memory layout to be used for the particle attribute data.
      */
-    template<typename T_CreatePairOperator, typename T_ParticleDescription>
+    template<std::size_t T_size, typename T_ParticleDescription, typename T_MemoryLayout>
     struct Frame;
 
-    template<typename T_CreatePairOperator, typename T_ParticleDescription>
+    template<std::size_t T_size, typename T_ParticleDescription, typename T_MemoryLayout>
     struct Frame
         : public InheritLinearly<typename T_ParticleDescription::MethodsList>
-        , protected pmath::MapTuple<
-              typename SeqToMap<typename T_ParticleDescription::ValueTypeSeq, T_CreatePairOperator>::type>
+        , public detail::ViewHolder<T_size, T_ParticleDescription, T_MemoryLayout>
         , public InheritLinearly<typename OperateOnSeq<
               typename T_ParticleDescription::FrameExtensionList,
-              bmpl::apply1<bmpl::_1, Frame<T_CreatePairOperator, T_ParticleDescription>>>::type>
+              bmpl::apply1<bmpl::_1, Frame<T_size, T_ParticleDescription, T_MemoryLayout>>>::type>
     {
+        using ViewHolder = detail::ViewHolder<T_size, T_ParticleDescription, T_MemoryLayout>;
+        static_assert(
+            T_size == llama::dyn
+            || sizeof(ViewHolder) ==
+                typename ViewHolder::Mapping{llama::ArrayExtents<int, static_cast<int>(T_size)>{}}.blobSize(0));
+
+        using ViewHolder::ViewHolder;
+
         using ParticleDescription = T_ParticleDescription;
         using Name = typename ParticleDescription::Name;
         using SuperCellSize = typename ParticleDescription::SuperCellSize;
@@ -74,9 +184,7 @@ namespace pmacc
         using MethodsList = typename ParticleDescription::MethodsList;
         using FlagList = typename ParticleDescription::FlagsList;
         using FrameExtensionList = typename ParticleDescription::FrameExtensionList;
-        using ThisType = Frame<T_CreatePairOperator, ParticleDescription>;
-        /* definition of the MapTupel where we inherit from*/
-        using BaseType = pmath::MapTuple<typename SeqToMap<ValueTypeSeq, T_CreatePairOperator>::type>;
+        using ThisType = Frame;
 
         /* type of a single particle*/
         using ParticleType = pmacc::Particle<ThisType>;
@@ -93,25 +201,35 @@ namespace pmacc
             return ParticleType(*this, idx);
         }
 
-        /** access attribute with a identifier
-         *
-         * @param T_Key instance of identifier type
-         *              (can be an alias, value_identifier or any other class)
-         * @return result of operator[] of MapTupel
-         */
-        template<typename T_Key>
-        HDINLINE auto& getIdentifier(const T_Key)
+    private:
+        template<typename Frame, typename T_Key>
+        static HDINLINE decltype(auto) at(Frame& f, uint32_t i, const T_Key key)
         {
             using Key = typename GetKeyFromAlias<ValueTypeSeq, T_Key, errorHandlerPolicies::ThrowValueNotFound>::type;
-            return BaseType::operator[](Key());
+            auto&& ref = f.view(i)(Key{});
+
+            using OldDstType = typename traits::Resolve<Key>::type::type;
+            using RefType = std::remove_reference_t<decltype(ref)>;
+
+            if constexpr(pmath::isVector<OldDstType> && llama::isRecordRef<RefType>)
+                return pmath::makeVectorWithLlamaStorage<OldDstType>(ref);
+            else if constexpr(llama::isRecordRef<RefType>)
+                return detail::LlamaParticleAttribute<RefType>{ref};
+            else
+                return ref;
         }
 
-        /** const version of method getIdentifier(const T_Key) */
+    public:
         template<typename T_Key>
-        HDINLINE const auto& getIdentifier(const T_Key) const
+        HDINLINE decltype(auto) get(uint32_t i, const T_Key)
         {
-            using Key = typename GetKeyFromAlias<ValueTypeSeq, T_Key, errorHandlerPolicies::ThrowValueNotFound>::type;
-            return BaseType::operator[](Key());
+            return at(*this, i, T_Key{});
+        }
+
+        template<typename T_Key>
+        HDINLINE decltype(auto) get(uint32_t i, const T_Key) const
+        {
+            return at(*this, i, T_Key{});
         }
 
         HINLINE static std::string getName()
@@ -122,11 +240,15 @@ namespace pmacc
 
     namespace traits
     {
-        template<typename T_IdentifierName, typename T_CreatePairOperator, typename T_ParticleDescription>
-        struct HasIdentifier<pmacc::Frame<T_CreatePairOperator, T_ParticleDescription>, T_IdentifierName>
+        template<
+            typename T_IdentifierName,
+            std::size_t T_size,
+            typename T_ParticleDescription,
+            typename T_MemoryLayout>
+        struct HasIdentifier<pmacc::Frame<T_size, T_ParticleDescription, T_MemoryLayout>, T_IdentifierName>
         {
         private:
-            using FrameType = pmacc::Frame<T_CreatePairOperator, T_ParticleDescription>;
+            using FrameType = pmacc::Frame<T_size, T_ParticleDescription, T_MemoryLayout>;
 
         public:
             using ValueTypeSeq = typename FrameType::ValueTypeSeq;
@@ -138,11 +260,15 @@ namespace pmacc
             using type = bmpl::contains<ValueTypeSeq, SolvedAliasName>;
         };
 
-        template<typename T_IdentifierName, typename T_CreatePairOperator, typename T_ParticleDescription>
-        struct HasFlag<pmacc::Frame<T_CreatePairOperator, T_ParticleDescription>, T_IdentifierName>
+        template<
+            typename T_IdentifierName,
+            std::size_t T_size,
+            typename T_ParticleDescription,
+            typename T_MemoryLayout>
+        struct HasFlag<pmacc::Frame<T_size, T_ParticleDescription, T_MemoryLayout>, T_IdentifierName>
         {
         private:
-            using FrameType = pmacc::Frame<T_CreatePairOperator, T_ParticleDescription>;
+            using FrameType = pmacc::Frame<T_size, T_ParticleDescription, T_MemoryLayout>;
             using SolvedAliasName = typename GetFlagType<FrameType, T_IdentifierName>::type;
             using FlagList = typename FrameType::FlagList;
 
@@ -150,11 +276,15 @@ namespace pmacc
             using type = bmpl::contains<FlagList, SolvedAliasName>;
         };
 
-        template<typename T_IdentifierName, typename T_CreatePairOperator, typename T_ParticleDescription>
-        struct GetFlagType<pmacc::Frame<T_CreatePairOperator, T_ParticleDescription>, T_IdentifierName>
+        template<
+            typename T_IdentifierName,
+            std::size_t T_size,
+            typename T_ParticleDescription,
+            typename T_MemoryLayout>
+        struct GetFlagType<pmacc::Frame<T_size, T_ParticleDescription, T_MemoryLayout>, T_IdentifierName>
         {
         private:
-            using FrameType = pmacc::Frame<T_CreatePairOperator, T_ParticleDescription>;
+            using FrameType = pmacc::Frame<T_size, T_ParticleDescription, T_MemoryLayout>;
             using FlagList = typename FrameType::FlagList;
 
         public:

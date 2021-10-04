@@ -36,6 +36,8 @@
 #include <iostream>
 #include <type_traits>
 
+#include <llama/llama.hpp>
+
 namespace pmacc
 {
     namespace math
@@ -76,6 +78,34 @@ namespace pmacc
                 }
             };
 
+            template<typename T_Type, int T_Dim, typename RecordRef>
+            struct VectorLlamaRecordRefStorage
+            {
+                static_assert(llama::isRecordRef<RecordRef>);
+
+                inline static constexpr bool isConst = false;
+                inline static constexpr int dim = T_Dim;
+                using type = T_Type;
+
+                RecordRef rr;
+
+                HDINLINE
+                type& operator[](const int idx)
+                {
+                    return boost::mp11::mp_with_index<T_Dim>(
+                        idx,
+                        [&](auto ic) -> decltype(auto) { return rr(llama::RecordCoord<decltype(ic)::value>{}); });
+                }
+
+                HDINLINE
+                const type& operator[](const int idx) const
+                {
+                    return boost::mp11::mp_with_index<T_Dim>(
+                        idx,
+                        [&](auto ic) -> decltype(auto) { return rr(llama::RecordCoord<decltype(ic)::value>{}); });
+                }
+            };
+
         } // namespace detail
 
         namespace tag
@@ -111,6 +141,11 @@ namespace pmacc
             }
 
             HDINLINE
+            constexpr explicit Vector(Storage s) : Storage{std::move(s)}
+            {
+            }
+
+            HDINLINE
             constexpr Vector(const type x)
             {
                 PMACC_CASSERT_MSG(math_Vector__constructor_is_only_allowed_for_DIM1, dim == 1);
@@ -136,6 +171,12 @@ namespace pmacc
 
             HDINLINE
             constexpr Vector(const Vector& other) = default;
+
+            template<typename T_OtherAccessor, typename T_OtherNavigator>
+            HDINLINE Vector(const Vector<T_Type, dim, T_OtherAccessor, T_OtherNavigator, Storage>& other)
+                : Storage{static_cast<const Storage&>(other)}
+            {
+            }
 
             template<typename T_OtherAccessor, typename T_OtherNavigator, typename T_OtherStorage>
             HDINLINE Vector(const Vector<T_Type, dim, T_OtherAccessor, T_OtherNavigator, T_OtherStorage>& other)
@@ -533,6 +574,12 @@ namespace pmacc
             }
         };
 
+        template<typename T>
+        inline constexpr bool isVector = false;
+
+        template<typename T_Type, int T_dim, typename T_Accessor, typename T_Navigator, typename T_Storage>
+        inline constexpr bool isVector<pmacc::math::Vector<T_Type, T_dim, T_Accessor, T_Navigator, T_Storage>> = true;
+
         template<typename Type, int dim, typename Accessor, typename Navigator>
         std::ostream& operator<<(std::ostream& s, const Vector<Type, dim, Accessor, Navigator>& vec)
         {
@@ -774,6 +821,40 @@ namespace pmacc
         template<typename T_Vector, uint32_t T_direction>
         HDINLINE T_Vector basisVector();
 
+        /** Creates a \ref pmacc::math::Vector backed by a LLAMA RecordRef as storage. All other properties of the
+         * Vector are taken from ProtoVec.
+         */
+        template<typename ProtoVec, typename RecordRef>
+        HDINLINE auto makeVectorWithLlamaStorage(RecordRef rr)
+        {
+            return Vector<
+                typename ProtoVec::type,
+                ProtoVec::dim,
+                typename ProtoVec::Accessor,
+                typename ProtoVec::Navigator,
+                detail::VectorLlamaRecordRefStorage<typename ProtoVec::type, ProtoVec::dim, RecordRef>>{{rr}};
+        }
+
+        namespace detail
+        {
+            template<typename T>
+            struct ReplaceVectorByArrayImpl
+            {
+                using type = T;
+            };
+
+            template<typename T_Type, int T_dim, typename T_Accessor, typename T_Navigator, typename T_Storage>
+            struct ReplaceVectorByArrayImpl<Vector<T_Type, T_dim, T_Accessor, T_Navigator, T_Storage>>
+            {
+                using type = T_Type[T_dim];
+            };
+        } // namespace detail
+
+        /** If T is a \ref pmacc::math::Vector, replaced it by an equally sized and typed array. Otherwise, just passes
+         * the type through.
+         */
+        template<typename T>
+        using ReplaceVectorByArray = typename detail::ReplaceVectorByArrayImpl<T>::type;
     } // namespace math
 
     namespace result_of

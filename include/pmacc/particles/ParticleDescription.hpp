@@ -71,14 +71,7 @@ namespace pmacc
         using HandleGuardRegion = T_HandleGuardRegion;
         using MethodsList = typename ToSeq<T_MethodsList>::type;
         using FrameExtensionList = typename ToSeq<T_FrameExtensionList>::type;
-        using ThisType = ParticleDescription<
-            Name,
-            SuperCellSize,
-            ValueTypeSeq,
-            FlagsList,
-            HandleGuardRegion,
-            MethodsList,
-            FrameExtensionList>;
+        using ThisType = ParticleDescription;
 
         // Compile-time check uniqueness of attributes and flags
         PMACC_CASSERT_MSG(

@@ -384,6 +384,6 @@ target_compile_definitions(pmacc PUBLIC "-DPMACC_VERBOSE_LVL=${PMACC_VERBOSE}")
 # LLAMA
 ################################################################################
 
-add_subdirectory(${PMacc_DIR}/../../thirdParty/llama ${CMAKE_BINARY_DIR}/llama)
+add_subdirectory(${PMacc_DIR}/../../thirdParty/llama ${CMAKE_BINARY_DIR}/llama EXCLUDE_FROM_ALL)
 target_link_libraries(pmacc PUBLIC llama::llama)
 

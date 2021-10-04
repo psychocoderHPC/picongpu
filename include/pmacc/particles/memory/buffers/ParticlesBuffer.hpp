@@ -54,7 +54,12 @@ namespace pmacc
      * @tparam SuperCellSize_ TVec which descripe size of a superce
      * @tparam DIM dimension of the buffer (1-3)
      */
-    template<typename T_ParticleDescription, class SuperCellSize_, typename T_DeviceHeap, unsigned DIM>
+    template<
+        typename T_ParticleDescription,
+        typename T_FrameMemoryLayout,
+        class SuperCellSize_,
+        typename T_DeviceHeap,
+        unsigned DIM>
     class ParticlesBuffer
     {
     public:
@@ -102,9 +107,8 @@ namespace pmacc
          *
          * a group of particles is stored as frame
          */
-        using FrameType = Frame<
-            OperatorCreatePairStaticArray<pmacc::math::CT::volume<SuperCellSize>::type::value>,
-            FrameDescription>;
+        using FrameType
+            = Frame<pmacc::math::CT::volume<SuperCellSize>::type::value, FrameDescription, T_FrameMemoryLayout>;
 
         using FrameDescriptionBorder =
             typename ReplaceValueTypeSeq<T_ParticleDescription, ParticleAttributeListBorder>::type;
@@ -114,7 +118,8 @@ namespace pmacc
          * - each frame contains only one particle
          * - local administration attributes of a particle are removed
          */
-        using FrameTypeBorder = Frame<OperatorCreatePairStaticArray<1U>, FrameDescriptionBorder>;
+        using FrameTypeBorder = Frame<1, FrameDescriptionBorder, T_FrameMemoryLayout>; // TODO: we should provide
+                                                                                       // llama::mapping::One here
 
         using SuperCellType = SuperCell<FrameType>;
 

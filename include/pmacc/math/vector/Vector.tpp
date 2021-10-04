@@ -107,8 +107,8 @@ namespace pmacc
         };
 
         /*specialize abs2 algorithm*/
-        template<typename Type, int dim>
-        struct Abs2<::pmacc::math::Vector<Type, dim>>
+        template<typename Type, int dim, typename Storage>
+        struct Abs2<::pmacc::math::Vector<Type, dim, StandardAccessor, StandardNavigator, Storage>>
         {
             using result = typename ::pmacc::math::Vector<Type, dim>::type;
 
