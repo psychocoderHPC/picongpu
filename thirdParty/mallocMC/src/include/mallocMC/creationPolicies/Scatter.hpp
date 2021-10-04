@@ -496,25 +496,30 @@ namespace mallocMC
                     // ignore the wastefactor for any allocation < minChunkSize
                     alpaka::math::max(acc, wastefactor * bytes, +minChunkSize));
 
-                uint32 startblock = _firstfreeblock;
+                const uint32 startblock = _firstfreeblock;
                 uint32 ptetry = startpage + startblock * pagesperblock;
+                const uint32 ptetryStart = ptetry;
                 uint32 checklevel = regionsize * 3 / 4;
                 for(uint32 finder = 0; finder < 2; ++finder)
                 {
-                    for(uint32 b = startblock; b < accessblocks; ++b)
+                    for(uint32 x = 0u; x < accessblocks; ++x)
+                    //for(uint32 b = startblock; b < accessblocks; ++b)
                     {
+                        uint32 b = (startblock + x) % accessblocks;
                         while(ptetry < (b + 1) * pagesperblock)
                         {
                             const uint32 region = ptetry / regionsize;
                             const uint32 regionfilllevel = _regions[region];
                             if(regionfilllevel < checklevel)
                             {
-                                for(; ptetry < (region + 1) * regionsize; ++ptetry)
+                                for(uint32 i = 0u; i <  regionsize; ++i)
+                                //for(; ptetry < (region + 1) * regionsize; ++ptetry)
                                 {
-                                    const uint32 chunksize = _ptes[ptetry].chunksize;
+                                    const uint32 ptetry2 = region * regionsize + ((ptetry + i) % regionsize);
+                                    const uint32 chunksize = _ptes[ptetry2].chunksize;
                                     if(chunksize >= bytes && chunksize <= maxchunksize)
                                     {
-                                        void* res = tryUsePage(acc, ptetry, chunksize);
+                                        void* res = tryUsePage(acc, ptetry2, chunksize);
                                         if(res != 0)
                                             return res;
                                     }
@@ -523,12 +528,12 @@ namespace mallocMC
                                         // lets open up a new page
                                         const uint32 beforechunksize = alpaka::atomicOp<alpaka::AtomicCas>(
                                             acc,
-                                            (uint32*) &_ptes[ptetry].chunksize,
+                                            (uint32*) &_ptes[ptetry2].chunksize,
                                             0u,
                                             minAllocation);
                                         if(beforechunksize == 0)
                                         {
-                                            void* res = tryUsePage(acc, ptetry, minAllocation);
+                                            void* res = tryUsePage(acc, ptetry2, minAllocation);
                                             if(res != 0)
                                                 return res;
                                         }
@@ -536,7 +541,7 @@ namespace mallocMC
                                         {
                                             // someone else aquired the page,
                                             // but we can also use it
-                                            void* res = tryUsePage(acc, ptetry, beforechunksize);
+                                            void* res = tryUsePage(acc, ptetry2, beforechunksize);
                                             if(res != 0)
                                                 return res;
                                         }
@@ -550,7 +555,7 @@ namespace mallocMC
                                         regionfilllevel,
                                         regionfilllevel + 1);
                             }
-                            else
+                            //else
                                 ptetry += regionsize;
                             // ptetry = (region+1)*regionsize;
                         }
@@ -562,9 +567,10 @@ namespace mallocMC
 
                     // we are really full :/ so lets search every page for a
                     // spot!
-                    startblock = 0;
+                    //startblock = 0;
                     checklevel = regionsize + 1;
-                    ptetry = 0;
+                    //ptetry = 0;
+                    ptetry = ptetryStart;
                 }
                 __trap();
                 return 0;

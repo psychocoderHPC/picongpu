@@ -71,6 +71,6 @@ namespace picongpu
         mallocMC::DistributionPolicies::Noop,
         mallocMC::OOMPolicies::ReturnNull,
         mallocMC::ReservePoolPolicies::AlpakaBuf<cupla::Acc>,
-        mallocMC::AlignmentPolicies::Shrink<Align128>>;
+        mallocMC::AlignmentPolicies::Shrink<>>;
 
 } // namespace picongpu
