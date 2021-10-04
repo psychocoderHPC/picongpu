@@ -55,6 +55,11 @@ namespace picongpu
         static constexpr bool resetfreedpages = true;
     };
 
+    struct Align128
+    {
+        static constexpr auto dataAlignment = 16u;
+    };
+
     /** Define a new allocator
      *
      * This is an allocator resembling the behaviour of the ScatterAlloc
@@ -66,6 +71,6 @@ namespace picongpu
         mallocMC::DistributionPolicies::Noop,
         mallocMC::OOMPolicies::ReturnNull,
         mallocMC::ReservePoolPolicies::AlpakaBuf<cupla::Acc>,
-        mallocMC::AlignmentPolicies::Shrink<>>;
+        mallocMC::AlignmentPolicies::Shrink<Align128>>;
 
 } // namespace picongpu
