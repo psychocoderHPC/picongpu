@@ -1,34 +1,34 @@
 /*
-  mallocMC: Memory Allocator for Many Core Architectures.
-  http://www.icg.tugraz.at/project/mvp
+mallocMC: Memory Allocator for Many Core Architectures.
+http://www.icg.tugraz.at/project/mvp
 
-  Copyright (C) 2012 Institute for Computer Graphics and Vision,
-                     Graz University of Technology
-  Copyright (C) 2014-2016 Institute of Radiation Physics,
-                          Helmholtz-Zentrum Dresden - Rossendorf
+Copyright (C) 2012 Institute for Computer Graphics and Vision,
+                   Graz University of Technology
+Copyright (C) 2014-2016 Institute of Radiation Physics,
+                        Helmholtz-Zentrum Dresden - Rossendorf
 
-  Author(s):  Markus Steinberger - steinberger ( at ) icg.tugraz.at
-              Rene Widera - r.widera ( at ) hzdr.de
-              Axel Huebl - a.huebl ( at ) hzdr.de
-              Carlchristian Eckert - c.eckert ( at ) hzdr.de
+Author(s):  Markus Steinberger - steinberger ( at ) icg.tugraz.at
+            Rene Widera - r.widera ( at ) hzdr.de
+            Axel Huebl - a.huebl ( at ) hzdr.de
+            Carlchristian Eckert - c.eckert ( at ) hzdr.de
 
-  Permission is hereby granted, free of charge, to any person obtaining a copy
-  of this software and associated documentation files (the "Software"), to deal
-  in the Software without restriction, including without limitation the rights
-  to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-  copies of the Software, and to permit persons to whom the Software is
-  furnished to do so, subject to the following conditions:
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
 
-  The above copyright notice and this permission notice shall be included in
-  all copies or substantial portions of the Software.
+The above copyright notice and this permission notice shall be included in
+all copies or substantial portions of the Software.
 
-  THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-  IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-  FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-  AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-  LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-  OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
-  THE SOFTWARE.
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+THE SOFTWARE.
 */
 
 #pragma once
@@ -71,22 +71,22 @@ namespace mallocMC
         } // namespace ScatterConf
 
         /**
-         * @brief fast memory allocation based on ScatterAlloc
-         *
-         * This CreationPolicy implements a fast memory allocator that trades
-         * speed for fragmentation of memory. This is based on the memory
-         * allocator "ScatterAlloc"
-         * (http://ieeexplore.ieee.org/xpl/articleDetails.jsp?arnumber=6339604),
-         * and is extended to report free memory slots of a given size (both on
-         * host and accelerator). To work properly, this policy class requires a
-         * pre-allocated heap on the accelerator and works only with Nvidia CUDA
-         * capable accelerators that have at least compute capability 2.0.
-         *
-         * @tparam T_Config (optional) configure the heap layout. The
-         *        default can be obtained through Scatter<>::HeapProperties
-         * @tparam T_Hashing (optional) configure the parameters for
-         *        the hashing formula. The default can be obtained through
-         *        Scatter<>::HashingProperties
+       * @brief fast memory allocation based on ScatterAlloc
+       *
+       * This CreationPolicy implements a fast memory allocator that trades
+       * speed for fragmentation of memory. This is based on the memory
+       * allocator "ScatterAlloc"
+       * (http://ieeexplore.ieee.org/xpl/articleDetails.jsp?arnumber=6339604),
+       * and is extended to report free memory slots of a given size (both on
+       * host and accelerator). To work properly, this policy class requires a
+       * pre-allocated heap on the accelerator and works only with Nvidia CUDA
+       * capable accelerators that have at least compute capability 2.0.
+       *
+       * @tparam T_Config (optional) configure the heap layout. The
+       *        default can be obtained through Scatter<>::HeapProperties
+       * @tparam T_Hashing (optional) configure the parameters for
+       *        the hashing formula. The default can be obtained through
+       *        Scatter<>::HashingProperties
          */
         template<
             class T_Config = ScatterConf::DefaultScatterConfig,
@@ -107,13 +107,13 @@ namespace mallocMC
             using uint32 = std::uint32_t;
 
 /** Allow for a hierarchical validation of parameters:
- *
- * shipped default-parameters (in the inherited struct) have lowest precedence.
- * They will be overridden by a given configuration struct. However, even the
- * given configuration struct can be overridden by compile-time command line
- * parameters (e.g. -D MALLOCMC_CP_SCATTER_PAGESIZE 1024)
- *
- * default-struct < template-struct < command-line parameter
+*
+* shipped default-parameters (in the inherited struct) have lowest precedence.
+* They will be overridden by a given configuration struct. However, even the
+* given configuration struct can be overridden by compile-time command line
+* parameters (e.g. -D MALLOCMC_CP_SCATTER_PAGESIZE 1024)
+*
+* default-struct < template-struct < command-line parameter
  */
 #ifndef MALLOCMC_CP_SCATTER_PAGESIZE
 #    define MALLOCMC_CP_SCATTER_PAGESIZE (HeapProperties::pagesize)
@@ -151,11 +151,20 @@ namespace mallocMC
 #if _DEBUG || ANALYSEHEAP
         public:
 #endif
-            static constexpr uint32 minChunkSize1 = 0x10;
-            static constexpr uint32 HierarchyThreshold = (pagesize - 2 * sizeof(uint32)) / 33;
-            static constexpr uint32 minSegmentSize = 32 * minChunkSize1 + sizeof(uint32);
+            /* HierarchyThreshold defines the larges chunk size which can be stored in a segment with hierarchy.
+           * 32 chunks can be stored without a on page bitmask, therefore a hierarchy is only usefull if we store at
+           * least 33 chunks. For 33 chunks we need two bitmasks, each 32bit.
+             */
+            static constexpr uint32 HierarchyThreshold = (pagesize - 2u * sizeof(uint32)) / 33;
+            /* Calculate minimal chunksize which can fill a page, this avoids that small allocations
+           * fragment the heap and increases the possibility that a small allocation can reuse an
+           * existing chunk.
+           * Each page can have 32x32 chunks. To maintain 32 chunks we need 32 bitmask on the page (each 32bit)
+             */
+            static constexpr uint32 minChunkSize = (pagesize - 32 * sizeof(uint32)) / (32 * 32);
+            static constexpr uint32 minSegmentSize = 32 * minChunkSize + sizeof(uint32);
             static constexpr uint32 tmp_maxOPM
-                = minChunkSize1 > HierarchyThreshold ? 0 : (pagesize + (minSegmentSize - 1)) / minSegmentSize;
+                = minChunkSize > HierarchyThreshold ? 0 : (pagesize + (minSegmentSize - 1)) / minSegmentSize;
             static constexpr uint32 maxOnPageMasks = 32 > tmp_maxOPM ? tmp_maxOPM : 32;
 
 #ifndef MALLOCMC_CP_SCATTER_HASHINGK
@@ -179,8 +188,8 @@ namespace mallocMC
             static constexpr uint32 hashingDistWPRel = MALLOCMC_CP_SCATTER_HASHINGDISTWPREL;
 
             /**
-             * Page Table Entry struct
-             * The PTE holds basic information about each page
+           * Page Table Entry struct
+           * The PTE holds basic information about each page
              */
             struct PTE
             {
@@ -197,21 +206,21 @@ namespace mallocMC
             };
 
             /**
-             * Page struct
-             * The page struct is used to access the data on the page more
-             * efficiently and to clear the area on the page, which might hold
-             * bitsfields later one
+           * Page struct
+           * The page struct is used to access the data on the page more
+           * efficiently and to clear the area on the page, which might hold
+           * bitsfields later one
              */
             struct Page
             {
                 char data[pagesize];
 
                 /**
-                 * The pages init method
-                 * This method initializes the region on the page which might
-                 * hold bit fields when the page is used for a small chunk size
-                 * @param previous_chunksize the chunksize which was uses for
-                 * the page before
+               * The pages init method
+               * This method initializes the region on the page which might
+               * hold bit fields when the page is used for a small chunk size
+               * @param previous_chunksize the chunksize which was uses for
+               * the page before
                  */
                 ALPAKA_FN_ACC void init()
                 {
@@ -234,8 +243,8 @@ namespace mallocMC
             volatile uint32 _firstfreeblock;
 
             /**
-             * randInit should create an random offset which can be used
-             * as the initial position in a bitfield
+           * randInit should create an random offset which can be used
+           * as the initial position in a bitfield
              */
             static ALPAKA_FN_ACC inline auto randInit() -> uint32
             {
@@ -244,14 +253,14 @@ namespace mallocMC
             }
 
             /**
-             * randInextspot delivers the next free spot in a bitfield
-             * it searches for the next unset bit to the left of spot and
-             * returns its offset. if there are no unset bits to the left
-             * then it wraps around
-             * @param bitfield the bitfield to be searched for
-             * @param spot the spot from which to search to the left
-             * @param spots number of bits that can be used
-             * @return next free spot in the bitfield
+           * randInextspot delivers the next free spot in a bitfield
+           * it searches for the next unset bit to the left of spot and
+           * returns its offset. if there are no unset bits to the left
+           * then it wraps around
+           * @param bitfield the bitfield to be searched for
+           * @param spot the spot from which to search to the left
+           * @param spots number of bits that can be used
+           * @return next free spot in the bitfield
              */
             static ALPAKA_FN_ACC inline auto nextspot(uint32 bitfield, uint32 spot, uint32 spots) -> uint32
             {
@@ -264,13 +273,13 @@ namespace mallocMC
             }
 
             /**
-             * onPageMasksPosition returns a pointer to the beginning of the
-             * onpagemasks inside a page.
-             * @param page the page that holds the masks
-             * @param the number of hierarchical page tables (bitfields) that
-             * are used inside this mask.
-             * @return pointer to the first address inside the page that holds
-             * metadata bitfields.
+           * onPageMasksPosition returns a pointer to the beginning of the
+           * onpagemasks inside a page.
+           * @param page the page that holds the masks
+           * @param the number of hierarchical page tables (bitfields) that
+           * are used inside this mask.
+           * @return pointer to the first address inside the page that holds
+           * metadata bitfields.
              */
             ALPAKA_FN_ACC inline auto onPageMasksPosition(uint32 page, uint32 nMasks) -> uint32*
             {
@@ -278,13 +287,13 @@ namespace mallocMC
             }
 
             /**
-             * usespot marks finds one free spot in the bitfield, marks it and
-             * returns its offset
-             * @param bitfield pointer to the bitfield to use
-             * @param spots overall number of spots the bitfield is responsible
-             * for
-             * @return if there is a free spot it returns the spot'S offset,
-             * otherwise -1
+           * usespot marks finds one free spot in the bitfield, marks it and
+           * returns its offset
+           * @param bitfield pointer to the bitfield to use
+           * @param spots overall number of spots the bitfield is responsible
+           * for
+           * @return if there is a free spot it returns the spot'S offset,
+           * otherwise -1
              */
             template<typename AlpakaAcc>
             static ALPAKA_FN_ACC inline auto usespot(const AlpakaAcc& acc, uint32* bitfield, uint32 spots) -> int
@@ -307,20 +316,20 @@ namespace mallocMC
             }
 
             /**
-             * calcAdditionalChunks determines the number of chunks that are
-             * contained in the last segment of a hierarchical page
-             *
-             * The additional checks are necessary to ensure correct results for
-             * very large pages and small chunksizes
-             *
-             * @param fullsegments the number of segments that can be completely
-             * filled in a page. This may NEVER be bigger than 32!
-             * @param segmentsize the number of bytes that are contained in a
-             * completely filled segment (32 chunks)
-             * @param chunksize the chosen allocation size within the page
-             * @return the number of additional chunks that will not fit in one
-             * of the fullsegments. For any correct input, this number is
-             * smaller than 32
+           * calcAdditionalChunks determines the number of chunks that are
+           * contained in the last segment of a hierarchical page
+           *
+           * The additional checks are necessary to ensure correct results for
+           * very large pages and small chunksizes
+           *
+           * @param fullsegments the number of segments that can be completely
+           * filled in a page. This may NEVER be bigger than 32!
+           * @param segmentsize the number of bytes that are contained in a
+           * completely filled segment (32 chunks)
+           * @param chunksize the chosen allocation size within the page
+           * @return the number of additional chunks that will not fit in one
+           * of the fullsegments. For any correct input, this number is
+           * smaller than 32
              */
             template<typename AlpakaAcc>
             static ALPAKA_FN_ACC inline auto calcAdditionalChunks(
@@ -330,26 +339,29 @@ namespace mallocMC
                 uint32 chunksize) -> uint32
             {
                 if(fullsegments != 32)
-                    return alpaka::math::max(
-                               acc,
-                               0u,
-                               (int) pagesize - (int) fullsegments * segmentsize - (int) sizeof(uint32))
-                        / chunksize;
+                    return alpaka::math::min(
+                        acc,
+                        31,
+                        alpaka::math::max(
+                            acc,
+                            0,
+                            (int) pagesize - (int) fullsegments * segmentsize - (int) sizeof(uint32))
+                            / chunksize);
                 else
                     return 0;
             }
 
             /**
-             * addChunkHierarchy finds a free chunk on a page which uses bit
-             * fields on the page
-             * @param chunksize the chunksize of the page
-             * @param fullsegments the number of full segments on the page (a 32
-             * bits on the page)
-             * @param additional_chunks the number of additional chunks in last
-             * segment (less than 32 bits on the page)
-             * @param page the page to use
-             * @return pointer to a free chunk on the page, 0 if we were unable
-             * to obtain a free chunk
+           * addChunkHierarchy finds a free chunk on a page which uses bit
+           * fields on the page
+           * @param chunksize the chunksize of the page
+           * @param fullsegments the number of full segments on the page (a 32
+           * bits on the page)
+           * @param additional_chunks the number of additional chunks in last
+           * segment (less than 32 bits on the page)
+           * @param page the page to use
+           * @return pointer to a free chunk on the page, 0 if we were unable
+           * to obtain a free chunk
              */
             template<typename AlpakaAcc>
             ALPAKA_FN_ACC inline auto addChunkHierarchy(
@@ -378,13 +390,13 @@ namespace mallocMC
             }
 
             /**
-             * addChunkNoHierarchy finds a free chunk on a page which uses the
-             * bit fields of the pte only
-             * @param chunksize the chunksize of the page
-             * @param page the page to use
-             * @param spots the number of chunks which fit on the page
-             * @return pointer to a free chunk on the page, 0 if we were unable
-             * to obtain a free chunk
+           * addChunkNoHierarchy finds a free chunk on a page which uses the
+           * bit fields of the pte only
+           * @param chunksize the chunksize of the page
+           * @param page the page to use
+           * @param spots the number of chunks which fit on the page
+           * @return pointer to a free chunk on the page, 0 if we were unable
+           * to obtain a free chunk
              */
             template<typename AlpakaAcc>
             ALPAKA_FN_ACC inline auto addChunkNoHierarchy(
@@ -400,11 +412,11 @@ namespace mallocMC
             }
 
             /**
-             * tryUsePage tries to use the page for the allocation request
-             * @param page the page to use
-             * @param chunksize the chunksize of the page
-             * @return pointer to a free chunk on the page, 0 if we were unable
-             * to obtain a free chunk
+           * tryUsePage tries to use the page for the allocation request
+           * @param page the page to use
+           * @param chunksize the chunksize of the page
+           * @return pointer to a free chunk on the page, 0 if we were unable
+           * to obtain a free chunk
              */
             template<typename AlpakaAcc>
             ALPAKA_FN_ACC inline auto tryUsePage(const AlpakaAcc& acc, uint32 page, uint32 chunksize) -> void*
@@ -413,9 +425,27 @@ namespace mallocMC
 
                 // increse the fill level
                 const uint32 filllevel = alpaka::atomicOp<alpaka::AtomicAdd>(acc, (uint32*) &(_ptes[page].count), 1u);
-                // recheck chunck size (it could be that the page got freed in
-                // the meanwhile...)
-                if(!resetfreedpages || _ptes[page].chunksize == chunksize)
+
+                // if resetfreedpages == false we do not need to re-check filllevel or chunksize
+                bool tryAllocMem = resetfreedpages ? false : true;
+
+                // if _ptes[page].count >= pagesize then page is currently freed by another thread
+                if(resetfreedpages && filllevel < pagesize)
+                {
+                    /* Recheck chunk size (it could be that the page got freed in he meanwhile...)
+                   * Use atomic to guarantee that no other thread deleted the page and reinitialized
+                   * it with another chunk size.
+                     */
+                    const uint32 current_chunksize = alpaka::atomicOp<alpaka::AtomicCas>(
+                        acc,
+                        (uint32*) &_ptes[page].chunksize,
+                        chunksize,
+                        chunksize);
+                    if(current_chunksize == chunksize)
+                        tryAllocMem = true;
+                }
+
+                if(tryAllocMem)
                 {
                     if(chunksize <= HierarchyThreshold)
                     {
@@ -444,56 +474,66 @@ namespace mallocMC
             }
 
             /**
-             * allocChunked tries to allocate the demanded number of bytes on
-             * one of the pages
-             * @param bytes the number of bytes to allocate
-             * @return pointer to a free chunk on a page, 0 if we were unable to
-             * obtain a free chunk
+           * allocChunked tries to allocate the demanded number of bytes on
+           * one of the pages
+           * @param bytes the number of bytes to allocate, must be <=pagesize
+           * @return pointer to a free chunk on a page, 0 if we were unable to
+           * obtain a free chunk
              */
             template<typename AlpakaAcc>
             ALPAKA_FN_ACC auto allocChunked(const AlpakaAcc& acc, uint32 bytes) -> void*
             {
+                // use the minimal allocation size to increase the hit rate for small allocations.
+                const uint32 minAllocation = alpaka::math::max(acc, bytes, +minChunkSize);
                 const uint32 pagesperblock = _numpages / accessblocks;
-                const uint32 reloff = warpSize * bytes / pagesize;
-                const uint32 startpage = (bytes * hashingK + hashingDistMP * smid()
+                const uint32 reloff = warpSize * minAllocation / pagesize;
+                const uint32 startpage = (minAllocation * hashingK + hashingDistMP * smid()
                                           + (hashingDistWP + hashingDistWPRel * reloff) * warpid())
                     % pagesperblock;
-                const uint32 maxchunksize = alpaka::math::min(acc, +pagesize, wastefactor * bytes);
-                uint32 startblock = _firstfreeblock;
-                uint32 ptetry = startpage + startblock * pagesperblock;
+                const uint32 maxchunksize = alpaka::math::min(
+                    acc,
+                    +pagesize,
+                    // ignore the wastefactor for any allocation < minChunkSize
+                    alpaka::math::max(acc, wastefactor * bytes, +minChunkSize));
+
+                const uint32 startblock = _firstfreeblock;
+                const uint32 ptetryStart = startpage + startblock * pagesperblock;
+                uint32 ptetry = ptetryStart;
                 uint32 checklevel = regionsize * 3 / 4;
                 for(uint32 finder = 0; finder < 2; ++finder)
                 {
-                    for(uint32 b = startblock; b < accessblocks; ++b)
+                    for(uint32 x = 0u; x < accessblocks; ++x)
+                    //for(uint32 b = startblock; b < accessblocks; ++b)
                     {
+                        uint32 b = (startblock + x) % accessblocks;
                         while(ptetry < (b + 1) * pagesperblock)
                         {
                             const uint32 region = ptetry / regionsize;
                             const uint32 regionfilllevel = _regions[region];
                             if(regionfilllevel < checklevel)
                             {
-                                for(; ptetry < (region + 1) * regionsize; ++ptetry)
+                                for(uint32 i = 0u; i <  regionsize; ++i)
+                                //for(; ptetry < (region + 1) * regionsize; ++ptetry)
                                 {
-                                    const uint32 chunksize = _ptes[ptetry].chunksize;
+                                    const uint32 ptetry2 = region * regionsize + ((ptetry + i) % regionsize);
+                                    const uint32 chunksize = _ptes[ptetry2].chunksize;
                                     if(chunksize >= bytes && chunksize <= maxchunksize)
                                     {
-                                        void* res = tryUsePage(acc, ptetry, chunksize);
+                                        void* res = tryUsePage(acc, ptetry2, chunksize);
                                         if(res != 0)
                                             return res;
                                     }
                                     else if(chunksize == 0)
                                     {
                                         // lets open up a new page
-                                        // it is already padded
-                                        const uint32 new_chunksize = alpaka::math::max(acc, bytes, +minChunkSize1);
                                         const uint32 beforechunksize = alpaka::atomicOp<alpaka::AtomicCas>(
                                             acc,
-                                            (uint32*) &_ptes[ptetry].chunksize,
+                                            (uint32*) &_ptes[ptetry2].chunksize,
                                             0u,
-                                            new_chunksize);
+                                            minAllocation);
                                         if(beforechunksize == 0)
                                         {
-                                            void* res = tryUsePage(acc, ptetry, new_chunksize);
+                                            void* res = tryUsePage(acc, ptetry2, minAllocation);
                                             if(res != 0)
                                                 return res;
                                         }
@@ -501,7 +541,7 @@ namespace mallocMC
                                         {
                                             // someone else aquired the page,
                                             // but we can also use it
-                                            void* res = tryUsePage(acc, ptetry, beforechunksize);
+                                            void* res = tryUsePage(acc, ptetry2, beforechunksize);
                                             if(res != 0)
                                                 return res;
                                         }
@@ -509,13 +549,14 @@ namespace mallocMC
                                 }
                                 // could not alloc in region, tell that
                                 if(regionfilllevel + 1 <= regionsize)
-                                    alpaka::atomicOp<alpaka::AtomicMax>(
+                                    alpaka::atomicOp<alpaka::AtomicCas>(
                                         acc,
                                         (uint32*) (_regions + region),
+                                        regionfilllevel,
                                         regionfilllevel + 1);
                             }
-                            else
-                                ptetry += regionsize;
+                            //else
+                            ptetry += regionsize;
                             // ptetry = (region+1)*regionsize;
                         }
                         // randomize the thread writing the info
@@ -526,19 +567,20 @@ namespace mallocMC
 
                     // we are really full :/ so lets search every page for a
                     // spot!
-                    startblock = 0;
+                    //startblock = 0;
                     checklevel = regionsize + 1;
-                    ptetry = 0;
+                    //ptetry = 0;
+                    ptetry = ptetryStart;
                 }
                 return 0;
             }
 
             /**
-             * deallocChunked frees the chunk on the page and updates all data
-             * accordingly
-             * @param mem pointer to the chunk
-             * @param page the page the chunk is on
-             * @param chunksize the chunksize used for the page
+           * deallocChunked frees the chunk on the page and updates all data
+           * accordingly
+           * @param mem pointer to the chunk
+           * @param page the page the chunk is on
+           * @param chunksize the chunksize used for the page
              */
             template<typename AlpakaAcc>
             ALPAKA_FN_ACC void deallocChunked(const AlpakaAcc& acc, void* mem, uint32 page, uint32 chunksize)
@@ -583,7 +625,14 @@ namespace mallocMC
                             // clean the bits for the hierarchy
                             _page[page].init();
                             // remove chunk information
-                            _ptes[page].chunksize = 0;
+                            //_ptes[page].chunksize = 0;
+                            const uint32 current_chunksize = alpaka::atomicOp<alpaka::AtomicCas>(
+                                acc,
+                                (uint32*) &_ptes[page].chunksize,
+                                chunksize,
+                                0u);
+                            // if(current_chunksize != chunksize)
+                            //     __trap();
 
                             threadfenceDevice(acc);
 
@@ -598,7 +647,7 @@ namespace mallocMC
                 if(oldfilllevel == pagesize / 2 / chunksize)
                 {
                     const uint32 region = page / regionsize;
-                    _regions[region] = 0;
+                    alpaka::atomicOp<alpaka::AtomicExch>(acc, (uint32*) (_regions + region), 0u);
                     const uint32 block = region * regionsize * accessblocks / _numpages;
                     if(warpid() + laneid() == 0)
                         alpaka::atomicOp<alpaka::AtomicMin>(acc, (uint32*) &_firstfreeblock, block);
@@ -606,11 +655,11 @@ namespace mallocMC
             }
 
             /**
-             * markpages markes a fixed number of pages as used
-             * @param startpage first page to mark
-             * @param pages number of pages to mark
-             * @param bytes number of overall bytes to mark pages for
-             * @return true on success, false if one of the pages is not free
+           * markpages markes a fixed number of pages as used
+           * @param startpage first page to mark
+           * @param pages number of pages to mark
+           * @param bytes number of overall bytes to mark pages for
+           * @return true on success, false if one of the pages is not free
              */
             template<typename AlpakaAcc>
             ALPAKA_FN_ACC auto markpages(const AlpakaAcc& acc, uint32 startpage, uint32 pages, uint32 bytes) -> bool
@@ -634,13 +683,13 @@ namespace mallocMC
             }
 
             /**
-             * allocPageBasedSingleRegion tries to allocate the demanded number
-             * of bytes on a continues sequence of pages
-             * @param startpage first page to be used
-             * @param endpage last page to be used
-             * @param bytes number of overall bytes to mark pages for
-             * @return pointer to the first page to use, 0 if we were unable to
-             * use all the requested pages
+           * allocPageBasedSingleRegion tries to allocate the demanded number
+           * of bytes on a continues sequence of pages
+           * @param startpage first page to be used
+           * @param endpage last page to be used
+           * @param bytes number of overall bytes to mark pages for
+           * @return pointer to the first page to use, 0 if we were unable to
+           * use all the requested pages
              */
             template<typename AlpakaAcc>
             ALPAKA_FN_ACC auto allocPageBasedSingleRegion(
@@ -683,13 +732,13 @@ namespace mallocMC
             }
 
             /**
-             * allocPageBasedSingle tries to allocate the demanded number of
-             * bytes on a continues sequence of pages
-             * @param bytes number of overall bytes to mark pages for
-             * @return pointer to the first page to use, 0 if we were unable to
-             * use all the requested pages
-             * @pre only a single thread of a warp is allowed to call the
-             * function concurrently
+           * allocPageBasedSingle tries to allocate the demanded number of
+           * bytes on a continues sequence of pages
+           * @param bytes number of overall bytes to mark pages for
+           * @return pointer to the first page to use, 0 if we were unable to
+           * use all the requested pages
+           * @pre only a single thread of a warp is allowed to call the
+           * function concurrently
              */
             template<typename AlpakaAcc>
             ALPAKA_FN_ACC auto allocPageBasedSingle(const AlpakaAcc& acc, uint32 bytes) -> void*
@@ -709,11 +758,11 @@ namespace mallocMC
                 return res;
             }
             /**
-             * allocPageBased tries to allocate the demanded number of bytes on
-             * a continues sequence of pages
-             * @param bytes number of overall bytes to mark pages for
-             * @return pointer to the first page to use, 0 if we were unable to
-             * use all the requested pages
+           * allocPageBased tries to allocate the demanded number of bytes on
+           * a continues sequence of pages
+           * @param bytes number of overall bytes to mark pages for
+           * @return pointer to the first page to use, 0 if we were unable to
+           * use all the requested pages
              */
             template<typename AlpakaAcc>
             ALPAKA_FN_ACC auto allocPageBased(const AlpakaAcc& acc, uint32 bytes) -> void*
@@ -736,10 +785,10 @@ namespace mallocMC
             }
 
             /**
-             * deallocPageBased frees the memory placed on a sequence of pages
-             * @param mem pointer to the first page
-             * @param page the first page
-             * @param bytes the number of bytes to be freed
+           * deallocPageBased frees the memory placed on a sequence of pages
+           * @param mem pointer to the first page
+           * @param page the first page
+           * @param bytes the number of bytes to be freed
              */
             template<typename AlpakaAcc>
             ALPAKA_FN_ACC void deallocPageBased(const AlpakaAcc& acc, void* mem, uint32 page, uint32 bytes)
@@ -757,20 +806,22 @@ namespace mallocMC
 
         public:
             /**
-             * create allocates the requested number of bytes via the heap.
-             * Coalescing has to be done before by another policy.
-             * @param bytes number of bytes to allocate
-             * @return pointer to the allocated memory
+           * create allocates the requested number of bytes via the heap.
+           * Coalescing has to be done before by another policy.
+           * @param bytes number of bytes to allocate
+           * @return pointer to the allocated memory
              */
             template<typename AlpakaAcc>
             ALPAKA_FN_ACC auto create(const AlpakaAcc& acc, uint32 bytes) -> void*
             {
                 if(bytes == 0)
                     return 0;
-                // take care of padding
-                // bytes = (bytes + dataAlignment - 1) & ~(dataAlignment-1); //
-                // in alignment-policy
-                if(bytes < pagesize)
+                /* Take care of padding
+               * bytes = (bytes + dataAlignment - 1) & ~(dataAlignment-1);
+               * in alignment-policy.
+               * Max bytes for allocChunked is the size of a page.
+                 */
+                if(bytes <= pagesize)
                     // chunck based
                     return allocChunked(acc, bytes);
                 else
@@ -779,8 +830,8 @@ namespace mallocMC
             }
 
             /**
-             * destroy frees the memory regions previously acllocted via create
-             * @param mempointer to the memory region to free
+           * destroy frees the memory regions previously acllocted via create
+           * @param mempointer to the memory region to free
              */
             template<typename AlpakaAcc>
             ALPAKA_FN_ACC void destroy(const AlpakaAcc& acc, void* mem)
@@ -813,12 +864,12 @@ namespace mallocMC
             }
 
             /**
-             * init inits the heap data structures
-             * the init method must be called before the heap can be used. the
-             * method can be called with an arbitrary number of threads, which
-             * will increase the inits efficiency
-             * @param memory pointer to the memory used for the heap
-             * @param memsize size of the memory in bytes
+           * init inits the heap data structures
+           * the init method must be called before the heap can be used. the
+           * method can be called with an arbitrary number of threads, which
+           * will increase the inits efficiency
+           * @param memory pointer to the memory used for the heap
+           * @param memsize size of the memory in bytes
              */
             template<typename AlpakaAcc>
             ALPAKA_FN_ACC void initDeviceFunction(const AlpakaAcc& acc, void* memory, size_t memsize)
@@ -871,6 +922,19 @@ namespace mallocMC
                 //  printf("c size_t memsize   %llu byte\n", memsize);
                 //  printf("c void *memory     %p\n", page);
                 //}
+                if(linid == 0)
+                {
+                    printf("memsize: %llu\n", (unsigned long long) memsize);
+                    printf(
+                        "(((unsigned long long) regionsize) * (sizeof(PTE) + pagesize) + sizeof(uint32)): %llu\n",
+                        (((unsigned long long) regionsize) * (sizeof(PTE) + pagesize) + sizeof(uint32)));
+                    printf("HierarchyThreshold: %u\n", HierarchyThreshold);
+                    printf("pagesize: %u\n", pagesize);
+                    printf("sizeof(PTE): %u\n", (uint32_t) sizeof(PTE));
+                    printf("numregions: %u\n", numregions);
+                    printf("regionsize: %u\n", regionsize);
+                    printf("numpages = numregions * regionsize: %u\n", numpages);
+                }
 
                 for(uint32 i = linid; i < numpages; i += totalThreads)
                 {
@@ -921,7 +985,8 @@ namespace mallocMC
                                       const AlpakaAcc& m_acc,
                                       T_DeviceAllocator* m_heap,
                                       void* m_heapmem,
-                                      size_t m_memsize) {
+                                      size_t m_memsize)
+                {
                     m_heap->pool = m_heapmem;
                     m_heap->initDeviceFunction(m_acc, m_heapmem, m_memsize);
                 };
@@ -944,18 +1009,18 @@ namespace mallocMC
             }
 
             /** counts how many elements of a size fit inside a given page
-             *
-             * Examines a (potentially already used) page to find how many
-             * elements of size chunksize still fit on the page. This includes
-             * hierarchically organized pages and empty pages. The algorithm
-             * determines the number of chunks in the page in a manner similar
-             * to the allocation algorithm of CreationPolicies::Scatter.
-             *
-             * @param page the number of the page to examine. The page needs to
-             * be formatted with a chunksize and potentially a hierarchy.
-             * @param chunksize the size of element that should be placed inside
-             * the page. This size must be appropriate to the formatting of the
-             *        page.
+           *
+           * Examines a (potentially already used) page to find how many
+           * elements of size chunksize still fit on the page. This includes
+           * hierarchically organized pages and empty pages. The algorithm
+           * determines the number of chunks in the page in a manner similar
+           * to the allocation algorithm of CreationPolicies::Scatter.
+           *
+           * @param page the number of the page to examine. The page needs to
+           * be formatted with a chunksize and potentially a hierarchy.
+           * @param chunksize the size of element that should be placed inside
+           * the page. This size must be appropriate to the formatting of the
+           *        page.
              */
             template<typename AlpakaAcc>
             ALPAKA_FN_ACC auto countFreeChunksInPage(const AlpakaAcc& acc, uint32 page, uint32 chunksize) -> unsigned
@@ -987,21 +1052,21 @@ namespace mallocMC
             }
 
             /** counts the number of available slots inside the heap
-             *
-             * Searches the heap for all possible locations of an element with
-             * size slotSize. The used traversal algorithms are similar to the
-             * allocation strategy of CreationPolicies::Scatter, to ensure
-             * comparable results. There are 3 different algorithms, based on
-             * the size of the requested slot: 1 slot spans over multiple pages,
-             * 1 slot fits in one chunk within a page, 1 slot fits in a fraction
-             * of a chunk.
-             *
-             * @param slotSize the amount of bytes that a single slot accounts
-             * for
-             * @param gid the id of the thread. this id does not have to
-             * correspond with threadId.x, but there must be a continous range
-             * @param stride the stride should be equal to the number of
-             * different gids (and therefore of value max(gid)-1)
+           *
+           * Searches the heap for all possible locations of an element with
+           * size slotSize. The used traversal algorithms are similar to the
+           * allocation strategy of CreationPolicies::Scatter, to ensure
+           * comparable results. There are 3 different algorithms, based on
+           * the size of the requested slot: 1 slot spans over multiple pages,
+           * 1 slot fits in one chunk within a page, 1 slot fits in a fraction
+           * of a chunk.
+           *
+           * @param slotSize the amount of bytes that a single slot accounts
+           * for
+           * @param gid the id of the thread. this id does not have to
+           * correspond with threadId.x, but there must be a continous range
+           * @param stride the stride should be equal to the number of
+           * different gids (and therefore of value max(gid)-1)
              */
             template<typename AlpakaAcc>
             ALPAKA_FN_ACC auto getAvailaibleSlotsDeviceFunction(
@@ -1016,8 +1081,7 @@ namespace mallocMC
                     for(uint32 currentpage = gid; currentpage < _numpages; currentpage += stride)
                     {
                         const uint32 maxchunksize = alpaka::math::min(acc, +pagesize, wastefactor * (uint32) slotSize);
-                        const uint32 region = currentpage / regionsize;
-                        const uint32 regionfilllevel = _regions[region];
+
 
                         uint32 chunksize = _ptes[currentpage].chunksize;
                         if(chunksize >= slotSize && chunksize <= maxchunksize)
@@ -1029,7 +1093,7 @@ namespace mallocMC
                             chunksize = alpaka::math::max(
                                 acc,
                                 (uint32) slotSize,
-                                +minChunkSize1); // ensure minimum chunk size
+                                +minChunkSize); // ensure minimum chunk size
                             slotcount += countFreeChunksInPage(
                                 acc,
                                 currentpage,
@@ -1069,17 +1133,17 @@ namespace mallocMC
             }
 
             /** Count, how many elements can be allocated at maximum
-             *
-             * Takes an input size and determines, how many elements of this
-             * size can be allocated with the CreationPolicy Scatter. This will
-             * return the maximum number of free slots of the indicated size. It
-             * is not guaranteed where these slots are (regarding
-             * fragmentation). Therefore, the practically usable number of slots
-             * might be smaller. This function is executed in parallel. Speedup
-             * can possibly increased by a higher amount ofparallel workers.
-             *
-             * @param slotSize the size of allocatable elements to count
-             * @param obj a reference to the allocator instance (host-side)
+           *
+           * Takes an input size and determines, how many elements of this
+           * size can be allocated with the CreationPolicy Scatter. This will
+           * return the maximum number of free slots of the indicated size. It
+           * is not guaranteed where these slots are (regarding
+           * fragmentation). Therefore, the practically usable number of slots
+           * might be smaller. This function is executed in parallel. Speedup
+           * can possibly increased by a higher amount ofparallel workers.
+           *
+           * @param slotSize the size of allocatable elements to count
+           * @param obj a reference to the allocator instance (host-side)
              */
         public:
             template<typename AlpakaAcc, typename AlpakaDevice, typename AlpakaQueue, typename T_DeviceAllocator>
@@ -1094,7 +1158,8 @@ namespace mallocMC
 
                 auto getAvailableSlotsKernel
                     = [] ALPAKA_FN_ACC(const AlpakaAcc& acc, T_DeviceAllocator* heap, size_t slotSize, unsigned* slots)
-                    -> void {
+                    -> void
+                {
                     const auto gid = alpaka::getIdx<alpaka::Grid, alpaka::Threads>(acc).sum();
 
                     const auto nWorker = alpaka::getWorkDiv<alpaka::Grid, alpaka::Threads>(acc).prod();
@@ -1140,18 +1205,18 @@ namespace mallocMC
             }
 
             /** Count, how many elements can be allocated at maximum
-             *
-             * Takes an input size and determines, how many elements of this
-             * size can be allocated with the CreationPolicy Scatter. This will
-             * return the maximum number of free slots of the indicated size. It
-             * is not guaranteed where these slots are (regarding
-             * fragmentation). Therefore, the practically usable number of slots
-             * might be smaller. This function is executed separately for each
-             * warp and does not cooperate with other warps. Maximum speed is
-             * expected if every thread in the warp executes the function. Uses
-             * 256 byte of shared memory.
-             *
-             * @param slotSize the size of allocatable elements to count
+           *
+           * Takes an input size and determines, how many elements of this
+           * size can be allocated with the CreationPolicy Scatter. This will
+           * return the maximum number of free slots of the indicated size. It
+           * is not guaranteed where these slots are (regarding
+           * fragmentation). Therefore, the practically usable number of slots
+           * might be smaller. This function is executed separately for each
+           * warp and does not cooperate with other warps. Maximum speed is
+           * expected if every thread in the warp executes the function. Uses
+           * 256 byte of shared memory.
+           *
+           * @param slotSize the size of allocatable elements to count
              */
             template<typename AlpakaAcc>
             ALPAKA_FN_ACC auto getAvailableSlotsAccelerator(const AlpakaAcc& acc, size_t slotSize) -> unsigned
