@@ -74,6 +74,18 @@ namespace picongpu
             struct DepositCurrent<T_AtomicAddOp, ParticleAssign, T_begin, T_end, DIM3>
                 : public BaseMethods<ParticleAssign>
             {
+                template<class T_Array>
+                DINLINE float_X S(const T_Array& a, const int gridPoint) const
+                {
+                    return a[gridPoint - T_begin];
+                }
+
+                template<class T_Array0, class T_Array1>
+                DINLINE float_X DSA(const T_Array0& a0, const T_Array1& a1, const int gridPoint) const
+                {
+                    return a1[gridPoint - T_begin] - a0[gridPoint - T_begin];
+                }
+
                 template<typename T_Cursor, typename T_Acc>
                 DINLINE void operator()(
                     T_Acc const& acc,
@@ -116,6 +128,27 @@ namespace picongpu
                 {
                     if(line.m_pos0[2] == line.m_pos1[2])
                         return;
+
+                    constexpr int size = T_end - T_begin;
+
+                    pmacc::memory::Array<float_X, size> s_j_0;
+                    pmacc::memory::Array<float_X, size> s_j_1;
+
+                    for(int j = T_begin; j < T_end; ++j)
+                    {
+                        s_j_0[j - T_begin] = this->S0(line, j, 1);
+                        s_j_1[j - T_begin] = this->S1(line, j, 1);
+                    }
+
+                    pmacc::memory::Array<float_X, size> s_k_0;
+                    pmacc::memory::Array<float_X, size> s_k_1;
+
+                    for(int k = T_begin; k < T_end; ++k)
+                    {
+                        s_k_0[k - T_begin] = this->S0(line, k, 2);
+                        s_k_1[k - T_begin] = this->S1(line, k, 2);
+                    }
+
                     /* pick every cell in the xy-plane that is overlapped by particle's
                      * form factor and deposit the current for the cells above and beneath
                      * that cell and for the cell itself.
@@ -126,8 +159,8 @@ namespace picongpu
                         const float_X dsi = this->S1(line, i, 0) - s0i;
                         for(int j = T_begin; j < T_end; ++j)
                         {
-                            const float_X s0j = this->S0(line, j, 1);
-                            const float_X dsj = this->S1(line, j, 1) - s0j;
+                            const float_X s0j = this->S(s_j_0, j);
+                            const float_X dsj = this->S(s_j_1, j) - s0j;
 
                             float_X tmp = -currentSurfaceDensity
                                 * (s0i * s0j + float_X(0.5) * (dsi * s0j + s0i * dsj)
@@ -140,7 +173,7 @@ namespace picongpu
                                  * from Esirkepov paper. All coordinates are rotated before thus we can always use C
                                  * style W(i,j,k,2).
                                  */
-                                const float_X W = this->DS(line, k, 2) * tmp;
+                                const float_X W = this->DSA(s_k_0, s_k_1, k) * tmp;
                                 accumulated_J += W;
                                 auto const atomicOp = T_AtomicAddOp{};
                                 atomicOp(acc, (*cursorJ(i, j, k)).z(), accumulated_J);
