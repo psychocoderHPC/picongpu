@@ -140,10 +140,10 @@ namespace picongpu
                         s_j_1[j - T_begin] = this->S1(line, j, 1);
                     }
 
-                    pmacc::memory::Array<float_X, size> s_k_0;
-                    pmacc::memory::Array<float_X, size> s_k_1;
+                    pmacc::memory::Array<float_X, size - 1> s_k_0;
+                    pmacc::memory::Array<float_X, size - 1> s_k_1;
 
-                    for(int k = T_begin; k < T_end; ++k)
+                    for(int k = T_begin; k < T_end - 1; ++k)
                     {
                         s_k_0[k - T_begin] = this->S0(line, k, 2);
                         s_k_1[k - T_begin] = this->S1(line, k, 2);
