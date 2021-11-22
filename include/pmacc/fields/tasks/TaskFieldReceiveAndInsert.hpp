@@ -46,6 +46,7 @@ namespace pmacc
         {
             m_state = Init;
             EventTask serialEvent = __getTransactionEvent();
+            serialEvent.waitForFinished();
 
             for(uint32_t i = 1; i < traits::NumberOfExchanges<Dim>::value; ++i)
             {
