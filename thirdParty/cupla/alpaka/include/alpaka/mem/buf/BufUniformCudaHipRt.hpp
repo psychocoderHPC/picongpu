@@ -96,7 +96,7 @@ namespace alpaka
             ALPAKA_DEBUG_MINIMAL_LOG_SCOPE;
 
             // Set the current device.
-            ALPAKA_UNIFORM_CUDA_HIP_RT_CHECK(ALPAKA_API_PREFIX(SetDevice)(dev.m_iDevice));
+
             // Free the buffer.
             ALPAKA_UNIFORM_CUDA_HIP_RT_CHECK(ALPAKA_API_PREFIX(Free)(reinterpret_cast<void*>(memPtr)));
         }
@@ -229,7 +229,7 @@ namespace alpaka
                 auto const widthBytes = width * static_cast<TIdx>(sizeof(TElem));
 
                 // Set the current device.
-                ALPAKA_UNIFORM_CUDA_HIP_RT_CHECK(ALPAKA_API_PREFIX(SetDevice)(dev.m_iDevice));
+
                 // Allocate the buffer on this device.
                 void* memPtr;
                 ALPAKA_UNIFORM_CUDA_HIP_RT_CHECK(
@@ -268,7 +268,7 @@ namespace alpaka
 #    endif
                 {
                     // Set the current device.
-                    ALPAKA_UNIFORM_CUDA_HIP_RT_CHECK(ALPAKA_API_PREFIX(SetDevice)(dev.m_iDevice));
+
 
 
                     // Allocate the buffer on this device.
@@ -316,7 +316,7 @@ namespace alpaka
 #    endif
                 {
                     // Set the current device.
-                    ALPAKA_UNIFORM_CUDA_HIP_RT_CHECK(ALPAKA_API_PREFIX(SetDevice)(dev.m_iDevice));
+
                     // Allocate the buffer on this device.
                     ALPAKA_UNIFORM_CUDA_HIP_RT_CHECK(ALPAKA_API_PREFIX(Malloc3D)(&pitchedPtrVal, extentVal));
                 }

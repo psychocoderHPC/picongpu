@@ -109,7 +109,6 @@ namespace alpaka
                 ALPAKA_ASSERT(extentWidth <= dstWidth);
 
                 // Set the current device.
-                ALPAKA_UNIFORM_CUDA_HIP_RT_CHECK(ALPAKA_API_PREFIX(SetDevice)(this->m_iDevice));
                 // Initiate the memory set.
                 ALPAKA_UNIFORM_CUDA_HIP_RT_CHECK(ALPAKA_API_PREFIX(MemsetAsync)(
                     dstNativePtr,
@@ -163,7 +162,6 @@ namespace alpaka
                 ALPAKA_ASSERT(extentHeight <= dstHeight);
 
                 // Set the current device.
-                ALPAKA_UNIFORM_CUDA_HIP_RT_CHECK(ALPAKA_API_PREFIX(SetDevice)(this->m_iDevice));
                 // Initiate the memory set.
                 ALPAKA_UNIFORM_CUDA_HIP_RT_CHECK(ALPAKA_API_PREFIX(Memset2DAsync)(
                     dstNativePtr,
@@ -237,7 +235,6 @@ namespace alpaka
                     static_cast<size_t>(extentDepth));
 
                 // Set the current device.
-                ALPAKA_UNIFORM_CUDA_HIP_RT_CHECK(ALPAKA_API_PREFIX(SetDevice)(this->m_iDevice));
                 // Initiate the memory set.
                 ALPAKA_UNIFORM_CUDA_HIP_RT_CHECK(ALPAKA_API_PREFIX(Memset3DAsync)(
                     pitchedPtrVal,

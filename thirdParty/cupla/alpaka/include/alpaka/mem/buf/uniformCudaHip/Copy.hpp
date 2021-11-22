@@ -110,7 +110,7 @@ namespace alpaka
                 auto const& uniformCudaHipMemCpyKind(m_uniformMemCpyKind);
 
                 // Set the current device.
-                ALPAKA_UNIFORM_CUDA_HIP_RT_CHECK(ALPAKA_API_PREFIX(SetDevice)(m_iDstDevice));
+
                 // Initiate the memory copy.
                 ALPAKA_UNIFORM_CUDA_HIP_RT_CHECK(ALPAKA_API_PREFIX(MemcpyAsync)(
                     m_dstMemNative,
@@ -217,7 +217,7 @@ namespace alpaka
                 }
 
                 // Set the current device.
-                ALPAKA_UNIFORM_CUDA_HIP_RT_CHECK(ALPAKA_API_PREFIX(SetDevice)(m_iDstDevice));
+
                 // Initiate the memory copy.
                 ALPAKA_UNIFORM_CUDA_HIP_RT_CHECK(ALPAKA_API_PREFIX(Memcpy2DAsync)(
                     m_dstMemNative,
@@ -347,7 +347,7 @@ namespace alpaka
                 ALPAKA_API_PREFIX(Memcpy3DParms)
                 const uniformCudaHipMemCpy3DParms(buildUniformCudaHipMemcpy3DParms());
                 // Set the current device.
-                ALPAKA_UNIFORM_CUDA_HIP_RT_CHECK(ALPAKA_API_PREFIX(SetDevice)(m_iDstDevice));
+
 
                 ALPAKA_UNIFORM_CUDA_HIP_RT_CHECK(ALPAKA_API_PREFIX(
                     Memcpy3DAsync)(&uniformCudaHipMemCpy3DParms, queue.m_spQueueImpl->m_UniformCudaHipQueue));

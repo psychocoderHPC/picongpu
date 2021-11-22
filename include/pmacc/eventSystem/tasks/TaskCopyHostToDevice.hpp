@@ -51,6 +51,13 @@ namespace pmacc
 
         bool executeIntern() override
         {
+            if(hasSizeEvent)
+            {
+                if(setSizeEvent.isFinished())
+                    alwaysFinished = true;
+                else
+                    return false;
+            }
             return isFinished();
         }
 
@@ -68,12 +75,20 @@ namespace pmacc
              * but not register an task before this `init()` is finished.
              */
             device->setCurrentSize(current_size);
-            if(host->is1D() && device->is1D())
-                fastCopy(host->getPointer(), device->getPointer(), hostCurrentSize.productOfComponents());
-            else
-                copy(hostCurrentSize);
+            if(current_size != 0)
+            {
+                if(host->is1D() && device->is1D())
+                    fastCopy(host->getPointer(), device->getPointer(), hostCurrentSize.productOfComponents());
+                else
+                    copy(hostCurrentSize);
 
-            this->activate();
+                this->activate();
+            }
+            else
+            {
+                setSizeEvent = __getTransactionEvent();
+                hasSizeEvent = true;
+            }
         }
 
         std::string toString() override
@@ -94,6 +109,8 @@ namespace pmacc
 
         HostBuffer<TYPE, DIM>* host;
         DeviceBuffer<TYPE, DIM>* device;
+        EventTask setSizeEvent;
+        bool hasSizeEvent = false;
     };
 
     template<class TYPE, unsigned DIM>

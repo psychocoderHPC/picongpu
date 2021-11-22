@@ -53,7 +53,7 @@ namespace alpaka
                     ALPAKA_DEBUG_MINIMAL_LOG_SCOPE;
 
                     // Set the current device.
-                    ALPAKA_UNIFORM_CUDA_HIP_RT_CHECK(ALPAKA_API_PREFIX(SetDevice)(m_dev.m_iDevice));
+
 
                     // - [cuda/hip]StreamDefault: Default queue creation flag.
                     // - [cuda/hip]StreamNonBlocking: Specifies that work running in the created queue may run
@@ -80,7 +80,7 @@ namespace alpaka
                     // automatically once the device has completed all work in queue.
                     // -> No need to synchronize here.
 
-                    ALPAKA_UNIFORM_CUDA_HIP_RT_CHECK(ALPAKA_API_PREFIX(SetDevice)(m_dev.m_iDevice));
+
                     // In case the device is still doing work in the queue when cuda/hip-StreamDestroy() is called, the
                     // function will return immediately and the resources associated with queue will be released
                     // automatically once the device has completed all work in queue.

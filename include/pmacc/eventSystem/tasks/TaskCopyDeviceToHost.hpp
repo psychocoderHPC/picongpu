@@ -52,6 +52,13 @@ namespace pmacc
 
         bool executeIntern() override
         {
+            if(hasSizeEvent)
+            {
+                if(setSizeEvent.isFinished())
+                    alwaysFinished = true;
+                else
+                    return false;
+            }
             return isFinished();
         }
 
@@ -68,13 +75,21 @@ namespace pmacc
         {
             size_t current_size = device->getCurrentSize();
             host->setCurrentSize(current_size);
-            DataSpace<DIM> devCurrentSize = device->getCurrentDataSpace(current_size);
-            if(host->is1D() && device->is1D())
-                fastCopy(device->getPointer(), host->getPointer(), devCurrentSize.productOfComponents());
-            else
-                copy(devCurrentSize);
+            if(current_size != 0)
+            {
+                DataSpace<DIM> devCurrentSize = device->getCurrentDataSpace(current_size);
+                if(host->is1D() && device->is1D())
+                    fastCopy(device->getPointer(), host->getPointer(), devCurrentSize.productOfComponents());
+                else
+                    copy(devCurrentSize);
 
-            this->activate();
+                this->activate();
+            }
+            else
+            {
+                setSizeEvent = __getTransactionEvent();
+                hasSizeEvent = true;
+            }
         }
 
     protected:
@@ -88,6 +103,8 @@ namespace pmacc
 
         HostBuffer<TYPE, DIM>* host;
         DeviceBuffer<TYPE, DIM>* device;
+        EventTask setSizeEvent;
+        bool hasSizeEvent = false;
     };
 
     template<class TYPE, unsigned DIM>

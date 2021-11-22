@@ -57,7 +57,7 @@ namespace alpaka
                     ALPAKA_DEBUG_MINIMAL_LOG_SCOPE;
 
                     // Set the current device.
-                    ALPAKA_UNIFORM_CUDA_HIP_RT_CHECK(ALPAKA_API_PREFIX(SetDevice)(m_dev.m_iDevice));
+
 
                     // Create the event on the current device with the specified flags. Valid flags include:
                     // - cuda/hip-EventDefault: Default event creation flag.
@@ -82,7 +82,7 @@ namespace alpaka
                     // Set the current device. \TODO: Is setting the current device before cuda/hip-EventDestroy
                     // required?
 
-                    ALPAKA_UNIFORM_CUDA_HIP_RT_CHECK(ALPAKA_API_PREFIX(SetDevice)(m_dev.m_iDevice));
+
                     // In case event has been recorded but has not yet been completed when cuda/hip-EventDestroy() is
                     // called, the function will return immediately and the resources associated with event will be
                     // released automatically once the device has completed event.
@@ -240,7 +240,7 @@ namespace alpaka
                 ALPAKA_DEBUG_MINIMAL_LOG_SCOPE;
 
                 // Set the current device.
-                ALPAKA_UNIFORM_CUDA_HIP_RT_CHECK(ALPAKA_API_PREFIX(SetDevice)(dev.m_iDevice));
+
 
                 ALPAKA_UNIFORM_CUDA_HIP_RT_CHECK(
                     ALPAKA_API_PREFIX(StreamWaitEvent)(nullptr, event.m_spEventImpl->m_UniformCudaHipEvent, 0));

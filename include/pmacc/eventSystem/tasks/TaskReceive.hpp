@@ -70,22 +70,35 @@ namespace pmacc
                  */
                 if(exchange->hasDeviceDoubleBuffer())
                 {
-                    if(Environment<>::get().isMpiDirectEnabled())
+                    if(newBufferSize != 0u)
                     {
-                        exchange->getDeviceDoubleBuffer().setCurrentSize(newBufferSize);
+                        if(Environment<>::get().isMpiDirectEnabled())
+                        {
+                            exchange->getDeviceDoubleBuffer().setCurrentSize(newBufferSize);
+                        }
+                        else
+                        {
+                            exchange->getHostBuffer().setCurrentSize(newBufferSize);
+                            Environment<>::get().Factory().createTaskCopyHostToDevice(
+                                exchange->getHostBuffer(),
+                                exchange->getDeviceDoubleBuffer());
+                        }
+                    }
+
+                    if(newBufferSize != 0u)
+                    {
+                        Environment<>::get().Factory().createTaskCopyDeviceToDevice(
+                            exchange->getDeviceDoubleBuffer(),
+                            exchange->getDeviceBuffer(),
+                            this);
                     }
                     else
                     {
                         exchange->getHostBuffer().setCurrentSize(newBufferSize);
-                        Environment<>::get().Factory().createTaskCopyHostToDevice(
-                            exchange->getHostBuffer(),
-                            exchange->getDeviceDoubleBuffer());
+                        exchange->getDeviceBuffer().setCurrentSize(newBufferSize);
+                        setSizeEvent = __getTransactionEvent();
+                        state = WaitForSetSize;
                     }
-
-                    Environment<>::get().Factory().createTaskCopyDeviceToDevice(
-                        exchange->getDeviceDoubleBuffer(),
-                        exchange->getDeviceBuffer(),
-                        this);
                 }
                 else
                 {
@@ -98,13 +111,20 @@ namespace pmacc
                         setSizeEvent = __getTransactionEvent();
                         state = WaitForSetSize;
                     }
-                    else
+                    else if(newBufferSize != 0u)
                     {
                         exchange->getHostBuffer().setCurrentSize(newBufferSize);
                         Environment<>::get().Factory().createTaskCopyHostToDevice(
                             exchange->getHostBuffer(),
                             exchange->getDeviceBuffer(),
                             this);
+                    }
+                    else
+                    {
+                        exchange->getHostBuffer().setCurrentSize(newBufferSize);
+                        exchange->getDeviceBuffer().setCurrentSize(newBufferSize);
+                        setSizeEvent = __getTransactionEvent();
+                        state = WaitForSetSize;
                     }
                 }
 

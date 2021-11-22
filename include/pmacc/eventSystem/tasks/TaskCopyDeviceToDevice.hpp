@@ -50,6 +50,13 @@ namespace pmacc
 
         bool executeIntern() override
         {
+            if(hasSizeEvent)
+            {
+                if(setSizeEvent.isFinished())
+                    alwaysFinished = true;
+                else
+                    return false;
+            }
             return isFinished();
         }
 
@@ -61,13 +68,21 @@ namespace pmacc
         {
             size_t current_size = source->getCurrentSize();
             destination->setCurrentSize(current_size);
-            DataSpace<DIM> devCurrentSize = source->getCurrentDataSpace(current_size);
-            if(source->is1D() && destination->is1D())
-                fastCopy(source->getPointer(), destination->getPointer(), devCurrentSize.productOfComponents());
-            else
-                copy(devCurrentSize);
+            if(current_size != 0)
+            {
+                DataSpace<DIM> devCurrentSize = source->getCurrentDataSpace(current_size);
+                if(source->is1D() && destination->is1D())
+                    fastCopy(source->getPointer(), destination->getPointer(), devCurrentSize.productOfComponents());
+                else
+                    copy(devCurrentSize);
 
-            this->activate();
+                this->activate();
+            }
+            else
+            {
+                setSizeEvent = __getTransactionEvent();
+                hasSizeEvent = true;
+            }
         }
 
         std::string toString() override
@@ -86,6 +101,8 @@ namespace pmacc
 
         DeviceBuffer<TYPE, DIM>* source;
         DeviceBuffer<TYPE, DIM>* destination;
+        EventTask setSizeEvent;
+        bool hasSizeEvent = false;
     };
 
 
