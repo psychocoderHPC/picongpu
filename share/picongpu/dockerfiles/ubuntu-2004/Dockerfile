@@ -7,7 +7,7 @@ ENV        DEBIAN_FRONTEND=noninteractive \
            FORCE_UNSAFE_CONFIGURE=1 \
            SPACK_ROOT=/usr/local \
            SPACK_EXTRA_REPO=/usr/local/share/spack-repo \
-           PIC_PACKAGE='picongpu@develop+isaac backend=cuda target=x86_64' \
+           PIC_PACKAGE='picongpu@0.6.0+isaac backend=cuda target=x86_64' \
            CUDA_PKG_VERSION="11-2"
 
 # install minimal spack dependencies
@@ -52,7 +52,7 @@ COPY       compilers.yaml packages.yaml modules.yaml $SPACK_ROOT/etc/spack/
 RUN        curl -s -L https://github.com/spack/spack/archive/develop.tar.gz \
                 | tar xzC $SPACK_ROOT --strip 1 && \
            mkdir -p $SPACK_EXTRA_REPO && \
-           curl -s -L https://api.github.com/repos/ComputationalRadiationPhysics/spack-repo/tarball \
+           curl -s -L https://api.github.com/repos/psychocoderHPC/spack-repo/tarball \
                 | tar xzC $SPACK_EXTRA_REPO --strip 1 && \
            spack repo add --scope=system $SPACK_EXTRA_REPO
 RUN        spack install --only dependencies $PIC_PACKAGE
