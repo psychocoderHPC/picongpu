@@ -149,25 +149,37 @@ namespace picongpu
 
                 constexpr int begin = -currentLowerMargin + 1;
                 constexpr int end = begin + supp;
-                constexpr int iterations = supp + 1;
 
 
+#if 1
+                auto s_j_0 = ParticleAssign().shapeArray(line.m_pos0[1]);
+                auto s_j_1 = ParticleAssign().shapeArray(line.m_pos1[1]);
 
-                pmacc::memory::Array<float_X, iterations> s_j_0;
-                pmacc::memory::Array<float_X, iterations> s_j_1;
+                auto d_k_1 = ParticleAssign().shapeArray(line.m_pos1[2]);
+                auto d_k_0 = ParticleAssign().shapeArray(line.m_pos0[2]);
+#if 0
+                for(int k = 0; k < d_k.size() - 1; ++k)
+                {
+                    d_k[k] -= d_k_0[k];
+                }
+#endif
+#else
+                pmacc::memory::Array<float_X, supp + 1> s_j_0;
+                pmacc::memory::Array<float_X, supp + 1> s_j_1;
                 for(int j = begin; j < end + 1; ++j)
-                    //if(j < end + leaveCell[1])
-                    {
-                        s_j_0[j - begin] = this->S0(line, j, 1);
-                        s_j_1[j - begin] = this->S1(line, j, 1);
-                    }
+                // if(j < end + leaveCell[1])
+                {
+                    s_j_0[j - begin] = this->S0(line, j, 1);
+                    s_j_1[j - begin] = this->S1(line, j, 1);
+                }
 
-                pmacc::memory::Array<float_X, iterations - 1> d_k;
+                pmacc::memory::Array<float_X, supp> d_k;
                 for(int k = begin; k < end; ++k)
-                    //if(k < end + leaveCell[2] - 1)
-                    {
-                        d_k[k - begin] = DS(line, k, 2);
-                    }
+                // if(k < end + leaveCell[2] - 1)
+                {
+                    d_k[k - begin] = DS(line, k, 2);
+                }
+#endif
 
                 /* We multiply with `cellEdgeLength` due to the fact that the attribute for the
                  * in-cell particle `position` (and it's change in DELTA_T) is normalize to [0,1)
@@ -212,7 +224,7 @@ namespace picongpu
                                          * version from Esirkepov paper. All coordinates are rotated before thus we can
                                          * always use C style W(i,j,k,2).
                                          */
-                                        const float_X W = d_k[k - begin] * tmp;
+                                        const float_X W = (d_k_1[k - begin] - d_k_0[k - begin]) * tmp;
                                         accumulated_J += W;
                                         auto const atomicOp = typename T_Strategy::BlockReductionOp{};
                                         atomicOp(acc, (*cursorJ(i, j, k)).z(), accumulated_J);
