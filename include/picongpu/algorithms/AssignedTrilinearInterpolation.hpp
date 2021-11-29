@@ -70,14 +70,8 @@ namespace picongpu
 
             constexpr int iterations = T_end - T_begin + 1;
 
-            pmacc::memory::Array<float_X, iterations> s_y;
-            pmacc::memory::Array<float_X, iterations> s_x;
-
-            for(int i = T_begin; i <= T_end; ++i)
-            {
-                s_y[i - T_begin] = T_AssignmentFunction()(float_X(i) - pos.y());
-                s_x[i - T_begin] = T_AssignmentFunction()(float_X(i) - pos.x());
-            }
+            auto s_y = T_AssignmentFunction().shapeArray(pos.y());
+            auto s_x = T_AssignmentFunction().shapeArray(pos.x());
 
             auto result_z = type(0.0);
             PMACC_UNROLL(iterations)

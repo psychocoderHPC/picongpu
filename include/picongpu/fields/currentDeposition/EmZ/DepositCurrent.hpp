@@ -116,6 +116,13 @@ namespace picongpu
                 {
                     if(line.m_pos0[2] == line.m_pos1[2])
                         return;
+
+                    auto s_j_0 = ParticleAssign().shapeArray(line.m_pos0[1]);
+                    auto s_j_1 = ParticleAssign().shapeArray(line.m_pos1[1]);
+
+                    auto d_k_1 = ParticleAssign().shapeArray(line.m_pos1[2]);
+                    auto d_k_0 = ParticleAssign().shapeArray(line.m_pos0[2]);
+
                     /* pick every cell in the xy-plane that is overlapped by particle's
                      * form factor and deposit the current for the cells above and beneath
                      * that cell and for the cell itself.
@@ -126,8 +133,8 @@ namespace picongpu
                         const float_X dsi = this->S1(line, i, 0) - s0i;
                         for(int j = T_begin; j < T_end; ++j)
                         {
-                            const float_X s0j = this->S0(line, j, 1);
-                            const float_X dsj = this->S1(line, j, 1) - s0j;
+                            const float_X s0j = s_j_0[j - T_begin];
+                            const float_X dsj = s_j_1[j - T_begin] - s0j;
 
                             float_X tmp = -currentSurfaceDensity
                                 * (s0i * s0j + float_X(0.5) * (dsi * s0j + s0i * dsj)
@@ -140,7 +147,7 @@ namespace picongpu
                                  * from Esirkepov paper. All coordinates are rotated before thus we can always use C
                                  * style W(i,j,k,2).
                                  */
-                                const float_X W = this->DS(line, k, 2) * tmp;
+                                const float_X W = (d_k_1[k - T_begin] - d_k_0[k - T_begin]) * tmp;
                                 accumulated_J += W;
                                 auto const atomicOp = T_AtomicAddOp{};
                                 atomicOp(acc, (*cursorJ(i, j, k)).z(), accumulated_J);
