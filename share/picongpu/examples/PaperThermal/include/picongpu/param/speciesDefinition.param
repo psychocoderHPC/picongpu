@@ -29,13 +29,6 @@
 #include <pmacc/particles/Identifier.hpp>
 #include <pmacc/particles/traits/FilterByFlag.hpp>
 
-
-#ifndef PARAM_RADIATION
-/* disable radiation calculation */
-#    define PARAM_RADIATION 0
-#endif
-
-
 namespace picongpu
 {
     /*########################### define particle attributes #####################*/
@@ -45,10 +38,6 @@ namespace picongpu
         position<position_pic>,
         momentum,
         weighting
-#if(PARAM_RADIATION == 1)
-        ,
-        momentumPrev1
-#endif
         >;
 
     /*########################### end particle attributes ########################*/
@@ -72,28 +61,6 @@ namespace picongpu
     /* define species electrons */
     using PIC_Electrons = Particles<PMACC_CSTRING("e"), ParticleFlagsElectrons, DefaultParticleAttributes>;
 
-    /*--------------------------- ions -------------------------------------------*/
-
-    /* ratio relative to BASE_CHARGE and BASE_MASS */
-    value_identifier(float_X, MassRatioIons, 1.0);
-    value_identifier(float_X, ChargeRatioIons, -1.0);
-
-    /* ratio relative to BASE_DENSITY */
-    value_identifier(float_X, DensityRatioIons, 1.0);
-
-    using ParticleFlagsIons = MakeSeq_t<
-        particlePusher<UsedParticlePusher>,
-        shape<UsedParticleShape>,
-        interpolation<UsedField2Particle>,
-        current<UsedParticleCurrentSolver>,
-        massRatio<MassRatioIons>,
-        chargeRatio<ChargeRatioIons>,
-        densityRatio<DensityRatioIons>,
-        atomicNumbers<ionization::atomicNumbers::Hydrogen_t>>;
-
-    /* define species ions */
-    using PIC_Ions = Particles<PMACC_CSTRING("i"), ParticleFlagsIons, DefaultParticleAttributes>;
-
     /*########################### end species ####################################*/
 
     /** All known particle species of the simulation
@@ -101,6 +68,6 @@ namespace picongpu
      * List all defined particle species from above in this list
      * to make them available to the PIC algorithm.
      */
-    using VectorAllSpecies = MakeSeq_t<PIC_Electrons, PIC_Ions>;
+    using VectorAllSpecies = MakeSeq_t<PIC_Electrons>;
 
 } // namespace picongpu
