@@ -56,7 +56,7 @@ namespace picongpu
 
                 struct ChargeAssignment : public detail::CIC
                 {
-                    HDINLINE float_X operator()(float_X const x)
+                    HDINLINE float_X operator()(float_X const x) const
                     {
                         /*       -
                          *       |  1-|x|           if |x|<1
@@ -75,6 +75,25 @@ namespace picongpu
 
                         return result;
                     }
+
+                    // @param x particle position: range [0.0;2.0)
+                    HDINLINE auto shapeArray(float_X const xx) const
+                    {
+                        bool const isOutOfRange =  xx > 1.0_X;
+                        float_X x = isOutOfRange? xx - 1.0_X : xx;
+
+                        ChargeAssignmentOnSupport onSupport;
+                        pmacc::memory::Array<float_X, support + 1> shapeValues;
+                        // grid point [-1;2]
+                        shapeValues[0] = onSupport(x);
+                        shapeValues[1] = onSupport(1._X - x);
+
+                        shapeValues[2] = isOutOfRange ? shapeValues[1] : 0.0_X;
+                        shapeValues[1] = isOutOfRange ? shapeValues[0] : shapeValues[1];
+                        shapeValues[0] = isOutOfRange ? 0.0_X : shapeValues[0];
+
+                        return shapeValues;
+                    }
                 };
 
                 struct ChargeAssignmentOnSupport : public detail::CIC
@@ -82,12 +101,22 @@ namespace picongpu
                     /** form factor of this particle shape.
                      * @param x has to be within [-support/2, support/2]
                      */
-                    HDINLINE float_X operator()(float_X const x)
+                    HDINLINE float_X operator()(float_X const x) const
                     {
                         /*
                          * W(x)=1-|x|
                          */
                         return 1.0_X - math::abs(x);
+                    }
+
+                    // @param x particle position: range [0.0;1.0)
+                    HDINLINE auto shapeArray(float_X const x) const
+                    {
+                        pmacc::memory::Array<float_X, support> shapeValues;
+                        // grid point [-1;2]
+                        shapeValues[0] = this->operator()(- x);
+                        shapeValues[1] = this->operator()(1._X - x);
+                        return shapeValues;
                     }
                 };
             };
