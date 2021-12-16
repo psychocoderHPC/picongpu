@@ -77,7 +77,7 @@ namespace picongpu
 
     /** Possible native fields: FieldE, FieldB, FieldJ
      */
-    using NativeFileOutputFields = MakeSeq_t<FieldJ>;
+    using NativeFileOutputFields = MakeSeq_t<FieldJ, FieldE, FieldB>;
 
     using FileOutputFields = MakeSeq_t<NativeFileOutputFields, FieldTmpSolvers>;
 

@@ -48,11 +48,11 @@ namespace picongpu
                 DriftParam_direction,
                 // unit vector for direction of drift: x, y, z
                 1.0,
-                0.0,
-                0.0);
+                1.0,
+                1.0);
             struct DriftParam
             {
-                static constexpr float_64 gamma = 1.1547; // beta: 0.5
+                static constexpr float_64 gamma = 22.366272; // beta: 0.5
                 const DriftParam_direction_t direction;
             };
             using AssignXDrift = unary::Drift<DriftParam, pmacc::math::operation::Assign>;
@@ -68,9 +68,9 @@ namespace picongpu
                 3,
                 InCellOffset,
                 // each x, y, z in-cell position component in range [0.0, 1.0)
-                0.0,
-                0.0,
-                0.0);
+                0.1,
+                0.9,
+                0.1);
             struct OnePositionParameter
             {
                 /** Count of particles per cell at initial state

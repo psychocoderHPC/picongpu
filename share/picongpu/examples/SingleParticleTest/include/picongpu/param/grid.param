@@ -46,23 +46,21 @@ namespace picongpu
 {
     namespace SI
     {
-        /** Period of a gyro-motion in s for an electron with beta=0.5 in B=50T
-         *  unit: seconds */
-        constexpr float_64 T_GYRO_SI = 0.825e-12;
 
-        /** Duration of one timestep
-         *  unit: seconds */
-        constexpr float_64 DELTA_T_SI = T_GYRO_SI / 50.;
 
         /** equals X
          *  unit: meter */
-        constexpr float_64 CELL_WIDTH_SI = 8.6e-6;
+        constexpr float_64 CELL_WIDTH_SI = 1.0;
         /** equals Y
          *  unit: meter */
         constexpr float_64 CELL_HEIGHT_SI = CELL_WIDTH_SI;
         /** equals Z
          *  unit: meter */
         constexpr float_64 CELL_DEPTH_SI = CELL_WIDTH_SI;
+
+        /** Duration of one timestep
+         *  unit: seconds */
+        constexpr float_64 DELTA_T_SI = 0.5*CELL_WIDTH_SI/SPEED_OF_LIGHT_SI;
 
         /** Note on units in reduced dimensions
          *

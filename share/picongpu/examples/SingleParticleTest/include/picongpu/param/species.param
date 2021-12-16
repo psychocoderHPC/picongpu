@@ -43,6 +43,9 @@
 #include "picongpu/particles/flylite/NonLTE.def"
 #include "picongpu/particles/shapes.hpp"
 
+#ifndef PARAM_CURRENTSOLVER
+#    define PARAM_CURRENTSOLVER EmZ
+#endif
 
 namespace picongpu
 {
@@ -78,7 +81,7 @@ namespace picongpu
      * - currentSolver::strategy::NonCachedSupercells
      * - currentSolver::strategy::NonCachedSupercellsScaled<N> with N >= 1
      */
-    using UsedParticleCurrentSolver = currentSolver::EmZ<UsedParticleShape>;
+    using UsedParticleCurrentSolver = currentSolver::PARAM_CURRENTSOLVER<UsedParticleShape>;
 
 /** particle pusher configuration
  *
@@ -101,9 +104,6 @@ namespace picongpu
  * For development purposes: --------------------------------------------------
  * - particles::pusher::Axel : a pusher developed at HZDR during 2011 (testing)
  */
-#ifndef PARAM_PARTICLEPUSHER
-#    define PARAM_PARTICLEPUSHER Boris
-#endif
-    using UsedParticlePusher = particles::pusher::PARAM_PARTICLEPUSHER;
+    using UsedParticlePusher = particles::pusher::Free;
 
 } // namespace picongpu

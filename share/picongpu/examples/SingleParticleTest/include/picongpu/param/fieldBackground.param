@@ -28,7 +28,7 @@ namespace picongpu
     {
     public:
         /* Add this additional field for pushing particles */
-        static constexpr bool InfluenceParticlePusher = true;
+        static constexpr bool InfluenceParticlePusher = false;
 
         /* We use this to calculate your SI input back to our unit system */
         PMACC_ALIGN(m_unitField, const float3_64);
@@ -55,7 +55,7 @@ namespace picongpu
     {
     public:
         /* Add this additional field for pushing particles */
-        static constexpr bool InfluenceParticlePusher = true;
+        static constexpr bool InfluenceParticlePusher = false;
 
         /* We use this to calculate your SI input back to our unit system */
         PMACC_ALIGN(m_unitField, const float3_64);
