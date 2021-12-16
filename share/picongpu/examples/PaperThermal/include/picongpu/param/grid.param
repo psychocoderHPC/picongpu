@@ -49,14 +49,14 @@ namespace picongpu
     {
         /** Duration of one timestep
          *  unit: seconds */
-        constexpr float_64 DELTA_T_SI = 2.80271e-16;
+        constexpr float_64 DELTA_T_SI = 3.05328e-15;
 
         /** equals X
          *  unit: meter */
 
         /** equals X
          *  unit: meter */
-        constexpr float_64 CELL_WIDTH_SI = 1.46260e-07;
+        constexpr float_64 CELL_WIDTH_SI = 1.83070e-06;
         /** equals Y
          *  unit: meter */
         constexpr float_64 CELL_HEIGHT_SI = CELL_WIDTH_SI;

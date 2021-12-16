@@ -38,7 +38,7 @@ namespace picongpu
     *   - reduces
     *   - ...
     */
-   constexpr size_t reservedGpuMemorySize = 400 * 1024 * 1024;
+   constexpr size_t reservedGpuMemorySize = 999 * 1024 * 1024;
 
    /* short namespace*/
    namespace mCT = pmacc::math::CT;
