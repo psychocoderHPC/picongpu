@@ -75,7 +75,7 @@ namespace picongpu
                 /* Initial temperature
                  *  unit: keV
                  */
-                static constexpr float_64 temperature = 17.5*510.998950; // most probable E_kin = 10 mc^2
+                static constexpr float_64 temperature = 17.5*0.510998950; // most probable E_kin = 5 mc^2
             };
             using AddTemperature = unary::Temperature<TemperatureParam>;
 
