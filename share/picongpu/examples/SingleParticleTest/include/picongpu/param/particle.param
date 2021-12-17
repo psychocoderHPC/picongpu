@@ -27,6 +27,15 @@
 
 #include <limits>
 
+#ifndef PARAM_VX
+#    define PARAM_VX 1
+#endif
+#ifndef PARAM_VY
+#    define PARAM_VY 0
+#endif
+#ifndef PARAM_VZ
+#    define PARAM_VZ 0
+#endif
 
 namespace picongpu
 {
@@ -47,9 +56,9 @@ namespace picongpu
                 3,
                 DriftParam_direction,
                 // unit vector for direction of drift: x, y, z
-                1.0,
-                1.0,
-                1.0);
+                PARAM_VX,
+                PARAM_VY,
+                PARAM_VZ);
             struct DriftParam
             {
                 static constexpr float_64 gamma = 22.366272; // beta: 0.5
@@ -68,9 +77,9 @@ namespace picongpu
                 3,
                 InCellOffset,
                 // each x, y, z in-cell position component in range [0.0, 1.0)
-                0.1,
                 0.9,
-                0.1);
+                0.8,
+                0.7);
             struct OnePositionParameter
             {
                 /** Count of particles per cell at initial state

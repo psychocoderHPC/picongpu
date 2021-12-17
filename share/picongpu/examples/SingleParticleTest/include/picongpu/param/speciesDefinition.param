@@ -67,9 +67,25 @@ namespace picongpu
     /* define species electrons */
     using PIC_Electrons = Particles<PMACC_CSTRING("e"), ParticleFlagsElectrons, DefaultParticleAttributes>;
 
+    /*--------------------------- positrons -------------------------------------------*/
+
+    /* ratio relative to BASE_CHARGE and BASE_MASS */
+    value_identifier(float_X, MassRatioPositrons, 1.0);
+    value_identifier(float_X, ChargeRatioPositrons, -1.0);
+
+
+    using ParticleFlagsPositrons = MakeSeq_t<
+        shape<UsedParticleShape>,
+        interpolation<UsedField2Particle>,
+        massRatio<MassRatioPositrons>,
+        chargeRatio<ChargeRatioPositrons>>;
+
+    /*define specie ions*/
+    using PIC_Positrons = Particles<PMACC_CSTRING("p"), ParticleFlagsPositrons, DefaultParticleAttributes>;
+
     /*########################### end species ####################################*/
 
-    using VectorAllSpecies = MakeSeq_t<PIC_Electrons>;
+    using VectorAllSpecies = MakeSeq_t<PIC_Electrons, PIC_Positrons>;
 
 
 } // namespace picongpu

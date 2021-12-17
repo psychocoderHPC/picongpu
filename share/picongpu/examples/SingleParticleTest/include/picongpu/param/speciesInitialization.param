@@ -41,6 +41,7 @@ namespace picongpu
          */
         using InitPipeline = bmpl::vector<
             CreateDensity<densityProfiles::FreeFormula, startPosition::OnePosition, PIC_Electrons>,
+            Derive<PIC_Electrons, PIC_Positrons>,
             Manipulate<manipulators::AssignXDrift, PIC_Electrons>>;
 
     } // namespace particles
