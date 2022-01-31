@@ -44,7 +44,7 @@ module load git/2.31.1
 # Other Software ##############################################################
 #
 module load c-blosc/1.21.0 hdf5/1.12.0 adios2/2.7.1
-
+module load openpmd-api/0.13.4
 module load libpng/1.6.37 freetype/2.11.0
 
 # Self-Build Software #########################################################
@@ -55,13 +55,6 @@ module load libpng/1.6.37 freetype/2.11.0
 # https://gist.github.com/steindev/a063a0a0ab61c5bed3352ef1f5e07962
 #
 export PIC_LIBS=$HOME/lib/spock
-
-# install openPMD-api 0.14.3+ yourself
-# required when using picongpu > 0.6.0
-#   https://picongpu.readthedocs.io/en/latest/install/dependencies.html#openpmd-api
-export OPENPMD_API_ROOT=$PIC_LIBS/openPMD-api
-export CMAKE_PREFIX_PATH="$OPENPMD_API_ROOT:$CMAKE_PREFIX_PATH"
-export LD_LIBRARY_PATH="$OPENPMD_API_ROOT/lib64:$LD_LIBRARY_PATH"
 
 # optionally install pngwriter yourself:
 #   https://picongpu.readthedocs.io/en/latest/install/dependencies.html#pngwriter

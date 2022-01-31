@@ -9,10 +9,10 @@ Summit
 
 .. code-block:: bash
 
-    pic-compile -j 3 -c "-DPIC_USE_openPMD=ON" ~/workspace/picongpu/share/picongpu/examples/PaperThermal/ paper_binaries
+    pic-compile -j 3 -c "-DPIC_USE_openPMD=ON" ~/workspace/picongpu/share/picongpu/examples/PaperThermal/ paper_binaries_2022
     # run within an interactive session
     bsub -P $proj -W 2:00 -nnodes 1 -Is /bin/bash
-    cd paper_binaries/params/PaperThermal/
+    cd paper_binaries_2022/params/PaperThermal/
     for((n=0;n<10;++n)) ; do
         outFile="result_${n}.txt"
         rm $outFile
@@ -30,7 +30,7 @@ Summit
 
 .. code-block:: bash
 
-    cd paper_binaries/params/PaperThermal/
+    cd paper_binaries_2022/params/PaperThermal/
     outFile="thermal.txt"
     rm $outFile
     for((i=0;i<6;++i)) ; do
@@ -50,10 +50,10 @@ Spock
 
 .. code-block:: bash
 
-    pic-compile -j 3 -c "-DPIC_USE_openPMD=ON" ~/workspace/picongpu/share/picongpu/examples/PaperThermal/ amd_paper_binaries
+    pic-compile -j 3 -c "-DPIC_USE_openPMD=ON" ~/workspace/picongpu/share/picongpu/examples/PaperThermal/ amd_paper_binaries_2022
     # run within an interactive session
     salloc --time=2:00:00 --nodes=1 --ntasks=1 --ntasks-per-node=1 --cpus-per-task=16 --gres=gpu:1 --gpu-bind=closest --gpus-per-task=1 --mem-per-gpu=64000 -p caar -A $proj bash
-    cd amd_paper_binaries/params/PaperThermal/
+    cd amd_paper_binaries_2022/params/PaperThermal/
     for((n=0;n<10;++n)) ; do
         outFile="amd_result_${n}.txt"
         rm $outFile
@@ -70,7 +70,7 @@ Spock
 
 .. code-block:: bash
 
-    cd amd_paper_binaries/params/PaperThermal/
+    cd amd_paper_binaries_2022/params/PaperThermal/
     outFile="amd_thermal.txt"
     rm $outFile
     for((i=0;i<6;++i)) ; do
@@ -92,8 +92,8 @@ Spock CPU
     salloc --time=3:00:00 --nodes=1 --ntasks=1 --ntasks-per-node=1 --cpus-per-task=64 --gres=gpu:1  --gpus-per-task=1 --mem-per-gpu=64000 -p caar -A $proj bash
     export CXX=CC
     export PIC_BACKEND=omp2b:native
-    pic-compile -j 6 -c "-DPIC_USE_openPMD=OFF -DPIC_USE_ISAAC=OFF" ~/workspace/picongpu/share/picongpu/examples/PaperThermal/ cpu_paper_binaries
-    cd cpu_paper_binaries/params/PaperThermal/
+    pic-compile -j 6 -c "-DPIC_USE_openPMD=OFF -DPIC_USE_ISAAC=OFF" ~/workspace/picongpu/share/picongpu/examples/PaperThermal/ cpu_paper_binaries_2022
+    cd cpu_paper_binaries_2022/params/PaperThermal/
     for((n=0;n<10;++n)) ; do
         outFile="cpu_result_${n}.txt"
         rm $outFile
