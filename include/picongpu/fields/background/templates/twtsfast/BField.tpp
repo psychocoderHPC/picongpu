@@ -49,8 +49,8 @@ namespace picongpu
                 float_64 const wavelength_SI,
                 float_64 const pulselength_SI,
                 float_64 const w_x_SI,
-                float_X const phi,
-                float_X const beta_0,
+                float_T const phi,
+                float_T const beta_0,
                 float_64 const tdelay_user_SI,
                 bool const auto_tdelay,
                 PolarizationType const pol)
@@ -59,14 +59,13 @@ namespace picongpu
                 , pulselength_SI(pulselength_SI)
                 , w_x_SI(w_x_SI)
                 , phi(phi)
-                , phiPositive(float_X(1.0))
                 , beta_0(beta_0)
                 , tdelay_user_SI(tdelay_user_SI)
                 , dt(SI::DELTA_T_SI)
                 , unit_length(UNIT_LENGTH)
                 , auto_tdelay(auto_tdelay)
                 , pol(pol)
-
+                , phiPositive(float_T(1.0))
             {
                 /* Note: Enviroment-objects cannot be instantiated on CUDA GPU device. Since this is done
                  * on host (see fieldBackground.param), this is no problem.
@@ -81,8 +80,8 @@ namespace picongpu
                     focus_y_SI,
                     phi,
                     beta_0);
-                if(phi < float_X(0.0))
-                    phiPositive = float_X(-1.0);
+                if(phi < float_T(0.0))
+                    phiPositive = float_T(-1.0);
             }
 
             template<>
@@ -117,11 +116,11 @@ namespace picongpu
                  *
                  * RotationMatrix[-(PI/2+phi)].(By,Bz) for rotating back the field vectors.
                  */
-                float_X sinPhi;
-                float_X cosPhi;
+                float_T sinPhi;
+                float_T cosPhi;
                 pmacc::math::sincos(phi, sinPhi, cosPhi);
-                float_X const By_rot = -sinPhi * float_X(By_By) + cosPhi * float_X(Bz_By);
-                float_X const Bz_rot = -cosPhi * float_X(By_Bz) - sinPhi * float_X(Bz_Bz);
+                float_X const By_rot = -sinPhi * By_By + cosPhi * Bz_By;
+                float_X const Bz_rot = -cosPhi * By_Bz - sinPhi * Bz_Bz;
 
                 /* Finally, the B-field normalized to the peak amplitude. */
                 return float3_X(0.0_X, By_rot, Bz_rot);
@@ -152,11 +151,11 @@ namespace picongpu
                  *
                  * RotationMatrix[-(PI/2+phi)].(By,Bz) for rotating back the field-vectors.
                  */
-                float_X sinPhi;
-                float_X cosPhi;
+                float_T sinPhi;
+                float_T cosPhi;
                 pmacc::math::sincos(phi, sinPhi, cosPhi);
-                float_X const By_rot = +cosPhi * float_X(Bz_By);
-                float_X const Bz_rot = -sinPhi * float_X(Bz_Bz);
+                float_X const By_rot = +cosPhi * Bz_By;
+                float_X const Bz_rot = -sinPhi * Bz_Bz;
 
                 /* Finally, the B-field normalized to the peak amplitude. */
                 return float3_X(float_X(calcTWTSBx(pos[0], time)), By_rot, Bz_rot);
@@ -219,8 +218,8 @@ namespace picongpu
                 float_X sinPhi;
                 float_X cosPhi;
                 pmacc::math::sincos(phi, sinPhi, cosPhi);
-                float_X const By_rot = -sinPhi * float_X(By_By) + cosPhi * float_X(Bx_By);
-                float_X const Bx_rot = -cosPhi * float_X(By_Bx) - sinPhi * float_X(Bx_Bx);
+                float_X const By_rot = -sinPhi * By_By + cosPhi * Bx_By;
+                float_X const Bx_rot = -cosPhi * By_Bx - sinPhi * Bx_Bx;
 
                 /* Finally, the B-field normalized to the peak amplitude. */
                 return float3_X(Bx_rot, By_rot, 0.0_X);
@@ -279,8 +278,8 @@ namespace picongpu
                 float_X sinPhi;
                 float_X cosPhi;
                 pmacc::math::sincos(phi, sinPhi, cosPhi);
-                float_X const By_rot = +cosPhi * float_X(Bx_By);
-                float_X const Bx_rot = -sinPhi * float_X(Bx_Bx);
+                float_X const By_rot = +cosPhi * Bx_By;
+                float_X const Bx_rot = -sinPhi * Bx_Bx;
 
                 /* Finally, the B-field normalized to the peak amplitude. */
                 return float3_X(Bx_rot, By_rot, float_X(calcTWTSBx(pos[2], time)));
@@ -318,8 +317,6 @@ namespace picongpu
                 using complex_T = pmacc::math::Complex<float_T>;
                 using complex_64 = pmacc::math::Complex<float_64>;
 
-                /* Propagation speed of overlap normalized to the speed of light [Default: beta0=1.0] */
-                auto const beta0 = float_T(beta_0);
                 /* If phi < 0 the formulas below are not directly applicable.
                  * Instead phi is taken positive, but the entire pulse rotated by 180 deg around the
                  * z-axis of the coordinate system in this function.
@@ -328,7 +325,7 @@ namespace picongpu
                 float_T sinPhiReal;
                 float_T cosPhiReal;
                 pmacc::math::sincos(phiReal, sinPhiReal, cosPhiReal);
-                float_T const alphaTilt = math::atan2(float_T(1.0) - beta0 * cosPhiReal, beta0 * sinPhiReal);
+                float_T const alphaTilt = math::atan2(float_T(1.0) - beta_0 * cosPhiReal, beta_0 * sinPhiReal);
                 /* Definition of the laser pulse front tilt angle for the laser field below.
                  *
                  * For beta0=1.0, this is equivalent to our standard definition. Question: Why is the
@@ -384,9 +381,13 @@ namespace picongpu
                 float_T sinPhi;
                 float_T cosPhi;
                 pmacc::math::sincos(phiT, sinPhi, cosPhi);
+                float_t const phiThalf = phiT / float_T(2.0);
+                float_T sinPhi2;
+                float_T cosPhi2;
+                pmacc::math::sincos(phiThalf, sinPhi2, cosPhi2);
+
                 float_T const cscPhi = float_T(1.0) / sinPhi;
-                float_T const secPhi2 = float_T(1.0) / math::cos(phiT / float_T(2.0));
-                float_T const sinPhi2 = math::sin(phiT / float_T(2.0));
+                float_T const secPhi2 = float_T(1.0) / cosPhi2;
                 float_T const sin2Phi = math::sin(phiT * float_T(2.0));
                 float_T const tanPhi2 = math::tan(phiT / float_T(2.0));
 
@@ -474,7 +475,7 @@ namespace picongpu
                 float_T sinPhiReal;
                 float_T cosPhiReal;
                 pmacc::math::sincos(phiReal, sinPhiReal, cosPhiReal);
-                float_T const alphaTilt = math::atan2(float_T(1.0) - beta0 * cosPhiReal, beta0 * sinPhiReal);
+                float_T const alphaTilt = math::atan2(float_T(1.0) - beta_0 * cosPhiReal, beta_0 * sinPhiReal);
 
                 /* Definition of the laser pulse front tilt angle for the laser field below.
                  *
@@ -512,7 +513,7 @@ namespace picongpu
                 float_64 sinPhiVal;
                 float_64 cosPhiVal;
                 pmacc::math::sincos(precisionCast<float_64>(phi), sinPhiVal, cosPhiVal);
-                float_64 const tanAlpha = (1.0 - beta_0 * cosPhiVal) / (beta_0 * sinPhiVal);
+                float_64 const tanAlpha = (float_64(1.0) - beta_0 * cosPhiVal) / (beta_0 * sinPhiVal);
                 float_64 const tanFocalLine = math::tan(PI / 2.0 - phi);
                 float_64 const deltaT = wavelength_SI / SI::SPEED_OF_LIGHT_SI * (1.0 + tanAlpha / tanFocalLine);
                 float_64 const deltaY = wavelength_SI / tanFocalLine;
@@ -531,10 +532,11 @@ namespace picongpu
                 float_T sinPhi;
                 float_T cosPhi;
                 pmacc::math::sincos(phiT, sinPhi, cosPhi);
+                float_t const phiThalf = phiT / float_T(2.0);
                 float_T const cscPhi = float_T(1.0) / sinPhi;
                 float_T const secPhi2 = float_T(1.0) / math::cos(phiT / float_T(2.0));
-                float_T const sinPhi2 = math::sin(phiT / float_T(2.0));
-                float_T const tanPhi2 = math::tan(phiT / float_T(2.0));
+                float_T const sinPhi2 = math::sin(phiThalf);
+                float_T const tanPhi2 = math::tan(phiThalf);
 
                 float_T const cscPhi_3 = cscPhi * cscPhi * cscPhi;
 
@@ -620,17 +622,15 @@ namespace picongpu
                 using complex_T = pmacc::math::Complex<float_T>;
                 using complex_64 = pmacc::math::Complex<float_64>;
 
-                /* Propagation speed of overlap normalized to the speed of light [Default: beta0=1.0] */
-                auto const beta0 = float_T(beta_0);
                 /* If phi < 0 the formulas below are not directly applicable.
                  * Instead phi is taken positive, but the entire pulse rotated by 180 deg around the
                  * z-axis of the coordinate system in this function.
                  */
                 auto const phiReal = float_T(math::abs(phi));
-                float_T cosPhiReal;
                 float_T sinPhiReal;
+                float_T cosPhiReal;
                 pmacc::math::sincos(phiReal, sinPhiReal, cosPhiReal);
-                float_T const alphaTilt = math::atan2(float_T(1.0) - beta0 * cosPhiReal, beta0 * sinPhiReal);
+                float_T const alphaTilt = math::atan2(float_T(1.0) - beta_0 * cosPhiReal, beta_0 * sinPhiReal);
                 /* Definition of the laser pulse front tilt angle for the laser field below.
                  *
                  * For beta0=1.0, this is equivalent to our standard definition. Question: Why is the
@@ -686,9 +686,13 @@ namespace picongpu
                 float_T sinPhi;
                 float_T cosPhi;
                 pmacc::math::sincos(phiT, sinPhi, cosPhi);
+                const float_t phiThalf = phiT / float_T(2.0);
+                float_T sinPhi2;
+                float_T cosPhi2;
+                pmacc::math::sincos(phiThalf, sinPhi2, cosPhi2);
                 float_T const sin2Phi = math::sin(phiT * float_T(2.0));
-                float_T const sinPhi2 = math::sin(phiT / float_T(2.0));
-                float_T const tanPhi2 = math::tan(phiT / float_T(2.0));
+
+                float_T const tanPhi2 = math::tan(phiThalf);
 
                 float_T const cscPhi = float_T(1.0) / sinPhi;
                 float_T const tanPI2_phi = math::tan(float_T(PI / 2.0) - phiT);
