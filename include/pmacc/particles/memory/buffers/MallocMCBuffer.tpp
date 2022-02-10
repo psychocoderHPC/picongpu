@@ -50,8 +50,6 @@ namespace pmacc
 #    if(PMACC_CUDA_ENABLED == 1)
             cudaHostUnregister(hostPtr);
             delete[] hostPtr;
-#    else
-            CUDA_CHECK_NO_EXCEPT((cuplaError_t) hipFree(hostPtr));
 #    endif
         }
     }
@@ -73,9 +71,7 @@ namespace pmacc
             hostPtr = new char[deviceHeapInfo.size];
             CUDA_CHECK((cuplaError_t) cudaHostRegister(hostPtr, deviceHeapInfo.size, cudaHostRegisterDefault));
 #    else
-            // we do not use hipHostRegister because this would require a strict alignment
-            // https://github.com/alpaka-group/alpaka/pull/896
-            CUDA_CHECK((cuplaError_t) hipHostMalloc((void**) &hostPtr, deviceHeapInfo.size, hipHostMallocDefault));
+            hostPtr = reinterpret_cast<char*>(deviceHeapInfo.p);
 #    endif
 
             this->hostBufferOffset = static_cast<int64_t>(reinterpret_cast<char*>(deviceHeapInfo.p) - hostPtr);
@@ -83,7 +79,7 @@ namespace pmacc
         /* add event system hints */
         __startOperation(ITask::TASK_DEVICE);
         __startOperation(ITask::TASK_HOST);
-        CUDA_CHECK(cuplaMemcpy(hostPtr, deviceHeapInfo.p, deviceHeapInfo.size, cuplaMemcpyDeviceToHost));
+        //CUDA_CHECK(cuplaMemcpy(hostPtr, deviceHeapInfo.p, deviceHeapInfo.size, cuplaMemcpyDeviceToHost));
     }
 
 } // namespace pmacc
