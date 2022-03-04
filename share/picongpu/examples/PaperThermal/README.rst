@@ -57,11 +57,11 @@ Profiling Summit
     for((n=0;n<1;++n)) ; do
         outFile="result_${n}.txt"
         rm $outFile
-        for((i=0;i<6;++i)) ; do
+        for((i=0;i<1;++i)) ; do
           shape="$(cmakePreset_$i/cmakeFlags $i | sed 's/.*SHAPE=\([A-Z]*\).*/\1/g')"; \
           solver="$(cmakePreset_$i/cmakeFlags $i | sed 's/.*SOLVER=\([A-Za-z]*\).*/\1/g')"; \
           echo run: "# $solver $shape" | tee -a $outFile; \
-          jsrun --nrs 1 --tasks_per_rs 1 --cpu_per_rs 6 --gpu_per_rs 1 --latency_priority GPU-CPU --bind rs --smpiargs="-gpu" /sw/summit/nsight-compute/2021.1.0/ncu --import-source on --set full --kernel-id '::regex:KernelComputeCurrent:' -f -o pic_report_${n}_${solver}_${shape} cmakePreset_$i/bin/picongpu -d 1 1 1 -g 192 192 192 -s 5 -p 5 --periodic 1 1 1 --mpiDirect | tee -a $outFile;
+          jsrun --nrs 1 --tasks_per_rs 1 --cpu_per_rs 6 --gpu_per_rs 1 --latency_priority GPU-CPU --bind rs --smpiargs="-gpu" /sw/summit/nsight-compute/2021.1.0/ncu --import-source on --set full --kernel-id '::regex:KernelComputeCurrent:' -f -o pic_report_${n}_${solver}_${shape}_2VPar cmakePreset_$i/bin/picongpu -d 1 1 1 -g 192 192 192 -s 5 -p 5 --periodic 1 1 1 --mpiDirect | tee -a $outFile;
         done
     done
 

@@ -114,8 +114,8 @@ namespace picongpu
                     const T_Line& line,
                     const float_X currentSurfaceDensity) const
                 {
-                    if(line.m_pos0[2] == line.m_pos1[2])
-                        return;
+                    //if(line.m_pos0[2] == line.m_pos1[2])
+                        //return;
                     /* pick every cell in the xy-plane that is overlapped by particle's
                      * form factor and deposit the current for the cells above and beneath
                      * that cell and for the cell itself.
@@ -189,8 +189,8 @@ namespace picongpu
                     const T_Line& line,
                     const float_X currentSurfaceDensity) const
                 {
-                    if(line.m_pos0[0] == line.m_pos1[0])
-                        return;
+                    //if(line.m_pos0[0] == line.m_pos1[0])
+                    //    return;
 
                     for(int j = T_begin; j < T_end; ++j)
                     {

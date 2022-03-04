@@ -108,8 +108,8 @@ namespace picongpu
                 deposit(acc, dataBoxJ.shift(I[0]).toCursor(), line, chargeDensity);
 
                 /* detect if there is a second virtual particle */
-                const bool twoParticlesNeeded = (I[0] != I[1]);
-                if(twoParticlesNeeded)
+                //const bool twoParticlesNeeded = (I[0] != I[1]);
+                //if(twoParticlesNeeded)
                 {
                     /* calculate positions for the second virtual particle */
                     for(uint32_t d = 0; d < simDim; ++d)
