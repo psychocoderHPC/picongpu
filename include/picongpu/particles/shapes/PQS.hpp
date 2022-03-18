@@ -92,11 +92,8 @@ namespace picongpu
                         float_X const rad1 = ff_1st_radius(abs_x);
                         float_X const rad2 = ff_2nd_radius(abs_x);
 
-                        float_X result(0.0);
-                        if(below_1)
-                            result = rad1;
-                        else if(below_2)
-                            result = rad2;
+                        float_X result = below_2 ? rad2 : 0.0_X;
+                        result = below_1 ? rad1 : result;
 
                         return result;
                     }

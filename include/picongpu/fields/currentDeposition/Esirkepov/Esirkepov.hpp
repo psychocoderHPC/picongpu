@@ -166,40 +166,38 @@ namespace picongpu
                  *     ( this helps the compiler to mask threads without work )
                  */
                 for(int i = begin; i < end + 1; ++i)
-                    if(i < end + leaveCell[0])
+                {
+                    const float_X s0i = S0(line, i, 0);
+                    const float_X dsi = S1(line, i, 0) - s0i;
+                    for(int j = begin; j < end + 1; ++j)
                     {
-                        const float_X s0i = S0(line, i, 0);
-                        const float_X dsi = S1(line, i, 0) - s0i;
-                        for(int j = begin; j < end + 1; ++j)
-                            if(j < end + leaveCell[1])
-                            {
-                                const float_X s0j = S0(line, j, 1);
-                                const float_X dsj = S1(line, j, 1) - s0j;
+                        const float_X s0j = S0(line, j, 1);
+                        const float_X dsj = S1(line, j, 1) - s0j;
 
-                                float_X tmp = -currentSurfaceDensity
-                                    * (s0i * s0j + float_X(0.5) * (dsi * s0j + s0i * dsj)
-                                       + (float_X(1.0) / float_X(3.0)) * dsj * dsi);
+                        float_X tmp = -currentSurfaceDensity
+                            * (s0i * s0j + float_X(0.5) * (dsi * s0j + s0i * dsj)
+                               + (float_X(1.0) / float_X(3.0)) * dsj * dsi);
 
-                                auto accumulated_J = float_X(0.0);
+                        auto accumulated_J = float_X(0.0);
 
-                                /* attention: inner loop has no upper bound `end + 1` because
-                                 * the current for the point `end` is always zero,
-                                 * therefore we skip the calculation
-                                 */
-                                for(int k = begin; k < end; ++k)
-                                    if(k < end + leaveCell[2] - 1)
-                                    {
-                                        /* This is the implementation of the FORTRAN W(i,j,k,3)/ C style W(i,j,k,2)
-                                         * version from Esirkepov paper. All coordinates are rotated before thus we can
-                                         * always use C style W(i,j,k,2).
-                                         */
-                                        const float_X W = DS(line, k, 2) * tmp;
-                                        accumulated_J += W;
-                                        auto const atomicOp = typename T_Strategy::BlockReductionOp{};
-                                        atomicOp(acc, (*cursorJ(i, j, k)).z(), accumulated_J);
-                                    }
-                            }
+                        /* attention: inner loop has no upper bound `end + 1` because
+                         * the current for the point `end` is always zero,
+                         * therefore we skip the calculation
+                         */
+                        for(int k = begin; k < end; ++k)
+                        {
+                            /* This is the implementation of the FORTRAN W(i,j,k,3)/ C style W(i,j,k,2)
+                             * version from Esirkepov paper. All coordinates are rotated before thus we can
+                             * always use C style W(i,j,k,2).
+                             */
+                            const float_X W = DS(line, k, 2) * tmp;
+                            accumulated_J += W;
+                            auto const atomicOp = typename T_Strategy::BlockReductionOp{};
+                            if(accumulated_J != 0.0_X)
+                                atomicOp(acc, (*cursorJ(i, j, k)).z(), accumulated_J);
+                        }
                     }
+                }
             }
 
             /** calculate S0 (see paper)

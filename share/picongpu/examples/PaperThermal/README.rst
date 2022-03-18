@@ -50,10 +50,10 @@ Profiling Summit
 
 .. code-block:: bash
 
-    pic-compile -j 3 -c "-DPIC_USE_openPMD=OFF -DALPAKA_CUDA_SHOW_CODELINES=ON -DCMAKE_CXX_FLAGS=-g -DALPAKA_CUDA_KEEP_FILES=ON" ~/workspace/picongpu/share/picongpu/examples/PaperThermal/ profiling
+    pic-compile -j 3 -c "-DPIC_USE_openPMD=OFF -DALPAKA_CUDA_SHOW_CODELINES=ON -DCMAKE_CXX_FLAGS=-g -DALPAKA_CUDA_KEEP_FILES=ON" ~/workspace/picongpu/share/picongpu/examples/PaperThermal/ profilingEsirkepovTenaryNoLoopIf
     # run within an interactive session
     bsub -P $proj -W 2:00 -nnodes 1 -Is /bin/bash
-    cd profiling/params/PaperThermal/
+    cd profilingEsirkepovTenaryNoLoopIf/params/PaperThermal/
     for((n=0;n<1;++n)) ; do
         outFile="result_${n}.txt"
         rm $outFile
