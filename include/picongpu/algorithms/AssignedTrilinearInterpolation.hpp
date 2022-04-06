@@ -68,8 +68,11 @@ namespace picongpu
         {
             using type = typename ::pmacc::result_of::Functor<AssignedTrilinearInterpolation, T_Cursor>::type;
 
-            constexpr auto iterations = T_end - T_begin + 1;
-            alpaka::ignore_unused(iterations);
+            constexpr int iterations = T_end - T_begin + 1;
+
+            auto s_y = T_AssignmentFunction().shapeArray(pos.y());
+            auto s_x = T_AssignmentFunction().shapeArray(pos.x());
+
             auto result_z = type(0.0);
             PMACC_UNROLL(iterations)
             for(int z = T_begin; z <= T_end; ++z)
@@ -84,9 +87,9 @@ namespace picongpu
                         /* a form factor is the "amount of particle" that is affected by this cell
                          * so we have to sum over: cell_value * form_factor
                          */
-                        result_x += *cursor(x, y, z) * T_AssignmentFunction()(float_X(x) - pos.x());
+                        result_x += *cursor(x, y, z) * s_x[x - T_begin];
 
-                    result_y += result_x * T_AssignmentFunction()(float_X(y) - pos.y());
+                    result_y += result_x * s_y[y - T_begin];
                 }
 
                 result_z += result_y * T_AssignmentFunction()(float_X(z) - pos.z());

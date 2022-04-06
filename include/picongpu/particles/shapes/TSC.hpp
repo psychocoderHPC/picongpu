@@ -60,6 +60,24 @@ namespace picongpu
                         float_X const square_tmp = tmp * tmp;
                         return 0.5_X * square_tmp;
                     }
+
+                    /**
+                     *
+                     * @tparam T_size
+                     * @param  x particle position relative to the assignment cell range [-0.5;0.5)
+                     * @return array with evaluated shape values
+                     */
+                    template<uint32_t T_size>
+                    HDINLINE auto shapeArray(float_X const x) const
+                    {
+                        pmacc::memory::Array<float_X, T_size> shapeValues;
+                        // grid point [-1;1]
+                        shapeValues[0] = ff_2nd_radius(math::abs(-1._X - x));
+                        // note: math::abs(0 - x) == math::abs(x)
+                        shapeValues[1] = ff_1st_radius(math::abs(x));
+                        shapeValues[2] = ff_2nd_radius(1._X - x);
+                        return shapeValues;
+                    }
                 };
 
             } // namespace detail
@@ -100,6 +118,22 @@ namespace picongpu
 
                         return result;
                     }
+
+                    // @param x particle position: range [-0.5;1.5)
+                    HDINLINE auto shapeArray(float_X const xx) const
+                    {
+                        bool const isOutOfRange = xx > 0.5_X;
+                        float_X x = isOutOfRange ? xx - 1.0_X : xx;
+
+                        auto shapeValues = detail::TSC::shapeArray<support + 1>(x);
+
+                        shapeValues[3] = isOutOfRange ? shapeValues[2] : 0.0_X;
+                        shapeValues[2] = isOutOfRange ? shapeValues[1] : shapeValues[2];
+                        shapeValues[1] = isOutOfRange ? shapeValues[0] : shapeValues[1];
+                        shapeValues[0] = isOutOfRange ? 0.0_X : shapeValues[0];
+
+                        return shapeValues;
+                    }
                 };
 
                 struct ChargeAssignmentOnSupport : public detail::TSC
@@ -127,6 +161,12 @@ namespace picongpu
                             result = rad1;
 
                         return result;
+                    }
+
+                    // @param x particle position: range [-0.5;0.5)
+                    HDINLINE auto shapeArray(float_X const x) const
+                    {
+                        return detail::TSC::shapeArray<support>(x);
                     }
                 };
             };

@@ -100,6 +100,28 @@ namespace picongpu
 
                         return result;
                     }
+
+                    // @param x particle position: range [0.0;2.0)
+                    HDINLINE auto shapeArray(float_X const xx) const
+                    {
+                        bool const isOutOfRange =  xx > 1.0_X;
+                        float_X x = isOutOfRange? xx - 1.0_X : xx;
+
+                        pmacc::memory::Array<float_X, support + 1> shapeValues;
+                        // grid point [-1;2]
+                        shapeValues[0] = ff_2nd_radius(math::abs(-1._X - x));
+                        shapeValues[1] = ff_1st_radius(x);
+                        shapeValues[2] = ff_1st_radius(1._X - x);
+                        shapeValues[3] = ff_2nd_radius(2._X - x);
+
+                        shapeValues[4] = isOutOfRange ? shapeValues[3] : 0.0_X;
+                        shapeValues[3] = isOutOfRange ? shapeValues[2] : shapeValues[3];
+                        shapeValues[2] = isOutOfRange ? shapeValues[1] : shapeValues[2];
+                        shapeValues[1] = isOutOfRange ? shapeValues[0] : shapeValues[1];
+                        shapeValues[0] = isOutOfRange ? 0.0_X : shapeValues[0];
+
+                        return shapeValues;
+                    }
                 };
 
                 struct ChargeAssignmentOnSupport : public detail::PQS
@@ -129,6 +151,19 @@ namespace picongpu
                             return ff_1st_radius( abs_x );
                         return ff_2nd_radius( abs_x );
                          */
+                    }
+
+                    // @param x particle position: range [0.0;1.0)
+                    HDINLINE auto shapeArray(float_X const x) const
+                    {
+                        pmacc::memory::Array<float_X, support> shapeValues;
+                        // grid point [-1;2]
+                        shapeValues[0] = ff_2nd_radius(math::abs(-1._X - x));
+                        // note: math::abs(0 - x) == math::abs(x)
+                        shapeValues[1] = ff_1st_radius(x);
+                        shapeValues[2] = ff_1st_radius(1._X - x);
+                        shapeValues[3] = ff_2nd_radius(2._X - x);
+                        return shapeValues;
                     }
                 };
             };
