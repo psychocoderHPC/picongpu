@@ -87,7 +87,8 @@ namespace picongpu
                  * 0 == stay in cell
                  * 1 == leave cell
                  */
-                DataSpace<simDim> leaveCell;
+                DataSpace<DIM3> leaveCell;
+                DataSpace<DIM3> notOnSupport;
 
                 /* calculate the offset for the virtual coordinate system */
                 for(uint32_t d = 0; d < simDim; ++d)
@@ -97,8 +98,10 @@ namespace picongpu
                     constexpr bool isSupportEven = (supp % 2 == 0);
                     RelayPoint<isSupportEven>()(iStart, iEnd, line.m_pos0[d], line.m_pos1[d]);
                     gridShift[d] = iStart < iEnd ? iStart : iEnd; // integer min function
+                    notOnSupport[d] |= iStart < iEnd ? 4 : 0;
+                    notOnSupport[d] = iStart > iEnd ? 2 : 0;
                     /* particle is leaving the cell */
-                    leaveCell[d] = iStart != iEnd ? 1 : 0;
+                    notOnSupport[d] |= iStart != iEnd ? 1 : 0;
                     /* shift the particle position to the virtual coordinate system */
                     line.m_pos0[d] -= gridShift[d];
                     line.m_pos1[d] -= gridShift[d];
@@ -114,17 +117,17 @@ namespace picongpu
                 using namespace cursor::tools;
                 cptCurrent1D(
                     acc,
-                    DataSpace<simDim>(leaveCell.y(), leaveCell.z(), leaveCell.x()),
+                    DataSpace<simDim>(notOnSupport.y(), notOnSupport.z(), notOnSupport.x()),
                     twistVectorFieldAxes<pmacc::math::CT::Int<1, 2, 0>>(cursorJ),
                     rotateOrigin<1, 2, 0>(line),
                     cellSize.x());
                 cptCurrent1D(
                     acc,
-                    DataSpace<simDim>(leaveCell.z(), leaveCell.x(), leaveCell.y()),
+                    DataSpace<simDim>(notOnSupport.z(), notOnSupport.x(), notOnSupport.y()),
                     twistVectorFieldAxes<pmacc::math::CT::Int<2, 0, 1>>(cursorJ),
                     rotateOrigin<2, 0, 1>(line),
                     cellSize.y());
-                cptCurrent1D(acc, leaveCell, cursorJ, line, cellSize.z());
+                cptCurrent1D(acc, notOnSupport, cursorJ, line, cellSize.z());
             }
 
             /**
@@ -139,9 +142,10 @@ namespace picongpu
             template<typename CursorJ, typename T_Acc>
             DINLINE void cptCurrent1D(
                 T_Acc const& acc,
-                const DataSpace<simDim>& leaveCell,
+                const DataSpace<simDim>& notOnSupport,
                 CursorJ cursorJ,
                 const Line<float3_X>& line,
+
                 const float_X cellEdgeLength)
             {
                 /* skip calculation if the particle is not moving in z direction */
@@ -153,17 +157,17 @@ namespace picongpu
 
 
 #if 1
-                auto s_j_0 = ParticleAssign().shapeArray(line.m_pos0[1]);
-                auto s_j_1 = ParticleAssign().shapeArray(line.m_pos1[1]);
+                auto s_j_0 = ParticleAssign().shapeArray(line.m_pos0[1], (notOnSupport[1] & 2) != 0);
+                auto s_j_1 = ParticleAssign().shapeArray(line.m_pos1[1], (notOnSupport[1] & 4) != 0);
 
-                auto d_k_1 = ParticleAssign().shapeArray(line.m_pos1[2]);
-                auto d_k_0 = ParticleAssign().shapeArray(line.m_pos0[2]);
-#if 0
+                auto d_k_0 = ParticleAssign().shapeArray(line.m_pos0[2], (notOnSupport[2] & 2) != 0);
+                auto d_k_1 = ParticleAssign().shapeArray(line.m_pos1[2], (notOnSupport[2] & 4) != 0);
+#    if 0
                 for(int k = 0; k < d_k.size() - 1; ++k)
                 {
                     d_k[k] -= d_k_0[k];
                 }
-#endif
+#    endif
 #else
                 pmacc::memory::Array<float_X, supp + 1> s_j_0;
                 pmacc::memory::Array<float_X, supp + 1> s_j_1;
@@ -198,12 +202,12 @@ namespace picongpu
                  *     ( this helps the compiler to mask threads without work )
                  */
                 for(int i = begin; i < end + 1; ++i)
-                    if(i < end + leaveCell[0])
+                    if(i < end + (notOnSupport[0] & 1))
                     {
                         const float_X s0i = this->S0(line, i, 0);
                         const float_X dsi = this->S1(line, i, 0) - s0i;
                         for(int j = begin; j < end + 1; ++j)
-                            if(j < end + leaveCell[1])
+                            if(j < end + (notOnSupport[1] & 1))
                             {
                                 const float_X s0j = s_j_0[j - begin];
                                 const float_X dsj = s_j_1[j - begin] - s0j;
@@ -218,7 +222,7 @@ namespace picongpu
                                  * therefore we skip the calculation
                                  */
                                 for(int k = begin; k < end; ++k)
-                                    if(k < end + leaveCell[2] - 1)
+                                    if(k < end + (notOnSupport[2] & 1) - 1)
                                     {
                                         /* This is the implementation of the FORTRAN W(i,j,k,3)/ C style W(i,j,k,2)
                                          * version from Esirkepov paper. All coordinates are rotated before thus we can

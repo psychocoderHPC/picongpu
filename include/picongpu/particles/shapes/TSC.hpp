@@ -120,9 +120,8 @@ namespace picongpu
                     }
 
                     // @param x particle position: range [-0.5;1.5)
-                    HDINLINE auto shapeArray(float_X const xx) const
+                    HDINLINE auto shapeArray(float_X const xx, bool const isOutOfRange) const
                     {
-                        bool const isOutOfRange = xx > 0.5_X;
                         float_X x = isOutOfRange ? xx - 1.0_X : xx;
 
                         auto shapeValues = detail::TSC::shapeArray<support + 1>(x);
