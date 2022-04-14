@@ -56,7 +56,9 @@ namespace pmacc
         {
         }
 
-        HDINLINE decltype(auto) operator()(DataSpace<Base::Dim> const& idx = {}) const
+        HDINLINE DataBox(DataBox const &) = default;
+
+            HDINLINE decltype(auto) operator()(DataSpace<Base::Dim> const& idx = {}) const
         {
             ///@todo(bgruber): inline and replace this by if constexpr in C++17
             return detail::access(*this, idx);
