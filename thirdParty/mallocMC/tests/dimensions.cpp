@@ -108,7 +108,7 @@ void test1D()
 
     const auto slots = scatterAlloc.getAvailableSlots(dev, queue, sizeof(int));
     const auto heapInfo = scatterAlloc.getHeapLocations().at(0);
-    std::cout << alpaka::traits::GetAccName<Acc>::getAccName() << " slots: " << slots
+    std::cout << alpaka::trait::GetAccName<Acc>::getAccName() << " slots: " << slots
               << " heap size: " << heapInfo.size << '\n';
 
     // free N * N allocations from N block of N threads for ints
@@ -186,7 +186,7 @@ void test2D()
 
     const auto slots = scatterAlloc.getAvailableSlots(dev, queue, sizeof(int));
     const auto heapInfo = scatterAlloc.getHeapLocations().at(0);
-    std::cout << alpaka::traits::GetAccName<Acc>::getAccName() << " slots: " << slots
+    std::cout << alpaka::trait::GetAccName<Acc>::getAccName() << " slots: " << slots
               << " heap size: " << heapInfo.size << '\n';
 
     // free N*N * N*N allocations from N*N block of N*N threads for ints
@@ -273,7 +273,7 @@ void test3D()
 
     const auto slots = scatterAlloc.getAvailableSlots(dev, queue, sizeof(int));
     const auto heapInfo = scatterAlloc.getHeapLocations().at(0);
-    std::cout << alpaka::traits::GetAccName<Acc>::getAccName() << " slots: " << slots
+    std::cout << alpaka::trait::GetAccName<Acc>::getAccName() << " slots: " << slots
               << " heap size: " << heapInfo.size << '\n';
 
     // free N*N*N * N*N*N allocations from N*N*N blocks of N*N*N threads for
