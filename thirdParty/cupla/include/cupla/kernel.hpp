@@ -193,7 +193,7 @@ namespace cupla
 
 namespace alpaka
 {
-    namespace traits
+    namespace trait
     {
         //! CuplaKernel has defined the extern shared memory as member
         template<typename T_UserKernel, typename T_Acc>
