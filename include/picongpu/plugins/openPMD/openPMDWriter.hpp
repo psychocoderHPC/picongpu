@@ -202,6 +202,7 @@ make sure that environment variable OPENPMD_BP_BACKEND is not set to ADIOS1.
             // defined later since we need openPMDWriter constructor
 
             plugins::multi::Option<std::string> notifyPeriod = {"period", "enable openPMD IO [for each n-th step]"};
+            plugins::multi::Option<std::string> range = {"range", "define a output range in cells"};
 
             plugins::multi::Option<std::string> source = {"source", "data sources: ", "species_all, fields_all"};
 
@@ -294,6 +295,7 @@ make sure that environment variable OPENPMD_BP_BACKEND is not set to ADIOS1.
                 std::string concatenatedSourceNames = plugins::misc::concatenateToString(allowedDataSources, ", ");
 
                 notifyPeriod.registerHelp(desc, masterPrefix + prefix);
+                range.registerHelp(desc, masterPrefix + prefix);
                 source.registerHelp(desc, masterPrefix + prefix, std::string("[") + concatenatedSourceNames + "]");
                 tomlSources.registerHelp(desc, masterPrefix + prefix);
                 fileName.registerHelp(desc, masterPrefix + prefix);
@@ -932,6 +934,56 @@ make sure that environment variable OPENPMD_BP_BACKEND is not set to ADIOS1.
 
                 /* window selection */
                 mThreadParams.window = MovingWindow::getInstance().getWindow(currentStep);
+
+                const SubGrid<simDim>& subGrid = Environment<simDim>::get().SubGrid();
+
+                std::string selectedRange = ":,:,:";
+                if(m_help->range.optionDefined(m_id) && !m_help->range.get(m_id).empty())
+                    selectedRange = m_help->range.get(m_id);
+                auto parsedSlice = pmacc::pluginSystem::toTimeSlice(selectedRange);
+                //std::cout << "range dim: " << parsedSlice.size() << std::endl;
+                for(uint32_t d = 0; d < simDim; ++d)
+                {
+                    auto interval = parsedSlice[d];
+                    //std::cout << "d=" << d << " [" << interval.toString() << "]" << std::endl;
+                    uint32_t windowOffset = mThreadParams.window.globalDimensions.offset[d];
+                    uint32_t windowSize = mThreadParams.window.globalDimensions.size[d];
+                    uint32_t windowEnd = windowOffset + windowSize;
+                    uint32_t newWindowBegin = interval.values[0] + windowOffset;
+                    newWindowBegin = std::min(newWindowBegin, windowEnd);
+                    uint32_t newWindowEnd = std::min(interval.values[1], windowEnd);
+                    newWindowEnd = std::min(newWindowEnd + windowOffset, windowEnd);
+                    uint32_t newWindowSize = newWindowEnd - newWindowBegin;
+
+                    mThreadParams.window.globalDimensions.offset[d] = newWindowBegin;
+                    mThreadParams.window.globalDimensions.size[d] = newWindowSize;
+                    //std::cout << "d=" << d << " global [" << mThreadParams.window.globalDimensions.offset[d] << ","
+                    //          << mThreadParams.window.globalDimensions.size[d] << "]" << std::endl;
+                    mThreadParams.window.localDimensions.offset[d]
+                        = std::max(0, subGrid.getLocalDomain().offset[d] - static_cast<int>(newWindowBegin));
+
+
+                    if(newWindowEnd <= subGrid.getLocalDomain().offset[d]
+                       || subGrid.getLocalDomain().size[d] + subGrid.getLocalDomain().offset[d] < newWindowBegin)
+                        mThreadParams.window.localDimensions.size[d] = 0;
+                    else
+                    {
+                        auto end = std::min(
+                            subGrid.getLocalDomain().size[d] + subGrid.getLocalDomain().offset[d],
+                            static_cast<int>(newWindowEnd));
+                        auto begin = std::max(subGrid.getLocalDomain().offset[d], static_cast<int>(newWindowBegin));
+                        //std::cout << end << " - " << begin << std::endl;
+                        mThreadParams.window.localDimensions.size[d] = end - begin;
+                    }
+
+                    if(mThreadParams.window.localDimensions.size[d] == 0)
+                        mThreadParams.window.localDimensions.offset[d] = 0;
+
+
+                    //std::cout << "d=" << d << " local [" << mThreadParams.window.localDimensions.offset[d] << ","
+                    //          << mThreadParams.window.localDimensions.size[d] << "]" << std::endl;
+                }
+
                 mThreadParams.isCheckpoint = false;
                 dumpData(currentStep);
             }
@@ -1410,7 +1462,7 @@ make sure that environment variable OPENPMD_BP_BACKEND is not set to ADIOS1.
                 /* y direction can be negative for first gpu */
                 const pmacc::Selection<simDim> localDomain = Environment<simDim>::get().SubGrid().getLocalDomain();
                 DataSpace<simDim> particleOffset(localDomain.offset);
-                particleOffset.y() -= threadParams->window.globalDimensions.offset.y();
+                particleOffset -= threadParams->window.globalDimensions.offset;
 
                 std::vector<std::string> vectorOfDataSourceNames;
                 if(m_help->selfRegister)

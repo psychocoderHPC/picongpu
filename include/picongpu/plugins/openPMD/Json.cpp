@@ -298,7 +298,7 @@ The key 'select' must point to either a single string or an array of strings.)EN
             auto& hdf5Dataset = config["hdf5"]["dataset"];
             if(!hdf5Dataset.contains("chunks"))
             {
-                hdf5Dataset["chunks"] = "none";
+                //hdf5Dataset["chunks"] = "none";
             }
         }
     }
