@@ -56,7 +56,7 @@ namespace picongpu
 
                 struct ChargeAssignment : public detail::NGP
                 {
-                    HDINLINE float_X operator()(float_X const x)
+                    HDINLINE float_X operator()(float_X const x) const
                     {
                         /*       -
                          *       |  1               if -1/2<=x<1/2
@@ -76,7 +76,7 @@ namespace picongpu
                     /** form factor of this particle shape.
                      * @param x has to be within [-support/2, support/2)
                      */
-                    HDINLINE float_X operator()(float_X const)
+                    HDINLINE float_X operator()(float_X const) const
                     {
                         /*
                          * W(x)=1

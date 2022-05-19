@@ -60,6 +60,26 @@ namespace picongpu
                         float_X const triple_tmp = tmp * tmp * tmp;
                         return 1.0_X / 6.0_X * triple_tmp;
                     }
+
+                    /**
+                     *
+                     * @tparam T_size
+                     * @param  x particle position relative to the assignment cell range [0.0;1.0)
+                     * @return array with evaluated shape values
+                     */
+                    template<uint32_t T_size>
+                    HDINLINE auto shapeArray(float_X const x) const
+                    {
+                        pmacc::memory::Array<float_X, T_size> shapeValues;
+                        // grid point [-1;2]
+                        shapeValues[0] = ff_2nd_radius(math::abs(-1._X - x));
+                        // note: math::abs(0 - x) == math::abs(x)
+                        shapeValues[1] = ff_1st_radius(x);
+                        shapeValues[3] = ff_2nd_radius(2._X - x);
+                        // equal to ff_1st_radius(1._X - x); but less compute intensive
+                        shapeValues[2] = 1.0_X - (shapeValues[0] + shapeValues[1] + shapeValues[3]);
+                        return shapeValues;
+                    }
                 };
 
             } // namespace detail
@@ -76,7 +96,11 @@ namespace picongpu
 
                 struct ChargeAssignment : public detail::PQS
                 {
-                    HDINLINE float_X operator()(float_X const x)
+
+                    static constexpr int begin = -1;
+                    static constexpr int end = 3;
+
+                    HDINLINE float_X operator()(float_X const x) const
                     {
                         /*       -
                          *       |  1/6*(4 - 6*x^2 + 3*|x|^3)   if 0<=|x|<1
@@ -100,11 +124,31 @@ namespace picongpu
 
                         return result;
                     }
+
+                    // @param x particle position: range [0.0;2.0)
+                    HDINLINE auto shapeArray(float_X const xx, bool const isOutOfRange) const
+                    {
+                        float_X x = isOutOfRange ? xx - 1.0_X : xx;
+
+                        auto shapeValues = detail::PQS::shapeArray<support + 1>(x);
+
+                        shapeValues[4] = isOutOfRange ? shapeValues[3] : 0.0_X;
+                        shapeValues[3] = isOutOfRange ? shapeValues[2] : shapeValues[3];
+                        shapeValues[2] = isOutOfRange ? shapeValues[1] : shapeValues[2];
+                        shapeValues[1] = isOutOfRange ? shapeValues[0] : shapeValues[1];
+                        shapeValues[0] = isOutOfRange ? 0.0_X : shapeValues[0];
+
+                        return shapeValues;
+                    }
                 };
 
                 struct ChargeAssignmentOnSupport : public detail::PQS
                 {
-                    HDINLINE float_X operator()(float_X const x)
+
+                    static constexpr int begin = -1;
+                    static constexpr int end = 2;
+
+                    HDINLINE float_X operator()(float_X const x) const
                     {
                         /*       -
                          *       |  1/6*(4 - 6*x^2 + 3*|x|^3)   if 0<=|x|<1
@@ -129,6 +173,12 @@ namespace picongpu
                             return ff_1st_radius( abs_x );
                         return ff_2nd_radius( abs_x );
                          */
+                    }
+
+                    // @param x particle position: range [0.0;1.0)
+                    HDINLINE auto shapeArray(float_X const x, bool const /*isOutOfRange*/) const
+                    {
+                        return detail::PQS::shapeArray<support>(x);
                     }
                 };
             };

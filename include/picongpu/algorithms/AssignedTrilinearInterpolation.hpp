@@ -52,9 +52,9 @@ namespace picongpu
         /** Does a 3D trilinear field-to-point interpolation for
          * arbitrary assignment function and arbitrary field_value types.
          *
-         * @tparam T_AssignmentFunction function for assignment
          * @tparam T_begin lower margin for interpolation
          * @tparam T_end upper margin for interpolation
+         * @tparam T_AssignmentFunction function for assignment
          *
          * @param cursor cursor pointing to the field
          * @param pos position of the interpolation point
@@ -62,54 +62,57 @@ namespace picongpu
          *
          * interpolate on grid points in range [T_begin;T_end]
          */
-        template<typename T_AssignmentFunction, int T_begin, int T_end, typename T_Cursor>
-        HDINLINE static auto interpolate(const T_Cursor& cursor, const float3_X& pos) ->
-            typename ::pmacc::result_of::Functor<AssignedTrilinearInterpolation, T_Cursor>::type
+        template<int T_begin, int T_end, typename T_Cursor, typename T_AssignmentFunction>
+        HDINLINE static auto interpolate(
+            const T_Cursor& cursor,
+            const pmacc::memory::Array<T_AssignmentFunction, 3>& shapeFunctor)
         {
-            using type = typename ::pmacc::result_of::Functor<AssignedTrilinearInterpolation, T_Cursor>::type;
-
             [[maybe_unused]] constexpr auto iterations = T_end - T_begin + 1;
-            auto result_z = type(0.0);
+
+            auto result_z = float_X(0.0);
             PMACC_UNROLL(iterations)
             for(int z = T_begin; z <= T_end; ++z)
             {
-                auto result_y = type(0.0);
+                auto result_y = float_X(0.0);
                 PMACC_UNROLL(iterations)
                 for(int y = T_begin; y <= T_end; ++y)
                 {
-                    auto result_x = type(0.0);
+                    auto result_x = float_X(0.0);
                     PMACC_UNROLL(iterations)
                     for(int x = T_begin; x <= T_end; ++x)
                         /* a form factor is the "amount of particle" that is affected by this cell
                          * so we have to sum over: cell_value * form_factor
                          */
-                        result_x += *cursor(x, y, z) * T_AssignmentFunction()(float_X(x) - pos.x());
+                        result_x += *cursor(x, y, z) * shapeFunctor[0](x);
 
-                    result_y += result_x * T_AssignmentFunction()(float_X(y) - pos.y());
+                    result_y += result_x * shapeFunctor[1](y);
                 }
 
-                result_z += result_y * T_AssignmentFunction()(float_X(z) - pos.z());
+                result_z += result_y * shapeFunctor[2](z);
             }
             return result_z;
         }
 
         /** Implementation for 2D position*/
-        template<class T_AssignmentFunction, int T_begin, int T_end, class T_Cursor>
-        HDINLINE static auto interpolate(T_Cursor const& cursor, float2_X const& pos) ->
-            typename ::pmacc::result_of::Functor<AssignedTrilinearInterpolation, T_Cursor>::type
+        template<int T_begin, int T_end, class T_Cursor, class T_AssignmentFunction>
+        HDINLINE static auto interpolate(
+            T_Cursor const& cursor,
+            const pmacc::memory::Array<T_AssignmentFunction, 2>& shapeFunctor)
         {
-            using type = typename ::pmacc::result_of::Functor<AssignedTrilinearInterpolation, T_Cursor>::type;
+            constexpr int iterations = T_end - T_begin + 1;
 
-            type result_y = type(0.0);
+            auto result_y = float_X(0.0);
+            PMACC_UNROLL(iterations)
             for(int y = T_begin; y <= T_end; ++y)
             {
-                type result_x = type(0.0);
+                auto result_x = float_X(0.0);
+                PMACC_UNROLL(iterations)
                 for(int x = T_begin; x <= T_end; ++x)
                     // a form factor is the "amount of particle" that is affected by this cell
                     // so we have to sum over: cell_value * form_factor
-                    result_x += *cursor(x, y) * T_AssignmentFunction()(float_X(x) - pos.x());
+                    result_x += *cursor(x, y) * shapeFunctor[0](x);
 
-                result_y += result_x * T_AssignmentFunction()(float_X(y) - pos.y());
+                result_y += result_x * shapeFunctor[1](y);
             }
             return result_y;
         }

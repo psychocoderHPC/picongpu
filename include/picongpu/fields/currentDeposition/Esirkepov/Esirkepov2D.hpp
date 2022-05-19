@@ -45,7 +45,7 @@ namespace picongpu
          *  with an arbitrary form-factor"
          */
         template<typename T_ParticleShape, typename T_Strategy>
-        struct Esirkepov<T_ParticleShape, T_Strategy, DIM2> : public Base<typename T_ParticleShape::ChargeAssignment>
+        struct Esirkepov<T_ParticleShape, T_Strategy, DIM2>
         {
             using ParticleAssign = typename T_ParticleShape::ChargeAssignment;
             static constexpr int supp = ParticleAssign::support;
@@ -59,11 +59,13 @@ namespace picongpu
                 __Esirkepov2D_supercell_or_number_of_guard_supercells_is_too_small_for_stencil,
                 pmacc::math::CT::min<typename pmacc::math::CT::mul<SuperCellSize, GuardSize>::type>::type::value
                         >= currentLowerMargin
+
                     && pmacc::math::CT::min<typename pmacc::math::CT::mul<SuperCellSize, GuardSize>::type>::type::value
                         >= currentUpperMargin);
 
-            static constexpr int begin = -currentLowerMargin + 1;
+            static constexpr int begin = ParticleAssign::begin;
             static constexpr int end = begin + supp;
+            static_assert(ParticleAssign::end == end);
 
             float_X charge;
 
@@ -140,7 +142,7 @@ namespace picongpu
             template<typename CursorJ, typename T_Acc>
             DINLINE void cptCurrent1D(
                 T_Acc const& acc,
-                const DataSpace<simDim>& leaveCell,
+                const DataSpace<simDim>& parStatus,
                 CursorJ cursorJ,
                 const Line<float2_X>& line,
                 const float_X cellEdgeLength)
@@ -149,6 +151,14 @@ namespace picongpu
                 if(line.m_pos0[0] == line.m_pos1[0])
                     return;
 
+                auto shape_i = make_LineShape(
+                    typename T_Strategy::template Shape_i<ParticleAssign>(line.m_pos0[0], (parStatus[0] & 2) != 0),
+                    typename T_Strategy::template Shape_i<ParticleAssign>(line.m_pos1[0], (parStatus[0] & 4) != 0));
+
+                auto shape_j = make_LineShape(
+                    typename T_Strategy::template Shape_j<ParticleAssign>(line.m_pos0[1], (parStatus[1] & 2) != 0),
+                    typename T_Strategy::template Shape_j<ParticleAssign>(line.m_pos1[1], (parStatus[1] & 4) != 0));
+
                 /* We multiply with `cellEdgeLength` due to the fact that the attribute for the
                  * in-cell particle `position` (and it's change in DELTA_T) is normalize to [0,1)
                  */
@@ -156,10 +166,10 @@ namespace picongpu
                     = this->charge * (1.0_X / float_X(CELL_VOLUME * DELTA_T)) * cellEdgeLength;
 
                 for(int j = begin; j < end + 1; ++j)
-                    if(j < end + leaveCell[1])
+                    if(j < end + (parStatus[1] & 1))
                     {
-                        const float_X s0j = this->S0(line, j, 1);
-                        const float_X dsj = this->S1(line, j, 1) - s0j;
+                        const float_X s0j = shape_j.S0(j);
+                        const float_X dsj = shape_j.S0(j) - s0j;
 
                         float_X tmp = -currentSurfaceDensity * (s0j + 0.5_X * dsj);
 
@@ -169,13 +179,13 @@ namespace picongpu
                          * therefore we skip the calculation
                          */
                         for(int i = begin; i < end; ++i)
-                            if(i < end + leaveCell[0] - 1)
+                            if(i < end + (parStatus[0] & 1) - 1)
                             {
                                 /* This is the implementation of the FORTRAN W(i,j,k,1)/ C style W(i,j,k,0) version
                                  * from Esirkepov paper. All coordinates are rotated before thus we can always use C
                                  * style W(i,j,k,0).
                                  */
-                                const float_X W = this->DS(line, i, 0) * tmp;
+                                const float_X W = shape_i.DS(i) * tmp;
                                 accumulated_J += W;
                                 auto const atomicOp = typename T_Strategy::BlockReductionOp{};
                                 atomicOp(acc, (*cursorJ(i, j)).x(), accumulated_J);
@@ -186,7 +196,7 @@ namespace picongpu
             template<typename CursorJ, typename T_Acc>
             DINLINE void cptCurrentZ(
                 T_Acc const& acc,
-                const DataSpace<simDim>& leaveCell,
+                const DataSpace<simDim>& parStatus,
                 CursorJ cursorJ,
                 const Line<float2_X>& line,
                 const float_X v_z)
@@ -194,20 +204,28 @@ namespace picongpu
                 if(v_z == 0.0_X)
                     return;
 
+                auto shape_i = make_LineShape(
+                    typename T_Strategy::template Shape_i<ParticleAssign>(line.m_pos0[0], (parStatus[0] & 2) != 0),
+                    typename T_Strategy::template Shape_i<ParticleAssign>(line.m_pos1[0], (parStatus[0] & 4) != 0));
+
+                auto shape_j = make_LineShape(
+                    typename T_Strategy::template Shape_j<ParticleAssign>(line.m_pos0[1], (parStatus[1] & 2) != 0),
+                    typename T_Strategy::template Shape_j<ParticleAssign>(line.m_pos1[1], (parStatus[1] & 4) != 0));
+
                 const float_X currentSurfaceDensityZ = this->charge * (1.0_X / float_X(CELL_VOLUME)) * v_z;
 
                 for(int j = begin; j < end + 1; ++j)
-                    if(j < end + leaveCell[1])
+                    if(j < end + (parStatus[1] & 1))
                     {
-                        const float_X s0j = this->S0(line, j, 1);
-                        const float_X dsj = this->S1(line, j, 1) - s0j;
+                        const float_X s0j = shape_j.S0(j);
+                        const float_X dsj = shape_j.S1(j) - s0j;
 
                         for(int i = begin; i < end + 1; ++i)
-                            if(i < end + leaveCell[0])
+                            if(i < end + (parStatus[0] & 1))
                             {
-                                const float_X s0i = this->S0(line, i, 0);
-                                const float_X dsi = this->S1(line, i, 0) - s0i;
-                                float_X W = s0i * this->S0(line, j, 1) + 0.5_X * (dsi * s0j + s0i * dsj)
+                                const float_X s0i = shape_i.S0(i);
+                                const float_X dsi = shape_i.S1(i) - s0i;
+                                float_X W = s0i * shape_j.S0(j) + 0.5_X * (dsi * s0j + s0i * dsj)
                                     + (1.0_X / 3.0_X) * dsi * dsj;
 
                                 const float_X j_z = W * currentSurfaceDensityZ;

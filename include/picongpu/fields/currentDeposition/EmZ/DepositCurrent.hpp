@@ -35,8 +35,8 @@ namespace picongpu
         {
             using namespace pmacc;
 
-            template<typename T_AtomicAddOp, typename ParticleAssign, int T_begin, int T_end>
-            struct DepositCurrent<T_AtomicAddOp, ParticleAssign, T_begin, T_end, DIM3> : public Base<ParticleAssign>
+            template<typename T_Strategy, typename ParticleAssign, int T_begin, int T_end>
+            struct DepositCurrent<T_Strategy, ParticleAssign, T_begin, T_end, DIM3>
             {
                 template<typename T_Cursor, typename T_Acc>
                 DINLINE void operator()(
@@ -80,18 +80,31 @@ namespace picongpu
                 {
                     if(line.m_pos0[2] == line.m_pos1[2])
                         return;
+
+                    auto const shape_i = make_LineShape(
+                        typename T_Strategy::template Shape_i<ParticleAssign>(line.m_pos0[0], true),
+                        typename T_Strategy::template Shape_i<ParticleAssign>(line.m_pos1[0], true));
+
+                    auto const shape_j = make_LineShape(
+
+                        typename T_Strategy::template Shape_j<ParticleAssign>(line.m_pos0[1], true),
+                        typename T_Strategy::template Shape_j<ParticleAssign>(line.m_pos1[1], true));
+                    auto const shape_k = make_LineShape(
+                        typename T_Strategy::template Shape_k<ParticleAssign>(line.m_pos0[2], true),
+                        typename T_Strategy::template Shape_k<ParticleAssign>(line.m_pos1[2], true));
+
                     /* pick every cell in the xy-plane that is overlapped by particle's
                      * form factor and deposit the current for the cells above and beneath
                      * that cell and for the cell itself.
                      */
                     for(int i = T_begin; i < T_end; ++i)
                     {
-                        const float_X s0i = this->S0(line, i, 0);
-                        const float_X dsi = this->S1(line, i, 0) - s0i;
+                        const float_X s0i = shape_i.S0(i);
+                        const float_X dsi = shape_i.S1(i) - s0i;
                         for(int j = T_begin; j < T_end; ++j)
                         {
-                            const float_X s0j = this->S0(line, j, 1);
-                            const float_X dsj = this->S1(line, j, 1) - s0j;
+                            const float_X s0j = shape_j.S0(j);
+                            const float_X dsj = shape_j.S1(j) - s0j;
 
                             float_X tmp = -currentSurfaceDensity
                                 * (s0i * s0j + 0.5_X * (dsi * s0j + s0i * dsj) + (1.0_X / 3.0_X) * dsj * dsi);
@@ -103,9 +116,9 @@ namespace picongpu
                                  * from Esirkepov paper. All coordinates are rotated before thus we can always use C
                                  * style W(i,j,k,2).
                                  */
-                                const float_X W = this->DS(line, k, 2) * tmp;
+                                const float_X W = shape_k.DS(k) * tmp;
                                 accumulated_J += W;
-                                auto const atomicOp = T_AtomicAddOp{};
+                                auto const atomicOp = typename T_Strategy::BlockReductionOp{};
                                 atomicOp(acc, (*cursorJ(i, j, k)).z(), accumulated_J);
                             }
                         }
@@ -113,8 +126,8 @@ namespace picongpu
                 }
             };
 
-            template<typename T_AtomicAddOp, typename ParticleAssign, int T_begin, int T_end>
-            struct DepositCurrent<T_AtomicAddOp, ParticleAssign, T_begin, T_end, DIM2> : public Base<ParticleAssign>
+            template<typename T_Strategy, typename ParticleAssign, int T_begin, int T_end>
+            struct DepositCurrent<T_Strategy, ParticleAssign, T_begin, T_end, DIM2>
             {
                 /** Deposit Jx and Jy.
                  *
@@ -154,10 +167,18 @@ namespace picongpu
                     if(line.m_pos0[0] == line.m_pos1[0])
                         return;
 
+                    auto const shape_i = make_LineShape(
+                        typename T_Strategy::template Shape_i<ParticleAssign>(line.m_pos0[0], true),
+                        typename T_Strategy::template Shape_i<ParticleAssign>(line.m_pos1[0], true));
+
+                    auto const shape_j = make_LineShape(
+                        typename T_Strategy::template Shape_j<ParticleAssign>(line.m_pos0[1], true),
+                        typename T_Strategy::template Shape_j<ParticleAssign>(line.m_pos1[1], true));
+
                     for(int j = T_begin; j < T_end; ++j)
                     {
-                        const float_X s0j = this->S0(line, j, 1);
-                        const float_X dsj = this->S1(line, j, 1) - s0j;
+                        const float_X s0j = shape_j.S0(j);
+                        const float_X dsj = shape_j.S1(j) - s0j;
 
                         float_X tmp = -currentSurfaceDensity * (s0j + 0.5_X * dsj);
 
@@ -168,9 +189,9 @@ namespace picongpu
                              * Esirkepov paper. All coordinates are rotated before thus we can
                              * always use C style W(i,j,k,0).
                              */
-                            const float_X W = this->DS(line, i, 0) * tmp;
+                            const float_X W = shape_i.DS(i) * tmp;
                             accumulated_J += W;
-                            auto const atomicOp = T_AtomicAddOp{};
+                            auto const atomicOp = typename T_Strategy::BlockReductionOp{};
                             atomicOp(acc, (*cursorJ(i, j)).x(), accumulated_J);
                         }
                     }
@@ -199,19 +220,27 @@ namespace picongpu
                     if(currentSurfaceDensityZ == 0.0_X)
                         return;
 
+                    auto const shape_i = make_LineShape(
+                        typename T_Strategy::template Shape_i<ParticleAssign>(line.m_pos0[0], true),
+                        typename T_Strategy::template Shape_i<ParticleAssign>(line.m_pos1[0], true));
+
+                    auto const shape_j = make_LineShape(
+                        typename T_Strategy::template Shape_j<ParticleAssign>(line.m_pos0[1], true),
+                        typename T_Strategy::template Shape_j<ParticleAssign>(line.m_pos1[1], true));
+
                     for(int j = T_begin; j < T_end; ++j)
                     {
-                        const float_X s0j = this->S0(line, j, 1);
-                        const float_X dsj = this->S1(line, j, 1) - s0j;
+                        const float_X s0j = shape_j.S0(j);
+                        const float_X dsj = shape_j.S1(j) - s0j;
                         for(int i = T_begin; i < T_end; ++i)
                         {
-                            const float_X s0i = this->S0(line, i, 0);
-                            const float_X dsi = this->S1(line, i, 0) - s0i;
-                            float_X W = s0i * this->S0(line, j, 1) + 0.5_X * (dsi * s0j + s0i * dsj)
-                                + (1.0_X / 3.0_X) * dsi * dsj;
+                            const float_X s0i = shape_i.S0(i);
+                            const float_X dsi = shape_i.S1(i) - s0i;
+                            float_X W
+                                = s0i * shape_j.S0(j) + 0.5_X * (dsi * s0j + s0i * dsj) + (1.0_X / 3.0_X) * dsi * dsj;
 
                             const float_X j_z = W * currentSurfaceDensityZ;
-                            auto const atomicOp = T_AtomicAddOp{};
+                            auto const atomicOp = typename T_Strategy::BlockReductionOp{};
                             atomicOp(acc, (*cursorJ(i, j)).z(), j_z);
                         }
                     }

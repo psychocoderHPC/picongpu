@@ -38,7 +38,7 @@ namespace picongpu
     namespace currentSolver
     {
         template<typename T_ParticleShape, typename T_Strategy>
-        struct Esirkepov<T_ParticleShape, T_Strategy, DIM3> : public Base<typename T_ParticleShape::ChargeAssignment>
+        struct Esirkepov<T_ParticleShape, T_Strategy, DIM3>
         {
             using ParticleAssign = typename T_ParticleShape::ChargeAssignment;
             static constexpr int supp = ParticleAssign::support;
@@ -87,7 +87,7 @@ namespace picongpu
                  * 0 == stay in cell
                  * 1 == leave cell
                  */
-                DataSpace<simDim> leaveCell;
+                DataSpace<DIM3> status;
 
                 /* calculate the offset for the virtual coordinate system */
                 for(uint32_t d = 0; d < simDim; ++d)
@@ -97,8 +97,10 @@ namespace picongpu
                     constexpr bool isSupportEven = (supp % 2 == 0);
                     RelayPoint<isSupportEven>()(iStart, iEnd, line.m_pos0[d], line.m_pos1[d]);
                     gridShift[d] = iStart < iEnd ? iStart : iEnd; // integer min function
+                    status[d] |= gridShift[d] == iStart ? 2 : 0;
+                    status[d] |= gridShift[d] == iEnd ? 4 : 0;
                     /* particle is leaving the cell */
-                    leaveCell[d] = iStart != iEnd ? 1 : 0;
+                    status[d] |= iStart != iEnd ? 1 : 0;
                     /* shift the particle position to the virtual coordinate system */
                     line.m_pos0[d] -= gridShift[d];
                     line.m_pos1[d] -= gridShift[d];
@@ -114,17 +116,17 @@ namespace picongpu
                 using namespace cursor::tools;
                 cptCurrent1D(
                     acc,
-                    DataSpace<simDim>(leaveCell.y(), leaveCell.z(), leaveCell.x()),
+                    DataSpace<simDim>(status.y(), status.z(), status.x()),
                     twistVectorFieldAxes<pmacc::math::CT::Int<1, 2, 0>>(cursorJ),
                     rotateOrigin<1, 2, 0>(line),
                     cellSize.x());
                 cptCurrent1D(
                     acc,
-                    DataSpace<simDim>(leaveCell.z(), leaveCell.x(), leaveCell.y()),
+                    DataSpace<simDim>(status.z(), status.x(), status.y()),
                     twistVectorFieldAxes<pmacc::math::CT::Int<2, 0, 1>>(cursorJ),
                     rotateOrigin<2, 0, 1>(line),
                     cellSize.y());
-                cptCurrent1D(acc, leaveCell, cursorJ, line, cellSize.z());
+                cptCurrent1D(acc, status, cursorJ, line, cellSize.z());
             }
 
             /**
@@ -139,17 +141,30 @@ namespace picongpu
             template<typename CursorJ, typename T_Acc>
             DINLINE void cptCurrent1D(
                 T_Acc const& acc,
-                const DataSpace<simDim>& leaveCell,
+                const DataSpace<simDim>& parStatus,
                 CursorJ cursorJ,
                 const Line<float3_X>& line,
+
                 const float_X cellEdgeLength)
             {
                 /* skip calculation if the particle is not moving in z direction */
                 if(line.m_pos0[2] == line.m_pos1[2])
                     return;
 
-                constexpr int begin = -currentLowerMargin + 1;
+                constexpr int begin = ParticleAssign::begin;
                 constexpr int end = begin + supp;
+                static_assert(ParticleAssign::end == end);
+
+                auto shape_i = make_LineShape(
+                    typename T_Strategy::template Shape_i<ParticleAssign>(line.m_pos0[0], (parStatus[0] & 2) != 0),
+                    typename T_Strategy::template Shape_i<ParticleAssign>(line.m_pos1[0], (parStatus[0] & 4) != 0));
+
+                auto shape_j = make_LineShape(
+                    typename T_Strategy::template Shape_j<ParticleAssign>(line.m_pos0[1], (parStatus[1] & 2) != 0),
+                    typename T_Strategy::template Shape_j<ParticleAssign>(line.m_pos1[1], (parStatus[1] & 4) != 0));
+                auto shape_k = make_LineShape(
+                    typename T_Strategy::template Shape_k<ParticleAssign>(line.m_pos0[2], (parStatus[2] & 2) != 0),
+                    typename T_Strategy::template Shape_k<ParticleAssign>(line.m_pos1[2], (parStatus[2] & 4) != 0));
 
                 /* We multiply with `cellEdgeLength` due to the fact that the attribute for the
                  * in-cell particle `position` (and it's change in DELTA_T) is normalize to [0,1)
@@ -167,15 +182,15 @@ namespace picongpu
                  *     ( this helps the compiler to mask threads without work )
                  */
                 for(int i = begin; i < end + 1; ++i)
-                    if(i < end + leaveCell[0])
+                    if(i < end + (parStatus[0] & 1))
                     {
-                        const float_X s0i = this->S0(line, i, 0);
-                        const float_X dsi = this->S1(line, i, 0) - s0i;
+                        const float_X s0i = shape_i.S0(i);
+                        const float_X dsi = shape_i.S1(i) - s0i;
                         for(int j = begin; j < end + 1; ++j)
-                            if(j < end + leaveCell[1])
+                            if(j < end + (parStatus[1] & 1))
                             {
-                                const float_X s0j = this->S0(line, j, 1);
-                                const float_X dsj = this->S1(line, j, 1) - s0j;
+                                const float_X s0j = shape_j.S0(j);
+                                const float_X dsj = shape_j.S1(j) - s0j;
 
                                 float_X tmp = -currentSurfaceDensity
                                     * (s0i * s0j + 0.5_X * (dsi * s0j + s0i * dsj) + (1.0_X / 3.0_X) * dsj * dsi);
@@ -187,13 +202,13 @@ namespace picongpu
                                  * therefore we skip the calculation
                                  */
                                 for(int k = begin; k < end; ++k)
-                                    if(k < end + leaveCell[2] - 1)
+                                    if(k < end + (parStatus[2] & 1) - 1)
                                     {
                                         /* This is the implementation of the FORTRAN W(i,j,k,3)/ C style W(i,j,k,2)
                                          * version from Esirkepov paper. All coordinates are rotated before thus we can
                                          * always use C style W(i,j,k,2).
                                          */
-                                        const float_X W = this->DS(line, k, 2) * tmp;
+                                        const float_X W = shape_k.DS(k) * tmp;
                                         accumulated_J += W;
                                         auto const atomicOp = typename T_Strategy::BlockReductionOp{};
                                         atomicOp(acc, (*cursorJ(i, j, k)).z(), accumulated_J);

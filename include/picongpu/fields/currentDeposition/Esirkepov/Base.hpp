@@ -36,10 +36,19 @@ namespace picongpu
          *
          * @tparam T_ParticleAssignFunctor assignment functor type
          */
-        template<typename T_ParticleAssignFunctor>
-        struct Base
+        template<typename T_ShapeSelectorStartParticle, typename T_ShapeSelectorEndParticle>
+        struct LineShape
         {
-            using ParticleAssignFunctor = T_ParticleAssignFunctor;
+            T_ShapeSelectorStartParticle const m_shapeSelectorStartParticle;
+            T_ShapeSelectorEndParticle const m_shapeSelectorEndParticle;
+
+            HDINLINE LineShape(
+                T_ShapeSelectorStartParticle shapeSelectorStartParticle,
+                T_ShapeSelectorEndParticle shapeSelectorEndParticle)
+                : m_shapeSelectorStartParticle(shapeSelectorStartParticle)
+                , m_shapeSelectorEndParticle(shapeSelectorEndParticle)
+            {
+            }
 
             /** Calculate terms depending on particle position and assignment function
              *
@@ -51,25 +60,35 @@ namespace picongpu
              */
 
             //! Calculate term in S0 for the start position
-            DINLINE static float_X S0(const Line<floatD_X>& line, const float_X gridPoint, const uint32_t d)
+            DINLINE float_X S0(int const gridPoint) const
             {
-                return ParticleAssignFunctor()(gridPoint - line.m_pos0[d]);
+                return m_shapeSelectorStartParticle(gridPoint);
             }
 
             //! Calculate term in S1 for end position
-            DINLINE static float_X S1(const Line<floatD_X>& line, const float_X gridPoint, const uint32_t d)
+            DINLINE float_X S1(int const gridPoint) const
             {
-                return ParticleAssignFunctor()(gridPoint - line.m_pos1[d]);
+                return m_shapeSelectorEndParticle(gridPoint);
             }
 
             //! Calculate difference term in DS
-            DINLINE static float_X DS(const Line<floatD_X>& line, const float_X gridPoint, const uint32_t d)
+            DINLINE float_X DS(int const gridPoint) const
             {
-                return S1(line, gridPoint, d) - S0(line, gridPoint, d);
+                return S1(gridPoint) - S0(gridPoint);
             }
 
             /*! @} */
         };
+
+        template<typename T_ShapeSelectorStartParticle, typename T_ShapeSelectorEndParticle>
+        HDINLINE auto make_LineShape(
+            T_ShapeSelectorStartParticle shapeSelectorStartParticle,
+            T_ShapeSelectorEndParticle shapeSelectorEndParticle)
+        {
+            return LineShape<T_ShapeSelectorStartParticle, T_ShapeSelectorEndParticle>(
+                shapeSelectorStartParticle,
+                shapeSelectorEndParticle);
+        }
 
     } // namespace currentSolver
 } // namespace picongpu

@@ -40,6 +40,23 @@ namespace picongpu
                      * Is the same for all directions
                      */
                     static constexpr uint32_t support = 2;
+
+                    /**
+                     *
+                     * @tparam T_size
+                     * @param  x particle position relative to the assignment cell range [0.0;1.0)
+                     * @return array with evaluated shape values
+                     */
+                    template<uint32_t T_size>
+                    HDINLINE auto shapeArray(float_X const x) const
+                    {
+                        pmacc::memory::Array<float_X, T_size> shapeValues;
+                        // grid point [0;1]
+                        // note: math::abs(0 - x) == math::abs(x)
+                        shapeValues[0] = math::abs(x);
+                        shapeValues[1] = 1.0_X - x;
+                        return shapeValues;
+                    }
                 };
 
             } // namespace detail
@@ -56,7 +73,10 @@ namespace picongpu
 
                 struct ChargeAssignment : public detail::CIC
                 {
-                    HDINLINE float_X operator()(float_X const x)
+                    static constexpr int begin = 0;
+                    static constexpr int end = 2;
+
+                    HDINLINE float_X operator()(float_X const x) const
                     {
                         /*       -
                          *       |  1-|x|           if |x|<1
@@ -75,19 +95,42 @@ namespace picongpu
 
                         return result;
                     }
+
+                    // @param x particle position: range [0.0;2.0)
+                    HDINLINE auto shapeArray(float_X const xx, bool const isOutOfRange) const
+                    {
+                        float_X x = isOutOfRange ? xx - 1.0_X : xx;
+
+                        auto shapeValues = detail::CIC::shapeArray<support + 1>(x);
+
+                        shapeValues[2] = isOutOfRange ? shapeValues[1] : 0.0_X;
+                        shapeValues[1] = isOutOfRange ? shapeValues[0] : shapeValues[1];
+                        shapeValues[0] = isOutOfRange ? 0.0_X : shapeValues[0];
+
+                        return shapeValues;
+                    }
                 };
 
                 struct ChargeAssignmentOnSupport : public detail::CIC
                 {
+                    static constexpr int begin = 0;
+                    static constexpr int end = 1;
+
                     /** form factor of this particle shape.
                      * @param x has to be within [-support/2, support/2]
                      */
-                    HDINLINE float_X operator()(float_X const x)
+                    HDINLINE float_X operator()(float_X const x) const
                     {
                         /*
                          * W(x)=1-|x|
                          */
                         return 1.0_X - math::abs(x);
+                    }
+
+                    // @param x particle position: range [0.0;1.0)
+                    HDINLINE auto shapeArray(float_X const x, bool const /*isOutOfRange*/) const
+                    {
+                        return detail::CIC::shapeArray<support>(x);
                     }
                 };
             };
