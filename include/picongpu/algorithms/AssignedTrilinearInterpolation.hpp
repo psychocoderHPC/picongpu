@@ -68,36 +68,52 @@ namespace picongpu
          * @{
          */
         template<int T_begin, int T_end, typename T_Cursor, typename T_AssignmentFunction>
-        HDINLINE static auto interpolate(
-            const T_Cursor& cursor,
-            const pmacc::memory::Array<T_AssignmentFunction, 3>& shapeFunctors)
+        HDINLINE static auto interpolate(const T_Cursor& cursor, const T_AssignmentFunction& shapeFunctors)
         {
             [[maybe_unused]] constexpr auto iterations = T_end - T_begin + 1;
-
-            using type = decltype(*cursor(0, 0, 0) * shapeFunctors[0](0));
 
             /* The implementation assumes that x is the fastest moving index to iterate over contiguous memory
              * e.g. a row, to optimize memory fetch operations.
              */
-            auto result_z = type(0.0);
+            auto result_z = float3_X::create(0.0);
             PMACC_UNROLL(iterations)
             for(int z = T_begin; z <= T_end; ++z)
             {
-                auto result_y = type(0.0);
+                auto result_y = float3_X::create(0.0);
                 PMACC_UNROLL(iterations)
                 for(int y = T_begin; y <= T_end; ++y)
                 {
-                    auto result_x = type(0.0);
+                    auto result_x = float3_X::create(0.0);
+
+                    float3_X c;
+                    float3_X s;
                     PMACC_UNROLL(iterations)
                     for(int x = T_begin; x <= T_end; ++x)
+                    {
                         /* a form factor is the "amount of particle" that is affected by this cell
                          * so we have to sum over: cell_value * form_factor
                          */
-                        result_x += *cursor(x, y, z) * shapeFunctors[0](x);
+                        PMACC_UNROLL(3)
+                        for(int d = 0; d < 3; ++d)
+                        {
+                            c[d] = *cursor[d](x, y, z);
+                            s[d] = shapeFunctors[d][0](x);
+                        }
+                        result_x += c * s;
+                    }
 
-                    result_y += result_x * shapeFunctors[1](y);
+                    float3_X s_y;
+                    PMACC_UNROLL(3)
+                    for(int d = 0; d < 3; ++d)
+                        s_y[d] = shapeFunctors[d][1](y);
+
+                    result_y += result_x * s_y;
                 }
-                result_z += result_y * shapeFunctors[2](z);
+                float3_X s_z;
+                PMACC_UNROLL(3)
+                for(int d = 0; d < 3; ++d)
+                    s_z[d] = shapeFunctors[d][2](z);
+                result_z += result_y * s_z;
             }
             return result_z;
         }
