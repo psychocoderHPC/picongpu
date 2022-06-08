@@ -107,20 +107,27 @@ namespace picongpu
              */
             using Supports = typename pmacc::math::CT::make_Int<simDim, supp>::type;
 
-            typename Cursor::ValueType result;
+            using FunctorComponent = decltype(pmacc::cursor::make_FunctorCursor(
+                field,
+                pmacc::algorithm::functor::GetComponent<float_X>(0)));
+
+            pmacc::memory::Array<FunctorComponent, 3> fieldComponent;
+
+            using ShapeArray = decltype(getShapeFunctors(particlePos));
+            pmacc::memory::Array<ShapeArray, 3> positionShifted;
+
             PMACC_UNROLL(Cursor::ValueType::dim)
             for(uint32_t i = 0; i < Cursor::ValueType::dim; i++)
             {
-                auto fieldComponent
+                fieldComponent[i]
                     = pmacc::cursor::make_FunctorCursor(field, pmacc::algorithm::functor::GetComponent<float_X>(i));
+
                 floatD_X particlePosShifted = particlePos;
-                ShiftCoordinateSystem<Supports>()(fieldComponent, particlePosShifted, fieldPos[i]);
-                result[i] = InterpolationMethod::template interpolate<begin, end>(
-                    fieldComponent,
-                    getShapeFunctors(particlePosShifted));
+                ShiftCoordinateSystem<Supports>()(fieldComponent[i], particlePosShifted, fieldPos[i]);
+                positionShifted[i] = getShapeFunctors(particlePosShifted);
             }
 
-            return result;
+            return InterpolationMethod::template interpolate<begin, end>(fieldComponent, positionShifted);
         }
 
         static pmacc::traits::StringProperty getStringProperties()
