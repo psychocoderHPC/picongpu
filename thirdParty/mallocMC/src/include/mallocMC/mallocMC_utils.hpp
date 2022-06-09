@@ -260,11 +260,8 @@ namespace mallocMC
         }
     };
 
-    template<typename T_Acc>
-    struct ThreadFence<
-        T_Acc,
-        typename std::enable_if<
-            alpaka::concepts::ImplementsConcept<alpaka::ConceptUniformCudaHip, T_Acc>::value>::type>
+    template<typename... T_AccArgs>
+    struct ThreadFence<alpaka::AccGpuUniformCudaHipRt<T_AccArgs...>, void>
     {
         static ALPAKA_FN_ACC void device()
         {

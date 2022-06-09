@@ -39,6 +39,15 @@
 
 #include <mpi.h>
 
+#if !defined(ALPAKA_API_PREFIX)
+#    include "pmacc/ppFunctions.hpp"
+#    if(BOOST_LANG_CUDA)
+#        define ALPAKA_API_PREFIX(name) PMACC_JOIN(cuda, name)
+#    elif(BOOST_LANG_HIP)
+#        define ALPAKA_API_PREFIX(name) PMACC_JOIN(hip, name)
+#    endif
+#endif
+
 namespace pmacc
 {
     namespace detail
