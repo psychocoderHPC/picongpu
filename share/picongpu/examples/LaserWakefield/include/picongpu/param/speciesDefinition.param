@@ -47,6 +47,12 @@ namespace picongpu
 #endif
         >;
 
+    /* attribute sequence for species: ions */
+    using AttributeSeElectrons = MakeSeq_t<
+        DefaultParticleAttributes,
+        radiationMask
+        >;
+
     /*########################### end particle attributes ########################*/
 
     /*########################### define species #################################*/
@@ -67,7 +73,7 @@ namespace picongpu
         chargeRatio<ChargeRatioElectrons>>;
 
     /* define species: electrons */
-    using PIC_Electrons = Particles<PMACC_CSTRING("e"), ParticleFlagsElectrons, DefaultParticleAttributes>;
+    using PIC_Electrons = Particles<PMACC_CSTRING("e"), ParticleFlagsElectrons, AttributeSeElectrons>;
 
     /*--------------------------- ions -------------------------------------------*/
 

@@ -41,7 +41,8 @@ namespace picongpu
          */
         using InitPipeline = bmpl::vector<
 #if(PARAM_IONIZATION == 0)
-            CreateDensity<densityProfiles::Gaussian, startPosition::Random2ppc, PIC_Electrons>
+            CreateDensity<densityProfiles::Gaussian, startPosition::Random2ppc, PIC_Electrons>,
+            Manipulate<manipulators::Each10thParticle, PIC_Electrons>
 #    if(PARAM_IONS == 1)
             ,
             Derive<PIC_Electrons, PIC_Ions>

@@ -71,6 +71,21 @@ namespace picongpu
                 }
             };
             using SetBoundElectrons = generic::Free<SetIonToNeutral>;
+
+
+            struct FunctorEach10thParticle
+            {
+                template<typename T_Rng, typename T_Particle>
+                HDINLINE void operator()(T_Rng& rng, T_Particle& particle)
+                {
+                    if(rng() < float_X(0.1))
+                        particle[radiationMask_] = true;
+                }
+                static constexpr char const* name = "Each10thParticle";
+            };
+
+            using Each10thParticle
+                = generic::FreeRng<FunctorEach10thParticle, pmacc::random::distributions::Uniform<float_X>>;
         } // namespace manipulators
     } // namespace particles
 } // namespace picongpu
