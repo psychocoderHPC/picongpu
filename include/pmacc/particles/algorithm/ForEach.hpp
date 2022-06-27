@@ -22,6 +22,7 @@
 #pragma once
 
 #include "pmacc/Environment.hpp"
+#include "pmacc/attribute/Constexpr.hpp"
 #include "pmacc/lockstep.hpp"
 #include "pmacc/mappings/kernel/AreaMapping.hpp"
 #include "pmacc/particles/frame_types.hpp"
@@ -39,25 +40,64 @@ namespace pmacc
         {
             namespace acc
             {
-                template<typename T_FramePtr>
-                struct RegisterFrameIterator
+                struct Collective
+                {
+                };
+                struct NonCollective
+                {
+                };
+                struct Forward
+                {
+                    template<typename T_ParBox>
+                    static DINLINE auto getFirst(T_ParBox& pb, DataSpace<T_ParBox::Dim> const& superCellIdx)
+                    {
+                        return pb.getFirstFrame(superCellIdx);
+                    }
+
+                    template<typename T_ParBox>
+                    static DINLINE auto next(T_ParBox& pb, typename T_ParBox::FramePtr const& framePtr)
+                    {
+                        return pb.getNextFrame(framePtr);
+                    }
+                };
+
+                struct Backward
+                {
+                    template<typename T_ParBox>
+                    static DINLINE auto getFirst(T_ParBox& pb, DataSpace<T_ParBox::Dim> const& superCellIdx)
+                    {
+                        return pb.getFirstFrame(superCellIdx);
+                    }
+
+                    template<typename T_ParBox>
+                    static DINLINE auto next(T_ParBox& pb, typename T_ParBox::FramePtr const& framePtr)
+                    {
+                        return pb.getNextFrame(framePtr);
+                    }
+                };
+
+                template<typename T_FramePtr, typename T_Iterator, typename T_Collectivity>
+                struct FrameIterator;
+
+                template<typename T_FramePtr, typename T_Iterator>
+                struct FrameIterator<T_FramePtr, T_Iterator, NonCollective>
                 {
                     T_FramePtr frame;
 
                     template<typename T_Acc, typename T_ParBox>
-                    DINLINE RegisterFrameIterator(
+                    DINLINE FrameIterator(
                         T_Acc const& acc,
                         T_ParBox& pb,
                         DataSpace<T_ParBox::Dim> const& superCellIdx,
                         uint32_t const m_workerIdx)
-                        : frame(pb.getFirstFrame(superCellIdx))
+                        : frame(T_Iterator::getFirst(pb, superCellIdx))
                     {
                     }
 
                     template<typename T_ParBox, typename T_Acc>
                     DINLINE void next(T_Acc const& acc, T_ParBox& pb, uint32_t const m_workerIdx)
                     {
-                        frame = pb.getNextFrame(frame);
+                        frame = T_Iterator::next(pb, frame);
                     }
 
                     DINLINE T_FramePtr get() const
@@ -66,13 +106,13 @@ namespace pmacc
                     }
                 };
 
-                template<typename T_FramePtr>
-                struct SharedFrameIterator
+                template<typename T_FramePtr, typename T_Iterator>
+                struct FrameIterator<T_FramePtr, T_Iterator, Collective>
                 {
                     T_FramePtr* frame;
 
                     template<typename T_Acc, typename T_ParBox>
-                    DINLINE SharedFrameIterator(
+                    DINLINE FrameIterator(
                         T_Acc const& acc,
                         T_ParBox& pb,
                         DataSpace<T_ParBox::Dim> const& superCellIdx,
@@ -82,7 +122,7 @@ namespace pmacc
                         if(m_workerIdx == 0)
                         {
                             frame = &smem;
-                            *frame = pb.getFirstFrame(superCellIdx);
+                            *frame = T_Iterator::getFirst(pb, superCellIdx);
                         }
                         cupla::syncThreads(acc);
                     }
@@ -92,70 +132,7 @@ namespace pmacc
                     {
                         cupla::syncThreads(acc);
                         if(m_workerIdx == 0)
-                            *frame = pb.getNextFrame(*frame);
-                        cupla::syncThreads(acc);
-                    }
-
-                    DINLINE T_FramePtr get() const
-                    {
-                        return *frame;
-                    }
-                };
-
-                template<typename T_FramePtr>
-                struct RegisterFrameIteratorLast
-                {
-                    T_FramePtr frame;
-
-                    template<typename T_Acc, typename T_ParBox>
-                    DINLINE RegisterFrameIteratorLast(
-                        T_Acc const& acc,
-                        T_ParBox& pb,
-                        DataSpace<T_ParBox::Dim> const& superCellIdx,
-                        uint32_t const m_workerIdx)
-                        : frame(pb.getLastFrame(superCellIdx))
-                    {
-                    }
-
-                    template<typename T_ParBox, typename T_Acc>
-                    DINLINE void next(T_Acc const& acc, T_ParBox& pb, uint32_t const m_workerIdx)
-                    {
-                        frame = pb.getPreviousFrame(frame);
-                    }
-
-                    DINLINE T_FramePtr get() const
-                    {
-                        return frame;
-                    }
-                };
-
-                template<typename T_FramePtr>
-                struct SharedFrameIteratorLast
-                {
-                    T_FramePtr* frame;
-
-                    template<typename T_Acc, typename T_ParBox>
-                    DINLINE SharedFrameIteratorLast(
-                        T_Acc const& acc,
-                        T_ParBox& pb,
-                        DataSpace<T_ParBox::Dim> const& superCellIdx,
-                        uint32_t const m_workerIdx)
-                    {
-                        PMACC_SMEM(acc, smem, T_FramePtr);
-                        if(m_workerIdx == 0)
-                        {
-                            frame = &smem;
-                            *frame = pb.getLastFrame(superCellIdx);
-                        }
-                        cupla::syncThreads(acc);
-                    }
-
-                    template<typename T_ParBox, typename T_Acc>
-                    DINLINE void next(T_Acc const& acc, T_ParBox& pb, uint32_t const m_workerIdx)
-                    {
-                        cupla::syncThreads(acc);
-                        if(m_workerIdx == 0)
-                            *frame = pb.getPreviousFrame(*frame);
+                            *frame = T_Iterator::next(pb, frame);
                         cupla::syncThreads(acc);
                     }
 
@@ -324,41 +301,80 @@ namespace pmacc
                     DINLINE void operator()(T_Acc const& acc, T_ParticleFunctor&& unaryParticleFunctor) const
                     {
                         using FramePtr = typename T_ParBox::FramePtr;
-                        using ParticleType = typename T_ParBox::FrameType::ParticleType;
 
                         using SuperCellSize = typename T_ParBox::FrameType::SuperCellSize;
                         constexpr uint32_t frameSize = pmacc::math::CT::volume<SuperCellSize>::type::value;
                         constexpr uint32_t numWorkers = T_numWorkers;
 
-                        T_Iter<FramePtr> frameIterator(acc, m_particlesBox, m_superCellIdx, m_workerIdx);
+                        /* We work with virtual CUDA blocks if we have more workers than particles.
+                         * Each virtual CUDA block is working on a frame, if we have 2 blocks each block processes
+                         * every second frame until all frames are processed.
+                         */
+                        constexpr uint32_t numVirtualBlocks = (numWorkers + frameSize - 1u) / frameSize;
 
-                        if(!frameIterator.get().isValid())
-                            return;
+                        // T_Iter<FramePtr> frameIterator(acc, m_particlesBox, m_superCellIdx, m_workerIdx);
 
-                        auto forEachParticleInFrame = lockstep::makeForEach<frameSize, numWorkers>(m_workerIdx);
 
-                        auto const& superCell = m_particlesBox.getSuperCell(m_superCellIdx);
-                        auto numParticlesCurrentFrame = superCell.getSizeLastFrame();
+                        auto forEachParticleInFrame
+                            = lockstep::makeForEach<frameSize * numVirtualBlocks, numWorkers>(m_workerIdx);
+                        /* each virtual worker is part of one virtual block */
+                        auto virtualBlockIdCtx = forEachParticleInFrame(
+                            [&](uint32_t const linearIdx) -> uint32_t { return linearIdx / frameSize; });
 
-                        do
+                        auto particlesInSuperCellCtx
+                            = lockstep::makeVar<lcellId_t>(forEachParticleInFrame, lcellId_t(0u));
+
+                        auto frameCtx = forEachParticleInFrame(
+                            [&](lockstep::Idx const idx)
+                            {
+                                auto frame = m_particlesBox.getLastFrame(m_superCellIdx);
+                                if(frame.isValid())
+                                    particlesInSuperCellCtx[idx]
+                                        = m_particlesBox.getSuperCell(m_superCellIdx).getSizeLastFrame();
+
+
+                                /* select N-th (N=virtualBlockId) frame from the end of the list */
+                                for(uint32_t i = 1; i <= virtualBlockIdCtx[idx] && frame.isValid(); ++i)
+                                {
+                                    particlesInSuperCellCtx[idx] = frameSize;
+                                    frame = m_particlesBox.getPreviousFrame(frame);
+                                }
+                                return frame;
+                            });
+
+                        while(true)
                         {
+                            bool isOneFrameValid = false;
+                            forEachParticleInFrame([&](lockstep::Idx const idx)
+                                                   { isOneFrameValid = isOneFrameValid || frameCtx[idx].isValid(); });
+
+                            if(!isOneFrameValid)
+                                break;
+
                             // loop over all particles in the frame
                             forEachParticleInFrame(
                                 [&](lockstep::Idx const linearIdx)
                                 {
-                                    if(linearIdx < numParticlesCurrentFrame)
+                                    auto parIdx = linearIdx % frameSize;
+                                    if(frameCtx[linearIdx].isValid() && parIdx < particlesInSuperCellCtx[linearIdx])
                                     {
                                         // particle index within the supercell
-                                        auto particle = frameIterator.get()[linearIdx];
+                                        auto particle = frameCtx[linearIdx][parIdx];
                                         PMACC_CASSERT_MSG(
                                             __unaryParticleFunctor_must_return_void,
                                             std::is_void_v<decltype(unaryParticleFunctor(acc, particle))>);
                                         unaryParticleFunctor(acc, particle);
                                     }
                                 });
-                            frameIterator.next(acc, m_particlesBox, m_workerIdx);
-                            numParticlesCurrentFrame = frameSize;
-                        } while(frameIterator.get().isValid());
+                            forEachParticleInFrame(
+                                [&](lockstep::Idx const idx)
+                                {
+                                    particlesInSuperCellCtx[idx] = frameSize;
+                                    for(uint32_t i = 0; i < numVirtualBlocks; ++i)
+                                        if(frameCtx[idx].isValid())
+                                            frameCtx[idx] = m_particlesBox.getPreviousFrame(frameCtx[idx]);
+                                });
+                        }
                     }
 
                     DINLINE bool hasParticles() const
