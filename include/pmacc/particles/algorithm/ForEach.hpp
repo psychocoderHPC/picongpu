@@ -55,6 +55,12 @@ namespace pmacc
                     {
                         return pb.getNextFrame(framePtr);
                     }
+
+                    template<typename T_ForEach>
+                    static DINLINE auto createCtx(T_ForEach& forEachParticleInFrame)
+                    {
+                        return = lockstep::makeVar<uint32_t>(forEachParticleInFrame, 0u);
+                    }
                 };
 
                 struct Backward
@@ -69,6 +75,12 @@ namespace pmacc
                     static DINLINE auto next(T_ParBox& pb, typename T_ParBox::FramePtr const& framePtr)
                     {
                         return pb.getPreviousFrame(framePtr);
+                    }
+
+                    template<typename T_ForEach>
+                    static DINLINE auto createCtx(T_ForEach& forEachParticleInFrame)
+                    {
+                        return lockstep::makeVar<lcellId_t>(forEachParticleInFrame, lcellId_t(0u));
                     }
                 };
 
@@ -206,13 +218,6 @@ namespace pmacc
                     template<typename T_Acc, typename T_ParticleFunctor>
                     DINLINE void operator()(T_Acc const& acc, T_ParticleFunctor&& unaryParticleFunctor) const
                     {
-                        using FramePtr = typename T_ParBox::FramePtr;
-                        using ParticleType = typename T_ParBox::FrameType::ParticleType;
-
-                        using SuperCellSize = typename T_ParBox::FrameType::SuperCellSize;
-                        constexpr uint32_t frameSize = pmacc::math::CT::volume<SuperCellSize>::type::value;
-                        constexpr uint32_t numWorkers = T_numWorkers;
-
                         if constexpr(numWorkers > frameSize)
                         {
                             PMACC_CASSERT_MSG(
@@ -222,6 +227,8 @@ namespace pmacc
 
                         auto const& superCell = m_particlesBox.getSuperCell(m_superCellIdx);
                         uint32_t const numPartcilesInSupercell = superCell.getNumParticles();
+
+                        auto parOffsetCtx = lockstep::makeVar<uint32_t>(forEachParticleInFrame, 0u);
 
                         /* We work with virtual CUDA blocks if we have more workers than particles.
                          * Each virtual CUDA block is working on a frame, if we have 2 blocks each block processes
@@ -251,11 +258,14 @@ namespace pmacc
                                 }
                             });
 
-                        uint32_t parOffset = 0u;
 
                         while(true)
                         {
-                            bool isOneFrameValid = parOffset < numPartcilesInSupercell;
+                            bool isOneFrameValid = false;
+                            forEachParticleInFrame(
+                                [&](lockstep::Idx const idx) {
+                                    isOneFrameValid = isOneFrameValid || (parOffsetCtx[idx] < numPartcilesInSupercell);
+                                });
 
                             if(!isOneFrameValid)
                                 break;
@@ -266,7 +276,7 @@ namespace pmacc
                                 forEachParticleInFrame(
                                     [&](lockstep::Idx const linearIdx)
                                     {
-                                        uint32_t const parIdxInSupercell = parOffset + linearIdx;
+                                        uint32_t const parIdxInSupercell = parOffsetCtx[linearIdx] + linearIdx;
                                         bool const isParticle = parIdxInSupercell < numPartcilesInSupercell;
                                         auto const particleIdx = linearIdx % frameSize;
 
@@ -296,14 +306,12 @@ namespace pmacc
                             forEachParticleInFrame(
                                 [&](lockstep::Idx const idx)
                                 {
+                                    parOffsetCtx[idx] += frameSize * numVirtualBlocks;
                                     for(uint32_t i = 0; i < numVirtualBlocks; ++i)
                                         if(framePtrCtx[idx].isValid())
                                             framePtrCtx[idx]
                                                 = T_FrameDirectionIter::next(m_particlesBox, framePtrCtx[idx]);
                                 });
-
-
-                            parOffset += frameSize * numVirtualBlocks;
                         }
                     }
 
@@ -330,7 +338,6 @@ namespace pmacc
                 {
                 private:
                     static constexpr uint32_t dim = T_ParBox::Dim;
-
 
 
                     using SuperCellSize = typename T_ParBox::FrameType::SuperCellSize;
@@ -400,9 +407,6 @@ namespace pmacc
                     template<typename T_Acc, typename T_ParticleFunctor>
                     DINLINE void operator()(T_Acc const& acc, T_ParticleFunctor&& unaryParticleFunctor) const
                     {
-                        using FramePtr = typename T_ParBox::FramePtr;
-
-
                         if constexpr(numWorkers > frameSize)
                         {
                             PMACC_CASSERT_MSG(
