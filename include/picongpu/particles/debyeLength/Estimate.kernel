@@ -120,7 +120,7 @@ namespace picongpu
                     auto sumMomentumSquared = float3_64::create(0.0);
 
                     uint32_t const workerIdx = cupla::threadIdx(acc).x;
-                    auto forEachParticle = pmacc::particles::algorithm::acc::makeSharedForEach<numWorkers>(
+                    auto forEachParticle = pmacc::particles::algorithm::acc::makeForEach<numWorkers>(
                         workerIdx,
                         electronBox,
                         supercellIdx);

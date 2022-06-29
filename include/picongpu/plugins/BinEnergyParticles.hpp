@@ -112,7 +112,7 @@ namespace picongpu
             DataSpace<simDim> const superCellIdx(mapper.getSuperCellIndex(DataSpace<simDim>(cupla::blockIdx(acc))));
 
             auto forEachParticle
-                = pmacc::particles::algorithm::acc::makeSharedForEach<numWorkers>(workerIdx, pb, superCellIdx);
+                = pmacc::particles::algorithm::acc::makeForEach<numWorkers>(workerIdx, pb, superCellIdx);
 
             // end kernel if we have no particles
             if(!forEachParticle.hasParticles())

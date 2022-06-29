@@ -70,7 +70,7 @@ namespace picongpu
             cupla::__syncthreads(acc);
 
             auto forEachParticle
-                = pmacc::particles::algorithm::acc::makeSharedForEach<numWorkers>(workerIdx, parBox, superCellIdx);
+                = pmacc::particles::algorithm::acc::makeForEach<numWorkers>(workerIdx, parBox, superCellIdx);
 
             forEachParticle(
                 acc,

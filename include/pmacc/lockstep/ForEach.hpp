@@ -49,7 +49,7 @@ namespace pmacc
         template<uint32_t T_domainSize, uint32_t T_numWorkers, uint32_t T_simdSize>
         class ForEach<Config<T_domainSize, T_numWorkers, T_simdSize>>
             : Config<T_domainSize, T_numWorkers, T_simdSize>
-            , Worker<T_numWorkers>
+            , public Worker<T_numWorkers>
         {
             /** Get the result of a functor invocation.
              *

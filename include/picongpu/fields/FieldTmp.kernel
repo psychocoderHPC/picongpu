@@ -94,7 +94,7 @@ namespace picongpu
                 lockstep::Worker<numWorkers>{workerIdx});
 
             auto forEachParticle
-                = pmacc::particles::algorithm::acc::makeForEach<numWorkers>(workerIdx, boxPar, superCellIdx);
+                = pmacc::particles::algorithm::acc::makeForEachForward<numWorkers>(workerIdx, boxPar, superCellIdx);
 
             // end kernel if we have no particles
             if(!forEachParticle.hasParticles())
