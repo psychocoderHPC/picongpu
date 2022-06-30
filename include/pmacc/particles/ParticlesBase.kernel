@@ -426,8 +426,9 @@ namespace pmacc
                     }
                 });
 
+            namespace particleAccAlgos = pmacc::particles::algorithm::acc;
             auto forEachFrameInSupercell
-                = pmacc::particles::algorithm::acc::makeForEachFrameForward<numWorkers>(workerIdx, pb, superCellIdx);
+                = particleAccAlgos::makeForEachFrame<numWorkers, particleAccAlgos::Forward>(workerIdx, pb, superCellIdx);
 
             cupla::__syncthreads(acc);
             if(!isProcessedSupercell || !forEachFrameInSupercell.hasParticles())

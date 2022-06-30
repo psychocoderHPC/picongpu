@@ -93,8 +93,11 @@ namespace picongpu
                 superCellIdx - mapper.getGuardingSuperCells(),
                 lockstep::Worker<numWorkers>{workerIdx});
 
-            auto forEachParticle
-                = pmacc::particles::algorithm::acc::makeForEachForward<numWorkers>(workerIdx, boxPar, superCellIdx);
+            namespace particleAccAlgos = pmacc::particles::algorithm::acc;
+            auto forEachParticle = particleAccAlgos::makeForEach<numWorkers, particleAccAlgos::Forward>(
+                workerIdx,
+                boxPar,
+                superCellIdx);
 
             // end kernel if we have no particles
             if(!forEachParticle.hasParticles())

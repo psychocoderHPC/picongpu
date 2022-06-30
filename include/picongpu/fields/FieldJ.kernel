@@ -32,8 +32,8 @@
 #include <pmacc/mappings/threads/ThreadCollective.hpp>
 #include <pmacc/math/operation.hpp>
 #include <pmacc/memory/boxes/CachedBox.hpp>
-#include <pmacc/particles/frame_types.hpp>
 #include <pmacc/particles/algorithm/ForEach.hpp>
+#include <pmacc/particles/frame_types.hpp>
 #include <pmacc/particles/memory/boxes/ParticlesBox.hpp>
 #include <pmacc/types.hpp>
 
