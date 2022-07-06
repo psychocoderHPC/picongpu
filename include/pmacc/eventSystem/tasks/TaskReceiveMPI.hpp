@@ -47,32 +47,58 @@ namespace pmacc
 
         void init() override
         {
-            Buffer<TYPE, DIM>* dst = exchange->getCommunicationBuffer();
-
-            this->request = Environment<DIM>::get().EnvironmentController().getCommunicator().startReceive(
-                exchange->getExchangeType(),
-                reinterpret_cast<char*>(dst->getPointer()),
-                dst->getDataSpace().productOfComponents() * sizeof(TYPE),
-                exchange->getCommunicationTag());
+            if(Environment<>::get().isMpiDirectEnabled())
+            {
+                /* Wait to be sure that all device work is finished before MPI is triggered.
+                 * MPI will not wait for work in our device streams
+                 */
+                mpiDirectInitDependency = __getTransactionEvent();
+                state = WaitForInitDependency;
+                executeIntern();
+            }
+            else
+            {
+                startReceive();
+            }
         }
 
         bool executeIntern() override
         {
-            if(this->isFinished())
-                return true;
-
-            if(this->request == nullptr)
-                throw std::runtime_error("request was nullptr (call executeIntern after freed");
-
-            int flag = 0;
-            MPI_CHECK(MPI_Test(this->request, &flag, &(this->status)));
-
-            if(flag) // finished
+            switch(state)
             {
-                delete this->request;
-                this->request = nullptr;
-                setFinished();
+            case WaitForInitDependency:
+                if(nullptr
+                   == Environment<>::get().Manager().getITaskIfNotFinished(mpiDirectInitDependency.getTaskId()))
+                {
+                    state = UpdateState;
+                    // do not block the event system, dependencies already covered by mpiDirectInitDependency
+                    __startTransaction();
+                    startReceive();
+                    __endTransaction();
+                    state = WaitForMpiOperation;
+                }
+                break;
+            case WaitForMpiOperation:
+            {
+                if(this->request == nullptr)
+                    throw std::runtime_error("request was nullptr (call executeIntern after freed");
+
+                int flag = 0;
+                MPI_CHECK(MPI_Test(this->request, &flag, &(this->status)));
+
+                if(flag) // finished
+                {
+                    delete this->request;
+                    this->request = nullptr;
+                    state = Finish;
+                    return true;
+                }
+            }
+            break;
+            case Finish:
                 return true;
+            default:
+                return false;
             }
             return false;
         }
@@ -99,9 +125,36 @@ namespace pmacc
         }
 
     private:
+        /** Receive data via MPI
+         *
+         * @attention This operation could be blocking because of the access to exchange and dst.
+         *            Take care if you call this method from executeIntern.
+         */
+        void startReceive()
+        {
+            Buffer<TYPE, DIM>* dst = exchange->getCommunicationBuffer();
+
+            this->request = Environment<DIM>::get().EnvironmentController().getCommunicator().startReceive(
+                exchange->getExchangeType(),
+                reinterpret_cast<char*>(dst->getPointer()),
+                dst->getDataSpace().productOfComponents() * sizeof(TYPE),
+                exchange->getCommunicationTag());
+            state = WaitForMpiOperation;
+        }
+
+        enum state_t
+        {
+            WaitForInitDependency,
+            WaitForMpiOperation,
+            UpdateState,
+            Finish
+        };
+
         Exchange<TYPE, DIM>* exchange;
         MPI_Request* request;
         MPI_Status status;
+        EventTask mpiDirectInitDependency;
+        state_t state = UpdateState;
     };
 
 } // namespace pmacc
