@@ -21,16 +21,10 @@
 
 #pragma once
 
-#include "pmacc/Environment.hpp"
-#include "pmacc/attribute/Constexpr.hpp"
-#include "pmacc/lockstep.hpp"
-#include "pmacc/lockstep/Config.hpp"
-#include "pmacc/lockstep/ForEach.hpp"
-#include "pmacc/mappings/kernel/AreaMapping.hpp"
-#include "pmacc/particles/frame_types.hpp"
+#include "pmacc/lockstep/Variable.hpp"
+#include "pmacc/particles/memory/dataTypes/FramePointer.hpp"
+#include "pmacc/particles/memory/dataTypes/Particle.hpp"
 
-#include <cstdint>
-#include <type_traits>
 #include <utility>
 
 
@@ -38,40 +32,90 @@ namespace pmacc::particles::algorithm::acc
 {
     namespace detail
     {
-        //! Tag
+        //! Tag marks that the particle functor interface must be used
         struct CallParticleFunctor;
 
+        //! Tag marks that the frame functor interface must be used
         struct CallFrameFunctor;
 
-        template<typename T_Functor>
+        /** Frame functor interface
+         *
+         * Ensure that a functor can be called with the given lockstep frame variable.
+         *
+         * @tparam T_FrameFunctor Type of the user functor to operate on frames.
+         */
+        template<typename T_FrameFunctor>
         struct FrameFunctorInterface
         {
-            T_Functor m_functor;
-            DINLINE FrameFunctorInterface(T_Functor&& functor) : m_functor(std::forward<T_Functor>(functor))
+            T_FrameFunctor m_functor;
+            DINLINE FrameFunctorInterface(T_FrameFunctor&& functor) : m_functor(std::forward<T_FrameFunctor>(functor))
             {
             }
-
-            template<typename T_Acc, typename T_FrameCtx>
-            DINLINE void operator()(T_Acc const& acc, T_FrameCtx& frameIterCtx)
+            /**
+             *
+             * @tparam T_Acc alpaka accelerator type
+             * @tparam T_FrameType @see FramePointer
+             * @tparam T_Config @see lockstep::Variable
+             * @param acc alpaka accelerator
+             * @param frameIterCtx Lockstep variable containing a frame for each virtual worker.
+             *
+             * @{
+             */
+            template<typename T_Acc, typename T_FrameType, typename T_Config>
+            DINLINE void operator()(
+                T_Acc const& acc,
+                lockstep::Variable<FramePointer<T_FrameType>, T_Config>& frameIterCtx)
             {
                 m_functor(acc, frameIterCtx);
             }
+
+            template<typename T_Acc, typename T_FrameType, typename T_Config>
+            DINLINE void operator()(
+                T_Acc const& acc,
+                lockstep::Variable<FramePointer<T_FrameType>, T_Config>& frameIterCtx) const
+            {
+                m_functor(acc, frameIterCtx);
+            }
+            /**@}*/
         };
 
-        template<typename T>
-        DINLINE auto makeFrameFunctorInterface(T&& t)
+        /** Factory to create a particle interface functor.
+         *
+         * @tparam T_FrameFunctor Type of the user frame functor.
+         * @param frameFunctor Frame functor which should be wrapped to check the interface.
+         * @return Callable functor which guarantees the frame interface used by forEach.
+         */
+        template<typename T_FrameFunctor>
+        DINLINE auto makeFrameFunctorInterface(T_FrameFunctor&& frameFunctor)
         {
-            return FrameFunctorInterface<T>{std::forward<T>(t)};
+            return FrameFunctorInterface<T_FrameFunctor>{std::forward<T_FrameFunctor>(frameFunctor)};
         }
 
-        template<typename T_Functor>
+        /** Particle functor interface
+         *
+         * Ensure that a functor can be called for a particle.
+         *
+         * @tparam T_ParticleFunctor Type of the user particle functor to operate with a single particle.
+         */
+        template<typename T_ParticleFunctor>
         struct ParticleFunctorInterface
         {
-            T_Functor m_functor;
-            DINLINE ParticleFunctorInterface(T_Functor&& functor) : m_functor(std::forward<T_Functor>(functor))
+            T_ParticleFunctor m_functor;
+            DINLINE ParticleFunctorInterface(T_ParticleFunctor&& functor)
+                : m_functor(std::forward<T_ParticleFunctor>(functor))
             {
             }
 
+            /** Invoke the user functor with the given arguments.
+             *
+             * @tparam T_Acc alpaka accelerator type
+             * @tparam T_FrameType @see Particle
+             * @tparam T_ValueTypeSeq @see Particle
+             * @param acc alpaka accelerator
+             * @param particle particle to process
+             *
+             * @{
+             */
             template<typename T_Acc, typename T_FrameType, typename T_ValueTypeSeq>
             DINLINE void operator()(T_Acc const& acc, Particle<T_FrameType, T_ValueTypeSeq>& particle)
             {
@@ -83,12 +127,20 @@ namespace pmacc::particles::algorithm::acc
             {
                 m_functor(acc, particle);
             }
+
+            /**@}*/
         };
 
-        template<typename T>
-        DINLINE auto makeParticleFunctorInterface(T&& t)
+        /** Factory to create a particle interface functor.
+         *
+         * @tparam T_ParticleFunctor Type of the user particle functor to operate with a single particle.
+         * @param particleFunctor Particle functor which should be wrapped to check the interface.
+         * @return Callable functor which guarantees the particle interface used by forEach.
+         */
+        template<typename T_ParticleFunctor>
+        DINLINE auto makeParticleFunctorInterface(T_ParticleFunctor&& particleFunctor)
         {
-            return ParticleFunctorInterface<T>{std::forward<T>(t)};
+            return ParticleFunctorInterface<T_ParticleFunctor>{std::forward<T_ParticleFunctor>(particleFunctor)};
         }
 
     } // namespace detail

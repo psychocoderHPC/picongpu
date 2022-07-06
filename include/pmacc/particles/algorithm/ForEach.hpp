@@ -39,6 +39,7 @@ namespace pmacc::particles::algorithm
 {
     namespace acc
     {
+        //! Policy to forward iterate over particles/frames of a supercell.
         struct Forward
         {
             template<typename T_ParBox>
@@ -60,6 +61,7 @@ namespace pmacc::particles::algorithm
             }
         };
 
+        //! Policy to reverse iterate over particles/frames of a supercell.
         struct Reverse
         {
             template<typename T_ParBox>
@@ -81,12 +83,15 @@ namespace pmacc::particles::algorithm
             }
         };
 
-        /** operate on particles of a superCell
+        /** Execute a particle or frame functor for each particle/frame.
          *
-         * @tparam T_ParBox type of the particle box
-         * @tparam T_numWorkers number of workers used for execution
+         * @tparam T_AccessTag Type of the tag to mark if the particle or frame interface will be used.
+         *                     valid options: detail::CallParticleFunctor or detail::CallFrameFunctor
+         * @tparam T_Order Iteration order. valid options: Forward or Reverse
+         * @tparam T_ParBox Type of the particle box to traverse.
+         * @tparam T_numWorkers Number of lockstep workers.
          */
-        template<typename T_Accessor, typename T_Order, typename T_ParBox, uint32_t T_numWorkers>
+        template<typename T_AccessTag, typename T_Order, typename T_ParBox, uint32_t T_numWorkers>
         struct ForEachParticle
         {
         private:
@@ -95,18 +100,16 @@ namespace pmacc::particles::algorithm
             using SuperCellSize = typename T_ParBox::FrameType::SuperCellSize;
             static constexpr uint32_t frameSize = pmacc::math::CT::volume<SuperCellSize>::type::value;
             static constexpr uint32_t numWorkers = T_numWorkers;
-            /* We work with virtual CUDA blocks if we have more workers than particles.
-             * Each virtual CUDA block is working on a frame, if we have 2 blocks each block processes
-             * every second frame until all frames are processed.
+
+            /** Number of frames to skip.
+             *
+             * If we have more worker than particles in a frame we skip frames depending on the worker id.
              */
-            static constexpr uint32_t numVirtualBlocks = (numWorkers + frameSize - 1u) / frameSize;
+            static constexpr uint32_t numFramesToSkip = (numWorkers + frameSize - 1u) / frameSize;
 
             using ForEachParticleInFrame
-                = lockstep::ForEach<lockstep::Config<frameSize * numVirtualBlocks, T_numWorkers, 1>>;
+                = lockstep::ForEach<lockstep::Config<frameSize * numFramesToSkip, T_numWorkers, 1>>;
 
-            using FramePtr = typename T_ParBox::FramePtr;
-            using FramePtrCtx = lockstep::Variable<FramePtr, typename ForEachParticleInFrame::BaseConfig>;
-            mutable FramePtrCtx framePtrCtx;
             DataSpace<dim> const m_superCellIdx;
             ForEachParticleInFrame const forEachParticleInFrame;
             T_ParBox m_particlesBox;
@@ -129,8 +132,7 @@ namespace pmacc::particles::algorithm
                 uint32_t const workerIdx,
                 T_ParBox const& particlesBox,
                 DataSpace<dim> const& superCellIdx)
-                : framePtrCtx(nullptr)
-                , m_superCellIdx(superCellIdx)
+                : m_superCellIdx(superCellIdx)
                 , forEachParticleInFrame(workerIdx)
                 , m_particlesBox(particlesBox)
             {
@@ -139,20 +141,24 @@ namespace pmacc::particles::algorithm
             /** Execute unary functor for each particle.
              *
              * @attention There is no guarantee in which order particles will be executed.
-             *            It is not allowed to assume that workers execute particles frame wise.
+             *            If the particle functor is used the algorithm assumes that the frame structure is following
+             *            the rule tat all except the last frame are fully filled and in the last frame the low indices
+             *            within the frames will be contigious filled too.
              *
              * @tparam T_Acc alpaka accelerator type
-             * @tparam T_ParticleFunctor unary particle functor
+             * @tparam T_Functor unary particle functor or frame functor following the interface concept
+             *                           detail::FrameFunctorInterface or detail::ParticleFunctorInterface
              * @param acc alpaka accelerator
-             * @param unaryParticleFunctor Functor executed for each particle with
-             *                             'void operator()(T_Acc const &, ParticleType)'.
-             *                             The caller must ensure that calling the functor in parallel with
-             *                             different workers is data race free.
-             *                             It is not allowed to call a synchronization function within the
-             *                             functor.
+             * @param unaryFunctor Functor executed for each particle/frame.
+             *                     The caller must ensure that calling the functor in parallel with
+             *                     different workers is data race free.
+             *                     particle functor: 'void operator()(T_Acc const &, ParticleType)'.
+             *                       It is not allowed to call a synchronization function within the functor.
+             *                     frame functor: 'void operator()(T_Acc const &, FrameCtx)'.
+             *                       Calling synchronization within the functor is allowed.
              */
-            template<typename T_Acc, typename T_ParticleFunctor>
-            DINLINE void operator()(T_Acc const& acc, T_ParticleFunctor&& unaryParticleFunctor) const
+            template<typename T_Acc, typename T_Functor>
+            DINLINE void operator()(T_Acc const& acc, T_Functor&& unaryFunctor) const
             {
                 if constexpr(numWorkers > frameSize)
                 {
@@ -164,49 +170,47 @@ namespace pmacc::particles::algorithm
                 auto const& superCell = m_particlesBox.getSuperCell(m_superCellIdx);
                 uint32_t const numPartcilesInSupercell = superCell.getNumParticles();
 
+                // Information used to know if a particle within a frame is active without checking the multiMask.
                 auto frameConditionData = T_Order::createCtx(forEachParticleInFrame);
-
-                /* We work with virtual CUDA blocks if we have more workers than particles.
-                 * Each virtual CUDA block is working on a frame, if we have 2 blocks each block processes
-                 * every second frame until all frames are processed.
-                 */
-                constexpr uint32_t numVirtualBlocks = (numWorkers + frameSize - 1u) / frameSize;
 
                 // end kernel if we have no particles
                 if(numPartcilesInSupercell == 0)
                     return;
 
-                forEachParticleInFrame(
+                auto framePtrCtx = forEachParticleInFrame(
                     [&](lockstep::Idx const idx)
                     {
-                        framePtrCtx[idx] = T_Order::getFirst(m_particlesBox, m_superCellIdx);
+                        auto frame = T_Order::getFirst(m_particlesBox, m_superCellIdx);
 
                         if constexpr(std::is_same_v<Reverse, T_Order>)
                         {
-                            if(framePtrCtx[idx].isValid())
+                            if(frame.isValid())
                                 frameConditionData[idx]
                                     = m_particlesBox.getSuperCell(m_superCellIdx).getSizeLastFrame();
                         }
 
-                        constexpr uint32_t numberVirtualBlocks = (numWorkers + frameSize - 1u) / frameSize;
-                        if constexpr(numberVirtualBlocks > 1)
+                        /* Same as numFramesToSkip, variable is required to workaround an nvcc compiler bug.
+                         * Without redefinition within the lambda the variable will be undefined.
+                         */
+                        constexpr uint32_t skipNFrames = (numWorkers + frameSize - 1u) / frameSize;
+                        if constexpr(skipNFrames > 1)
                         {
-                            uint32_t const virtualBlockId = idx / frameSize;
-                            /* select N-th (N=virtualBlockId) frame from the end of the list */
-                            for(uint32_t i = 1; i <= virtualBlockId && framePtrCtx[idx].isValid(); ++i)
+                            uint32_t const frameIdx = idx / frameSize;
+                            /* select N-th (N=frameIdx) frame from the list */
+                            for(uint32_t i = 1; i <= frameIdx && frame.isValid(); ++i)
                             {
-                                framePtrCtx[idx] = T_Order::next(m_particlesBox, framePtrCtx[idx]);
+                                frame = T_Order::next(m_particlesBox, frame);
                             }
                             if constexpr(std::is_same_v<Reverse, T_Order>)
-                                frameConditionData[idx] = virtualBlockId != 0 ? frameSize : frameConditionData[idx];
+                                frameConditionData[idx] = frameIdx != 0 ? frameSize : frameConditionData[idx];
                         }
+                        return frame;
                     });
-
 
                 bool isOneFrameValid = true;
                 do
                 {
-                    if constexpr(std::is_same_v<T_Accessor, detail::CallParticleFunctor>)
+                    if constexpr(std::is_same_v<T_AccessTag, detail::CallParticleFunctor>)
                     {
                         // loop over all particles in the frame
                         forEachParticleInFrame(
@@ -234,19 +238,18 @@ namespace pmacc::particles::algorithm
 
                                 PMACC_CASSERT_MSG(
                                     __unaryParticleFunctor_must_return_void,
-                                    std::is_void_v<decltype(unaryParticleFunctor(acc, particle))>);
+                                    std::is_void_v<decltype(unaryFunctor(acc, particle))>);
                                 if(particle.isHandleValid())
                                 {
-                                    auto particleFunctor = detail::makeParticleFunctorInterface(
-                                        std::forward<T_ParticleFunctor>(unaryParticleFunctor));
+                                    auto particleFunctor
+                                        = detail::makeParticleFunctorInterface(std::forward<T_Functor>(unaryFunctor));
                                     particleFunctor(acc, particle);
                                 }
                             });
                     }
-                    else if constexpr(std::is_same_v<T_Accessor, detail::CallFrameFunctor>)
+                    else if constexpr(std::is_same_v<T_AccessTag, detail::CallFrameFunctor>)
                     {
-                        auto frameFunctor
-                            = detail::makeFrameFunctorInterface(std::forward<T_ParticleFunctor>(unaryParticleFunctor));
+                        auto frameFunctor = detail::makeFrameFunctorInterface(std::forward<T_Functor>(unaryFunctor));
                         frameFunctor(acc, framePtrCtx);
                     }
 
@@ -256,10 +259,10 @@ namespace pmacc::particles::algorithm
                             if constexpr(std::is_same_v<Reverse, T_Order>)
                                 frameConditionData[idx] = frameSize;
                             else if constexpr(std::is_same_v<Forward, T_Order>)
-                                frameConditionData[idx] += frameSize * numVirtualBlocks;
+                                frameConditionData[idx] += frameSize * numFramesToSkip;
                             else
                                 static_assert(!sizeof(T_Order), "Unsupported order policy");
-                            for(uint32_t i = 0; i < numVirtualBlocks; ++i)
+                            for(uint32_t i = 0; i < numFramesToSkip; ++i)
                                 if(framePtrCtx[idx].isValid())
                                     framePtrCtx[idx] = T_Order::next(m_particlesBox, framePtrCtx[idx]);
                         });
