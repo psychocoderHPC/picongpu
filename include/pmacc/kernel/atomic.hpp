@@ -66,6 +66,43 @@ namespace pmacc
                     ::alpaka::atomicOp<T_Op>(acc, ptr, value, hierarchy);
                 }
             };
+#if 1
+            template<typename T_Acc>
+            struct AtomicOpNoRet<
+                ::alpaka::AtomicAdd,
+                T_Acc,
+                __half,
+                ::alpaka::hierarchy::Threads>
+            {
+                template<typename T_Hierarchy>
+                DINLINE void operator()(
+                    T_Acc const& acc,
+                    __half* address,
+                    __half const val,
+                    T_Hierarchy const& hierarchy)
+                {
+                    atomicAdd(address,val);
+                }
+            };
+
+            template<typename T_Acc>
+            struct AtomicOpNoRet<
+                ::alpaka::AtomicAdd,
+                T_Acc,
+                __half,
+                ::alpaka::hierarchy::Blocks>
+            {
+                template<typename T_Hierarchy>
+                DINLINE void operator()(
+                    T_Acc const& acc,
+                    float* address,
+                    __half const val,
+                    T_Hierarchy const& hierarchy)
+                {
+                    atomicAdd(address,float(val));
+                }
+            };
+#endif
 
 #if(ALPAKA_ACC_GPU_HIP_ENABLED == 1 && (HIP_VERSION_MAJOR * 100 + HIP_VERSION_MINOR) < 401)
             /** HIP backend specialization for atomic add float

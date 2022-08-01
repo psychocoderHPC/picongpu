@@ -42,13 +42,14 @@ namespace pmacc
                 template<typename T_Acc, typename T_Dst, typename T_Src>
                 HDINLINE void operator()(T_Acc const& acc, T_Dst& dst, T_Src const& src) const
                 {
-                    atomicOpNoRet<T_AlpakaOperation>(acc, &dst, src, T_AlpakaHierarchy{});
+                    atomicOpNoRet<T_AlpakaOperation>(acc, &dst, algorithms::precisionCast::precisionCast<T_Dst>(src), T_AlpakaHierarchy{});
                 }
 
                 /** Execute atomic operation for pmacc::math::Vector */
                 template<
                     typename T_Acc,
                     typename T_Type,
+                    typename T_Type2,
                     int T_dim,
                     typename T_DstAccessor,
                     typename T_DstNavigator,
@@ -59,10 +60,10 @@ namespace pmacc
                 HDINLINE void operator()(
                     T_Acc const& acc,
                     pmacc::math::Vector<T_Type, T_dim, T_DstAccessor, T_DstNavigator, T_DstStorage>& dst,
-                    pmacc::math::Vector<T_Type, T_dim, T_SrcAccessor, T_SrcNavigator, T_SrcStorage> const& src) const
+                    pmacc::math::Vector<T_Type2, T_dim, T_SrcAccessor, T_SrcNavigator, T_SrcStorage> const& src) const
                 {
                     for(int i = 0; i < T_dim; ++i)
-                        atomicOpNoRet<T_AlpakaOperation>(acc, &dst[i], src[i], T_AlpakaHierarchy{});
+                        atomicOpNoRet<T_AlpakaOperation>(acc, &dst[i], algorithms::precisionCast::precisionCast<T_Type>(src[i]), T_AlpakaHierarchy{});
                 }
             };
 

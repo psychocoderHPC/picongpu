@@ -31,8 +31,9 @@
 #include <pmacc/cuSTL/cursor/tools/twistVectorFieldAxes.hpp>
 #include <pmacc/types.hpp>
 
-#include <pmacc/cuSTL/cursor/compile-time/SafeCursor.hpp>
+#include <cuda_fp16.h>
 
+#include <pmacc/cuSTL/cursor/compile-time/SafeCursor.hpp>
 
 namespace picongpu
 {
@@ -231,7 +232,7 @@ namespace picongpu
                                         const float_X W = shapeK.DS(k) * tmp;
                                         accumulated_J += W;
                                         auto const atomicOp = typename T_Strategy::BlockReductionOp{};
-                                        atomicOp(acc, (*cursorJ(i, j, k)).z(), accumulated_J);
+                                        atomicOp(acc, (*cursorJ(i, j, k)).z(), __half(accumulated_J));
                                     }
                             }
                     }
