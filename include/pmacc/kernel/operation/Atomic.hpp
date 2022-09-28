@@ -49,6 +49,7 @@ namespace pmacc
                 template<
                     typename T_Worker,
                     typename T_Type,
+                    typename T_Type2,
                     int T_dim,
                     typename T_DstAccessor,
                     typename T_DstNavigator,
@@ -59,10 +60,14 @@ namespace pmacc
                 HDINLINE void operator()(
                     T_Worker const& worker,
                     pmacc::math::Vector<T_Type, T_dim, T_DstAccessor, T_DstNavigator, T_DstStorage>& dst,
-                    pmacc::math::Vector<T_Type, T_dim, T_SrcAccessor, T_SrcNavigator, T_SrcStorage> const& src) const
+                    pmacc::math::Vector<T_Type2, T_dim, T_SrcAccessor, T_SrcNavigator, T_SrcStorage> const& src) const
                 {
                     for(int i = 0; i < T_dim; ++i)
-                        atomicOpNoRet<T_AlpakaOperation>(worker, &dst[i], src[i], T_AlpakaHierarchy{});
+                        atomicOpNoRet<T_AlpakaOperation>(
+                            worker,
+                            &dst[i],
+                            static_cast<T_Type>(src[i]),
+                            T_AlpakaHierarchy{});
                 }
             };
 

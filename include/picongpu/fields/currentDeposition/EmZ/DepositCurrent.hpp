@@ -117,7 +117,7 @@ namespace picongpu
                                 const float_X W = shapeK.DS(k) * tmp;
                                 accumulated_J += W;
                                 auto const atomicOp = typename T_Strategy::BlockReductionOp{};
-                                atomicOp(worker, (*cursorJ(i, j, k)).z(), accumulated_J);
+                                atomicOp(worker, (*cursorJ(i, j, k)).z(), double(accumulated_J));
                             }
                         }
                     }

@@ -92,7 +92,7 @@ namespace picongpu
 
                 /* this memory is used by all virtual blocks */
                 auto cachedJ
-                    = detail::Cache<Strategy>::template create<T_BlockDescription>(worker, fieldJ.shift(blockCell));
+                    = detail::Cache2<Strategy>::template create<T_BlockDescription>(worker, fieldJ.shift(blockCell));
 
                 worker.sync();
 

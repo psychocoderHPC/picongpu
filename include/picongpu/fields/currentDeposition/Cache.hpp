@@ -82,6 +82,53 @@ namespace picongpu
             };
 
             template<typename T_Strategy>
+            struct Cache2
+            {
+                /** Create a cache
+                 *
+                 * @attention thread-collective operation, requires external thread synchronization
+                 */
+                template<typename T_BlockDescription, typename T_Acc, typename T_FieldBox>
+                DINLINE static auto create(T_Acc const& worker, T_FieldBox const& fieldBox)
+#if(!BOOST_COMP_CLANG)
+                    -> decltype(CachedBox::create<0u, float3_64>(worker, std::declval<T_BlockDescription>()))
+#endif
+                {
+                    using ValueType = float3_64;
+                    /* this memory is used by all virtual blocks */
+                    auto cache = CachedBox::create<0u, ValueType>(worker, T_BlockDescription{});
+
+                    Set<ValueType> set(ValueType::create(0.0_X));
+                    auto collectiveFill = makeThreadCollective<T_BlockDescription>();
+
+                    /* initialize shared memory with zeros */
+                    collectiveFill(worker, set, cache);
+                    return cache;
+                }
+
+                /** Flush the cache
+                 *
+                 * @attention thread-collective operation, requires external thread synchronization
+                 */
+                template<
+                    typename T_BlockDescription,
+                    typename T_Acc,
+                    typename T_FieldBox,
+                    typename T_FieldCache>
+                DINLINE static void flush(
+                    T_Acc const& worker,
+                    T_FieldBox fieldBox,
+                    T_FieldCache const& cachedBox)
+                {
+                    typename T_Strategy::GridReductionOp const op;
+                    auto collectiveFlush = makeThreadCollective<T_BlockDescription>();
+
+                    /* write scatter results back to the global memory */
+                    collectiveFlush(worker, op, fieldBox, cachedBox);
+                }
+            };
+
+            template<typename T_Strategy>
             struct Cache<T_Strategy, typename std::enable_if<!T_Strategy::useBlockCache>::type>
             {
                 /** Create a cache
