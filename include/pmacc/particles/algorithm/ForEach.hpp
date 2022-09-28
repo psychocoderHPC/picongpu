@@ -277,9 +277,11 @@ namespace pmacc::particles::algorithm
 
                             for(uint32_t i = 0; i < frameDistance; ++i)
                                 if(framePtrCtx[idx].isValid())
+                                {
                                     framePtrCtx[idx] = T_Order::next(m_particlesBox, framePtrCtx[idx]);
 
-                            hasMoreWork = hasMoreWork || framePtrCtx[idx].isValid();
+                                    hasMoreWork = hasMoreWork || framePtrCtx[idx].isValid();
+                                }
                         });
 
                 } while(hasMoreWork);
