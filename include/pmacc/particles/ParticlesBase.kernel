@@ -430,7 +430,9 @@ namespace pmacc
             uint32_t numPar = pb.getSuperCell(superCellIdx).getNumParticles();
             frame = pb.getFirstFrame(superCellIdx);
 
-
+            // remove the next two lines and all is fine
+            if(numPar==0u && frame.isValid())
+                printf("should never be shown!\n");
 
             cupla::__syncthreads(acc);
             if(!isProcessedSupercell || !frame.isValid()) //numPar>0u)
