@@ -23,6 +23,7 @@
 #include "picongpu/traits/GetMargin.hpp"
 
 #include <pmacc/mappings/kernel/AreaMapping.hpp>
+#include <pmacc/mappings/kernel/RangeMapping.hpp>
 #include <pmacc/mappings/kernel/StrideMapping.hpp>
 #include <pmacc/math/Vector.hpp>
 #include <pmacc/types.hpp>
@@ -112,7 +113,7 @@ namespace picongpu
                 T_JBox const& jBox,
                 T_ParticleBox const& parBox) const
             {
-                auto const mapper = makeAreaMapper<T_area>(cellDescription);
+                auto mapper = makeRangeMapper(makeAreaMapper<T_area>(cellDescription),768-20,768);
 
                 PMACC_KERNEL(depositionKernel)(mapper.getGridDim(), T_numWorkers)(jBox, parBox, frameSolver, mapper);
             }

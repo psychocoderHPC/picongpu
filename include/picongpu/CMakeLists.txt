@@ -256,6 +256,8 @@ set(PIC_VERBOSE "1" CACHE STRING
     "Set verbosity level for PIConGPU (default is only physics output)")
 add_definitions(-DPIC_VERBOSE_LVL=${PIC_VERBOSE})
 
+option(PIC_ADD_RPATH "Add RPATH's to binaries." ON)
+
 
 ################################################################################
 # Additional defines for PIConGPU outputs
@@ -529,6 +531,20 @@ if(PIC_HAVE_openPMD)
         SYSTEM PRIVATE
         $<TARGET_PROPERTY:toml11::toml11,INTERFACE_INCLUDE_DIRECTORIES>)
     target_link_libraries(picongpu-hostonly PRIVATE toml11::toml11)
+endif()
+
+## annotate with RPATH's
+if(PIC_ADD_RPATH)
+    if(NOT DEFINED CMAKE_INSTALL_RPATH)
+        if(APPLE)
+            set_target_properties(picongpu PROPERTIES INSTALL_RPATH "@loader_path")
+        elseif(CMAKE_SYSTEM_NAME MATCHES "Linux")
+            set_target_properties(picongpu PROPERTIES INSTALL_RPATH "$ORIGIN")
+        endif()
+    endif()
+    if(NOT DEFINED CMAKE_INSTALL_RPATH_USE_LINK_PATH)
+        set_target_properties(picongpu PROPERTIES INSTALL_RPATH_USE_LINK_PATH ON)
+    endif()
 endif()
 
 
