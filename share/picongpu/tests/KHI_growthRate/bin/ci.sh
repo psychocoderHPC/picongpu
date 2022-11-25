@@ -117,7 +117,7 @@ cd $inputDestinationPath
 pic-build
 
 cd $dataPath
-mpiexec -n 1 $inputDestinationPath/bin/picongpu -d 1 1 1 -g 192 512 12 --periodic 1 1 1 -s 3000 --fields_energy.period 10
+mpiexec -n 1 $inputDestinationPath/bin/picongpu -d 1 1 1 -g 192 512 12 --periodic 1 1 1 -s 1500 --fields_energy.period 10 --i_macroParticlesCount.period 100 --e_macroParticlesCount.period 100
 cd ..
 
 # test with python

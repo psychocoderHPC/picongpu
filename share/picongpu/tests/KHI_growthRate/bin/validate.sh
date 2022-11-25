@@ -9,6 +9,7 @@
 help()
 {
   echo "Validate KHI output data."
+  echo ""
   echo "The test is evaluating the magnetic field growth rate with the corresponding analytic solution."
   echo ""
   echo "Usage:"
@@ -64,5 +65,14 @@ fi
 # test for growth rate
 MAINTEST="$inputSetPath/lib/python/test/KHI_growthRate"
 
+# check that no particles get lost
+ret=0
+awk 'NR==2 {beginCount=$2} NR>1 && NF!=0{if(beginCount!=$2){print("Error: Particle loss over time. Number of particles first step="beginCount", last step="$2);exit 1}}' e_macroParticlesCount.dat
+ret="$((ret+$?))"
+awk 'NR==2 {beginCount=$2} NR>1 && NF!=0{if(beginCount!=$2){print("Error: Particle loss over time. Number of particles first step="beginCount", last step="$2);exit 1}}' i_macroParticlesCount.dat
+ret="$((ret+$?))"
+
+# analyse magnetic field growth rate
 python $MAINTEST/MainTest.py $inputSetPath/include/picongpu/param/ $dataPath/
-exit $?
+ret="$((ret+$?))"
+exit $ret
