@@ -1,6 +1,4 @@
-/* Copyright 2013-2022 Axel Huebl, Heiko Burau, Rene Widera, Richard Pausch,
- *                     Klaus Steiniger, Felix Schmitt, Benjamin Worpitz
- *                     Finn-Ole Carstens
+/* Copyright 2023 Finn-Ole Carstens, Rene Widera
  *
  * This file is part of PIConGPU.
  *
@@ -25,204 +23,220 @@
 
 #include "picongpu/fields/FieldB.hpp"
 #include "picongpu/fields/FieldE.hpp"
-#include "picongpu/plugins/ILightweightPlugin.hpp"
 #include "picongpu/plugins/common/openPMDAttributes.hpp"
 #include "picongpu/plugins/common/openPMDDefaultExtension.hpp"
 #include "picongpu/plugins/common/openPMDVersion.def"
 #include "picongpu/plugins/common/openPMDWriteMeta.hpp"
+#include "picongpu/plugins/multi/multi.hpp"
+#include "picongpu/plugins/shadowgraphy/GatherSlice.hpp"
 #include "picongpu/plugins/shadowgraphy/ShadowgraphyHelper.hpp"
 
-#include <pmacc/cuSTL/algorithm/host/Foreach.hpp>
-#include <pmacc/cuSTL/algorithm/kernel/Foreach.hpp>
-#include <pmacc/cuSTL/algorithm/mpi/Gather.hpp>
-#include <pmacc/cuSTL/container/DeviceBuffer.hpp>
-#include <pmacc/cuSTL/container/HostBuffer.hpp>
-#include <pmacc/cuSTL/cursor/tools/slice.hpp>
 #include <pmacc/dataManagement/DataConnector.hpp>
 #include <pmacc/math/Vector.hpp>
-#include <pmacc/math/vector/Float.hpp>
-#include <pmacc/math/vector/Int.hpp>
-#include <pmacc/math/vector/Size_t.hpp>
-#include <pmacc/mpi/MPIReduce.hpp>
-#include <pmacc/mpi/reduceMethods/Reduce.hpp>
 
 #include <iostream>
 #include <sstream>
 #include <string>
 
+#include <mpi.h>
 #include <openPMD/openPMD.hpp>
 #include <stdio.h>
 
 
 namespace picongpu
 {
-    using namespace pmacc;
-    namespace po = boost::program_options;
-
     namespace plugins
     {
         namespace shadowgraphy
         {
-            namespace ShadowgraphyHelper
-            {
-                template<class Field>
-                class ConversionFunctor
-                {
-                public:
-                    /* convert field data to higher precision and convert to SI units on GPUs */
-                    template<typename T_Acc>
-                    DINLINE void operator()(
-                        T_Acc const& acc,
-                        float3_64& target,
-                        const typename Field::ValueType fieldData) const
-                    {
-                        target = precisionCast<float_64>(fieldData) * float_64((Field::getUnit())[0]);
-                    }
-                };
-            } // end namespace ShadowgraphyHelper
-
-            class Shadowgraphy : public ILightweightPlugin
+            namespace po = boost::program_options;
+            class Shadowgraphy : public plugins::multi::IInstance
             {
             private:
-                // technical variables for PIConGPU plugins
-                std::string pluginName;
-                std::string pluginPrefix;
-                std::string filenameExtension = openPMD::getDefaultExtension().c_str();
+                struct Help : public plugins::multi::IHelp
+                {
+                    /** creates an instance
+                     *
+                     * @param help plugin defined help
+                     * @param id index of the plugin, range: [0;help->getNumPlugins())
+                     */
+                    std::shared_ptr<IInstance> create(
+                        std::shared_ptr<IHelp>& help,
+                        size_t const id,
+                        MappingDesc* cellDescription) override
+                    {
+                        return std::shared_ptr<IInstance>(new Shadowgraphy(help, id, cellDescription));
+                    }
 
-                MappingDesc* cellDescription = nullptr;
-                std::string notifyPeriod;
+                    //! periodicity of computing the particle energy
+                    plugins::multi::Option<int> optionStart
+                        = {"start", "step to start plugin [for each n-th step]", 0};
+                    plugins::multi::Option<int> optionDuration
+                        = {"duration", "number of steps used to aggregate fields: 0 is disabling the plugin", 0};
+                    plugins::multi::Option<std::string> optionFileName
+                        = {"file", "file name to store slices in: ", "shadowgram"};
+                    plugins::multi::Option<std::string> optionFileExtention
+                        = {"ext",
+                           "openPMD filename extension. This controls the"
+                           "backend picked by the openPMD API. Available extensions: ["
+                               + openPMD::printAvailableExtensions() + "]",
+                           openPMD::getDefaultExtension().c_str()};
+                    plugins::multi::Option<float_X> optionSlicePoint
+                        = {"slicePoint", "slice point in the direction 0.0 <= x < 1.0", 0.5};
+                    plugins::multi::Option<float_X> optionFocusPosition
+                        = {"focusPos", "focus position relative to slice point [in meter]", 0.0};
+                    plugins::multi::Option<bool> optionFourierOutput
+                        = {"fourierOutput",
+                           "optional output: E and B fields in (kx, ky, omega) Fourier space, 1==enabled",
+                           0};
+                    plugins::multi::Option<bool> optionIntermediateOutput
+                        = {"intermediateOutput",
+                           "optional output: E and B fields in (kx, ky, omega) Fourier space, 1==enabled",
+                           0};
 
-                bool sliceIsOK;
+
+                    ///! method used by plugin controller to get --help description
+                    void registerHelp(
+                        boost::program_options::options_description& desc,
+                        std::string const& masterPrefix = std::string{}) override
+                    {
+                        optionStart.registerHelp(desc, masterPrefix + prefix);
+                        optionFileName.registerHelp(desc, masterPrefix + prefix);
+                        optionFileExtention.registerHelp(desc, masterPrefix + prefix);
+                        optionSlicePoint.registerHelp(desc, masterPrefix + prefix);
+                        optionFocusPosition.registerHelp(desc, masterPrefix + prefix);
+                        optionDuration.registerHelp(desc, masterPrefix + prefix);
+                        optionFourierOutput.registerHelp(desc, masterPrefix + prefix);
+                        optionIntermediateOutput.registerHelp(desc, masterPrefix + prefix);
+                    }
+
+                    void expandHelp(
+                        boost::program_options::options_description& desc,
+                        std::string const& masterPrefix = std::string{}) override
+                    {
+                    }
+
+
+                    void validateOptions() override
+                    {
+                        ///@todo verify options
+                    }
+
+                    size_t getNumPlugins() const override
+                    {
+                        return optionDuration.size();
+                    }
+
+                    std::string getDescription() const override
+                    {
+                        return description;
+                    }
+
+                    std::string getOptionPrefix() const
+                    {
+                        return prefix;
+                    }
+
+                    std::string getName() const override
+                    {
+                        return name;
+                    }
+
+                    std::string const name = "Shadowgraphy";
+                    //! short description of the plugin
+                    std::string const description
+                        = "Calculate the energy density of a laser by integrating the Pointing vectors in a spatially "
+                          "fixed slice over a given time interval.";
+                    //! prefix used for command line arguments
+                    std::string const prefix = "shadowgraphy";
+                };
+
+            private:
+                MappingDesc* m_cellDescription = nullptr;
+
+                bool sliceIsOK = false;
+
+                // do not change the plane, code is only supporting a plane in z direction
                 int plane = 2;
-                std::string fileName;
-                float_X slicePoint;
 
-                std::unique_ptr<container::DeviceBuffer<float3_64, 2>> dBuffer_SI1;
-                std::unique_ptr<container::DeviceBuffer<float3_64, 2>> dBuffer_SI2;
+                bool isIntegrating = false;
+                int startTime = 0;
+                // duration adjusted to be a multiple of params::tRes
+                int adjustedDuration = 0;
 
-                // std::unique_ptr<::openPMD::Series> openPMDSeries;
+                int localPlaneIdx = -1;
 
-
-                bool isIntegrating;
-                int startTime;
-
-                float focuspos;
-
-                int duration;
-
-                bool isMaster = false;
-
-                shadowgraphy::Helper* helper = nullptr;
-                pmacc::mpi::MPIReduce reduce;
+                std::unique_ptr<shadowgraphy::Helper> helper;
+                std::unique_ptr<shadowgraphy::GatherSlice> gather;
 
                 bool fourierOutputEnabled = false;
                 bool intermediateOutputEnabled = false;
 
+                std::shared_ptr<Help> m_help;
+                size_t m_id;
+
             public:
-                Shadowgraphy()
-                    : pluginName("Shadowgraphy: calculate the energy density of a laser by integrating"
-                                 "the Poynting vectors in a spatially fixed slice over a given time interval")
-                    , isIntegrating(false)
+                Shadowgraphy(
+                    std::shared_ptr<plugins::multi::IHelp>& help,
+                    size_t const id,
+                    MappingDesc* cellDescription)
+                    : m_cellDescription(cellDescription)
+                    , m_help(std::static_pointer_cast<Help>(help))
+                    , m_id(id)
                 {
-                    /* register our plugin during creation */
-                    Environment<>::get().PluginConnector().registerPlugin(this);
-                    pluginPrefix = "shadowgraphy";
+                    static_assert(simDim == DIM3, "Shadowgraphy-plugin requires 3D simulations.");
+                    init();
                 }
 
-                //! Implementation of base class function.
-                std::string pluginGetName() const override
+                void init()
                 {
-                    return "Shadowgraphy";
-                }
-
-
-                //! Implementation of base class function.
-                void pluginRegisterHelp(po::options_description& desc) override
-                {
-#if(PIC_ENABLE_FFTW3 == 1)
-                    desc.add_options()(
-                        (this->pluginPrefix + ".period").c_str(),
-                        po::value<std::string>(&this->notifyPeriod)->multitoken(),
-                        "notify period");
-                    desc.add_options()(
-                        (this->pluginPrefix + ".fileName").c_str(),
-                        po::value<std::string>(&this->fileName)->multitoken(),
-                        "file name to store slices in");
-                    desc.add_options()(
-                        (this->pluginPrefix + ".ext").c_str(),
-                        po::value<std::string>(&this->filenameExtension)->multitoken(),
-                        "openPMD filename extension");
-                    desc.add_options()(
-                        (this->pluginPrefix + ".plane").c_str(),
-                        po::value<int>(&this->plane)->multitoken(),
-                        "specifies the axis which stands on the cutting plane (0,1,2)");
-                    desc.add_options()(
-                        (this->pluginPrefix + ".slicePoint").c_str(),
-                        po::value<float_X>(&this->slicePoint)->multitoken(),
-                        "slice point 0.0 <= x <= 1.0");
-                    desc.add_options()(
-                        (this->pluginPrefix + ".focuspos").c_str(),
-                        po::value<float_X>(&this->focuspos)->multitoken(),
-                        "focus position relative to slice point in microns");
-                    desc.add_options()(
-                        (this->pluginPrefix + ".duration").c_str(),
-                        po::value<int>(&this->duration)->multitoken(),
-                        "nt");
-                    desc.add_options()(
-                        (this->pluginPrefix + ".fourieroutput").c_str(),
-                        po::value<bool>(&fourierOutputEnabled)->zero_tokens(),
-                        "optional output: E and B fields in (kx, ky, omega) Fourier space");
-                    desc.add_options()(
-                        (this->pluginPrefix + ".intermediateoutput").c_str(),
-                        po::value<bool>(&intermediateOutputEnabled)->zero_tokens(),
-                        "optional output: E and B fields in (x, y, omega) Fourier space");
-#else
-                    desc.add_options()(
-                        (this->pluginPrefix).c_str(),
-                        "plugin disabled [compiled without dependency FFTW]");
-#endif
-                }
-                plugins::multi::Option<std::string> extension
-                    = {"ext", "openPMD filename extension", openPMD::getDefaultExtension().c_str()};
-
-                //! Implementation of base class function.
-                void pluginLoad() override
-                {
+                    auto duration = m_help->optionDuration.get(m_id);
+                    // adjust to be a multiple of params::tRes
+                    adjustedDuration = (duration / params::tRes) * params::tRes;
+                    auto startStep = m_help->optionStart.get(m_id);
+                    auto slicePoint = m_help->optionSlicePoint.get(m_id);
                     /* called when plugin is loaded, command line flags are available here
                      * set notification period for our plugin at the PluginConnector */
-                    if(0 != notifyPeriod.size())
+                    if(adjustedDuration > 0)
                     {
-                        if(float_X(0.0) <= slicePoint && slicePoint <= float_X(1.0))
+                        if(float_X(0.0) <= slicePoint && slicePoint < float_X(1.0))
                         {
-                            /* in case the slice point is inside of [0.0,1.0] */
+                            /* in case the slice point is inside of [0.0,1.0) */
                             sliceIsOK = true;
 
-                            /* The plugin integrates the Poynting vectors over time and must thus be called every
+                            /* The plugin integrates the Pointing vectors over time and must thus be called every
                              * tRes-th time-step of the simulation until the integration is done */
-                            int startTime = std::stoi(this->notifyPeriod);
-                            int endTime = std::stoi(this->notifyPeriod) + this->duration;
+                            int lastStep = startStep + adjustedDuration;
 
-                            std::string internalNotifyPeriod = std::to_string(startTime) + ":"
-                                + std::to_string(endTime) + ":" + std::to_string(params::tRes);
+                            std::string internalNotifyPeriod = std::to_string(startStep) + ":"
+                                + std::to_string(lastStep) + ":" + std::to_string(params::tRes);
 
                             Environment<>::get().PluginConnector().setNotificationPeriod(this, internalNotifyPeriod);
-                            namespace vec = ::pmacc::math;
-                            typedef SuperCellSize BlockDim;
 
-                            vec::Size_t<simDim> size = vec::Size_t<simDim>(this->cellDescription->getGridSuperCells())
-                                    * precisionCast<size_t>(BlockDim::toRT())
-                                - precisionCast<size_t>(2 * BlockDim::toRT());
-                            this->dBuffer_SI1 = std::make_unique<container::DeviceBuffer<float3_64, simDim - 1>>(
-                                size.shrink<simDim - 1>((this->plane + 1) % simDim));
-                            this->dBuffer_SI2 = std::make_unique<container::DeviceBuffer<float3_64, simDim - 1>>(
-                                size.shrink<simDim - 1>((this->plane + 1) % simDim));
+                            const SubGrid<simDim>& subGrid = Environment<simDim>::get().SubGrid();
+                            auto globalDomain = subGrid.getGlobalDomain();
+                            auto globalPlaneExtent = globalDomain.size[plane];
+                            auto localDomain = subGrid.getLocalDomain();
+
+                            auto globalPlaneIdx = globalPlaneExtent * slicePoint;
+
+                            auto isPlaneInLocalDomain = globalPlaneIdx >= localDomain.offset[plane]
+                                && globalPlaneIdx < localDomain.offset[plane] + localDomain.size[plane];
+                            if(isPlaneInLocalDomain)
+                                localPlaneIdx = globalPlaneIdx - localDomain.offset[plane];
+
+                            std::cout << "global slice cellZ=" << globalPlaneIdx << " localPlaneIdx=" << localPlaneIdx
+                                      << std::endl;
+
+                            gather = std::make_unique<shadowgraphy::GatherSlice>();
+                            gather->participate(isPlaneInLocalDomain);
                         }
                         else
                         {
-                            /* in case the slice point is outside of [0.0,1.0] */
+                            /* in case the slice point is outside of [0.0,1.0) */
                             sliceIsOK = false;
                             std::cerr << "In the Shadowgraphy plugin the slice point"
-                                      << " (slicePoint=" << slicePoint << ") is outside of [0.0, 1.0]. " << std::endl
+                                      << " (slicePoint=" << slicePoint << ") is outside of [0.0, 1.0). " << std::endl
                                       << "The request will be ignored. " << std::endl;
                         }
                     }
@@ -232,62 +246,49 @@ namespace picongpu
                     }
                 }
 
-                //! Implementation of base class function.
-                void pluginUnload() override
+                void restart(uint32_t restartStep, std::string const& restartDirectory) override
                 {
-                    /* called when plugin is unloaded, cleanup here */
+                    ///@todo please implement
                 }
 
-                /** Implementation of base class function. Sets mapping description.
-                 *
-                 * @param cellDescription
-                 */
-                void setMappingDescription(MappingDesc* cellDescription) override
+                void checkpoint(uint32_t currentStep, std::string const& checkpointDirectory) override
                 {
-                    this->cellDescription = cellDescription;
+                    ///@todo please implement
+                }
+
+                //! must be implemented by the user
+                static std::shared_ptr<plugins::multi::IHelp> getHelp()
+                {
+                    return std::shared_ptr<plugins::multi::IHelp>(new Help{});
                 }
 
                 //! Implementation of base class function.
                 void notify(uint32_t currentStep) override
                 {
+                    // skip notify, slice is not intersecting the local domain
+                    if(!gather->isParticipating())
+                        return;
                     /* notification callback for simulation step currentStep
                      * called every notifyPeriod steps */
                     if(sliceIsOK)
                     {
-                        isMaster = reduce.hasResult(pmacc::mpi::reduceMethods::Reduce());
-
                         // First time the plugin is called:
                         if(isIntegrating == false)
                         {
                             startTime = currentStep;
 
-                            if(isMaster)
+                            if(gather->isMaster() && helper == nullptr)
                             {
-                                // Get grid size
-                                namespace vec = pmacc::math;
-                                typedef SuperCellSize BlockDim;
-                                DataConnector& dc = Environment<>::get().DataConnector();
-                                auto field = dc.get<FieldE>(FieldE::getName(), true)
-                                                 ->getGridBuffer()
-                                                 .getDeviceBuffer()
-                                                 .cartBuffer()
-                                                 .view(BlockDim::toRT(), -BlockDim::toRT());
-
-                                pmacc::GridController<simDim>& con
-                                    = pmacc::Environment<simDim>::get().GridController();
-                                vec::Size_t<simDim> gpuDim = (vec::Size_t<simDim>) con.getGpuNodes();
-                                vec::Size_t<simDim> globalGridSize = gpuDim * field.size();
-
-                                helper = new Helper(
+                                std::cout << "master init " << currentStep << std::endl;
+                                auto slicePoint = m_help->optionSlicePoint.get(m_id);
+                                helper = std::make_unique<Helper>(
                                     currentStep,
-                                    this->slicePoint,
-                                    this->focuspos * 1e-6,
-                                    this->duration,
-                                    this->fourierOutputEnabled,
-                                    this->intermediateOutputEnabled);
+                                    slicePoint,
+                                    m_help->optionFocusPosition.get(m_id),
+                                    adjustedDuration,
+                                    m_help->optionFourierOutput.get(m_id),
+                                    m_help->optionIntermediateOutput.get(m_id));
                             }
-
-
                             // Create Integrator object %TODO
                             isIntegrating = true;
                         }
@@ -295,159 +296,123 @@ namespace picongpu
                         // convert currentStep (simulation time-step) into localStep for time domain DFT
                         int localStep = (currentStep - startTime) / params::tRes;
 
-                        if(localStep != int(this->duration / params::tRes))
+                        std::cout << "try calculate " << localStep << std::endl;
+
+                        bool const dumpFinalData = localStep == (adjustedDuration / params::tRes);
+                        if(!dumpFinalData)
                         {
-                            namespace vec = ::pmacc::math;
-                            typedef SuperCellSize BlockDim;
                             DataConnector& dc = Environment<>::get().DataConnector();
-                            auto field_coreBorderE = dc.get<FieldE>(FieldE::getName(), true)
-                                                         ->getGridBuffer()
-                                                         .getDeviceBuffer()
-                                                         .cartBuffer()
-                                                         .view(BlockDim::toRT(), -BlockDim::toRT());
+                            std::cout << "prepare E field" << std::endl;
+                            auto inputFieldBufferE = dc.get<FieldE>(FieldE::getName(), false);
+                            auto sliceBufferE
+                                = getGlobalSlice<shadowgraphy::Helper::FieldType::E>(inputFieldBufferE, localPlaneIdx);
+                            if(gather->isMaster())
+                            {
+                                std::cout << " finish preparing global slice" << std::endl;
+                                helper->storeField<shadowgraphy::Helper::FieldType::E>(
+                                    localStep,
+                                    currentStep,
+                                    sliceBufferE);
+                            }
 
-                            storeSlice<FieldE>(
-                                field_coreBorderE,
-                                this->plane,
-                                this->slicePoint,
-                                localStep,
-                                currentStep);
+                            std::cout << "prepare B field" << std::endl;
+                            auto inputFieldBufferB = dc.get<FieldB>(FieldB::getName(), false);
+                            auto sliceBufferB
+                                = getGlobalSlice<shadowgraphy::Helper::FieldType::B>(inputFieldBufferB, localPlaneIdx);
+                            if(gather->isMaster())
+                            {
+                                std::cout << " finish preparing global slice" << std::endl;
+                                helper->storeField<shadowgraphy::Helper::FieldType::B>(
+                                    localStep,
+                                    currentStep,
+                                    sliceBufferB);
+                            }
 
-                            auto field_coreBorderB = dc.get<FieldB>(FieldB::getName(), true)
-                                                         ->getGridBuffer()
-                                                         .getDeviceBuffer()
-                                                         .cartBuffer()
-                                                         .view(BlockDim::toRT(), -BlockDim::toRT());
-
-                            storeSlice<FieldB>(
-                                field_coreBorderB,
-                                this->plane,
-                                this->slicePoint,
-                                localStep,
-                                currentStep);
-
-                            if(isMaster)
+                            if(gather->isMaster())
                             {
                                 helper->calculate_dft(localStep);
                             }
                         }
                         else
                         {
-                            if(isMaster)
+                            if(gather->isMaster())
                             {
-                                helper->propagateFields();
-                                helper->calculate_shadowgram();
+                                std::cout << "dump " << currentStep << std::endl;
+                                helper->propagateFieldsAndCalculateShadowgram();
 
                                 std::ostringstream filename;
-                                filename << this->fileName << "_" << startTime << ":" << currentStep << ".dat";
+                                filename << m_help->optionFileName.get(m_id) << "_" << startTime << ":" << currentStep
+                                         << ".dat";
 
                                 writeFile(helper->getShadowgram(), filename.str());
 
                                 writeToOpenPMDFile(currentStep);
 
-                                delete(helper);
+                                // delete helper and free all memory
+                                helper.reset(nullptr);
                             }
                             isIntegrating = false;
                         }
                     }
                 }
 
-                /* Stores the field slices from the host on the device. 2 field slices are required to adjust for the
-                 * Yee-offset in the plugin.
-                 * https://picongpu.readthedocs.io/en/latest/models/AOFDTD.html#maxwell-s-equations-on-the-mesh
-                 * The current implementation is based on the (outdated) slice field printer printer and uses custl!
-                 * It works, but it's not nice.
+            private:
+                /** Create and store the global slice out of local data.
+                 *
+                 * Create the slice of the local field. The field values will be interpolated to the origin of the
+                 * cell. Gather the local field data into a single global field on the gather master.
+                 *
+                 * @tparam T_fieldType
+                 * @tparam T_Buffer
+                 * @param inputFieldBuffer
+                 * @param cellIdxZ
+                 * @return Buffer with gathered global slice. (only gather master buffer contains data)
                  */
-                template<typename Field, typename TField>
-                void storeSlice(const TField& field, int nAxis, float slicePoint, int localStep, int currentStep)
+                template<typename shadowgraphy::Helper::FieldType T_fieldType, typename T_Buffer>
+                auto getGlobalSlice(std::shared_ptr<T_Buffer> inputFieldBuffer, int cellIdxZ) const
+                    -> std::shared_ptr<HostBufferIntern<float2_X, DIM2>>
                 {
-                    namespace vec = pmacc::math;
+                    const SubGrid<simDim>& subGrid = Environment<simDim>::get().SubGrid();
+                    auto globalDomain = subGrid.getGlobalDomain();
+                    auto globalPlaneExtent = globalDomain.size[plane];
 
-                    pmacc::GridController<simDim>& con = pmacc::Environment<simDim>::get().GridController();
-                    vec::Size_t<simDim> gpuDim = (vec::Size_t<simDim>) con.getGpuNodes();
-                    vec::Size_t<simDim> globalGridSize = gpuDim * field.size();
+                    auto localDomainOffset = subGrid.getLocalDomain().offset.shrink<DIM2>(0);
+                    auto globalDomainSliceSize = subGrid.getGlobalDomain().size.shrink<DIM2>(0);
 
-                    // FIRST SLICE OF FIELD FOR YEE OFFSET
-                    int globalPlane1 = globalGridSize[nAxis] * slicePoint;
-                    int localPlane1 = globalPlane1 % field.size()[nAxis];
-                    int gpuPlane1 = globalPlane1 / field.size()[nAxis];
+                    auto fieldSlice = createSlice<T_fieldType>(inputFieldBuffer, cellIdxZ);
+                    return gather->gatherSlice(fieldSlice, globalDomainSliceSize, localDomainOffset);
+                }
 
-                    // SECOND SLICE OF FIELD FOR YEE OFFSET
-                    int globalPlane2 = globalGridSize[nAxis] * slicePoint + 1;
-                    int localPlane2 = globalPlane2 % field.size()[nAxis];
-                    int gpuPlane2 = globalPlane2 / field.size()[nAxis];
+                template<typename shadowgraphy::Helper::FieldType T_fieldType, typename T_FieldBuffer>
+                auto createSlice(std::shared_ptr<T_FieldBuffer> inputFieldBuffer, int sliceCellZ) const
+                {
+                    auto bufferGridLayout = inputFieldBuffer->getGridLayout();
+                    DataSpace<DIM2> localSliceSize
+                        = bufferGridLayout.getDataSpaceWithoutGuarding().template shrink<DIM2>(0);
 
-                    vec::Int<simDim> nVector(vec::Int<simDim>::create(0));
-                    nVector[nAxis] = 1;
+                    // skip guard cells
+                    auto inputFieldBox = inputFieldBuffer->getHostDataBox().shift(bufferGridLayout.getGuard());
 
-                    zone::SphericZone<simDim> gpuGatheringZone1(gpuDim, nVector * gpuPlane1);
-                    gpuGatheringZone1.size[nAxis] = 1;
+                    auto sliceBuffer = std::make_shared<HostBufferIntern<float2_X, DIM2>>(localSliceSize);
+                    auto sliceBox = sliceBuffer->getDataBox();
 
-                    zone::SphericZone<simDim> gpuGatheringZone2(gpuDim, nVector * gpuPlane2);
-                    gpuGatheringZone2.size[nAxis] = 1;
+                    std::cout << " start loading slice" << std::endl;
+                    for(int y = 0; y < localSliceSize.y(); ++y)
+                        for(int x = 0; x < localSliceSize.x(); ++x)
+                        {
+                            DataSpace<DIM2> idx(x, y);
+                            DataSpace<DIM3> srcIdx(idx.x(), idx.y(), sliceCellZ);
+                            sliceBox(idx) = helper->cross<T_fieldType>(inputFieldBox.shift(srcIdx));
+                        }
+                    std::cout << " end loading slice" << std::endl;
 
-
-                    algorithm::mpi::Gather<simDim> gather1(gpuGatheringZone1);
-
-                    algorithm::mpi::Gather<simDim> gather2(gpuGatheringZone2);
-
-                    if(!gather1.participate() && !gather2.participate())
-                    {
-                        return;
-                    }
-
-                    vec::UInt32<3> twistedAxesVec1((nAxis + 1) % 3, (nAxis + 2) % 3, nAxis);
-
-                    // convert data to higher precision and to SI units
-                    ShadowgraphyHelper::ConversionFunctor<Field> cf1;
-                    algorithm::kernel::RT::Foreach()(
-                        dBuffer_SI1->zone(),
-                        dBuffer_SI1->origin(),
-                        cursor::tools::slice(field.originCustomAxes(twistedAxesVec1)(0, 0, localPlane1)),
-                        cf1);
-
-
-                    vec::UInt32<3> twistedAxesVec2((nAxis + 1) % 3, (nAxis + 2) % 3, nAxis);
-
-                    // convert data to higher precision and to SI units
-                    ShadowgraphyHelper::ConversionFunctor<Field> cf2;
-                    algorithm::kernel::RT::Foreach()(
-                        dBuffer_SI2->zone(),
-                        dBuffer_SI2->origin(),
-                        cursor::tools::slice(field.originCustomAxes(twistedAxesVec2)(0, 0, localPlane2)),
-                        cf2);
-
-
-                    // copy selected plane from device to host
-                    container::HostBuffer<float3_64, simDim - 1> hBuffer1(dBuffer_SI1->size());
-                    hBuffer1 = *dBuffer_SI1;
-
-                    // copy selected plane from device to host
-                    container::HostBuffer<float3_64, simDim - 1> hBuffer2(dBuffer_SI2->size());
-                    hBuffer2 = *dBuffer_SI2;
-
-                    // collect data from all nodes/GPUs
-                    vec::Size_t<simDim> globalDomainSize = Environment<simDim>::get().SubGrid().getGlobalDomain().size;
-                    vec::Size_t<simDim - 1> globalSliceSize
-                        = globalDomainSize.shrink<simDim - 1>((nAxis + 1) % simDim);
-                    container::HostBuffer<float3_64, simDim - 1> globalBuffer1(globalSliceSize);
-                    container::HostBuffer<float3_64, simDim - 1> globalBuffer2(globalSliceSize);
-
-                    gather1(globalBuffer1, hBuffer1, nAxis);
-                    gather2(globalBuffer2, hBuffer2, nAxis);
-
-                    if(!gather1.root() || !gather2.root())
-                    {
-                        return;
-                    }
-
-                    helper->storeField<Field>(localStep, currentStep, &globalBuffer1, &globalBuffer2);
+                    return sliceBuffer;
                 }
 
                 void writeToOpenPMDFile(uint32_t currentStep)
                 {
                     std::stringstream filename;
-                    filename << pluginPrefix << "_%T." << filenameExtension;
+                    filename << m_help->optionFileName.get(m_id) << "_%T." << m_help->optionFileExtention.get(m_id);
                     ::openPMD::Series series(filename.str(), ::openPMD::Access::CREATE);
 
                     ::openPMD::Extent extent
@@ -467,10 +432,11 @@ namespace picongpu
                     auto shadowgram = mesh[::openPMD::RecordComponent::SCALAR];
                     shadowgram.resetDataset(dataset);
 
-                    shadowgram.storeChunk(
-                        std::shared_ptr<float_64>{&(*(helper->getShadowgramBuf()->origin())), [](auto const*) {}},
-                        offset,
-                        extent);
+                    // do not delete this object before dataPtr is not required anymore
+                    auto data = helper->getShadowgramBuf();
+                    auto sharedDataPtr = std::shared_ptr<float_64>{data->getPointer(), [](auto const*) {}};
+
+                    shadowgram.storeChunk(sharedDataPtr, offset, extent);
 
                     series.iterations[currentStep].close();
                 }
@@ -485,7 +451,6 @@ namespace picongpu
                     {
                         std::cerr << "Can't open file [" << name << "] for output, disable plugin output. "
                                   << std::endl;
-                        isMaster = false; // no Master anymore -> no process is able to write
                     }
                     else
                     {

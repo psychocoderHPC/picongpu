@@ -1,3 +1,22 @@
+/* Copyright 2023 Finn-Ole Carstens, Rene Widera
+ *
+ * This file is part of PIConGPU.
+ *
+ * PIConGPU is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * PIConGPU is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with PIConGPU.
+ * If not, see <http://www.gnu.org/licenses/>.
+ */
+
 #pragma once
 
 #include "picongpu/simulation_defines.hpp"
@@ -6,12 +25,8 @@
 
 #include <pmacc/algorithms/math/defines/pi.hpp>
 #include <pmacc/assert.hpp>
-#include <pmacc/cuSTL/container/HostBuffer.hpp>
 #include <pmacc/mappings/simulation/GridController.hpp>
 #include <pmacc/math/Vector.hpp>
-#include <pmacc/math/vector/Float.hpp>
-#include <pmacc/math/vector/Int.hpp>
-#include <pmacc/math/vector/Size_t.hpp>
 
 #include <cmath> // what
 
@@ -31,12 +46,12 @@ namespace picongpu
             private:
                 using complex_64 = alpaka::Complex<float_64>;
 
-                typedef std::vector<std::vector<std::vector<complex_64>>> vec3c;
-                typedef std::vector<std::vector<complex_64>> vec2c;
-                typedef std::vector<complex_64> vec1c;
-                typedef std::vector<std::vector<std::vector<float_64>>> vec3r;
-                typedef std::vector<std::vector<float_64>> vec2r;
-                typedef std::vector<float_64> vec1r;
+                using vec3c = std::vector<std::vector<std::vector<complex_64>>>;
+                using vec2c = std::vector<std::vector<complex_64>>;
+                using vec1c = std::vector<complex_64>;
+                using vec3r = std::vector<std::vector<std::vector<float_64>>>;
+                using vec2r = std::vector<std::vector<float_64>>;
+                using vec1r = std::vector<float_64>;
 
                 // Arrays to store Ex, Ey, Bx and Bz per time step temporarily
                 vec2r tmpEx, tmpEy;
@@ -57,36 +72,33 @@ namespace picongpu
                 vec3c BxOmega;
                 vec3c ByOmega;
 
-                // Arrays for propagated fields
-                vec3c ExOmegaPropagated;
-                vec3c EyOmegaPropagated;
-                vec3c BxOmegaPropagated;
-                vec3c ByOmegaPropagated;
-
                 vec2r shadowgram;
 
                 // Size of arrays
                 int pluginNumX, pluginNumY;
-                int omegaMinIndex, omegaMaxIndex, numOmegas;
+                int numOmegas;
 
-                int yTotalMinIndex, yTotalMaxIndex;
-                int cellsPerGpu;
+                int yTotalMinIndex;
+                int cellsPerGpuY;
                 bool isSlidingWindowActive;
 
                 // Variables for omega calculations
-                float dt;
+                float_X dt;
                 int pluginNumT;
                 int duration;
 
-                float propagationDistance;
+                float_X propagationDistance;
 
                 bool fourierOutputEnabled;
                 bool intermediateOutputEnabled;
 
-                std::shared_ptr<pmacc::container::HostBuffer<float_64, DIM2>> retBuffer;
-
-
             public:
+                enum class FieldType : uint32_t
+                {
+                    E,
+                    B
+                };
+
                 /** Constructor of shadowgraphy helper class
                  * To be called at the first timestep when the shadowgraphy time integration starts
                  *
@@ -98,8 +110,8 @@ namespace picongpu
                  */
                 Helper(
                     int currentStep,
-                    float slicePoint,
-                    float focusPos,
+                    float_X slicePoint,
+                    float_X focusPos,
                     int duration,
                     bool fourierOutputEnabled,
                     bool intermediateOutputEnabled)
@@ -110,10 +122,7 @@ namespace picongpu
                     dt = params::tRes * SI::DELTA_T_SI;
                     pluginNumT = duration / params::tRes;
 
-                    omegaMinIndex = getOmegaMinIndex();
-                    omegaMaxIndex = getOmegaMaxIndex();
                     numOmegas = getNumOmegas();
-
 
                     propagationDistance = focusPos;
 
@@ -123,7 +132,7 @@ namespace picongpu
 
                     pmacc::GridController<simDim>& con = pmacc::Environment<simDim>::get().GridController();
                     int const nGpus = con.getGpuNodes()[1];
-                    cellsPerGpu = int(globalGridSize[1] / nGpus);
+                    cellsPerGpuY = int(globalGridSize[1] / nGpus);
 
                     pluginNumX = globalGridSize[0] / params::xRes - 2;
 
@@ -138,7 +147,7 @@ namespace picongpu
                     int yWindowSize;
                     if(isSlidingWindowEnabled)
                     {
-                        yWindowSize = int((float(nGpus - 1) / float(nGpus)) * globalGridSize[1]);
+                        yWindowSize = int((float_X(nGpus - 1) / float_X(nGpus)) * globalGridSize[1]);
                     }
                     else
                     {
@@ -147,7 +156,7 @@ namespace picongpu
 
                     // If the sliding window is active, the resulting shadowgram will also be smaller to adjust for the
                     // laser propagation distance
-                    float slidingWindowCorrection;
+                    float_X slidingWindowCorrection;
                     if(isSlidingWindowActive)
                     {
                         int const cellsUntilIntegrationPlane = slicePoint * globalGridSize[2];
@@ -159,6 +168,7 @@ namespace picongpu
                         slidingWindowCorrection = 0.0;
                     }
 
+                    // @todo Why '-2'??????
                     pluginNumY = math::floor(
                         (yWindowSize - slidingWindowCorrection / SI::CELL_HEIGHT_SI) / (params::yRes) -2);
 
@@ -176,11 +186,14 @@ namespace picongpu
                         = (MovingWindow::getInstance().getWindow(currentStep).globalDimensions.offset)[1];
                     int const yTotalOffset = int(startSlideCount * globalGridSize[1] / nGpus);
 
+                    std::cout << "size vector " << pluginNumX << "x" << pluginNumY << " num omegas=" << numOmegas
+                              << std::endl;
+
                     // The total domain indices of the integration slice are constant, because the screen is not
                     // co-propagating with the moving window
+
                     yTotalMinIndex
-                        = yTotalOffset + yGlobalOffset + math::floor(slidingWindowCorrection / SI::CELL_HEIGHT_SI) - 1;
-                    yTotalMaxIndex = yTotalMinIndex + pluginNumY;
+                        = yTotalOffset + yGlobalOffset + math::floor(slidingWindowCorrection / SI::CELL_HEIGHT_SI);
 
                     // Initialization of storage arrays
                     ExOmega = vec3c(pluginNumX, vec2c(pluginNumY, vec1c(numOmegas)));
@@ -188,30 +201,41 @@ namespace picongpu
                     BxOmega = vec3c(pluginNumX, vec2c(pluginNumY, vec1c(numOmegas)));
                     ByOmega = vec3c(pluginNumX, vec2c(pluginNumY, vec1c(numOmegas)));
 
-                    ExOmegaPropagated = vec3c(pluginNumX, vec2c(pluginNumY, vec1c(numOmegas)));
-                    EyOmegaPropagated = vec3c(pluginNumX, vec2c(pluginNumY, vec1c(numOmegas)));
-                    BxOmegaPropagated = vec3c(pluginNumX, vec2c(pluginNumY, vec1c(numOmegas)));
-                    ByOmegaPropagated = vec3c(pluginNumX, vec2c(pluginNumY, vec1c(numOmegas)));
-
                     tmpEx = vec2r(pluginNumX, vec1r(pluginNumY));
                     tmpEy = vec2r(pluginNumX, vec1r(pluginNumY));
                     tmpBx = vec2r(pluginNumX, vec1r(pluginNumY));
                     tmpBy = vec2r(pluginNumX, vec1r(pluginNumY));
 
                     shadowgram = vec2r(pluginNumX, vec1r(pluginNumY));
-
-                    init_fftw();
                 }
 
-                /** Destructor of the shadowgraphy helper class
-                 * To be called at the last time step when the shadowgraphy time integration ends
-                 */
-                ~Helper()
+
+                template<FieldType T_fieldType, typename T_FieldDataBox>
+                float2_X cross(T_FieldDataBox field)
                 {
-                    fftw_free(fftwInF);
-                    fftw_free(fftwOutF);
-                    fftw_free(fftwInB);
-                    fftw_free(fftwOutB);
+                    // fix yee offset
+                    if constexpr(T_fieldType == FieldType::E)
+                    {
+                        return float2_X(
+                            (field(DataSpace<DIM3>(0, 0, 0)).x() + field(DataSpace<DIM3>(-1, 0, 0)).x()) / 2.0_X,
+                            (field(DataSpace<DIM3>(0, 0, 0)).y() + field(DataSpace<DIM3>(0, -1, 0)).y()) / 2.0_X);
+                    }
+                    else if constexpr(T_fieldType == FieldType::B)
+                    {
+                        return float2_X(
+                            (field(DataSpace<DIM3>(0, 0, 0)).x() + field(DataSpace<DIM3>(0, -1, 0)).x()
+                             + field(DataSpace<DIM3>(0, 0, -1)).x() + field(DataSpace<DIM3>(0, -1, -1)).x())
+                                / 4.0_X,
+                            (field(DataSpace<DIM3>(0, 0, 0)).x() + field(DataSpace<DIM3>(-1, 0, 0)).x()
+                             + field(DataSpace<DIM3>(-1, 0, 0)).x() + field(DataSpace<DIM3>(-1, 0, -1)).x())
+                                / 4.0_X);
+                    }
+                    else
+                    {
+                        static_assert(!sizeof(T_FieldDataBox), "Unknown field description used");
+                    }
+
+                    ALPAKA_UNREACHABLE(float2_X{});
                 }
 
                 /** Store fields in helper class with proper resolution and fixed Yee offset
@@ -219,16 +243,13 @@ namespace picongpu
                  * @tparam F Field
                  * @param t current plugin timestep (simulation timestep - plugin start)
                  * @param currentStep current simulation timestep
-                 * @param fieldBuffer1 2D array of field at slicePos
+                 * @param field 3D data box shifted the the local simulation origin (no guard)
                  * @param fieldBuffer2 2D array of field at slicePos with 1 offset (to fix Yee offset)
                  */
-                template<typename F>
-                void storeField(
-                    int t,
-                    int currentStep,
-                    pmacc::container::HostBuffer<float3_64, 2>* fieldBuffer1,
-                    pmacc::container::HostBuffer<float3_64, 2>* fieldBuffer2)
+                template<FieldType T_fieldType, typename T_SliceBuffer>
+                void storeField(int t, int currentStep, T_SliceBuffer sliceBuffer)
                 {
+                    auto globalFieldBox = sliceBuffer->getDataBox();
                     int const currentSlideCount = MovingWindow::getInstance().getSlideCounter(currentStep);
 
                     for(int i = 0; i < pluginNumX; i++)
@@ -238,38 +259,23 @@ namespace picongpu
                         {
                             // Transform the total coordinates of the fixed shadowgraphy screen to the global
                             // coordinates of the field-buffers
-                            int const simJ = fields::absorber::NUM_CELLS[0][1] + yTotalMinIndex
-                                - currentSlideCount * cellsPerGpu + j * params::yRes;
+                            int const simJ = fields::absorber::NUM_CELLS[1][0] + yTotalMinIndex
+                                - currentSlideCount * cellsPerGpuY + j * params::yRes;
 
                             float_64 const wf
                                 = masks::positionWf(i, j, pluginNumX, pluginNumY) * masks::timeWf(t, duration);
 
+                            auto value = globalFieldBox(DataSpace<DIM2>{simI, simJ});
                             // fix yee offset
-                            if(F::getName() == "E")
+                            if constexpr(T_fieldType == FieldType::E)
                             {
-                                tmpEx[i][j] = wf
-                                    * ((*(fieldBuffer2->origin()(simI, simJ + 1))).x()
-                                       + (*(fieldBuffer2->origin()(simI + 1, simJ + 1))).x())
-                                    / 2.0;
-                                tmpEy[i][j] = wf
-                                    * ((*(fieldBuffer2->origin()(simI + 1, simJ))).y()
-                                       + (*(fieldBuffer2->origin()(simI + 1, simJ + 1))).y())
-                                    / 2.0;
+                                tmpEx[i][j] = UNIT_EFIELD * wf * value.x();
+                                tmpEy[i][j] = UNIT_EFIELD * wf * value.y();
                             }
-                            else
+                            else if constexpr(T_fieldType == FieldType::B)
                             {
-                                tmpBx[i][j] = wf
-                                    * ((*(fieldBuffer1->origin()(simI + 1, simJ))).x()
-                                       + (*(fieldBuffer1->origin()(simI + 1, simJ + 1))).x()
-                                       + (*(fieldBuffer2->origin()(simI + 1, simJ))).x()
-                                       + (*(fieldBuffer2->origin()(simI + 1, simJ + 1))).x())
-                                    / 4.0;
-                                tmpBy[i][j] = wf
-                                    * ((*(fieldBuffer1->origin()(simI, simJ + 1))).y()
-                                       + (*(fieldBuffer1->origin()(simI + 1, simJ + 1))).y()
-                                       + (*(fieldBuffer2->origin()(simI, simJ + 1))).y()
-                                       + (*(fieldBuffer2->origin()(simI + 1, simJ + 1))).y())
-                                    / 4.0;
+                                tmpBx[i][j] = UNIT_BFIELD * wf * value.x();
+                                tmpBy[i][j] = UNIT_BFIELD * wf * value.y();
                             }
                         }
                     }
@@ -313,15 +319,23 @@ namespace picongpu
                  * transforming it back into
                  * $(x, y, \omega)$-domain.
                  */
-                void propagateFields()
+                void propagateFieldsAndCalculateShadowgram()
                 {
+                    init_fftw();
+
+                    // Arrays for propagated fields
+                    auto ExOmegaPropagated = vec3c(pluginNumX, vec2c(pluginNumY, vec1c(numOmegas)));
+                    auto EyOmegaPropagated = vec3c(pluginNumX, vec2c(pluginNumY, vec1c(numOmegas)));
+                    auto BxOmegaPropagated = vec3c(pluginNumX, vec2c(pluginNumY, vec1c(numOmegas)));
+                    auto ByOmegaPropagated = vec3c(pluginNumX, vec2c(pluginNumY, vec1c(numOmegas)));
+
                     for(int fieldIndex = 0; fieldIndex < 4; fieldIndex++)
                     {
                         for(int o = 0; o < numOmegas; ++o)
                         {
                             int const omegaIndex = getOmegaIndex(o);
                             float_64 const omegaSI = omega(omegaIndex);
-                            printf("%.5e\n", omegaSI);
+                            // printf("%.5e\n", omegaSI);
                             float_64 const kSI = omegaSI / float_64(SI::SPEED_OF_LIGHT_SI);
 
                             // put field into fftw array
@@ -459,12 +473,85 @@ namespace picongpu
                             }
                         }
                     }
+
+                    calculate_shadowgram(ExOmegaPropagated, EyOmegaPropagated, BxOmegaPropagated, ByOmegaPropagated);
+
+                    free_fftw();
+                }
+
+                //! Get shadowgram as a 2D image
+                vec2r getShadowgram() const
+                {
+                    return shadowgram;
+                }
+
+                auto getShadowgramBuf()
+                {
+                    auto retBuffer
+                        = std::make_shared<HostBufferIntern<float_64, DIM2>>(DataSpace<DIM2>(getSizeX(), getSizeY()));
+                    auto dataBox = retBuffer->getDataBox();
+
+                    for(int j = 0; j < getSizeY(); ++j)
+                    {
+                        for(int i = 0; i < getSizeX(); ++i)
+                        {
+                            dataBox({i, j}) = static_cast<float_64>(shadowgram[i][j]);
+                        }
+                    }
+
+                    return retBuffer;
+                }
+
+                //! Get amount of shadowgram pixels in x direction
+                int getSizeX() const
+                {
+                    return pluginNumX;
+                }
+
+                //! Get amount of shadowgram pixels in y direction
+                int getSizeY() const
+                {
+                    return pluginNumY;
+                }
+
+            private:
+                //! Initialize fftw memory things, supposed to be called once at the start of the plugin loop
+                void init_fftw()
+                {
+                    // Input and output arrays for the FFT transforms
+                    fftwInF = fftw_alloc_complex(pluginNumX * pluginNumY);
+                    fftwOutF = fftw_alloc_complex(pluginNumX * pluginNumY);
+
+                    fftwInB = fftw_alloc_complex(pluginNumX * pluginNumY);
+                    fftwOutB = fftw_alloc_complex(pluginNumX * pluginNumY);
+
+                    // Create fftw plan for transverse fft for real to complex
+                    // Many ffts will be performed -> use FFTW_MEASURE as flag
+                    planForward
+                        = fftw_plan_dft_2d(pluginNumY, pluginNumX, fftwInF, fftwOutF, FFTW_FORWARD, FFTW_MEASURE);
+
+                    // Create fftw plan for transverse ifft for complex to complex
+                    // Even more iffts will be performed -> use FFTW_MEASURE as flag
+                    planBackward
+                        = fftw_plan_dft_2d(pluginNumY, pluginNumX, fftwInB, fftwOutB, FFTW_BACKWARD, FFTW_MEASURE);
+                }
+
+                void free_fftw()
+                {
+                    fftw_free(fftwInF);
+                    fftw_free(fftwOutF);
+                    fftw_free(fftwInB);
+                    fftw_free(fftwOutB);
                 }
 
                 /** Perform an inverse Fourier transform into time domain of both the electric and magnetic field
                  * and then perform a time integration to generate a 2D image out of the 3D array.
                  */
-                void calculate_shadowgram()
+                void calculate_shadowgram(
+                    vec3c const& ExOmegaPropagated,
+                    vec3c const& EyOmegaPropagated,
+                    vec3c const& BxOmegaPropagated,
+                    vec3c const& ByOmegaPropagated)
                 {
                     // Loop over all timesteps
                     for(int t = 0; t < pluginNumT; ++t)
@@ -512,62 +599,6 @@ namespace picongpu
                             }
                         }
                     }
-                }
-
-                //! Get shadowgram as a 2D image
-                vec2r getShadowgram() const
-                {
-                    return shadowgram;
-                }
-
-                std::shared_ptr<pmacc::container::HostBuffer<float_64, DIM2>> getShadowgramBuf()
-                {
-                    // pmacc::container::HostBuffer<float_64, DIM2> retBuffer(getSizeX(), getSizeY());
-                    retBuffer = std::make_shared<pmacc::container::HostBuffer<float_64, DIM2>>(getSizeX(), getSizeY());
-
-                    for(int j = 0; j < getSizeY(); ++j)
-                    {
-                        for(int i = 0; i < getSizeX(); ++i)
-                        {
-                            *(retBuffer->origin()(i, j)) = static_cast<float_64>(shadowgram[i][j]);
-                        }
-                    }
-
-                    return retBuffer;
-                }
-
-                //! Get amount of shadowgram pixels in x direction
-                int getSizeX() const
-                {
-                    return pluginNumX;
-                }
-
-                //! Get amount of shadowgram pixels in y direction
-                int getSizeY() const
-                {
-                    return pluginNumY;
-                }
-
-            private:
-                //! Initialize fftw memory things, supposed to be called once at the start of the plugin loop
-                void init_fftw()
-                {
-                    // Input and output arrays for the FFT transforms
-                    fftwInF = fftw_alloc_complex(pluginNumX * pluginNumY);
-                    fftwOutF = fftw_alloc_complex(pluginNumX * pluginNumY);
-
-                    fftwInB = fftw_alloc_complex(pluginNumX * pluginNumY);
-                    fftwOutB = fftw_alloc_complex(pluginNumX * pluginNumY);
-
-                    // Create fftw plan for transverse fft for real to complex
-                    // Many ffts will be performed -> use FFTW_MEASURE as flag
-                    planForward
-                        = fftw_plan_dft_2d(pluginNumY, pluginNumX, fftwInF, fftwOutF, FFTW_FORWARD, FFTW_MEASURE);
-
-                    // Create fftw plan for transverse ifft for complex to complex
-                    // Even more iffts will be performed -> use FFTW_MEASURE as flag
-                    planBackward
-                        = fftw_plan_dft_2d(pluginNumY, pluginNumX, fftwInB, fftwOutB, FFTW_BACKWARD, FFTW_MEASURE);
                 }
 
                 /** Store fields in helper class with proper resolution and fixed Yee offset in (k_x, k_y,
@@ -737,6 +768,9 @@ namespace picongpu
                 //! Return size of trimmed arrays in omega dimension
                 int getNumOmegas() const
                 {
+                    PMACC_VERIFY_MSG(
+                        getOmegaMaxIndex() > getOmegaMinIndex(),
+                        "Shadowgraphy: omega max <= omega min is not allowed!");
                     return 2 * (getOmegaMaxIndex() - getOmegaMinIndex());
                 }
 
@@ -765,10 +799,10 @@ namespace picongpu
                  *
                  * @return angular frequency in SI units
                  */
-                float omega(int i) const
+                float_X omega(int i) const
                 {
-                    float const actualStep = dt;
-                    return 2.0 * PI * (float(i) - float(pluginNumT) / 2.0) / float(pluginNumT) / actualStep;
+                    float_X const actualStep = dt;
+                    return 2.0X * float_X(PI) * (float_X(i) - float_X(pluginNumT) / 2.0_X) / float_X(pluginNumT) / actualStep;
                 }
 
                 /** x component of k vector in SI units for FFTs
@@ -777,10 +811,10 @@ namespace picongpu
                  *
                  * @return x component of k vector in SI units
                  */
-                float kx(int i) const
+                float_X kx(int i) const
                 {
-                    float const actualStep = params::xRes * SI::CELL_WIDTH_SI;
-                    return 2.0 * PI * (float(i) - float(pluginNumX) / 2.0) / float(pluginNumX) / actualStep;
+                    float_X const actualStep = params::xRes * SI::CELL_WIDTH_SI;
+                    return 2.0_X * float_X(PI) * (float_X(i) - float_X(pluginNumX) / 2.0_X) / float_X(pluginNumX) / actualStep;
                 }
 
                 /** y component of k vector in SI units for FFTs
@@ -789,10 +823,10 @@ namespace picongpu
                  *
                  * @return y component of k vector in SI units
                  */
-                float ky(int i) const
+                float_X ky(int i) const
                 {
-                    float const actualStep = params::yRes * SI::CELL_HEIGHT_SI;
-                    return 2.0 * PI * (float(i) - float(pluginNumY) / 2.0) / float(pluginNumY) / actualStep;
+                    float_X const actualStep = params::yRes * SI::CELL_HEIGHT_SI;
+                    return 2.0_X * float_X(PI) * (float_X(i) - float_X(pluginNumY) / 2.0_X) / float_X(pluginNumY) / actualStep;
                 }
             }; // class Helper
         } // namespace shadowgraphy
