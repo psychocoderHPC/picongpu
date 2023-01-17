@@ -139,7 +139,7 @@ namespace picongpu
         using StandAlonePlugins = bmpl::vector<
             Checkpoint,
             EnergyFields,
-            plugins::shadowgraphy::Shadowgraphy
+            plugins::multi::Master<plugins::shadowgraphy::Shadowgraphy>
 
 #if(ENABLE_OPENPMD == 1)
             ,
