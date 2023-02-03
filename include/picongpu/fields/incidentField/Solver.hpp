@@ -150,7 +150,6 @@ namespace picongpu
                     bool const skipOffsetCheck = ((axis == 1) && (boundaryIdx == 1) && movingWindowEnabled);
                     if(skipOffsetCheck)
                         offset = minAllowedOffsetFromBoundary;
-
                     if(offset < minAllowedOffsetFromBoundary)
                         throw std::runtime_error(
                             "Incident field POSITION[" + std::to_string(axis) + "][" + std::to_string(boundaryIdx)
@@ -213,11 +212,54 @@ namespace picongpu
                     auto const& incidentField = *dc.get<T_IncidentField>(T_IncidentField::getName(), true);
                     using Functor
                         = UpdateFunctor<decltype(dataBox), T_CurlIncidentField, T_FunctorIncidentField, T_axis>;
+                    auto functor = Functor{
+                        parameters.sourceTimeIteration,
+                        parameters.direction,
+                        curlCoefficient,
+                        incidentField.getUnit()};
+                    functor.updatedField = dataBox;
+                    functor.isUpdatedFieldTotal = isUpdatedFieldTotal;
+
+                    // Convert to the local domain indices
+                    auto const& subGrid = Environment<simDim>::get().SubGrid();
+
+                    // Set local domain information
+                    auto& gridController = pmacc::Environment<simDim>::get().GridController();
+                    auto const localDomainIdx = gridController.getPosition();
+                    auto const numLocalDomains = gridController.getGpuNodes();
+
+                    const DataSpace<DIM3> periodic
+                        = Environment<simDim>::get().EnvironmentController().getCommunicator().getPeriodic();
+
+                    for(uint32_t d = 0u; d < DIM3; ++d)
+                    {
+                        //@todo add trait to handle only laser profiles with constant values transversal
+                        bool isLaserAxisDirection = d == T_axis;
+                        /* Extent the Huygens surface begin and end boundaries to all cells in the periodic direction.
+                         * If the laser direction is periodic do not extend the Huyhens surface to zero and outer
+                         * simulation domain else the user laser definition will silently adjusted.
+                         */
+                        if(periodic[d] == 1 && !isLaserAxisDirection) // && isConfiguredForPeriodic)
+                        {
+                            beginUserIdx[d] = 0;
+                            endUserIdx[d] = subGrid.getGlobalDomain().offset[d] + subGrid.getGlobalDomain().size[d];
+                        }
+                        else
+                        {
+                            /* for non periodic directions we need to handle special cases for the last cell of the
+                             * direction on the outer surface in the kernel.
+                             * see: https://github.com/ComputationalRadiationPhysics/picongpu/pull/4298
+                             */
+                            functor.isLastLocalDomain[d] = (localDomainIdx[d] == numLocalDomains[d] - 1);
+                        }
+                    }
+
                     constexpr int margin = Functor::margin;
                     constexpr int sizeAlongAxis = 2 * margin - 1;
 
                     if(parameters.direction > 0)
                     {
+                        // laser is moving in positive direction
                         beginUserIdx[T_axis] -= (margin - 1);
                         endUserIdx[T_axis] = beginUserIdx[T_axis] + sizeAlongAxis;
                     }
@@ -228,7 +270,6 @@ namespace picongpu
                     }
 
                     // Convert to the local domain indices
-                    auto const& subGrid = Environment<simDim>::get().SubGrid();
                     auto const globalDomainOffset = subGrid.getGlobalDomain().offset;
                     auto const localDomain = subGrid.getLocalDomain();
                     auto const totalCellOffset = globalDomainOffset + localDomain.offset;
@@ -246,6 +287,10 @@ namespace picongpu
                             = areAnyCellsInLocalDomain && (beginLocalUserIdx[d] < endLocalUserIdx[d]);
                     if(!areAnyCellsInLocalDomain)
                         return;
+
+                    std::cout << " ----- AXIS: " << T_axis << std::endl;
+                    std::cout << "beginLocalUserIdx=" << beginLocalUserIdx.toString()
+                              << " endLocalUserIdx=" << endLocalUserIdx.toString() << std::endl;
 
                     /* The block size is generally equal to supercell size, but can be smaller along T_axis
                      * when there is not enough work
@@ -267,18 +312,13 @@ namespace picongpu
                     auto beginGridIdx = beginLocalUserIdx + numGuardCells;
                     auto endGridIdx = endLocalUserIdx + numGuardCells;
 
-                    // Indexing is done, now prepare the update functor
-                    auto functor = Functor{
-                        parameters.sourceTimeIteration,
-                        parameters.direction,
-                        curlCoefficient,
-                        incidentField.getUnit()};
-                    functor.updatedField = dataBox;
-                    functor.isUpdatedFieldTotal = isUpdatedFieldTotal;
+                    // Indexing is done, now go on with preparing the update functor
+
                     /* Shift between local grid idx and fractional total cell idx that a user functor needs:
                      * total cell idx = local grid idx + functor.gridIdxShift.
                      */
                     functor.gridIdxShift = totalCellOffset - numGuardCells;
+                    std::cout << "functor.gridIdxShift=" << functor.gridIdxShift.toString() << std::endl;
 
                     /* For the positive direction, the updated total field index was shifted by 1 earlier.
                      * This index shift is translated to in-cell shift for the incidentField here.
@@ -295,17 +335,14 @@ namespace picongpu
                     functor.inCellShift1 = incidentFieldBaseShift + incidentFieldPositions[functor.incidentComponent1];
                     functor.inCellShift2 = incidentFieldBaseShift + incidentFieldPositions[functor.incidentComponent2];
 
-                    // Set local domain information
-                    auto& gridController = pmacc::Environment<simDim>::get().GridController();
-                    auto const localDomainIdx = gridController.getPosition();
-                    auto const numLocalDomains = gridController.getGpuNodes();
-                    for(uint32_t d = 0; d < simDim; d++)
-                        functor.isLastLocalDomain[d] = (localDomainIdx[d] == numLocalDomains[d] - 1);
+                    std::cout << "incidentfield shift1=" << functor.inCellShift1.toString() << std::endl;
+                    std::cout << "incidentfield shift2=" << functor.inCellShift2.toString() << std::endl;
 
                     // Check that incidentField can be applied
                     checkRequirements(functor, beginLocalUserIdx);
 
                     auto workerCfg = lockstep::makeWorkerCfg(BlockSize{});
+                    std::cout << beginGridIdx.toString() << " to " << endGridIdx.toString() << std::endl;
                     PMACC_LOCKSTEP_KERNEL(ApplyIncidentFieldKernel<BlockSize>{}, workerCfg)
                     (gridBlocks)(functor, beginGridIdx, endGridIdx);
                 }
@@ -468,6 +505,8 @@ namespace picongpu
                         else
                             totalPositionMaxBorder[axis] = globalDomainSize[axis] + POSITION[axis][1];
                     }
+                    std::cout << "totalPositionMinBorder=" << totalPositionMinBorder.toString()
+                              << " totalPositionMaxBorder=" << totalPositionMaxBorder.toString() << std::endl;
                     checkPositioning();
                 }
 

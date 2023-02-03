@@ -86,7 +86,7 @@ namespace picongpu
 
         DINLINE float_X preChannel2(const float3_X& field_B, const float3_X& field_E, const float3_X& field_Current)
         {
-            return field_E.x() * field_E.x();
+            return field_E.z() * field_E.z();
         }
 
         DINLINE float_X preChannel3(const float3_X& field_B, const float3_X& field_E, const float3_X& field_Current)
