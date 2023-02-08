@@ -46,7 +46,7 @@ namespace picongpu
             using TVec = MappingDesc::SuperCellSize;
 
 
-            floatD_X pos = newPos;
+            floatD_X pos = newPos * float_X(0.0) + particle[position_];
 
             DataSpace<simDim> dir;
             for(uint32_t i = 0; i < simDim; ++i)
