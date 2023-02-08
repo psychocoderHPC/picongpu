@@ -121,7 +121,7 @@ namespace picongpu
     // struct ParticleFrameMemoryLayout : llama::mapping::BindAoSoA<32>
     // struct ParticleFrameMemoryLayout : llama::mapping::BindAoSoA<64>
     {
-        inline static constexpr bool splitVector = false;
+        inline static constexpr bool splitVector = true;
     };
 
     struct ParticleFrameMemoryLayoutOpenPMD : llama::mapping::BindSoA<llama::mapping::Blobs::OnePerField>
