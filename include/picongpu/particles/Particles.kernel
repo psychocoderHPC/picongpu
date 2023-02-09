@@ -213,6 +213,10 @@ namespace picongpu
              */
             int hasLeavingParticle = 0;
 
+            using RealSize = pmacc::math::CT::Int<16, 12, 7>;
+            auto cachedB = CachedBox::createProxy<0, typename T_BBox::ValueType>(worker, T_DataDomain(), RealSize{});
+            auto cachedE = CachedBox::createProxy<1, typename T_EBox::ValueType>(worker, T_DataDomain(), RealSize{});
+
             /* shared memory status flag that a particle is leaving the supercell
              * 1 if at least one particle is leaving the supercell else 0
              */
@@ -221,9 +225,6 @@ namespace picongpu
             auto onlyMaster = lockstep::makeMaster(worker);
 
             onlyMaster([&]() { mustShiftSupercell = 0; });
-
-            auto cachedB = CachedBox::create<0, typename T_BBox::ValueType>(worker, T_DataDomain());
-            auto cachedE = CachedBox::create<1, typename T_EBox::ValueType>(worker, T_DataDomain());
 
             worker.sync();
 

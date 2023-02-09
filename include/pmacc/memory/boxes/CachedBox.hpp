@@ -30,18 +30,31 @@ namespace pmacc
 {
     namespace CachedBox
     {
-        template<uint32_t Id_, typename ValueType_, class BlockDescription_, typename T_Worker>
-        DINLINE auto create(T_Worker const& worker, const BlockDescription_ block)
+        template<uint32_t Id_, typename ValueType_, class BlockDescription_, typename T_Worker, typename Layout =  typename BlockDescription_::FullSuperCellSize>
+        DINLINE constexpr auto create(
+            T_Worker const& worker,
+            const BlockDescription_ block,
+            const Layout layout = Layout{})
         {
+            constexpr uint32_t dim = BlockDescription_::FullSuperCellSize::dim;
             using OffsetOrigin = typename BlockDescription_::OffsetOrigin;
-            using Type = DataBox<SharedBox<ValueType_, typename BlockDescription_::FullSuperCellSize, Id_>>;
+            using Type
+                = DataBox<SharedBox<ValueType_, typename BlockDescription_::FullSuperCellSize, Id_, dim, Layout>>;
             return Type{Type::init(worker)}.shift(DataSpace<OffsetOrigin::dim>{OffsetOrigin::toRT()});
         }
 
-        template<uint32_t Id_, typename ValueType_, class BlockDescription_, typename T_Worker>
-        DINLINE auto create(T_Worker const& worker, const ValueType_& value, const BlockDescription_ block)
+        template<uint32_t Id_, typename ValueType_, class BlockDescription_, typename T_Worker, typename Layout =  typename BlockDescription_::FullSuperCellSize>
+        DINLINE constexpr auto createProxy(
+            T_Worker const& worker,
+            const BlockDescription_ block,
+            const Layout layout = Layout{})
         {
-            return create<Id_, ValueType_, BlockDescription_>(worker);
+            constexpr uint32_t dim = BlockDescription_::FullSuperCellSize::dim;
+            using OffsetOrigin = typename BlockDescription_::OffsetOrigin;
+            using Type
+                = DataBox<SharedBoxRead<ValueType_, typename BlockDescription_::FullSuperCellSize, Id_, dim, Layout>>;
+            return Type{Type::init(worker)}.shift(DataSpace<OffsetOrigin::dim>{OffsetOrigin::toRT()});
         }
+
     } // namespace CachedBox
 } // namespace pmacc
