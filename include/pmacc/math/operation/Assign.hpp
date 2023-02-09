@@ -38,9 +38,9 @@ namespace pmacc
                 }
 
                 template<typename Dst, typename Src, typename T_Worker>
-                HDINLINE void operator()(const T_Worker&, Dst& dst, const Src& src) const
+                HDINLINE void operator()(const T_Worker&, Dst&& dst, const Src& src) const
                 {
-                    dst = src;
+                    std::forward<Dst>(dst) = src;
                 }
             };
         } // namespace operation

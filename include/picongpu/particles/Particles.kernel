@@ -213,6 +213,11 @@ namespace picongpu
              */
             int hasLeavingParticle = 0;
 
+            using RealSize = pmacc::math::CT::Int<16, 11, 7>;
+            auto cachedB = CachedBox::createProxy<0, typename T_BBox::ValueType>(worker, T_DataDomain(), RealSize{});
+            PMACC_SMEM(worker, dummy, int[16]);
+            auto cachedE = CachedBox::createProxy<1, typename T_EBox::ValueType>(worker, T_DataDomain(), RealSize{});
+
             /* shared memory status flag that a particle is leaving the supercell
              * 1 if at least one particle is leaving the supercell else 0
              */
@@ -222,15 +227,17 @@ namespace picongpu
 
             onlyMaster([&]() { mustShiftSupercell = 0; });
 
-            auto cachedB = CachedBox::create<0, typename T_BBox::ValueType>(worker, T_DataDomain());
-            auto cachedE = CachedBox::create<1, typename T_EBox::ValueType>(worker, T_DataDomain());
-
             worker.sync();
 
-            auto forEachParticle = pmacc::particles::algorithm::acc::makeForEach(worker, pb, superCellIdx);
+            namespace particleAccAlgos = pmacc::particles::algorithm::acc;
+            auto forEachFrameInSupercell
+                = pmacc::particles::algorithm::acc::makeForEachFrame<particleAccAlgos::Forward>(
+                    worker,
+                    pb,
+                    superCellIdx);
 
             // end kernel if we have no particles
-            if(!forEachParticle.hasParticles())
+            if(!forEachFrameInSupercell.hasParticles())
                 return;
 
             pmacc::math::operation::Assign assign;
@@ -244,11 +251,35 @@ namespace picongpu
 
             worker.sync();
 
-            forEachParticle(
-                [&cachedB, &cachedE, currentStep, &hasLeavingParticle, &particleFunctor](
+            forEachFrameInSupercell(
+                /* iterate over the frame list of the current supercell */
+                [&cachedB, &cachedE, currentStep, &hasLeavingParticle, &particleFunctor, &forEachFrameInSupercell](
                     auto const& lockstepWorker,
-                    auto& particle)
-                { particleFunctor(lockstepWorker, particle, cachedB, cachedE, currentStep, hasLeavingParticle); });
+                    auto& frameIterCtx)
+                {
+                    auto forEachParticleInFrame = forEachFrameInSupercell.lockstepForEach();
+
+                    forEachParticleInFrame(
+                        [&cachedB,
+                         &cachedE,
+                         currentStep,
+                         &hasLeavingParticle,
+                         &particleFunctor,
+                         &lockstepWorker,
+                         &frameIterCtx](lockstep::Idx const idx)
+                        {
+                            auto particle = frameIterCtx[idx][idx];
+                            if(particle[multiMask_] == 1)
+                                particleFunctor(
+                                    lockstepWorker,
+                                    particle,
+                                    cachedB,
+                                    cachedE,
+                                    currentStep,
+                                    hasLeavingParticle,
+                                    static_cast<uint32_t>(idx));
+                        });
+                });
 
             worker.sync();
 
@@ -285,7 +316,8 @@ namespace picongpu
             BoxB& bBox,
             BoxE& eBox,
             uint32_t const currentStep,
-            int& hasLeavingParticle) const
+            int& hasLeavingParticle,
+            uint32_t id) const
         {
             using Block = TVec;
             using Field2ParticleInterpolation = T_Field2ParticleInterpolation;
@@ -294,7 +326,7 @@ namespace picongpu
             using EType = typename BoxE::ValueType;
 
             floatD_X pos = particle[position_];
-            const int particleCellIdx = particle[localCellIdx_];
+            const int particleCellIdx = id; // particle[localCellIdx_];
 
             DataSpace<TVec::dim> localCell(DataSpaceOperations<TVec::dim>::template map<TVec>(particleCellIdx));
 

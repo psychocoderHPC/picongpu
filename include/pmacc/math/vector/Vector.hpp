@@ -76,6 +76,40 @@ namespace pmacc
                 }
             };
 
+            template<typename T_Type, int T_Dim>
+            struct Vector_proxy
+            {
+                static constexpr bool isConst = false;
+                static constexpr int dim = T_Dim;
+                using type = T_Type;
+
+                HDINLINE
+                constexpr Vector_proxy()
+                {
+                }
+
+                HDINLINE
+                constexpr Vector_proxy& operator=(const Vector_proxy&) = default;
+
+                HDINLINE
+                constexpr Vector_proxy(const Vector_proxy&) = default;
+
+                /*align full vector*/
+                PMACC_ALIGN(v[dim], type*);
+
+                HDINLINE
+                type& operator[](const int idx)
+                {
+                    return *(v[idx]);
+                }
+
+                HDINLINE
+                const type& operator[](const int idx) const
+                {
+                    return *(v[idx]);
+                }
+            };
+
         } // namespace detail
 
         namespace tag

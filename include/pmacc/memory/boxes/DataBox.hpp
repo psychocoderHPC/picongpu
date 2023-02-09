@@ -24,6 +24,8 @@
 
 #include "pmacc/dimensions/DataSpace.hpp"
 
+#include <type_traits>
+
 namespace pmacc
 {
     namespace detail
@@ -50,6 +52,7 @@ namespace pmacc
     template<typename Base>
     struct DataBox : Base
     {
+        static constexpr bool proxy = Base::proxy;
         HDINLINE DataBox() = default;
 
         HDINLINE DataBox(Base base) : Base{std::move(base)}
@@ -64,11 +67,22 @@ namespace pmacc
             return detail::access(*this, idx);
         }
 
+        HDINLINE decltype(auto) operator()(DataSpace<Base::Dim> const& idx = {})
+        {
+            ///@todo(bgruber): inline and replace this by if constexpr in C++17
+            return detail::access(*this, idx);
+        }
+
         HDINLINE DataBox shift(DataSpace<Base::Dim> const& offset) const
         {
             DataBox result(*this);
-            result.fixedPointer = &((*this)(offset));
+            if constexpr(std::is_same_v<typename Base::ValueType, math::Vector<float, DIM3>>)
+                result.fixedPointer = reinterpret_cast<typename Base::ValueType*>(&(((*this)(offset)).x()));
+            else
+                result.fixedPointer = &((*this)(offset));
             return result;
         }
+
+        // DataSpace<Base::Dim> offset{};
     };
 } // namespace pmacc

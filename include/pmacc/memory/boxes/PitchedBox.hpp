@@ -35,6 +35,7 @@ namespace pmacc
         template<typename TYPE, unsigned DIM>
         struct PitchedBoxCommon
         {
+            static constexpr bool proxy = false;
             static constexpr std::uint32_t Dim = DIM;
             using ValueType = TYPE;
             using RefValueType = ValueType&;
