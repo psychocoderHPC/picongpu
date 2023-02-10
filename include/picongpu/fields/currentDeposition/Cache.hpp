@@ -42,21 +42,20 @@ namespace picongpu
             template<typename T_Strategy>
             struct Cache<T_Strategy, typename std::enable_if<T_Strategy::useBlockCache>::type>
             {
+                using RealSize = pmacc::math::CT::Int<16, 13, 10>;
                 /** Create a cache
                  *
                  * @attention thread-collective operation, requires external thread synchronization
                  */
                 template<typename T_BlockDescription, typename T_Worker, typename T_FieldBox>
-                DINLINE static auto create(T_Worker const& worker, T_FieldBox const& fieldBox)
+                DINLINE static decltype(auto) create(T_Worker const& worker, T_FieldBox const& fieldBox)
 #if(!BOOST_COMP_CLANG)
-                    -> decltype(CachedBox::create<0u, typename T_FieldBox::ValueType>(
-                        worker,
-                        std::declval<T_BlockDescription>()))
+                 //   -> decltype(CachedBox::createProxy<0u, typename T_FieldBox::ValueType>(worker, std::declval<T_BlockDescription>()), std::declval<RealSize>())
 #endif
                 {
                     using ValueType = typename T_FieldBox::ValueType;
                     /* this memory is used by all virtual blocks */
-                    auto cache = CachedBox::create<0u, ValueType>(worker, T_BlockDescription{});
+                    auto cache = CachedBox::createProxy<0u, ValueType>(worker, T_BlockDescription{}, RealSize{});
 
                     Set<ValueType> set(ValueType::create(0.0_X));
                     auto collectiveFill = makeThreadCollective<T_BlockDescription>();
