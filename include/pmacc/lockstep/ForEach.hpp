@@ -34,6 +34,66 @@ namespace pmacc
 {
     namespace lockstep
     {
+        namespace detail
+        {
+            struct FunctorWrapperWithCtxVars
+            {
+                template<
+                    typename T_Functor,
+                    typename... T_CtxVars,
+                    std::enable_if_t<std::is_invocable_v<T_Functor, Idx, T_CtxVars...>, int> = 0>
+                HDINLINE decltype(auto) operator()(T_Functor&& functor, Idx idx, T_CtxVars&&... ctxVars) const
+                {
+                    return functor(idx, std::forward<T_CtxVars>(ctxVars)...);
+                }
+
+                template<
+                    typename T_Functor,
+                    typename... T_CtxVars,
+                    std::enable_if_t<std::is_invocable_v<T_Functor, T_CtxVars...>, int> = 0>
+                HDINLINE decltype(auto) operator()(T_Functor&& functor, Idx idx, T_CtxVars&&... ctxVars) const
+                {
+                    return functor(std::forward<T_CtxVars>(ctxVars)...);
+                }
+            };
+
+            struct FunctorWrapperWithoutCtxVars
+            {
+                template<typename T_Functor, std::enable_if_t<std::is_invocable_v<T_Functor, Idx>, int> = 0>
+                HDINLINE decltype(auto) operator()(T_Functor&& functor, Idx idx) const
+                {
+                    return functor(idx);
+                }
+
+                template<typename T_Functor, std::enable_if_t<std::is_invocable_v<T_Functor>, int> = 0>
+                HDINLINE decltype(auto) operator()(T_Functor&& functor, Idx idx) const
+                {
+                    return functor();
+                }
+            };
+
+
+            struct FunctorWrapper
+            {
+                template<
+                    typename T_Functor,
+                    typename... T_CtxVars,
+                    std::enable_if_t<sizeof...(T_CtxVars) != 0, int> = 0>
+                HDINLINE decltype(auto) operator()(T_Functor&& functor, Idx idx, T_CtxVars&&... ctxVars) const
+                {
+                    return FunctorWrapperWithCtxVars{}(functor, idx, std::forward<T_CtxVars>(ctxVars)[idx]...);
+                }
+
+                template<
+                    typename T_Functor,
+                    typename... T_CtxVars,
+                    std::enable_if_t<sizeof...(T_CtxVars) == 0, int> = 0>
+                HDINLINE decltype(auto) operator()(T_Functor&& functor, Idx idx, T_CtxVars&&...) const
+                {
+                    return FunctorWrapperWithoutCtxVars{}(functor, idx);
+                }
+            };
+        } // namespace detail
         /** Execute a functor for the given index domain.
          *
          * Algorithm to execute a subsequent lockstep for each index of the configured domain.
@@ -71,14 +131,9 @@ namespace pmacc
 #endif
             /**@}*/
 
-            /** Expression will result in a well formed type if the functor can be invoked with Idx as argument */
-            template<typename T_Functor>
-            using IsCallableWithIndex
-                = std::void_t<decltype(alpaka::core::declval<T_Functor>()(alpaka::core::declval<Idx const>()))>;
-
-            /** Expression will result in a well formed type if the functor can be invoked without an argument */
-            template<typename T_Functor>
-            using IsCallableWithoutArguments = std::void_t<decltype(alpaka::core::declval<T_Functor>()())>;
+            template<typename T_Functor, typename... T_CtxVars>
+            static constexpr bool resultIsVoid
+                = std::is_void_v<InvokeResult_t<detail::FunctorWrapper, T_Functor, Idx, T_CtxVars...>>;
 
         public:
             using BaseConfig = Config<T_domainSize, T_Worker::numWorkers, T_simdSize>;
@@ -110,19 +165,18 @@ namespace pmacc
              * @{
              */
 
-            /** The functor must fulfill the following interface:
+            /** The functor must fulfill the following interface where ... must be of type @see Variable
              * @code
-             * void operator()( lockstep::Idx< T_domainSize > const idx );
+             * void operator()( lockstep::Idx< T_domainSize > const idx, ... );
              * // or
-             * void operator()( uint32_t const linearIdx );
+             * void operator()( uint32_t const linearIdx, ... );
              * @endcode
              */
             template<
                 typename T_Functor,
-                // check if functor is invocable
-                typename = IsCallableWithIndex<T_Functor>,
-                std::enable_if_t<std::is_void_v<InvokeResult_t<T_Functor, Idx const>> && domainSize != 1, int> = 0>
-            HDINLINE void operator()(T_Functor&& functor) const
+                typename... T_CtxVars,
+                std::enable_if_t<resultIsVoid<T_Functor, T_CtxVars...> && domainSize != 1, int> = 0>
+            HDINLINE void operator()(T_Functor&& functor, T_CtxVars&&... ctxVars) const
             {
                 // number of iterations each worker can safely execute without boundary checks
                 constexpr uint32_t peeledIterations = domainSize / (simdSize * numWorkers);
@@ -133,7 +187,10 @@ namespace pmacc
                         uint32_t const beginWorker = i * simdSize;
                         uint32_t const beginIdx = beginWorker * numWorkers + simdSize * this->getWorkerIdx();
                         for(uint32_t s = 0u; s < simdSize; ++s)
-                            functor(Idx(beginIdx + s, beginWorker + s));
+                            detail::FunctorWrapper{}(
+                                functor,
+                                Idx(beginIdx + s, beginWorker + s),
+                                std::forward<T_CtxVars>(ctxVars)...);
                     }
                 }
 
@@ -148,25 +205,13 @@ namespace pmacc
                         {
                             constexpr uint32_t beginWorker = peeledIterations * simdSize;
                             uint32_t const beginIdx = beginWorker * numWorkers + simdSize * this->getWorkerIdx();
-                            functor(Idx(beginIdx + s, beginWorker + s));
+                            detail::FunctorWrapper{}(
+                                functor,
+                                Idx(beginIdx + s, beginWorker + s),
+                                std::forward<T_CtxVars>(ctxVars)...);
                         }
                     }
                 }
-            }
-
-            /** The functor must fulfill the following interface:
-             * @code
-             * void operator()();
-             * @endcode
-             */
-            template<
-                typename T_Functor,
-                // check if functor is invocable
-                typename = IsCallableWithoutArguments<T_Functor>,
-                std::enable_if_t<std::is_void_v<InvokeResult_t<T_Functor>> && domainSize != 1, int> = 0>
-            HDINLINE void operator()(T_Functor&& functor) const
-            {
-                this->operator()([&](Idx const&) { functor(); });
             }
 
             /** Execute the functor with the master worker only.
@@ -178,13 +223,12 @@ namespace pmacc
              */
             template<
                 typename T_Functor,
-                // check if functor is invocable
-                typename = IsCallableWithIndex<T_Functor>,
-                std::enable_if_t<std::is_void_v<InvokeResult_t<T_Functor, Idx const>> && domainSize == 1, int> = 0>
-            HDINLINE void operator()(T_Functor&& functor) const
+                typename... T_CtxVars,
+                std::enable_if_t<resultIsVoid<T_Functor, T_CtxVars...> && domainSize == 1, int> = 0>
+            HDINLINE void operator()(T_Functor&& functor, T_CtxVars&&... ctxVars) const
             {
                 if(this->getWorkerIdx() == 0u)
-                    functor(Idx(0u, 0u));
+                    detail::FunctorWrapper{}(functor, Idx(0u, 0u), std::forward<T_CtxVars>(ctxVars)...);
             }
 
             /** Execute the functor with the master worker only.
@@ -192,16 +236,6 @@ namespace pmacc
              * void operator()();
              * @endcode
              */
-            template<
-                typename T_Functor,
-                // check if functor is invocable
-                typename = IsCallableWithoutArguments<T_Functor>,
-                std::enable_if_t<std::is_void_v<InvokeResult_t<T_Functor>> && domainSize == 1, int> = 0>
-            HDINLINE void operator()(T_Functor&& functor) const
-            {
-                if(this->getWorkerIdx() == 0u)
-                    functor();
-            }
 
 
             /** Execute the functor and create and return a variable for each index of the domain.
@@ -218,37 +252,22 @@ namespace pmacc
              */
             template<
                 typename T_Functor,
-                // check if functor is invocable
-                typename = IsCallableWithIndex<T_Functor>,
-                std::enable_if_t<!std::is_void_v<InvokeResult_t<T_Functor, Idx const>>, int> = 0>
-            HDINLINE auto operator()(T_Functor&& functor) const
+                typename... T_CtxVars,
+                std::enable_if_t<!resultIsVoid<T_Functor, T_CtxVars...>, int> = 0>
+            HDINLINE auto operator()(T_Functor&& functor, T_CtxVars&&... ctxVars) const
             {
-                auto tmp = makeVar<ALPAKA_DECAY_T(decltype(functor(alpaka::core::declval<Idx const>())))>(*this);
-                this->operator()([&](Idx const& idx) { tmp[idx] = std::move(functor(idx)); });
+                auto tmp = makeVar<ALPAKA_DECAY_T(decltype(detail::FunctorWrapper{}(
+                    functor,
+                    alpaka::core::declval<Idx const>(),
+                    alpaka::core::declval<T_CtxVars>()...)))>(*this);
+                this->operator()(
+                    [&](Idx const& idx) {
+                        tmp[idx]
+                            = std::move(detail::FunctorWrapper{}(functor, idx, std::forward<T_CtxVars>(ctxVars)...));
+                    });
                 return tmp;
             }
 
-            /** Execute the functor and create and return a variable for each index of the domain.
-             *
-             * The type of the variable depends on the return type of the functor.
-             *
-             * @code
-             * auto operator()();
-             * @endcode
-             *
-             * @return Variable for each index of the domain.
-             */
-            template<
-                typename T_Functor,
-                // check if functor is invocable
-                typename = IsCallableWithoutArguments<T_Functor>,
-                std::enable_if_t<!std::is_void_v<InvokeResult_t<T_Functor>>, int> = 0>
-            HDINLINE auto operator()(T_Functor&& functor) const
-            {
-                auto tmp = makeVar<ALPAKA_DECAY_T(decltype(functor()))>(*this);
-                this->operator()([&](Idx const& idx) { tmp[idx] = std::move(functor()); });
-                return tmp;
-            }
             /** @} */
         };
 
