@@ -82,6 +82,15 @@ namespace picongpu
      */
     value_identifier(float_X, weightingDampingFactor, 1._X);
 
+    //! photon wavelength
+    alias(wavelength);
+
+    //! Photon start phase
+    value_identifier(float_X, startPhase, 0._X);
+
+    //! Photon start phase
+    value_identifier(float_X, polarizationAngle, 0._X);
+
     /** interpolated electric field with respect to particle shape
      *
      * Attribute can be added to any species.

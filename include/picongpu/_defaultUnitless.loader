@@ -34,6 +34,7 @@
 #include "picongpu/unitless/density.unitless"
 #include "picongpu/unitless/particle.unitless"
 #include "picongpu/unitless/fieldAbsorber.unitless"
+#include "picongpu/unitless/externalBeam.unitless"
 #include "picongpu/unitless/pusher.unitless"
 #include "picongpu/unitless/ionizer.unitless"
 #include "picongpu/unitless/speciesAttributes.unitless"

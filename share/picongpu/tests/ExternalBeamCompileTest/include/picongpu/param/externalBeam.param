@@ -1,0 +1,155 @@
+/* Copyright 2020-2021 Pawel Ordyna
+ *
+ * This file is part of PIConGPU.
+ *
+ * PIConGPU is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * PIConGPU is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with PIConGPU.
+ * If not, see <http://www.gnu.org/licenses/>.
+ */
+
+#pragma once
+
+#include "picongpu/param/grid.param"
+#include "picongpu/particles/externalBeam/beam/CoordinateTransform.def"
+#include "picongpu/particles/externalBeam/beam/ProbingBeam.def"
+#include "picongpu/particles/externalBeam/beam/Side.def"
+#include "picongpu/particles/externalBeam/beam/beamProfiles/profiles.def"
+#include "picongpu/particles/externalBeam/beam/beamShapes/shapes.def"
+#include "picongpu/particles/externalBeam/functors.def"
+
+#include <pmacc/preprocessor/struct.hpp>
+
+#ifndef PARAM_PHASE_IMPL
+#    define PARAM_PHASE_IMPL phase::FromSpeciesWavelength
+#endif
+
+namespace picongpu
+{
+    namespace particles
+    {
+        namespace externalBeam
+        {
+            /* Choose from:
+             *  - ZSide
+             *  - YSide
+             *  - XSide
+             * - ZRSide
+             * - YRSide
+             * - XRSide
+             */
+            using DbgProbingSide = beam::ZSide;
+
+            PMACC_STRUCT(
+                DbgOffsetParam,
+                (PMACC_C_VECTOR_DIM(float_X, DIM2, beamOffset_SI, 0.0_X, 0.0_X))(
+                    PMACC_C_VALUE(float_X, beamDelay_SI, 0.0_X)));
+
+            struct ConstShapeParam
+            {
+                static constexpr bool limitStart = true;
+                static constexpr bool limitEnd = true;
+                // does nothing since the limit is disabled
+                static constexpr float_64 startTime_SI = 0 * SI::DELTA_T_SI;
+                static constexpr float_64 endTime_SI = 10 * SI::DELTA_T_SI;
+            };
+
+            using ConstProfile = beam::beamProfiles::ConstProfile;
+            using ConstShape = beam::beamShapes::ConstShape<ConstShapeParam>;
+
+            using DbgBeamProfile = ConstProfile;
+            using DbgBeamShape = ConstShape;
+
+            using DbgBeamCoordinates = beam::CoordinateTransform<DbgProbingSide, DbgOffsetParam>;
+            using DebugBeam = beam::ProbingBeam<DbgBeamProfile, DbgBeamShape, DbgBeamCoordinates>;
+
+            namespace density
+            {
+                struct ProbingBeamDensityParam
+                {
+                private:
+                    static constexpr float_64 cellVolumeSI
+                        = SI::CELL_HEIGHT_SI * SI::CELL_WIDTH_SI * SI::CELL_DEPTH_SI;
+
+                public:
+                    using ProbingBeam = DebugBeam;
+                    // Just a test value -> one 100000 photons per full cell
+                    static constexpr float_64 photonFluxAtMaxBeamIntensity_SI{
+                        100000.0 / cellVolumeSI * SI::SPEED_OF_LIGHT_SI};
+                };
+                using ProbingBeamDensity = ProbingBeamImpl<ProbingBeamDensityParam>;
+            } // namespace density
+            namespace startPosition
+            {
+                struct QuietProbingBeamParam
+                {
+                    using ProbingBeam = DebugBeam;
+                    /** Number of particles in each dimension initialized in a cell (in the beam coordinate
+                     * system).
+                     *
+                     * Keep in mind that the particles are not spaced across the complete cell but rather a reduced
+                     * cell. The cell dimensions along the beam x and y coordinates stay the same but along the
+                     * beam z direction the cell depth is reduced to DELTA_T * SPED_OF_LIGHT.
+                     *
+                     * All 3 components need to be specified.  In the case of a 2 dimensional simulation, the
+                     * component corresponding to the picongpu z direction will be discarded later.
+                     */
+                    static constexpr float_X minWeighting = 0.001;
+                    using numParticlesPerDimension = mCT::Int<2, 2, 2>;
+                };
+                using QuietBeam = QuietProbingBeam<QuietProbingBeamParam>;
+                struct RandomProbingBeamParam
+                {
+                    using ProbingBeam = DebugBeam;
+                    // PhotonBeam needs to be defined by a user as well.
+                    static constexpr uint32_t numParticlesPerCell = 64u;
+                    static constexpr float_X minWeighting = 0.001;
+                };
+                using RandomBeam = RandomProbingBeamImpl<RandomProbingBeamParam>;
+            } // namespace startPosition
+            namespace momentum
+            {
+                struct BeamMomentumParam
+                {
+                    using ProbingBeam = DebugBeam;
+                    static constexpr float_64 photonEnergySI = 6.0 * UNITCONV_keV_to_Joule;
+                };
+                using BeamMomentum = PhotonMomentum<BeamMomentumParam>;
+            } // namespace momentum
+
+            namespace phase
+            {
+                struct Param
+                {
+                    using ProbingBeam = DebugBeam;
+                    static constexpr float_64 phi0 = 0.0;
+                };
+                using BeamPhase = PARAM_PHASE_IMPL<Param>;
+            } // namespace phase
+            namespace polarization
+            {
+                struct Param
+                {
+                    static constexpr float_X polarization{0.0};
+                };
+                using BeamPolarization = OnePolarization<Param>;
+
+            } // namespace polarization
+
+            using BeamStartAttributes = StartAttributes<
+                startPosition::QuietBeam,
+                momentum::BeamMomentum,
+                phase::BeamPhase,
+                polarization::BeamPolarization>;
+        } // namespace externalBeam
+    } // namespace particles
+} // namespace picongpu

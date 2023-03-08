@@ -141,6 +141,7 @@ namespace picongpu
 #if(ENABLE_OPENPMD == 1)
             ,
             plugins::multi::Master<openPMD::openPMDWriter>
+
 #endif
 
 #if(PMACC_CUDA_ENABLED == 1)

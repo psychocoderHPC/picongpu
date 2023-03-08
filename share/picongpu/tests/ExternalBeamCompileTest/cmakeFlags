@@ -1,0 +1,62 @@
+#!/usr/bin/env bash
+#
+<<<<<<< Updated upstream:share/picongpu/tests/KHI_growthRate/cmakeFlags
+# Copyright 2013-2022 Axel Huebl, Rene Widera
+=======
+# Copyright 2013-2022 Axel Huebl, Rene Widera, Sergei Bastrakov
+>>>>>>> Stashed changes:share/picongpu/tests/ExternalBeamCompileTest/cmakeFlags
+#
+# This file is part of PIConGPU.
+#
+# PIConGPU is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+#
+# PIConGPU is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with PIConGPU.
+# If not, see <http://www.gnu.org/licenses/>.
+#
+
+#
+# generic compile options
+#
+
+################################################################################
+# add presets here
+#   - default: index 0
+#   - start with zero index
+#   - increase by 1, no gaps
+
+<<<<<<< Updated upstream:share/picongpu/tests/KHI_growthRate/cmakeFlags
+# default case is "-DPARAM_OVERWRITES:LIST='-DPARAM_PRECISION=precision32Bit;-DPARAM_PARTICLESHAPE=TSC'"
+flags[0]=""
+flags[1]="-DPARAM_OVERWRITES:LIST='-DPARAM_PRECISION=precision64Bit;-DPARAM_PARTICLESHAPE=TSC'"
+flags[2]="-DPARAM_OVERWRITES:LIST='-DPARAM_PRECISION=precision32Bit;-DPARAM_PARTICLESHAPE=PQS'"
+# Depending on the GPU vendor and version compile can fail because of limited amound of shared memory.
+# Please enable the test by hand!
+# flags[3]="-DPARAM_OVERWRITES:LIST='-DPARAM_PRECISION=precision64Bit;-DPARAM_PARTICLESHAPE=PQS'"
+=======
+# Pushers are generally independent from particle shapes, so do not attempt to
+# test all possible combinations, just all pushers except Boris (tested in examples)
+flags[0]="-DPARAM_OVERWRITES:LIST='-DPARAM_PHASE_IMPL=FromSpeciesWavelength'"
+flags[1]="-DPARAM_OVERWRITES:LIST='-DPARAM_PHASE_IMPL=FromSpeciesMomentum'"
+
+>>>>>>> Stashed changes:share/picongpu/tests/ExternalBeamCompileTest/cmakeFlags
+
+################################################################################
+# execution
+
+case "$1" in
+    -l)  echo ${#flags[@]}
+         ;;
+    -ll) for f in "${flags[@]}"; do echo $f; done
+         ;;
+    *)   echo -n ${flags[$1]}
+         ;;
+esac

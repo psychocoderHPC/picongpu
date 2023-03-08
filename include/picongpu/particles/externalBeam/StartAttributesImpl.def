@@ -1,0 +1,63 @@
+/* Copyright 2014-2021 Rene Widera, Pawel Ordyna
+ *
+ * This file is part of PIConGPU.
+ *
+ * PIConGPU is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * PIConGPU is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with PIConGPU.
+ * If not, see <http://www.gnu.org/licenses/>.
+ */
+
+#pragma once
+
+namespace picongpu
+{
+    namespace particles
+    {
+        namespace externalBeam
+        {
+            /** Set beam particle attributes
+             *
+             * Set the in cell position, the weighting, momentum and phase of a macro particle
+             * created as a part of an external particle beam, that is entering the simulation box.
+             *
+             * The method numberOfMacroParticles provides the number of new particles that need to be created in
+             * a cell.
+             *
+             * This Functor should be used together with a low level functor
+             * like particles::startPosition::generic::FreeBoundary that ensures that the particles are created
+             * only on the simulation external boundary.
+             *
+             *  It is impossible to differentiate between newly created and already previously present particles
+             *  after the KernelFillGridWithParticles has run. Hence, when particles are initialized during the
+             *  simulation and not only before the 0th step (when no previous particles exist), all initial
+             *  attributes need to be already set in KernelFillGridWithParticles. That's why this functor wraps
+             *  around a start position functor (setting weighting, position and also providing the
+             *  numberOfMacroParticles method) and combines it with other sub-functors. Each sub-functor is
+             *  responsible for one additional attribute ( currently momentum and phase).
+             *
+             *  All sub-functors (beside start position functor) should be default constructible and have  a
+             * host-device init method (takes the low level functor as a reference parameter). The start position
+             * functor should have a constructor which takes currentStep (uint32_t) as an only parameter.
+             *
+             *
+             * @tparam T_StartPositionFunctor functor used to set particle position and weighting. It should
+             *      provide a numberOfMacroParticles method.
+             * @tparam T_MomentumFunctor functor used to set particle initial momentum.
+             * @tparam T_PhaseFunctor functor used to set particle initial phase. Use initPhase::NoPhase
+             *      for particles without a phase.
+             */
+            template<typename T_StartPositionFunctor, typename T_MomentumFunctor, typename... T_Functor>
+            struct StartAttributes;
+        } // namespace externalBeam
+    } // namespace particles
+} // namespace picongpu
