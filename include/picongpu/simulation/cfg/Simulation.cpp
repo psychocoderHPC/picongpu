@@ -1,4 +1,4 @@
-/* Copyright 2014-2022 Axel Huebl
+/* Copyright 2023 Rene Widera
  *
  * This file is part of PIConGPU.
  *
@@ -17,20 +17,24 @@
  * If not, see <http://www.gnu.org/licenses/>.
  */
 
-/** @file
- *
- * The spatial dimensionality of the simulation.
- */
+#include "picongpu/simulation/cfg/Simulation.hpp"
 
-#pragma once
-
-#include <pmacc/types.hpp>
-
-/** Possible values: DIM3 for 3D3V and DIM2 for 2D3V.
- */
-#define SIMDIM DIM3
-
-namespace picongpu
+namespace picongpu::simulation::cfg
 {
-    constexpr uint32_t simDim = SIMDIM;
-} // namespace picongpu
+    void Simulation::updateSi()
+    {
+        si.physicalConstant.updateSi(*this);
+        si.base.updateSi(*this);
+        si.unit.updateSi(*this);
+        si.conversion.updateSi(*this);
+    }
+
+    void Simulation::convertToPic()
+    {
+        pic.physicalConstant.convertToPic(*this);
+        pic.convertToPic(*this);
+        pic.base.convertToPic(*this);
+        pic.unit.convertToPic(*this);
+        pic.conversion.convertToPic(*this);
+    }
+} // namespace picongpu::simulation::cfg

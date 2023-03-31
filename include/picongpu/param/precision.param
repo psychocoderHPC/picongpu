@@ -30,9 +30,28 @@
 
 #pragma once
 
+#include <pmacc/algorithms/TypeCast.hpp>
+#include <pmacc/algorithms/math.hpp>
 
 namespace picongpu
 {
+    namespace precision32Bit
+    {
+        using precisionType = float;
+    }
+
+    namespace precision64Bit
+    {
+        using precisionType = double;
+    }
+
+    /** g++ 9 creates compile issues when pulling definitions into picongpu namepsace via 'using namespace
+     * pmacc::algorithms::precisionCast;' therefore we pull the class and function separate
+     */
+    using pmacc::algorithms::precisionCast::precisionCast;
+    template<typename CastToType, typename Type>
+    using TypeCast = pmacc::algorithms::precisionCast::TypeCast<CastToType, Type>;
+
     /*! Select a precision for the simulation data
      *  - precision32Bit : use 32Bit floating point numbers
      *                     [significant digits 7 to 8]

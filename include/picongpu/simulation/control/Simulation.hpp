@@ -33,6 +33,7 @@
 #include "picongpu/fields/background/cellwiseOperation.hpp"
 #include "picongpu/initialization/IInitPlugin.hpp"
 #include "picongpu/initialization/ParserGridDistribution.hpp"
+#include "picongpu/param/sim.param"
 #include "picongpu/particles/InitFunctors.hpp"
 #include "picongpu/particles/Manipulate.hpp"
 #include "picongpu/particles/ParticlesFunctors.hpp"
@@ -282,6 +283,12 @@ namespace picongpu
                 else
                     log<picLog::PHYSICS>("Sliding Window is OFF");
             }
+
+            auto& picSetup = getSetup();
+            cfgSim(picSetup.si);
+            picSetup.updateSi();
+            picSetup.convertToPic();
+            upload(picSetup);
         }
 
         void pluginUnload() override

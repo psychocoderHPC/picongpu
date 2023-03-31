@@ -1,4 +1,4 @@
-/* Copyright 2014-2022 Axel Huebl
+/* Copyright 2023 Rene Widera
  *
  * This file is part of PIConGPU.
  *
@@ -17,20 +17,32 @@
  * If not, see <http://www.gnu.org/licenses/>.
  */
 
-/** @file
- *
- * The spatial dimensionality of the simulation.
- */
-
 #pragma once
+
+#include "picongpu/param/dimension.param"
+#include "picongpu/param/precision.param"
 
 #include <pmacc/types.hpp>
 
-/** Possible values: DIM3 for 3D3V and DIM2 for 2D3V.
- */
-#define SIMDIM DIM3
-
-namespace picongpu
+namespace picongpu::simulation::cfg
 {
-    constexpr uint32_t simDim = SIMDIM;
-} // namespace picongpu
+    struct Simulation;
+
+    template<typename T_FloatType>
+    struct Param
+    {
+        //Param() : cell(vec3<T_FloatType>::create(0.0)){};
+
+        T_FloatType delta_t;
+        vec3<T_FloatType> cell;
+
+        struct Particle
+        {
+            uint32_t num_per_cell;
+            T_FloatType density;
+        };
+        Particle particle;
+
+        void convertToPic(Simulation& sim);
+    };
+} // namespace picongpu::simulation::cfg
