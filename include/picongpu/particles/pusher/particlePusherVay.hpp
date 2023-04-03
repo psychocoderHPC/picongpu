@@ -69,7 +69,7 @@ namespace picongpu
                      Here the real (PIConGPU) momentum (p) is used, not the momentum from the Vay paper (u)
                      p = m_0 * u
                 */
-                const float_X deltaT = DELTA_T;
+                const float_X deltaT = setup().delta_t;
                 const float_X factor = 0.5 * charge * deltaT;
                 Gamma gamma;
                 Velocity velocity;
@@ -106,7 +106,7 @@ namespace picongpu
 
                 for(uint32_t d = 0; d < simDim; ++d)
                 {
-                    pos[d] += (vel[d] * DELTA_T) / cellSize[d];
+                    pos[d] += (vel[d] * setup().delta_t) / cellSize[d];
                 }
             }
 

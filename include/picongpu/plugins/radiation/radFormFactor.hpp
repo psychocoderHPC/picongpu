@@ -226,7 +226,7 @@ namespace picongpu
                      */
                     HDINLINE radFormFactor(const float_X omega, vector_64 const&)
                         : normalizedCoherentAmplification(
-                            util::square(math::exp(-0.5_X * util::square(omega * 0.5_X * DELTA_T))))
+                            util::square(math::exp(-0.5_X * util::square(omega * 0.5_X * setup().delta_t))))
                     {
                     }
 

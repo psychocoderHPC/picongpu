@@ -42,7 +42,7 @@ namespace picongpu
                 //! Get the time step value
                 HDINLINE constexpr float_X operator()()
                 {
-                    return DELTA_T;
+                    return setup().delta_t;
                 }
             };
 
@@ -57,12 +57,12 @@ namespace picongpu
                 //! Get the time step value
                 HDINLINE constexpr float_X operator()()
                 {
-                    return DELTA_T / static_cast<float_X>(T_numSubsteps);
+                    return setup().delta_t / static_cast<float_X>(T_numSubsteps);
                 }
             };
 
             //! Get time step used inside the field solver
-            HDINLINE constexpr float_X getTimeStep()
+            HDINLINE float_X getTimeStep()
             {
                 return GetTimeStep<Solver>{}();
             }

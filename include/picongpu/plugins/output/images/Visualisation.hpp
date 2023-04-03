@@ -152,7 +152,7 @@ namespace picongpu
             constexpr auto baseCharge = BASE_CHARGE;
             const float_X tyCurrent = particles::TYPICAL_PARTICLES_PER_CELL
                 * static_cast<float_X>(particles::TYPICAL_NUM_PARTICLES_PER_MACROPARTICLE) * math::abs(baseCharge)
-                / DELTA_T;
+                / setup().delta_t;
             const float_X tyEField = getAmplitude() + FLT_MIN;
             const float_X tyBField = tyEField * MUE0_EPS0;
             return float3_X(tyBField, tyEField, tyCurrent);

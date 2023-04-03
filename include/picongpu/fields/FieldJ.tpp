@@ -229,10 +229,10 @@ namespace picongpu
          * places.
          */
         constexpr auto dz = (simDim == 3) ? CELL_DEPTH : std::numeric_limits<float_X>::infinity();
-        constexpr auto minCellSize = std::min({CELL_WIDTH, CELL_HEIGHT, dz});
-        PMACC_CASSERT_MSG(
-            Particle_in_current_deposition_cannot_pass_more_than_1_cell_per_time_step____check_your_grid_param_file,
-            (SPEED_OF_LIGHT * DELTA_T / minCellSize <= 1.0) && sizeof(T_Species*) != 0);
+        auto minCellSize = std::min({CELL_WIDTH, CELL_HEIGHT, dz});
+        PMACC_VERIFY_MSG(
+            (SPEED_OF_LIGHT * setup().delta_t / minCellSize <= 1.0) && sizeof(T_Species*) != 0,
+            "Particle_in_current_deposition_cannot_pass_more_than_1_cell_per_time_step____check_your_grid_param_file");
 
         using FrameType = typename T_Species::FrameType;
         using ParticleCurrentSolver =
@@ -252,7 +252,7 @@ namespace picongpu
 
         typename T_Species::ParticlesBoxType pBox = species.getDeviceParticlesBox();
         FieldJ::DataBoxType jBox = buffer.getDeviceBuffer().getDataBox();
-        FrameSolver solver(DELTA_T);
+        FrameSolver solver(setup().delta_t);
 
         auto const deposit = currentSolver::Deposit<Strategy>{};
         deposit.template execute<T_area>(cellDescription, depositionKernel, solver, jBox, pBox);

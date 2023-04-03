@@ -79,7 +79,7 @@ namespace picongpu
                     DataConnector& dc = Environment<>::get().DataConnector();
                     auto& fieldJ = *dc.get<FieldJ>(FieldJ::getName());
                     // Coefficient in front of J in Ampere's law
-                    constexpr float_X coeff = -(1.0_X / EPS0) * DELTA_T;
+                    float_X coeff = -(1.0_X / EPS0) * setup().delta_t;
                     this->template addCurrentImpl<T_area>(fieldJ.getDeviceDataBox(), coeff);
                 }
 

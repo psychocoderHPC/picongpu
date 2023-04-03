@@ -199,7 +199,7 @@ namespace picongpu
             mesh.setAttribute("dV", CELL_VOLUME);
             mesh.setGridSpacing(std::vector<float_X>{dr, CELL_VOLUME / dr});
             mesh.setAttribute("dr_unit", UNIT_LENGTH);
-            iteration.setDt(DELTA_T);
+            iteration.setDt(setup().delta_t);
             iteration.setTimeUnitSI(UNIT_TIME);
             /*
              * The value represents an aggregation over one cell, so any value is correct for the mesh position.

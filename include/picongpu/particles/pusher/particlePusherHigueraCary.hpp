@@ -79,7 +79,7 @@ namespace picongpu
                 if constexpr(pmacc::traits::HasIdentifier<T_Particle, probeE>::type::value)
                     particle[probeE_] = eField;
 
-                float_X const deltaT = DELTA_T;
+                float_X const deltaT = setup().delta_t;
 
 
                 Gamma gamma;

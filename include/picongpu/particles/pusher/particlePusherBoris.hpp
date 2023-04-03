@@ -65,7 +65,7 @@ namespace picongpu
 
                 const float_X QoM = charge / mass;
 
-                const float_X deltaT = DELTA_T;
+                const float_X deltaT = setup().delta_t;
 
                 const MomType mom_minus = mom + float_X(0.5) * charge * eField * deltaT;
 

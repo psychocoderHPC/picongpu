@@ -113,9 +113,7 @@ namespace picongpu
 
             DataSpace<simDim> const superCellIdx(
                 mapper.getSuperCellIndex(DataSpace<simDim>(cupla::blockIdx(worker.getAcc()))));
-
-            printf("device speed=%f delta_t=%f\n", setup().physicalConstant.speed_of_light, setup().delta_t);
-
+            
             /* offset of the superCell relative to the local domain [in supercells] (without guarding supercells) */
             DataSpace<simDim> const localSuperCellOffset(superCellIdx - mapper.getGuardingSuperCells());
 

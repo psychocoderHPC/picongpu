@@ -45,7 +45,7 @@ namespace picongpu
                  **/
                 HDINLINE NyquistLowPass(const vector_64& n, const Particle& particle)
                 {
-                    auto const omegaNyquist = (PI - 0.01) / (DELTA_T * One_minus_beta_times_n()(n, particle));
+                    auto const omegaNyquist = (PI - 0.01) / (setup().delta_t * One_minus_beta_times_n()(n, particle));
                     threshold = static_cast<float_X>(omegaNyquist * radiationNyquist::NyquistFactor);
                 }
 

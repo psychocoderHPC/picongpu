@@ -74,7 +74,7 @@ namespace picongpu
             {
                 floatD_X deltaPos;
                 for(uint32_t d = 0; d < simDim; ++d)
-                    deltaPos[d] = (velocity[d] * DELTA_T) / cellSize[d];
+                    deltaPos[d] = (velocity[d] * setup().delta_t) / cellSize[d];
 
                 /*note: all positions are normalized to the grid*/
                 const floatD_X posStart(posEnd - deltaPos);

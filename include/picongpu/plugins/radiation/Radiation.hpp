@@ -774,8 +774,8 @@ namespace picongpu
                     ::openPMD::Iteration openPMDdataFileIteration = openPMDdataFile.writeIterations()[currentStep];
 
                     /* begin required openPMD global attributes */
-                    openPMDdataFileIteration.setDt<float_X>(DELTA_T);
-                    const float_X time = float_X(currentStep) * DELTA_T;
+                    openPMDdataFileIteration.setDt<float_X>(setup().delta_t);
+                    const float_X time = float_X(currentStep) * setup().delta_t;
                     openPMDdataFileIteration.setTime(time);
                     openPMDdataFileIteration.setTimeUnitSI(UNIT_TIME);
                     /* end required openPMD global attributes */

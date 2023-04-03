@@ -175,7 +175,7 @@ namespace picongpu
                  * in-cell particle `position` (and it's change in DELTA_T) is normalize to [0,1)
                  */
                 const float_X currentSurfaceDensity
-                    = this->charge * (1.0_X / float_X(CELL_VOLUME * DELTA_T)) * cellEdgeLength;
+                    = this->charge * (1.0_X / float_X(CELL_VOLUME * setup().delta_t)) * cellEdgeLength;
 
                 for(int j = begin; j < end + 1; ++j)
                     if(j < end + bitpacking::getValue(parStatus[1], bitpacking::Status::LEAVE_CELL))

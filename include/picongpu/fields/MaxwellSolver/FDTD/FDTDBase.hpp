@@ -82,9 +82,6 @@ namespace picongpu
                     }
 
                 protected:
-                    //! Time step used for each field solver update
-                    static constexpr auto timeStep = getTimeStep();
-
                     /** Perform the first part of E and B propagation
                      *  from t_start = currentStep * DELTA_T to t_end = t_start + timeStep.
                      *
@@ -96,6 +93,8 @@ namespace picongpu
                      */
                     void updateBeforeCurrent(float_X const currentStep)
                     {
+                        auto timeStep = getTimeStep();
+
                         /* As typical for electrodynamic PIC codes, we split an FDTD update of B into two halves.
                          * (This comes from commonly used particle pushers needing E and B at the same time.)
                          * Here we do the second half of updating B.
@@ -114,7 +113,7 @@ namespace picongpu
                          * It uses values of B_inc at time = currentStep * DELTA_T + 0.5 * timeStep.
                          * In units of DELTA_T that is equal to currentStep + 0.5 * timeStep / DELTA_T
                          */
-                        incidentFieldSolver.updateE(currentStep + 0.5_X * timeStep / DELTA_T);
+                        incidentFieldSolver.updateE(currentStep + 0.5_X * timeStep / setup().delta_t);
                         updateE<CORE>(currentStep);
                         eventSystem::setTransactionEvent(eRfieldB);
                         updateE<BORDER>(currentStep);
@@ -157,13 +156,15 @@ namespace picongpu
                             exponentialImpl.run(currentStep, fieldE->getDeviceDataBox());
                         }
 
+                        auto timeStep = getTimeStep();
+
                         // Incident field solver update does not use exchanged E, so does not have to wait for it
                         auto incidentFieldSolver = fields::incidentField::Solver{cellDescription};
                         /* Update B by half timeStep, to time = currentStep * DELTA_T + 1.5 * timeStep.
                          * It uses values of E_inc at time = currentStep * DELTA_T + timeStep.
                          * In units of DELTA_T that is equal to currentStep + timeStep / DELTA_T
                          */
-                        incidentFieldSolver.updateBHalf(currentStep + timeStep / DELTA_T);
+                        incidentFieldSolver.updateBHalf(currentStep + timeStep / setup().delta_t);
 
                         EventTask eRfieldE = fieldE->asyncCommunication(eventSystem::getTransactionEvent());
 

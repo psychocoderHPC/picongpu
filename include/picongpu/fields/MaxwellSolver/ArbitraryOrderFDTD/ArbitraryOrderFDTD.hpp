@@ -64,7 +64,7 @@ namespace picongpu
                     }
                     auto const invCorrectedCell2Sum = INV_CELL2_SUM * additionalFactor * additionalFactor;
                     auto const maxC_DT = 1.0_X / math::sqrt(invCorrectedCell2Sum);
-                    constexpr auto dt = getTimeStep();
+                    auto dt = getTimeStep();
                     if(SPEED_OF_LIGHT * SPEED_OF_LIGHT * dt * dt * invCorrectedCell2Sum > 1.0_X)
                     {
                         throw std::runtime_error(
