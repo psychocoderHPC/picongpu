@@ -20,10 +20,10 @@
 #pragma once
 
 #include "picongpu/simulation/cfg/Simulation.hpp"
-#include "picongpu/simulation/cfg/setup.hpp"
+#include "picongpu/simulation/cfg/Unitsystem.hpp"
+#include "pmacc/eventSystem/eventSystem.hpp"
 
 #include <pmacc/eventSystem/tasks/ITask.hpp>
-#include "pmacc/eventSystem/eventSystem.hpp"
 #include <pmacc/memory/Array.hpp>
 
 #include <cupla.hpp>
@@ -73,21 +73,6 @@ namespace picongpu
         std::cout << "data copied to device" << std::endl;
 #endif
     }
-
-    namespace unit
-    {
-        struct pic
-        {
-        };
-
-        static constexpr pic pic_;
-
-        struct si
-        {
-        };
-
-        static constexpr si si_;
-    }; // namespace unit
 
 /* select namespace depending on __CUDA_ARCH__ compiler flag*/
 #if(CUPLA_DEVICE_COMPILE == 1 && /* we are on gpu ... and not using an offloading backend: */                         \
