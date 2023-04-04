@@ -79,35 +79,35 @@ namespace picongpu
     !(defined ALPAKA_ACC_ANY_BT_OMP5_ENABLED || defined ALPAKA_ACC_ANY_BT_OACC_ENABLED))
 
     using namespace setupOnDevice;
-    DINLINE auto const& setup(unit::pic const)
+    DINLINE auto const& setup(unit::Pic const)
     {
         return setupOnDevice::getSetup().pic;
     }
 
-    DINLINE auto const& setup(unit::si const)
+    DINLINE auto const& setup(unit::Si const)
     {
         return setupOnDevice::getSetup().si;
     }
 
     DINLINE auto const& setup()
     {
-        return setup(unit::pic{});
+        return setup(unit::Pic{});
     }
 #else
     using namespace setupOnHost;
-    inline auto const& setup(unit::pic const)
+    inline auto const& setup(unit::Pic const)
     {
         return setupOnHost::getSetup().pic;
     }
 
-    inline auto const& setup(unit::si const)
+    inline auto const& setup(unit::Si const)
     {
         return setupOnHost::getSetup().pic;
     }
 
     inline auto const& setup()
     {
-        return setup(unit::pic{});
+        return setup(unit::Pic{});
     }
 #endif
 
