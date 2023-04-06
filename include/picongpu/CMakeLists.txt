@@ -499,6 +499,9 @@ list(APPEND ACCSRCFILES
         "${PIConGPUapp_SOURCE_DIR}/simulation/cfg/Base.cpp"
         "${PIConGPUapp_SOURCE_DIR}/simulation/cfg/PhysicalConstant.cpp"
         "${PIConGPUapp_SOURCE_DIR}/simulation/cfg/Conversion.cpp"
+        "${PIConGPUapp_SOURCE_DIR}/fields/boundary/impl/Exponential.cpp"
+        "${PIConGPUapp_SOURCE_DIR}/fields/boundary/impl/Pml.cpp"
+        "${PIConGPUapp_SOURCE_DIR}/fields/boundary/Boundary.cpp"
         "${PIConGPUapp_SOURCE_DIR}/versionFormat.cpp"
         )
 

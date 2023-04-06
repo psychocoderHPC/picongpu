@@ -51,13 +51,13 @@ namespace picongpu
             HDINLINE float_X operator()(DataSpace<simDim> const& totalCellOffset)
             {
                 float_64 const unitLength(UNIT_LENGTH); // workaround to use UNIT_LENGTH on device
-                float3_64 const cellSize_SI(precisionCast<float_64>(cellSize) * unitLength);
+                float3_64 const cellSize_SI(precisionCast<float_64>(setup().cell) * unitLength);
                 // evaluate at cell center for a more accurate estimate for the cell
                 floatD_64 const totalCenterCellOffset
                     = precisionCast<float_64>(totalCellOffset) + floatD_64::create(0.5);
-                floatD_64 const position_SI(totalCenterCellOffset * cellSize_SI.shrink<simDim>());
+                floatD_64 const position_SI(totalCenterCellOffset * setup(unit::si_).cell.shrink<simDim>());
 
-                return UserFunctor::operator()(position_SI, cellSize_SI);
+                return UserFunctor::operator()(position_SI, setup(unit::si_).cell);
             }
         };
     } // namespace densityProfiles

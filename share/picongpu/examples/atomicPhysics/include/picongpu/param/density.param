@@ -60,7 +60,7 @@ namespace picongpu
             HDINLINE float_X operator()(const floatD_64& position_SI, const float3_64& cellSize_SI)
             {
                 // get cell index for each coordinate
-                const pmacc::math::UInt64<simDim> cell_id(position_SI / cellSize_SI.shrink<simDim>());
+                const pmacc::math::UInt64<simDim> cell_id(position_SI / setup(unit::si_).cell.shrink<simDim>());
 
                 // add particle in every cell in which all coordinates are 2,4 or 6
                 // one in every supercell of size [2,2,2]

@@ -102,7 +102,7 @@ namespace picongpu
                 sqrt_HC::float_X const sigma = pmacc::math::norm(gamma_minus) - pmacc::math::l2norm2(tau);
 
                 sqrt_HC::float_X const u_star
-                    = pmacc::math::dot(mom_minus, tau) / precisionCast<sqrt_HC::float_X>(mass * SPEED_OF_LIGHT);
+                    = pmacc::math::dot(mom_minus, tau) / precisionCast<sqrt_HC::float_X>(mass * setup().physicalConstant.speed_of_light);
 
                 sqrt_HC::float_X const gamma_plus = math::sqrt(
                     sqrt_HC::float_X(0.5)
@@ -138,7 +138,7 @@ namespace picongpu
 
                 for(uint32_t d = 0; d < simDim; ++d)
                 {
-                    pos[d] += (vel[d] * deltaT) / cellSize[d];
+                    pos[d] += (vel[d] * deltaT) / setup().cell[d];
                 }
             }
 

@@ -20,7 +20,6 @@
 #pragma once
 #include "picongpu/simulation_defines.hpp"
 
-#include "picongpu/fields/absorber/Absorber.hpp"
 #include "picongpu/fields/currentInterpolation/CurrentInterpolation.hpp"
 #include "picongpu/plugins/common/openPMDVersion.def"
 #include "picongpu/plugins/common/stringHelpers.hpp"
@@ -215,7 +214,7 @@ namespace picongpu
                 std::string names[3] = {"cell_width", "cell_height", "cell_depth"};
                 for(unsigned i = 0; i < 3; ++i)
                 {
-                    iteration.setAttribute(names[i], cellSize[i]);
+                    iteration.setAttribute(names[i], setup().cell[i]);
                 }
 
 

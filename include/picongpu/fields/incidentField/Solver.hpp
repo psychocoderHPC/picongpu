@@ -25,7 +25,8 @@
 #include "picongpu/fields/MaxwellSolver/FDTD/FDTD.def"
 #include "picongpu/fields/MaxwellSolver/GetTimeStep.hpp"
 #include "picongpu/fields/MaxwellSolver/Substepping/Substepping.def"
-#include "picongpu/fields/absorber/Absorber.hpp"
+#include "picongpu/fields/boundary/Boundary.hpp"
+#include "picongpu/fields/cellType/Yee.hpp"
 #include "picongpu/fields/incidentField/Functors.hpp"
 #include "picongpu/fields/incidentField/Solver.kernel"
 #include "picongpu/fields/incidentField/Traits.hpp"
@@ -131,8 +132,9 @@ namespace picongpu
                     auto const margin = static_cast<int32_t>(updateFunctor.margin);
                     // Index of the boundary in 2d arrays like absorber thickness
                     auto const boundaryIdx = (updateFunctor.direction > 0) ? 0 : 1;
-                    auto const& absorber = fields::absorber::Absorber::get();
-                    auto const absorberThickness = absorber.getGlobalThickness()(axis, boundaryIdx);
+
+                    auto const absorberThickness
+                        = fields::boundary::Boundary::get().getGlobalThickness()(axis, boundaryIdx);
                     auto const minAllowedOffsetFromBoundary = static_cast<int32_t>(absorberThickness + margin - 1);
 
                     // Calculate offset of Huygens surface from the active boundary in the inwards direction
@@ -423,7 +425,7 @@ namespace picongpu
                         /* The update is structurally
                          * E(t + timeIncrement) = E(t) + timeIncrement * c2 * curl(B(t + timeIncrement/2))
                          */
-                        constexpr auto c2 = SPEED_OF_LIGHT * SPEED_OF_LIGHT;
+                        constexpr auto c2 = setup().physicalConstant.speed_of_light * setup().physicalConstant.speed_of_light;
                         auto const curlCoefficient = parameters.timeIncrement * c2;
                         using UpdatedField = picongpu::FieldE;
                         using IncidentField = picongpu::FieldB;

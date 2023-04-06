@@ -57,7 +57,7 @@ namespace picongpu
                          *
                          * unit: 1/UNIT_TIME
                          */
-                        static constexpr float_X f = static_cast<float_X>(SPEED_OF_LIGHT / WAVE_LENGTH);
+                        static constexpr float_X f = static_cast<float_X>(setup().physicalConstant.speed_of_light / WAVE_LENGTH);
 
                         /** Angular frequency
                          *

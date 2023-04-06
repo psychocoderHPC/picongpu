@@ -69,10 +69,8 @@ namespace picongpu
                 const float_X deltaTime)
             {
                 this->charge = charge;
-                const float3_X deltaPos = float3_X(
-                    velocity.x() * deltaTime / cellSize.x(),
-                    velocity.y() * deltaTime / cellSize.y(),
-                    velocity.z() * deltaTime / cellSize.z());
+                const float3_X deltaPos = velocity * deltaTime / setup().cell;
+
                 const PosType oldPos = pos - deltaPos;
                 Line<float3_X> line(oldPos, pos);
 
@@ -119,19 +117,19 @@ namespace picongpu
                     DataSpace<simDim>(status.y(), status.z(), status.x()),
                     makePermutatedFieldValueAccess<pmacc::math::CT::Int<1, 2, 0>>(fieldJ),
                     rotateOrigin<1, 2, 0>(line),
-                    cellSize.x());
+                    setup().cell.x());
                 cptCurrent1D(
                     worker,
                     DataSpace<simDim>(status.z(), status.x(), status.y()),
                     makePermutatedFieldValueAccess<pmacc::math::CT::Int<2, 0, 1>>(fieldJ),
                     rotateOrigin<2, 0, 1>(line),
-                    cellSize.y());
+                    setup().cell.y());
                 cptCurrent1D(
                     worker,
                     status,
                     makePermutatedFieldValueAccess<pmacc::math::CT::Int<0, 1, 2>>(fieldJ),
                     line,
-                    cellSize.z());
+                    setup().cell.z());
             }
 
             /** deposites current in z-direction (rotated PIConGPU coordinate system)

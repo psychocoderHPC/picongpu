@@ -102,7 +102,7 @@ namespace picongpu
 
     inline auto const& setup(unit::Si const)
     {
-        return setupOnHost::getSetup().pic;
+        return setupOnHost::getSetup().si;
     }
 
     inline auto const& setup()

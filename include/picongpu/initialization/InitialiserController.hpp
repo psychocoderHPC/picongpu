@@ -131,7 +131,7 @@ namespace picongpu
                 auto const dtName = std::string{isSubstepping ? "substepping_dt" : "dt"};
                 auto const cflMessage
                     = std::string{"Field solver condition: c * "} + dtName + " <= %1% ? (c * " + dtName + " = %2%)";
-                log<picLog::PHYSICS>(cflMessage.c_str()) % maxC_DT % (SPEED_OF_LIGHT * setup().delta_t);
+                log<picLog::PHYSICS>(cflMessage.c_str()) % maxC_DT % (setup().physicalConstant.speed_of_light * setup().delta_t);
 
                 printDispersionInformation();
 
@@ -216,7 +216,7 @@ namespace picongpu
                 if(printInfo)
                 {
                     auto const phaseVelocity = fields::incidentField::getPhaseVelocity<T_Profile>();
-                    auto const phaseVelocityC = phaseVelocity / SPEED_OF_LIGHT;
+                    auto const phaseVelocityC = phaseVelocity / setup().physicalConstant.speed_of_light;
                     auto const message = std::string{"Incident field \""} + T_Profile::getName()
                         + "\" numerical dispersion: v_phase = %1% * c";
                     log<picLog::PHYSICS>(message.c_str()) % phaseVelocityC;

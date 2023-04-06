@@ -37,7 +37,7 @@ namespace picongpu
                 template<typename T_Particle>
                 HDINLINE static float_64 KineticEnergy(T_Particle const& particle)
                 {
-                    constexpr float_64 c_SI = picongpu::SI::SPEED_OF_LIGHT_SI; // unit: m/s, SI
+                    constexpr float_64 c_SI = picongpu::setup(unit::si_).physicalConstant.speed_of_light; // unit: m/s, SI
 
                     // mass of physical particle
                     float_64 m_p_SI_rel = attribute::getMass(1.0_X, particle) * picongpu::UNIT_MASS * c_SI * c_SI;

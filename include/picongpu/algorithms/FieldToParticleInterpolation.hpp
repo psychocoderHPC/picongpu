@@ -20,8 +20,8 @@
 
 #pragma once
 
-#include "picongpu/simulation_defines.hpp"
-
+#include <pmacc/math/Vector.hpp>
+#include "picongpu/traits/GetMargin.hpp"
 #include "picongpu/algorithms/ShiftCoordinateSystem.hpp"
 #include "picongpu/particles/shapes.hpp"
 

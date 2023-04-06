@@ -208,7 +208,7 @@ namespace picongpu
                 using complex_T = alpaka::Complex<float_T>;
                 using complex_64 = alpaka::Complex<float_64>;
                 /* Unit of speed */
-                const float_64 UNIT_SPEED = SI::SPEED_OF_LIGHT_SI;
+                const float_64 UNIT_SPEED = setup(unit::si_).physicalConstant.speed_of_light;
                 /* Unit of time */
                 const float_64 UNIT_TIME = SI::DELTA_T_SI;
                 /* Unit of length */
@@ -240,7 +240,7 @@ namespace picongpu
                  * const float_T eta = (PI / 2) - (phiReal - alphaTilt);
                  */
 
-                const auto cspeed = float_T(SI::SPEED_OF_LIGHT_SI / UNIT_SPEED);
+                const auto cspeed = float_T(setup(unit::si_).physicalConstant.speed_of_light / UNIT_SPEED);
                 const auto lambda0 = float_T(wavelength_SI / UNIT_LENGTH);
                 const auto om0 = float_T(2.0 * PI * cspeed / lambda0);
                 /* factor 2  in tauG arises from definition convention in laser formula */

@@ -20,7 +20,6 @@
 
 #pragma once
 
-#include "picongpu/simulation_defines.hpp"
 
 #include "picongpu/fields/FieldB.hpp"
 #include "picongpu/fields/FieldE.hpp"
@@ -28,8 +27,8 @@
 #include "picongpu/fields/MaxwellSolver/AddCurrentDensity.hpp"
 #include "picongpu/fields/MaxwellSolver/FDTD/FDTDBase.kernel"
 #include "picongpu/fields/MaxwellSolver/GetTimeStep.hpp"
-#include "picongpu/fields/absorber/Absorber.hpp"
-#include "picongpu/fields/absorber/pml/Pml.hpp"
+#include "picongpu/fields/boundary/impl/Exponential.hpp"
+#include "picongpu/fields/boundary/impl/Pml.hpp"
 #include "picongpu/fields/currentInterpolation/CurrentInterpolation.hpp"
 #include "picongpu/fields/incidentField/Solver.hpp"
 
@@ -37,7 +36,7 @@
 
 #include <cstdint>
 #include <memory>
-
+#include <optional>
 
 namespace picongpu
 {
@@ -70,11 +69,7 @@ namespace picongpu
                      *
                      * @param cellDescription mapping description for kernels
                      */
-                    FDTDBase(MappingDesc const cellDescription)
-                        : cellDescription(cellDescription)
-                        ,
-                        // Make sure the absorber instance is created here, before particle memory allocation
-                        absorberImpl(fields::absorber::AbsorberImpl::getImpl(cellDescription))
+                    FDTDBase(MappingDesc const cellDescription) : cellDescription(cellDescription)
                     {
                         DataConnector& dc = Environment<>::get().DataConnector();
                         fieldE = dc.get<FieldE>(FieldE::getName());
@@ -150,10 +145,9 @@ namespace picongpu
                     void updateAfterCurrent(float_X const currentStep)
                     {
                         auto& absorber = absorber::Absorber::get();
-                        if(absorber.getKind() == absorber::Absorber::Kind::Exponential)
+                        if(boundaryExponential)
                         {
-                            auto& exponentialImpl = absorberImpl.asExponentialImpl();
-                            exponentialImpl.run(currentStep, fieldE->getDeviceDataBox());
+                            boundaryExponential->run(currentStep, fieldE->getDeviceDataBox());
                         }
 
                         auto timeStep = getTimeStep();
@@ -173,10 +167,9 @@ namespace picongpu
                         eventSystem::setTransactionEvent(eRfieldE);
                         updateBFirstHalf<BORDER>(currentStep);
 
-                        if(absorber.getKind() == absorber::Absorber::Kind::Exponential)
+                        if(boundaryExponential)
                         {
-                            auto& exponentialImpl = absorberImpl.asExponentialImpl();
-                            exponentialImpl.run(currentStep, fieldB->getDeviceDataBox());
+                            boundaryExponential->run(currentStep, fieldB->getDeviceDataBox());
                         }
 
                         EventTask eRfieldB = fieldB->asyncCommunication(eventSystem::getTransactionEvent());
@@ -242,12 +235,10 @@ namespace picongpu
                         auto const mapper = pmacc::makeAreaMapper<T_Area>(cellDescription);
 
                         // The ugly transition from run-time to compile-time polymorphism is contained here
-                        auto& absorber = absorber::Absorber::get();
-                        if(absorber.getKind() == absorber::Absorber::Kind::Pml)
+                        if(boundaryPml)
                         {
-                            auto& pmlImpl = absorberImpl.asPmlImpl();
                             auto const updateFunctor
-                                = pmlImpl.template getUpdateBHalfFunctor<CurlE>(currentStep, updatePsiB);
+                                = boundaryPml->getUpdateBHalfFunctor<CurlE>(currentStep, updatePsiB);
                             PMACC_LOCKSTEP_KERNEL(Kernel{}, workerCfg)
                             (mapper.getGridDim())(
                                 mapper,
@@ -281,11 +272,9 @@ namespace picongpu
                         auto const mapper = pmacc::makeAreaMapper<T_Area>(cellDescription);
 
                         // The ugly transition from run-time to compile-time polymorphism is contained here
-                        auto& absorber = absorber::Absorber::get();
-                        if(absorber.getKind() == absorber::Absorber::Kind::Pml)
+                        if(boundaryPml)
                         {
-                            auto& pmlImpl = absorberImpl.asPmlImpl();
-                            auto const updateFunctor = pmlImpl.template getUpdateEFunctor<CurlB>(currentStep);
+                            auto const updateFunctor = boundaryPml->getUpdateEFunctor<CurlB>(currentStep);
                             PMACC_LOCKSTEP_KERNEL(Kernel{}, workerCfg)
                             (mapper.getGridDim())(
                                 mapper,
@@ -308,8 +297,9 @@ namespace picongpu
                     std::shared_ptr<FieldE> fieldE;
                     std::shared_ptr<FieldB> fieldB;
 
-                    // Absorber implementation
-                    fields::absorber::AbsorberImpl& absorberImpl;
+                    // Absorber implementations
+                    std::optional<fields::boundary::impl::Exponential> boundaryExponential;
+                    std::optional<fields::boundary::impl::Pml> boundaryPml;
                 };
             } // namespace fdtd
         } // namespace maxwellSolver

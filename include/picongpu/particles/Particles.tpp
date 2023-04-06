@@ -327,7 +327,7 @@ namespace picongpu
         constexpr auto dz = (simDim == 3) ? CELL_DEPTH : std::numeric_limits<float_X>::infinity();
         auto minCellSize = std::min({CELL_WIDTH, CELL_HEIGHT, dz});
         PMACC_VERIFY_MSG(
-            (SPEED_OF_LIGHT * setup().delta_t / minCellSize <= 1.0) && sizeof(T_Pusher*) != 0,
+            (setup().physicalConstant.speed_of_light * setup().delta_t / minCellSize <= 1.0) && sizeof(T_Pusher*) != 0,
             "Particle_in_pusher_cannot_pass_more_than_1_cell_per_time_step____check_your_grid_param_file");
 
         PMACC_CASSERT_MSG(

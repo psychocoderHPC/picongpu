@@ -52,7 +52,7 @@ namespace picongpu
                     // Dependance on T_Defer is required, otherwise this check would have been enforced for each setup
                     auto dt = getTimeStep();
                     PMACC_VERIFY_MSG(
-                        (SPEED_OF_LIGHT * SPEED_OF_LIGHT * dt * dt * INV_CELL2_SUM) <= 1.0 && sizeof(T_Defer*) != 0,
+                        (setup().physicalConstant.speed_of_light * setup().physicalConstant.speed_of_light * dt * dt * INV_CELL2_SUM) <= 1.0 && sizeof(T_Defer*) != 0,
                         "Courant_Friedrichs_Lewy_condition_failure____check_your_grid_param_file");
 
                     return 1.0_X / math::sqrt(INV_CELL2_SUM);
@@ -88,7 +88,7 @@ namespace picongpu
                         auto const term = math::sin(arg) / step[d];
                         rhs += term * term;
                     }
-                    auto const lhsTerm = math::sin(0.5 * omega * timeStep) / (SPEED_OF_LIGHT * timeStep);
+                    auto const lhsTerm = math::sin(0.5 * omega * timeStep) / (setup().physicalConstant.speed_of_light * timeStep);
                     auto const lhs = lhsTerm * lhsTerm;
                     return rhs - lhs;
                 }

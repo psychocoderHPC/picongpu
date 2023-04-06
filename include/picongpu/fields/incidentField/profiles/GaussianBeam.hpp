@@ -231,14 +231,14 @@ namespace picongpu
                             // we shift the complete pulse for the half of this time to start with
                             // the front of the laser pulse.
                             constexpr auto mue = 0.5_X * Unitless::INIT_TIME;
-                            auto const phase = Unitless::w * (time - mue - focusPos / SPEED_OF_LIGHT)
+                            auto const phase = Unitless::w * (time - mue - focusPos / setup().physicalConstant.speed_of_light)
                                 + Unitless::LASER_PHASE + phaseShift;
 
                             // Apply tilt if needed
                             if constexpr(Unitless::TILT_AXIS_1 || Unitless::TILT_AXIS_2)
                             {
-                                auto const tiltTimeShift = phase / Unitless::w + focusPos / SPEED_OF_LIGHT;
-                                auto const tiltPositionShift = SPEED_OF_LIGHT * tiltTimeShift
+                                auto const tiltTimeShift = phase / Unitless::w + focusPos / setup().physicalConstant.speed_of_light;
+                                auto const tiltPositionShift = setup().physicalConstant.speed_of_light * tiltTimeShift
                                     / pmacc::math::dot(this->getDirection(), float3_X{cellSize});
                                 auto const tilt1 = Unitless::TILT_AXIS_1;
                                 pos[1] += math::tan(tilt1) * tiltPositionShift;
@@ -272,7 +272,7 @@ namespace picongpu
                             auto const exponent
                                 = (r - focusPos
                                    - phase / pmacc::math::Pi<float_X>::doubleValue * Unitless::WAVE_LENGTH)
-                                / (SPEED_OF_LIGHT * 2.0_X * Unitless::PULSE_LENGTH);
+                                / (setup().physicalConstant.speed_of_light * 2.0_X * Unitless::PULSE_LENGTH);
                             etrans *= math::exp(-exponent * exponent);
                             auto etrans_norm = 0.0_X;
                             for(uint32_t m = 0; m <= Unitless::MODENUMBER; ++m)

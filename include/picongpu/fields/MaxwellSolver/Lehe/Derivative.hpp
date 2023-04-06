@@ -94,9 +94,9 @@ namespace picongpu
                         constexpr uint32_t dir1 = (dir0 + 1) % 3;
                         constexpr uint32_t dir2 = (dir0 + 2) % 3;
 
-                        float_64 const stepRatio = cellSize[dir0] / (SPEED_OF_LIGHT * setup().delta_t);
+                        float_64 const stepRatio = cellSize[dir0] / (setup().physicalConstant.speed_of_light * setup().delta_t);
                         float_64 const coeff = stepRatio
-                            * math::sin(pmacc::math::Pi<float_64>::halfValue * float_64(SPEED_OF_LIGHT)
+                            * math::sin(pmacc::math::Pi<float_64>::halfValue * float_64(setup().physicalConstant.speed_of_light)
                                         * float_64(setup().delta_t) / float_64(cellSize[dir0]));
                         delta = static_cast<float_X>(0.25 * (1.0 - coeff * coeff));
                         // for 2D the betas corresponding to z are 0

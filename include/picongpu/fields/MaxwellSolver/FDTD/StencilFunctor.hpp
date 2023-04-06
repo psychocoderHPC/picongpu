@@ -19,7 +19,9 @@
 
 #pragma once
 
-#include "picongpu/simulation_defines.hpp"
+#include "picongpu/traits/GetMargin.hpp"
+
+#include <pmacc/dimensions/DataSpace.hpp>
 
 #include <cstdint>
 

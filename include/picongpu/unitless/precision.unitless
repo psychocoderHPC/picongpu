@@ -19,6 +19,7 @@
 
 #pragma once
 
+#include "picongpu/param/dimension.param"
 #include <pmacc/math/Vector.hpp>
 
 

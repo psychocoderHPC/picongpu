@@ -64,7 +64,13 @@ namespace picongpu
             //! Get time step used inside the field solver
             HDINLINE float_X getTimeStep()
             {
+#if 0
                 return GetTimeStep<Solver>{}();
+#else
+                // @todo Rene This should be a interface call to the fieldsolver (please implement during the transition to runtime)
+                return setup().delta_t;
+
+#endif
             }
 
         } // namespace maxwellSolver

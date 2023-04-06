@@ -74,8 +74,7 @@ namespace picongpu
                 const float_X deltaTime)
             {
                 this->charge = charge;
-                const float2_X deltaPos
-                    = float2_X(velocity.x() * deltaTime / cellSize.x(), velocity.y() * deltaTime / cellSize.y());
+                const float2_X deltaPos = velocity.shrink<2>() * deltaTime / setup().cell.shrink<2>();
                 const PosType oldPos = pos - deltaPos;
                 Line<float2_X> line(oldPos, pos);
 

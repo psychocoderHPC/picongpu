@@ -93,7 +93,7 @@ namespace picongpu
                     const Particle& particle) const
                 {
                     const vector_64 r(particle.get_location<When::now>()); // location
-                    return (picongpu::float_64)(t - (n * r) / (picongpu::SPEED_OF_LIGHT));
+                    return (picongpu::float_64)(t - (n * r) / (picongpu::setup().physicalConstant.speed_of_light));
                 }
             };
 
@@ -168,7 +168,7 @@ namespace picongpu
                     return timeC(m_t_sim, look_direction, m_particle);
 
                     //  const vector_64 r = particle.get_location<When::now > (); // location
-                    //  return (picongpu::float_64) (t - (n * r) / (picongpu::SPEED_OF_LIGHT));
+                    //  return (picongpu::float_64) (t - (n * r) / (picongpu::setup().physicalConstant.speed_of_light));
                 }
 
             private:

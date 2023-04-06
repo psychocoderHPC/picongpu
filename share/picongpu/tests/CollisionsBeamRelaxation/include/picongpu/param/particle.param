@@ -80,16 +80,16 @@ namespace picongpu
                 /** Initial temperature
                  *  unit: keV
                  */
-                static constexpr float_64 temperature = SI::ELECTRON_MASS_SI * SI::SPEED_OF_LIGHT_SI
-                    * SI::SPEED_OF_LIGHT_SI * UNITCONV_Joule_to_keV * 0.0000002;
+                static constexpr float_64 temperature = SI::ELECTRON_MASS_SI * setup(unit::si_).physicalConstant.speed_of_light
+                    * setup(unit::si_).physicalConstant.speed_of_light * UNITCONV_Joule_to_keV * 0.0000002;
             };
             struct TemperatureParamIons
             {
                 /** Initial temperature
                  *  unit: keV
                  */
-                static constexpr float_64 temperature = SI::ELECTRON_MASS_SI * SI::SPEED_OF_LIGHT_SI
-                    * SI::SPEED_OF_LIGHT_SI * UNITCONV_Joule_to_keV * 0.00002;
+                static constexpr float_64 temperature = SI::ELECTRON_MASS_SI * setup(unit::si_).physicalConstant.speed_of_light
+                    * setup(unit::si_).physicalConstant.speed_of_light * UNITCONV_Joule_to_keV * 0.00002;
             };
             using AddTemperatureElectrons = unary::Temperature<TemperatureParamElectrons>;
             using AddTemperatureIons = unary::Temperature<TemperatureParamIons>;

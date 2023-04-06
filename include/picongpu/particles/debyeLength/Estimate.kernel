@@ -217,10 +217,10 @@ namespace picongpu
                     auto const temperatureKeV = kT * UNIT_ENERGY / UNITCONV_keV_to_Joule;
                     auto const electronCharge = picongpu::traits::frame::getCharge<Frame>();
                     auto const debyeLength = sqrt(EPS0 * kT / (electronDensity * electronCharge * electronCharge));
-                    auto maxCellSize = cellSize[0];
+                    auto maxCellSize = setup().cell[0];
                     // For 2D do not use grid size along z, as it is always resolved
                     for(uint32_t d = 1; d < simDim; d++)
-                        maxCellSize = math::max(maxCellSize, cellSize[d]);
+                        maxCellSize = math::max(maxCellSize, setup().cell[d]);
                     bool const isDebyeLengthUnderOneCell = (debyeLength < maxCellSize);
 
                     cupla::atomicAdd(

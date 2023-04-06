@@ -391,7 +391,7 @@ namespace picongpu
                     // Notation Note: AU is a shorthand for ATOMIC_UNIT_ENERGY in this context
 
                     // constants in SI
-                    constexpr float_64 c_SI = picongpu::SI::SPEED_OF_LIGHT_SI; // unit: m/s, SI
+                    constexpr float_64 c_SI = picongpu::setup(unit::si_).physicalConstant.speed_of_light; // unit: m/s, SI
                     constexpr float_64 m_e_SI = picongpu::SI::ELECTRON_MASS_SI; // unit: kg, SI
 
                     const float_64 E_e_SI = energyElectron * picongpu::UNITCONV_AU_to_eV * UNITCONV_eV_to_Joule;
@@ -436,7 +436,7 @@ namespace picongpu
                     // Notation Note: AU is a shorthand for ATOMIC_UNIT_ENERGY in this context
 
                     // constants in SI
-                    constexpr float_64 c_SI = picongpu::SI::SPEED_OF_LIGHT_SI; // unit: m/s, SI
+                    constexpr float_64 c_SI = picongpu::setup(unit::si_).physicalConstant.speed_of_light; // unit: m/s, SI
                     constexpr float_64 m_e_SI = picongpu::SI::ELECTRON_MASS_SI; // unit: kg, SI
                     constexpr float_64 e_SI = picongpu::SI::ELECTRON_CHARGE_SI; // unit: C, SI
 

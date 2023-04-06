@@ -22,8 +22,7 @@
 #include "picongpu/simulation_defines.hpp"
 
 #include "picongpu/algorithms/Velocity.hpp"
-#include "picongpu/fields/absorber/Absorber.hpp"
-#include "picongpu/fields/absorber/pml/Pml.kernel"
+#include "picongpu/fields/boundary/impl/pml/Pml.kernel"
 #include "picongpu/particles/boundary/ApplyImpl.hpp"
 #include "picongpu/particles/boundary/Kind.hpp"
 #include "picongpu/particles/boundary/Parameters.hpp"
@@ -146,7 +145,7 @@ namespace picongpu
                         auto const localCellIdx = offsetToTotalOrigin - m_parameters.localToTotalDomainOffset;
                         auto const positionCurrent
                             = (precisionCast<float_X>(localCellIdx) + particle[position_])[axis];
-                        auto const positionPrevious = positionCurrent - vel * setup().delta_t / cellSize[axis];
+                        auto const positionPrevious = positionCurrent - vel * setup().delta_t / setup().cell[axis];
 
                         // Integral over the last time step as described in comment of this struct
                         auto const timeStepIntegral = fields::absorber::pml::getNormalizedSigmaIntegral(

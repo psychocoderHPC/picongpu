@@ -28,16 +28,16 @@ namespace picongpu
     namespace SI
     {
         /** unit: m / s */
-        constexpr float_64 SPEED_OF_LIGHT_SI = 2.99792458e8;
+        constexpr float_64 setup(unit::si_).physicalConstant.speed_of_light = 2.99792458e8;
 
         /** unit: N / A^2 */
         constexpr float_64 MUE0_SI = PI * 4.e-7;
         /** unit: C / (V m) */
-        constexpr float_64 EPS0_SI = 1.0 / MUE0_SI / SPEED_OF_LIGHT_SI / SPEED_OF_LIGHT_SI;
+        constexpr float_64 EPS0_SI = 1.0 / MUE0_SI / setup(unit::si_).physicalConstant.speed_of_light / setup(unit::si_).physicalConstant.speed_of_light;
 
         /** impedance of free space
          * unit: ohm */
-        constexpr float_64 Z0_SI = MUE0_SI * SPEED_OF_LIGHT_SI;
+        constexpr float_64 Z0_SI = MUE0_SI * setup(unit::si_).physicalConstant.speed_of_light;
 
         /** reduced Planck constant
          * unit: J * s
@@ -80,12 +80,12 @@ namespace picongpu
 
         //! Classical electron radius in SI units
         constexpr float_64 ELECTRON_RADIUS_SI = ELECTRON_CHARGE_SI * ELECTRON_CHARGE_SI
-            / (4.0 * PI * EPS0_SI * ELECTRON_MASS_SI * SPEED_OF_LIGHT_SI * SPEED_OF_LIGHT_SI);
+            / (4.0 * PI * EPS0_SI * ELECTRON_MASS_SI * setup(unit::si_).physicalConstant.speed_of_light * setup(unit::si_).physicalConstant.speed_of_light);
     } // namespace SI
 
     /** Unit of speed */
-    constexpr float_64 UNIT_SPEED = SI::SPEED_OF_LIGHT_SI;
-    constexpr float_X SPEED_OF_LIGHT = float_X(SI::SPEED_OF_LIGHT_SI / UNIT_SPEED);
+    constexpr float_64 UNIT_SPEED = setup(unit::si_).physicalConstant.speed_of_light;
+    constexpr float_X setup().physicalConstant.speed_of_light = float_X(setup(unit::si_).physicalConstant.speed_of_light / UNIT_SPEED);
 
     // converts
     //

@@ -58,7 +58,7 @@ namespace picongpu
                             const float_X averageEnergy = energyDensity[0] / densityPICUnits;
                             const float_X particleMass = frame::getMass<typename T_Species::FrameType>();
                             const float_X averageGamma
-                                = averageEnergy / (particleMass * SPEED_OF_LIGHT * SPEED_OF_LIGHT) + 1.0_X;
+                                = averageEnergy / (particleMass * setup().physicalConstant.speed_of_light * setup().physicalConstant.speed_of_light) + 1.0_X;
                             const float_X invAverageGammaSquared = 1.0_X / averageGamma / averageGamma;
                             density *= invAverageGammaSquared;
                         }

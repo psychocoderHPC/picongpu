@@ -58,7 +58,7 @@ namespace picongpu
              */
             HDINLINE float_X operator()(const floatD_64& position_SI, const float3_64& cellSize_SI)
             {
-                const pmacc::math::UInt64<simDim> cell_id(position_SI / cellSize_SI.shrink<simDim>());
+                const pmacc::math::UInt64<simDim> cell_id(position_SI / setup(unit::si_).cell.shrink<simDim>());
 
                 // add particle in cell in at [ 32 5 16 ]
                 // X=32: middle of X plane (gyro-motion in X-Y)
