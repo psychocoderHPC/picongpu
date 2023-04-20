@@ -36,6 +36,10 @@
 #include <pmacc/random/distributions/Uniform.hpp>
 
 
+#ifndef PARAM_PPC
+#    define PARAM_PPC 25
+#endif
+
 namespace picongpu
 {
     namespace particles
@@ -51,7 +55,7 @@ namespace picongpu
          * Determines the weighting of a macro particle and with it, the number of
          * particles "sampling" dynamics in phase space.
          */
-        constexpr uint32_t TYPICAL_PARTICLES_PER_CELL = 25u;
+        constexpr uint32_t TYPICAL_PARTICLES_PER_CELL = PARAM_PPC;
 
 
         namespace startPosition

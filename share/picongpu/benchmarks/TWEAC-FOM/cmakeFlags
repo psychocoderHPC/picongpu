@@ -29,14 +29,13 @@
 #   - start with zero index
 #   - increase by 1, no gaps
 
-# use field background for laser generation (will not use incident field)
-flags[0]="-DPARAM_OVERWRITES:LIST='-DPARAM_FIELD_BACKGROUND=1'"
-# use incident field for laser generation (will not use field background and should be faster)
-# use full field calculation
-flags[1]="-DPARAM_OVERWRITES:LIST='-DPARAM_FIELD_BACKGROUND=0;-DPARAM_COMPONENTWISE=0'"
-# use incident field for laser generation (will not use field background and should be faster)
-# use componentwise field calculation (may be faster?)
-flags[2]="-DPARAM_OVERWRITES:LIST='-DPARAM_FIELD_BACKGROUND=0;-DPARAM_COMPONENTWISE=1'"
+# weak scaling config
+flags[0]="-DPARAM_OVERWRITES:LIST='-DPARAM_PPC=25'"
+# strong scaling config
+flags[1]="-DPARAM_OVERWRITES:LIST='-DPARAM_PPC=5'"
+# for adjusting ppc in the param files
+flags[2]=""
+
 
 ################################################################################
 # execution
