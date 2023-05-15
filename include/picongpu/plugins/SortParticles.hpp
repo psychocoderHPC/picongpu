@@ -319,7 +319,9 @@ namespace picongpu
                 particles->getDeviceParticlesBox(),
                 mallocMCBuffer->getDeviceHeap()->getAllocatorHandle(),
                 mapper);
+#if 0
             std::cout << "sort " << currentStep << " " << ParticlesType::FrameType::getName() << std::endl;
+#endif
         }
 
         MappingDesc* m_cellDescription;

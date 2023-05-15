@@ -26,6 +26,7 @@
 #include "picongpu/fields/FieldJ.hpp"
 #include "picongpu/fields/currentDeposition/Cache.hpp"
 #include "picongpu/fields/currentDeposition/Strategy.def"
+#include "picongpu/particles/collision/detail/ListEntry.hpp"
 #include "picongpu/traits/attribute/DampedWeighting.hpp"
 
 #include <pmacc/dimensions/DataSpaceOperations.hpp>
@@ -81,12 +82,18 @@ namespace picongpu
                 const DataSpace<simDim> superCellIdx(
                     mapper.getSuperCellIndex(DataSpace<simDim>(cupla::blockIdx(worker.getAcc()))));
 
+#if 1
                 auto forEachParticle = pmacc::particles::algorithm::acc::makeForEach(worker, boxPar, superCellIdx);
 
                 // end kernel if we have no particles
                 if(!forEachParticle.hasParticles())
                     return;
-
+#else
+                auto& superCell = boxPar.getSuperCell(superCellIdx);
+                uint32_t numParticlesInSupercell = superCell.getNumParticles();
+                if(numParticlesInSupercell == 0u)
+                    return;
+#endif
                 DataSpace<simDim> const blockCell = superCellIdx * SuperCellSize::toRT();
                 using Strategy = currentSolver::traits::GetStrategy_t<FrameSolver>;
 
@@ -96,8 +103,28 @@ namespace picongpu
 
                 worker.sync();
 
+#if 1
                 forEachParticle([&cachedJ, &frameSolver](auto const& lockstepWorker, auto& particle)
                                 { frameSolver(lockstepWorker, particle, cachedJ); });
+#else
+                using SuperCellSize = typename ParBox::FrameType::SuperCellSize;
+                constexpr uint32_t frameSize = pmacc::math::CT::volume<SuperCellSize>::type::value;
+
+                auto firstFrame = boxPar.getFirstFrame(superCellIdx);
+                auto parPerWorker = (numParticlesInSupercell + frameSize - 1u) / frameSize;
+                auto forEachFrameElem = lockstep::makeForEach<frameSize>(worker);
+                forEachFrameElem(
+                    [&](uint32_t const linearIdx)
+                    {
+                        auto const startIdx = linearIdx * parPerWorker;
+                        auto const endIdx = math::min(startIdx + parPerWorker, numParticlesInSupercell);
+                        for(uint32_t ii = startIdx; ii < endIdx; ii++)
+                        {
+                            auto particle = particles::collision::detail::getParticle(boxPar, firstFrame, ii);
+                            frameSolver(worker, particle, cachedJ);
+                        }
+                    });
+#endif
 
                 /* we wait that all workers finish the loop */
                 worker.sync();
