@@ -62,9 +62,15 @@ namespace pmacc
 
         void synchronize() override;
 
+        auto getDeviceHeap()
+        {
+            return devHeap;
+        }
+
     private:
         char* hostPtr;
         int64_t hostBufferOffset;
+        std::shared_ptr<DeviceHeap> devHeap;
         mallocMC::HeapInfo deviceHeapInfo;
     };
 

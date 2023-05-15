@@ -29,6 +29,7 @@
 #include "picongpu/plugins/Emittance.hpp"
 #include "picongpu/plugins/EnergyFields.hpp"
 #include "picongpu/plugins/EnergyParticles.hpp"
+#include "picongpu/plugins/SortParticles.hpp"
 #include "picongpu/plugins/SumCurrents.hpp"
 #include "picongpu/plugins/multi/Master.hpp"
 #include "picongpu/plugins/output/images/PngCreator.hpp"
@@ -154,6 +155,7 @@ namespace picongpu
             plugins::multi::Master<EnergyParticles<boost::mpl::_1>>,
             plugins::multi::Master<CalcEmittance<boost::mpl::_1>>,
             plugins::multi::Master<BinEnergyParticles<boost::mpl::_1>>,
+            plugins::multi::Master<SortParticles<boost::mpl::_1>>,
             CountParticles<boost::mpl::_1>,
             PngPlugin<Visualisation<boost::mpl::_1, PngCreator>>,
             plugins::transitionRadiation::TransitionRadiation<boost::mpl::_1>

@@ -37,7 +37,8 @@ namespace pmacc
         : hostPtr(nullptr)
         ,
         /* currently mallocMC has only one heap */
-        deviceHeapInfo(deviceHeap->getHeapLocations()[0])
+        devHeap(deviceHeap)
+        , deviceHeapInfo(deviceHeap->getHeapLocations()[0])
         , hostBufferOffset(0)
     {
     }
