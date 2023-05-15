@@ -26,6 +26,7 @@
 
 #include <pmacc/algorithms/math/defines/pi.hpp>
 #include <pmacc/math/Complex.hpp>
+#include <pmacc/memory/buffers/HostDeviceBuffer.hpp>
 
 #include <cmath>
 #include <cstdint>
@@ -96,6 +97,10 @@ namespace picongpu
                         //! Base functor type
                         using Base = incidentField::detail::BaseFunctorE<T_Params>;
 
+                        // float2_X x->amp y->phase
+                        typename HostDeviceBuffer<float2_X, DIM3>::DataBoxType omegaBox;
+                        //DataSpace<simDim>
+
                         /** Create a functor on the host side for the given time step
                          *
                          * @param currentStep current time step index, note that it is fractional
@@ -105,6 +110,35 @@ namespace picongpu
                         HINLINE DispersivePulseFunctorIncidentE(float_X const currentStep, float3_64 const unitField)
                             : Base(currentStep, unitField)
                         {
+                            static auto bufferOmega = loadFrequencies();
+                            omegaBox = bufferOmega->getDeviceBuffer().getDataBox();
+                        }
+
+                        auto loadFrequencies()
+                        {
+                            auto const& subGrid = Environment<simDim>::get().SubGrid();
+                            auto const globalSize = subGrid.getGlobalDomain().size;
+                            float3_X gridSizeTransformed
+                                = this->getInternalCoordinates(precisionCast<float_X>(globalSize));
+
+                            // timestep also in UNIT_TIME
+                            float_X const dt = static_cast<float_X>(picongpu::SI::DELTA_T_SI / UNIT_TIME);
+                            float_X N_raw = Unitless::INIT_TIME / dt;
+                            // number of frequencies
+                            int n = static_cast<int>(N_raw * 0.5_X); // -0 instead of -1 for rounding up N_raw
+
+                            // y, z are the transversal directions and x is the propergation direction
+                            auto buffer = std::make_unique<HostDeviceBuffer<float2_X, DIM3>>(DataSpace<DIM3>(
+                                static_cast<int>(gridSizeTransformed.y()),
+                                static_cast<int>(gridSizeTransformed.z()),
+                                n));
+                            auto hostDBox = buffer->getHostBuffer().getDataBox();
+                            for(int y = 0; y < static_cast<int>(gridSizeTransformed.y()); ++y)
+                                for(int z = 0; z < static_cast<int>(gridSizeTransformed.z()); ++z)
+                                    for(int f = 0; f < n; ++n)
+                                        hostDBox(DataSpace<DIM3>(y,z,f)) = 42;
+                            buffer->hostToDevice();
+                            return buffer;
                         }
 
                         /** Calculate incident field E value for the given position
