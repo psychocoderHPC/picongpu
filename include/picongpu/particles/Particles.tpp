@@ -37,6 +37,7 @@
 #include <pmacc/lockstep/lockstep.hpp>
 #include <pmacc/mappings/kernel/AreaMapping.hpp>
 #include <pmacc/mappings/simulation/GridController.hpp>
+#include <pmacc/particles/memory/buffers/MallocMCBuffer.hpp>
 #include <pmacc/particles/memory/buffers/ParticlesBuffer.hpp>
 #include <pmacc/traits/GetUniqueTypeId.hpp>
 #include <pmacc/traits/HasFlag.hpp>
@@ -355,6 +356,8 @@ namespace picongpu
 
         auto workerCfg = pmacc::lockstep::makeWorkerCfg(SuperCellSize{});
 
+        auto mallocMCBuffer = dc.get<MallocMCBuffer<DeviceHeap>>(MallocMCBuffer<DeviceHeap>::getName());
+
         PMACC_LOCKSTEP_KERNEL(KernelMoveAndMarkParticles<BlockArea>{}, workerCfg)
         (mapper.getGridDim())(
             this->getDeviceParticlesBox(),
@@ -362,6 +365,7 @@ namespace picongpu
             fieldB->getDeviceDataBox(),
             currentStep,
             FrameSolver(),
+            mallocMCBuffer->getDeviceHeap()->getAllocatorHandle(),
             mapper);
 
         // The move-and-mark kernel sets mustShift for supercells, so we can call the optimized version of shift
