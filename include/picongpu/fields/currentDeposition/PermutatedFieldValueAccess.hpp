@@ -59,7 +59,6 @@ namespace picongpu
              * @tparam T_component component of the ValueType
              * @return component of the dataBox ValueType
              */
-            template<uint32_t T_component>
             HDINLINE decltype(auto) get(DataSpace<DIM2> const& idx)
             {
                 constexpr uint32_t dim = T_DataBox::Dim;
@@ -68,17 +67,13 @@ namespace picongpu
                 constexpr auto x = T_PermutationVector::x::value;
                 constexpr auto y = T_PermutationVector::y::value;
 
-                using ValueComponentIdx = typename T_PermutationVector::template at<T_component>::type;
-                constexpr auto valueComponentIdx = ValueComponentIdx::value;
-
                 DataSpace<DIM2> permutatedIdx;
                 permutatedIdx[x] = idx.x();
                 permutatedIdx[y] = idx.y();
 
-                return m_dataBox(permutatedIdx)[valueComponentIdx];
+                return m_dataBox(permutatedIdx);
             }
 
-            template<uint32_t T_component>
             HDINLINE decltype(auto) get(DataSpace<DIM3> const& idx)
             {
                 constexpr uint32_t dim = T_DataBox::Dim;
@@ -88,8 +83,6 @@ namespace picongpu
                 constexpr auto y = T_PermutationVector::y::value;
                 constexpr auto z = T_PermutationVector::z::value;
 
-                using ValueComponentIdx = typename T_PermutationVector::template at<T_component>::type;
-                constexpr auto valueComponentIdx = ValueComponentIdx::value;
 
                 /** @todo rewrite this as gather method instead of a scatter
                  * - for x component, search for the index (i0) where 0 is in T_PermutationVector
@@ -99,19 +92,19 @@ namespace picongpu
                 permutatedIdx[x] = idx.x();
                 permutatedIdx[y] = idx.y();
                 permutatedIdx[z] = idx.z();
-                return m_dataBox(permutatedIdx)[valueComponentIdx];
+                return m_dataBox(permutatedIdx);
             }
 
-            template<uint32_t T_component>
+
             HDINLINE decltype(auto) get(int x, int y)
             {
-                return get<T_component>(DataSpace<DIM2>(x, y));
+                return get(DataSpace<DIM2>(x, y));
             }
 
-            template<uint32_t T_component>
+
             HDINLINE decltype(auto) get(int x, int y, int z)
             {
-                return get<T_component>(DataSpace<DIM3>(x, y, z));
+                return get(DataSpace<DIM3>(x, y, z));
             }
             /** @} */
         };

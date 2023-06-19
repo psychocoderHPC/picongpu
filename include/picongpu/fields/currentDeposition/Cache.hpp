@@ -66,6 +66,53 @@ namespace picongpu
                     return cache;
                 }
 
+                template<typename T_BlockDescription, typename T_Worker, typename T_FieldBox>
+                DINLINE static auto create2(T_Worker const& worker, T_FieldBox const& fieldBox)
+#if(!BOOST_COMP_CLANG)
+                    -> decltype(CachedBox::create<0u, typename T_FieldBox::ValueType::type>(
+                        worker,
+                        std::declval<T_BlockDescription>()))
+#endif
+                {
+                    using ValueType = typename T_FieldBox::ValueType::type;
+                    /* this memory is used by all virtual blocks */
+                    auto cache = CachedBox::create<0u, ValueType>(worker, T_BlockDescription{});
+                    return cache;
+                }
+
+
+                template<typename T_BlockDescription, typename T_Worker, typename T_CacheBox>
+                DINLINE static void fill2(T_Worker const& worker,T_CacheBox & cache )
+                {
+                    using ValueType = typename T_CacheBox::ValueType;
+
+
+                    Set<ValueType> set(ValueType(0.0_X));
+                    auto collectiveFill = makeThreadCollective<T_BlockDescription>();
+
+                    /* initialize shared memory with zeros */
+                    collectiveFill(worker, set, cache);
+                }
+
+                /** Flush the cache
+                 *
+                 * @attention thread-collective operation, requires external thread synchronization
+                 */
+                template<typename T_BlockDescription, typename T_Worker, typename T_FieldBox, typename T_FieldCache, typename T>
+                DINLINE static void flush2( T const dd,T_Worker const& worker, T_FieldBox fieldBox, T_FieldCache const& cachedBox)
+                {
+                    typename T_Strategy::GridReductionOp const op;
+                    auto collectiveFlush = makeThreadCollective<T_BlockDescription>();
+
+                    auto accessFunctor = [&](DataSpace<simDim> const& idx) constexpr -> decltype(fieldBox(idx)[T::value])
+                    {
+                        return fieldBox(idx)[T::value];
+                    };
+
+                    /* write scatter results back to the global memory */
+                    collectiveFlush(worker, op, accessFunctor, cachedBox);
+                }
+
                 /** Flush the cache
                  *
                  * @attention thread-collective operation, requires external thread synchronization

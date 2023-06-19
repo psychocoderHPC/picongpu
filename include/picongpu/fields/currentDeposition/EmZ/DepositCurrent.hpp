@@ -34,8 +34,9 @@ namespace picongpu
             template<typename T_Strategy, typename T_ParticleAssign, int T_begin, int T_end>
             struct DepositCurrent<T_Strategy, T_ParticleAssign, T_begin, T_end, DIM3>
             {
-                template<typename T_DataBox, typename T_Worker>
+                template<typename T,typename T_DataBox, typename T_Worker>
                 DINLINE void operator()(
+                    T const dd,
                     T_Worker const& worker,
                     const T_DataBox& fieldJ,
                     const Line<float3_X>& line,
@@ -47,21 +48,30 @@ namespace picongpu
                      * Therefore the coordinate system has to be rotated so that the z-direction
                      * is always specific.
                      */
-                    cptCurrent1D(
-                        worker,
-                        makePermutatedFieldValueAccess<pmacc::math::CT::Int<1, 2, 0>>(fieldJ),
-                        rotateOrigin<1, 2, 0>(line),
-                        cellSize.x() * chargeDensity / DELTA_T);
-                    cptCurrent1D(
-                        worker,
-                        makePermutatedFieldValueAccess<pmacc::math::CT::Int<2, 0, 1>>(fieldJ),
-                        rotateOrigin<2, 0, 1>(line),
-                        cellSize.y() * chargeDensity / DELTA_T);
-                    cptCurrent1D(
-                        worker,
-                        makePermutatedFieldValueAccess<pmacc::math::CT::Int<0, 1, 2>>(fieldJ),
-                        line,
-                        cellSize.z() * chargeDensity / DELTA_T);
+                    if constexpr(dd.value == 0)
+                    {
+                        cptCurrent1D(
+                            worker,
+                            makePermutatedFieldValueAccess<pmacc::math::CT::Int<1, 2, 0>>(fieldJ),
+                            rotateOrigin<1, 2, 0>(line),
+                            cellSize.x() * chargeDensity / DELTA_T);
+                    }
+                    else if constexpr(dd.value == 1)
+                    {
+                        cptCurrent1D(
+                            worker,
+                            makePermutatedFieldValueAccess<pmacc::math::CT::Int<2, 0, 1>>(fieldJ),
+                            rotateOrigin<2, 0, 1>(line),
+                            cellSize.y() * chargeDensity / DELTA_T);
+                    }
+                    else if constexpr(dd.value == 2)
+                    {
+                        cptCurrent1D(
+                            worker,
+                            makePermutatedFieldValueAccess<pmacc::math::CT::Int<0, 1, 2>>(fieldJ),
+                            line,
+                            cellSize.z() * chargeDensity / DELTA_T);
+                    }
                 }
 
                 /** deposites current in z-direction
@@ -121,7 +131,7 @@ namespace picongpu
                                 const float_X W = shapeK.DS(k) * tmp;
                                 accumulated_J += W;
                                 auto const atomicOp = typename T_Strategy::BlockReductionOp{};
-                                atomicOp(worker, jField.template get<2>(i, j, k), accumulated_J);
+                                atomicOp(worker, jField.get(i, j, k), accumulated_J);
                             }
                         }
                     }

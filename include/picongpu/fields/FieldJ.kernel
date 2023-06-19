@@ -92,18 +92,53 @@ namespace picongpu
 
                 /* this memory is used by all virtual blocks */
                 auto cachedJ
-                    = detail::Cache<Strategy>::template create<T_BlockDescription>(worker, fieldJ.shift(blockCell));
+                    = detail::Cache<Strategy>::template create2<T_BlockDescription>(worker, fieldJ.shift(blockCell));
 
+
+                detail::Cache<Strategy>::template fill2<T_BlockDescription>(worker, cachedJ);
                 worker.sync();
-
-                forEachParticle([&cachedJ, &frameSolver](auto const& lockstepWorker, auto& particle)
-                                { frameSolver(lockstepWorker, particle, cachedJ); });
-
+                forEachParticle(
+                    [&cachedJ, &frameSolver](auto const& lockstepWorker, auto& particle)
+                    { frameSolver(std::integral_constant<uint32_t, 0>{}, lockstepWorker, particle, cachedJ); });
                 /* we wait that all workers finish the loop */
                 worker.sync();
-
                 /* this memory is used by all virtual blocks */
-                detail::Cache<Strategy>::template flush<T_BlockDescription>(worker, fieldJ.shift(blockCell), cachedJ);
+                detail::Cache<Strategy>::template flush2<T_BlockDescription>(
+                    std::integral_constant<uint32_t, 0>{},
+                    worker,
+                    fieldJ.shift(blockCell),
+                    cachedJ);
+                worker.sync();
+
+                detail::Cache<Strategy>::template fill2<T_BlockDescription>(worker, cachedJ);
+                worker.sync();
+                forEachParticle(
+                    [&cachedJ, &frameSolver](auto const& lockstepWorker, auto& particle)
+                    { frameSolver(std::integral_constant<uint32_t, 1>{}, lockstepWorker, particle, cachedJ); });
+                /* we wait that all workers finish the loop */
+                worker.sync();
+                /* this memory is used by all virtual blocks */
+                detail::Cache<Strategy>::template flush2<T_BlockDescription>(
+                    std::integral_constant<uint32_t, 1>{},
+                    worker,
+                    fieldJ.shift(blockCell),
+                    cachedJ);
+                worker.sync();
+
+                detail::Cache<Strategy>::template fill2<T_BlockDescription>(worker, cachedJ);
+                worker.sync();
+                forEachParticle(
+                    [&cachedJ, &frameSolver](auto const& lockstepWorker, auto& particle)
+                    { frameSolver(std::integral_constant<uint32_t, 2>{}, lockstepWorker, particle, cachedJ); });
+                /* we wait that all workers finish the loop */
+                worker.sync();
+                /* this memory is used by all virtual blocks */
+                detail::Cache<Strategy>::template flush2<T_BlockDescription>(
+                    std::integral_constant<uint32_t, 2>{},
+                    worker,
+                    fieldJ.shift(blockCell),
+                    cachedJ);
+                worker.sync();
             }
         };
 
@@ -116,8 +151,8 @@ namespace picongpu
             {
             }
 
-            template<typename T_Particle, typename BoxJ, typename T_Worker>
-            DINLINE void operator()(T_Worker const& worker, T_Particle& particle, BoxJ& jBox)
+            template<typename T, typename T_Particle, typename BoxJ, typename T_Worker>
+            DINLINE void operator()(T const d, T_Worker const& worker, T_Particle& particle, BoxJ& jBox)
             {
                 /* Use (potentially) damped weighting for charge calculation.
                  * @see particles::boundary::DampWeightsInPml for details.
@@ -134,7 +169,7 @@ namespace picongpu
                 const float3_X vel = velocity(particle[momentum_], attribute::getMass(weighting, particle));
                 auto fieldJShiftToParticle = jBox.shift(localCell);
                 ParticleAlgo perParticle;
-                perParticle(worker, fieldJShiftToParticle, pos, vel, charge, m_deltaTime);
+                perParticle(d, worker, fieldJShiftToParticle, pos, vel, charge, m_deltaTime);
             }
 
         private:
