@@ -117,7 +117,11 @@ namespace picongpu
                 auto workerCfg = pmacc::lockstep::makeWorkerCfg<
                     pmacc::math::CT::volume<SuperCellSize>::type::value * T_Strategy::workerMultiplier>();
                 PMACC_LOCKSTEP_KERNEL(depositionKernel, workerCfg)
-                (mapper.getGridDim())(jBox, parBox, frameSolver, mapper);
+                (mapper.getGridDim())(std::integral_constant<uint32_t, 0>{},jBox, parBox, frameSolver, mapper);
+                PMACC_LOCKSTEP_KERNEL(depositionKernel, workerCfg)
+                (mapper.getGridDim())(std::integral_constant<uint32_t, 1>{},jBox, parBox, frameSolver, mapper);
+                PMACC_LOCKSTEP_KERNEL(depositionKernel, workerCfg)
+                (mapper.getGridDim())(std::integral_constant<uint32_t, 2>{},jBox, parBox, frameSolver, mapper);
             }
         };
 

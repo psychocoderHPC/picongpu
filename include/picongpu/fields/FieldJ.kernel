@@ -68,9 +68,10 @@ namespace picongpu
              * @param frameSolver functor to calculate the current for a frame
              * @param mapper functor to map a block to a supercell
              */
-            template<typename JBox, typename ParBox, typename FrameSolver, typename Mapping, typename T_Worker>
+            template<typename JBox, typename ParBox, typename FrameSolver, typename Mapping, typename T_Worker, typename T>
             DINLINE void operator()(
                 T_Worker const& worker,
+                T const dd,
                 JBox fieldJ,
                 ParBox boxPar,
                 FrameSolver frameSolver,
@@ -98,47 +99,17 @@ namespace picongpu
                 detail::Cache<Strategy>::template fill2<T_BlockDescription>(worker, cachedJ);
                 worker.sync();
                 forEachParticle(
-                    [&cachedJ, &frameSolver](auto const& lockstepWorker, auto& particle)
-                    { frameSolver(std::integral_constant<uint32_t, 0>{}, lockstepWorker, particle, cachedJ); });
+                    [&cachedJ, &frameSolver,&dd](auto const& lockstepWorker, auto& particle)
+                    { frameSolver(dd, lockstepWorker, particle, cachedJ); });
                 /* we wait that all workers finish the loop */
                 worker.sync();
                 /* this memory is used by all virtual blocks */
                 detail::Cache<Strategy>::template flush2<T_BlockDescription>(
-                    std::integral_constant<uint32_t, 0>{},
+                    dd,
                     worker,
                     fieldJ.shift(blockCell),
                     cachedJ);
-                worker.sync();
 
-                detail::Cache<Strategy>::template fill2<T_BlockDescription>(worker, cachedJ);
-                worker.sync();
-                forEachParticle(
-                    [&cachedJ, &frameSolver](auto const& lockstepWorker, auto& particle)
-                    { frameSolver(std::integral_constant<uint32_t, 1>{}, lockstepWorker, particle, cachedJ); });
-                /* we wait that all workers finish the loop */
-                worker.sync();
-                /* this memory is used by all virtual blocks */
-                detail::Cache<Strategy>::template flush2<T_BlockDescription>(
-                    std::integral_constant<uint32_t, 1>{},
-                    worker,
-                    fieldJ.shift(blockCell),
-                    cachedJ);
-                worker.sync();
-
-                detail::Cache<Strategy>::template fill2<T_BlockDescription>(worker, cachedJ);
-                worker.sync();
-                forEachParticle(
-                    [&cachedJ, &frameSolver](auto const& lockstepWorker, auto& particle)
-                    { frameSolver(std::integral_constant<uint32_t, 2>{}, lockstepWorker, particle, cachedJ); });
-                /* we wait that all workers finish the loop */
-                worker.sync();
-                /* this memory is used by all virtual blocks */
-                detail::Cache<Strategy>::template flush2<T_BlockDescription>(
-                    std::integral_constant<uint32_t, 2>{},
-                    worker,
-                    fieldJ.shift(blockCell),
-                    cachedJ);
-                worker.sync();
             }
         };
 
