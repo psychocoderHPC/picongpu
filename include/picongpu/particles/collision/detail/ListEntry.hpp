@@ -43,10 +43,11 @@ namespace picongpu
                  */
                 struct ListEntry
                 {
-                    //! Size of the particle list (number of stored IDs).
-                    uint32_t size;
                     //! Pointer to the actual data stored on the device heap.
-                    uint32_t* ptrToIndicies;
+                    PMACC_ALIGN(ptrToIndicies, uint32_t*);
+                    //! Size of the particle list (number of stored IDs).
+                    PMACC_ALIGN(size, uint32_t);
+
 
                     /* Initialize storage, allocate memory.
                      *
@@ -64,8 +65,18 @@ namespace picongpu
                             for(int numTries = 0; numTries < maxTries; ++numTries)
                             {
 #if(BOOST_LANG_CUDA || BOOST_COMP_HIP) // Allocate memory on a GPU device
-                                ptrToIndicies
-                                    = (uint32_t*) deviceHeapHandle.malloc(worker.getAcc(), sizeof(uint32_t) * numPar);
+                                constexpr uint32_t typicalParticlesPerSupercell
+                                    = particles::TYPICAL_PARTICLES_PER_CELL;
+                                /* Round-up the number of slots up to an mutiple of the typical amount of particles of
+                                 * a cell. This will waist memory but is avoiding that the mallocMC heap is fragmented
+                                 * which often results into out of memory crashes even if the amount of particles in
+                                 * the simulation is small.
+                                 */
+                                uint32_t const allocateNumParticles
+                                    = ((numPar + typicalParticlesPerSupercell - 1u) / typicalParticlesPerSupercell)
+                                    * typicalParticlesPerSupercell;
+                                uint32_t const allocationBytes = sizeof(uint32_t) * allocateNumParticles;
+                                ptrToIndicies = (uint32_t*) deviceHeapHandle.malloc(worker.getAcc(), allocationBytes);
 #else // No cuda or hip means the device heap is the host heap.
                                 ptrToIndicies = new uint32_t[numPar];
 #endif
@@ -196,7 +207,8 @@ namespace picongpu
                     typename T_ParBox,
                     typename T_FramePtr,
                     typename T_EntryListArray,
-                    typename T_Filter>
+                    typename T_Filter,
+                    typename T_Array>
                 DINLINE void updateLinkedList(
                     T_Worker const& worker,
                     T_ForEach forEach,
@@ -204,7 +216,9 @@ namespace picongpu
                     T_FramePtr frame,
                     uint32_t const numParticlesInSupercell,
                     T_EntryListArray& parCellList,
-                    T_Filter& filter)
+                    T_Filter& filter,
+                    T_Array& nppc,
+                    uint32_t superCellIdx)
                 {
                     using SuperCellSize = typename T_ParBox::FrameType::SuperCellSize;
                     constexpr uint32_t frameSize = pmacc::math::CT::volume<SuperCellSize>::type::value;
@@ -213,7 +227,7 @@ namespace picongpu
                         forEach(
                             [&](uint32_t const linearIdx)
                             {
-                                uint32_t const parInSuperCellIdx = i + linearIdx;
+                                uint32_t parInSuperCellIdx = i + linearIdx;
                                 if(parInSuperCellIdx < numParticlesInSupercell)
                                 {
                                     auto particle = frame[linearIdx];
@@ -225,12 +239,64 @@ namespace picongpu
                                             &parCellList[parLocalIndex].size,
                                             1u,
                                             ::alpaka::hierarchy::Threads{});
-                                        parCellList[parLocalIndex].ptrToIndicies[parOffset] = parInSuperCellIdx;
+                                        PMACC_DEVICE_VERIFY_MSG(
+                                            parInSuperCellIdx < numParticlesInSupercell,
+                                            "Error: update links Out of Range %u of %u %s:%u\n",
+                                            parInSuperCellIdx,
+                                            numParticlesInSupercell,
+                                            __FILE__,
+                                            __LINE__);
+#if 1
+                                        auto x = cupla::atomicExch(
+                                            worker.getAcc(),
+                                            &(parCellList[parLocalIndex].ptrToIndicies[parOffset]),
+                                            parOffset * 10000000 + 400000000 + superCellIdx*1000 + parLocalIndex);
+#else
+                                        auto x = cupla::atomicExch(
+                                            worker.getAcc(),
+                                            &(parCellList[parLocalIndex].ptrToIndicies[parOffset]),
+                                            superCellIdx + 100000000);
+#endif
+                                        PMACC_DEVICE_VERIFY_MSG(
+                                            x == superCellIdx + 100000000,
+                                            "SuperCellIdxCheck: cell=%u %u/%u %u == %u %lld %u %s:%u\n",
+                                            parLocalIndex,
+                                            parOffset,
+                                            nppc[parLocalIndex],
+                                            x,
+                                            superCellIdx + 100000000,
+                                            (uint64_t) parCellList[parLocalIndex].ptrToIndicies,
+                                            linearIdx,
+                                            __FILE__,
+                                            __LINE__);
                                     }
                                 }
                             });
                         frame = parBox.getNextFrame(frame);
                     }
+                    worker.sync();
+#if 1
+                    forEach(
+                        [&](uint32_t const linearIdx)
+                        {
+                            uint32_t const numParInCell = parCellList[linearIdx].size;
+                            uint32_t* parListStart = parCellList[linearIdx].ptrToIndicies;
+                            for(uint32_t ii = 0; ii < numParInCell; ii++)
+                            {
+                                auto value = (parListStart[ii] - 400000000) / 10000000;
+                                PMACC_DEVICE_VERIFY_MSG(
+                                    value < numParticlesInSupercell,
+                                    "Validate error: Out of Range %u:%u -> %u of %u (in cell %u) %s:%u\n",
+                                    nppc[linearIdx],
+                                    ii,
+                                    value,
+                                    numParticlesInSupercell,
+                                    numParInCell,
+                                    __FILE__,
+                                    __LINE__);
+                            }
+                        });
+#endif
                 }
 
                 template<typename T_ParBox, typename T_FramePtr>
@@ -263,7 +329,8 @@ namespace picongpu
                     uint32_t const numParticlesInSupercell,
                     T_EntryListArray& parCellList,
                     T_Array& nppc,
-                    T_Filter filter)
+                    T_Filter filter,
+                    uint32_t superCellIdx)
                 {
                     // Initialize nppc with zeros.
                     forEach([&](uint32_t const linearIdx) { nppc[linearIdx] = 0u; });
@@ -275,6 +342,19 @@ namespace picongpu
                     // memory for particle indices
                     forEach([&](uint32_t const linearIdx)
                             { parCellList[linearIdx].init(worker, deviceHeapHandle, nppc[linearIdx]); });
+
+                    worker.sync();
+
+                    forEach(
+                        [&](uint32_t const linearIdx)
+                        {
+                            uint32_t const numParInCell = nppc[linearIdx];
+                            uint32_t* parListStart = parCellList[linearIdx].ptrToIndicies;
+                            for(uint32_t ii = 0; ii < numParInCell; ii++)
+                            {
+                                parListStart[ii] = superCellIdx + 100000000;
+                            }
+                        });
                     worker.sync();
 
                     detail::updateLinkedList(
@@ -284,7 +364,9 @@ namespace picongpu
                         firstFrame,
                         numParticlesInSupercell,
                         parCellList,
-                        filter);
+                        filter,
+                        nppc,
+                        superCellIdx);
                     worker.sync();
                 }
             } // namespace detail
