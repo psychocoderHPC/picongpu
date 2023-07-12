@@ -33,6 +33,15 @@ namespace picongpu
                 using float_COLL = float_64;
             } // namespace precision
 
+		            struct Params1
+            {
+                static constexpr float_X coulombLog = 5.0_X;
+            };
+            struct Params2
+            {
+                static constexpr float_X coulombLog = 1000.0_X;
+            };
+
             // write average (over all cells) Debye length for all timesteps to a file
             constexpr bool debugScreeningLength = false;
 
@@ -40,14 +49,16 @@ namespace picongpu
              *
              * Elements must be either a species types or a misc::SpeciesFilter specialization.
              */
-            using CollisionScreeningSpecies = VectorAllSpecies;
-            // using CollisionScreeningSpecies =pmacc::mp_list<>;// VectorAllSpecies;
+            //using CollisionScreeningSpecies = VectorAllSpecies;
+             using CollisionScreeningSpecies =pmacc::mp_list<>;// VectorAllSpecies;
             /** CollisionPipeline defines in which order species interact with each other
              *
              * the functors are called in order (from first to last functor)
              */
-            using Pairs = pmacc::mp_list<Pair<Electrons, Hydrogen>, Pair<Electrons, Electrons>,Pair<Hydrogen, Hydrogen>>;
-            using CollisionPipeline = pmacc::mp_list<Collider<relativistic::RelativisticCollisionDynamicLog<>, Pairs>>;
+            using Pairs = pmacc::mp_list<Pair<Electrons, Hydrogen>>;
+//            using CollisionPipeline = pmacc::mp_list<Collider<relativistic::RelativisticCollisionDynamicLog<>, Pairs>>;
+using CollisionPipeline = pmacc::mp_list<Collider<relativistic::RelativisticCollisionConstLog<Params1,false>, Pairs>>;
+
            // using CollisionPipeline = pmacc::mp_list<>;
         } // namespace collision
     } // namespace particles
