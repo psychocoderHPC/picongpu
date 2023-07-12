@@ -131,9 +131,9 @@ namespace picongpu
                     PMACC_SMEM(worker, nppc, memory::Array<uint32_t, frameSize>);
 
                     PMACC_SMEM(worker, parCellList0, memory::Array<detail::ListEntry, frameSize>);
-                    PMACC_SMEM(worker, parCellList1, memory::Array<detail::ListEntry, frameSize>);
+              //      PMACC_SMEM(worker, parCellList1, memory::Array<detail::ListEntry, frameSize>);
                     PMACC_SMEM(worker, densityArray0, memory::Array<float_X, frameSize>);
-                    PMACC_SMEM(worker, densityArray1, memory::Array<float_X, frameSize>);
+              //      PMACC_SMEM(worker, densityArray1, memory::Array<float_X, frameSize>);
 
                     constexpr bool ifAverageLog = !std::is_same<T_SumCoulombLogBox, std::nullptr_t>::value;
                     constexpr bool ifAverageSParam = !std::is_same<T_SumSParamBox, std::nullptr_t>::value;
@@ -156,11 +156,14 @@ namespace picongpu
                     auto& superCell0 = pb0.getSuperCell(superCellIdx);
                     uint32_t numParticlesInSupercell0 = superCell0.getNumParticles();
 
-                    auto& superCell1 = pb1.getSuperCell(superCellIdx);
-                    uint32_t numParticlesInSupercell1 = superCell1.getNumParticles();
+//                    auto& superCell1 = pb1.getSuperCell(superCellIdx);
+//                    uint32_t numParticlesInSupercell1 = superCell1.getNumParticles();
 
                     /* loop over all particles in the frame */
                     auto forEachFrameElem = lockstep::makeForEach<frameSize>(worker);
+
+                    uint32_t const superCell
+                        = DataSpaceOperations<simDim>::map(mapper.getGridSuperCells(), DataSpace<simDim>(cupla::blockIdx(worker.getAcc())));
 
                     FramePtr0 firstFrame0 = pb0.getFirstFrame(superCellIdx);
                     prepareList(
@@ -172,8 +175,10 @@ namespace picongpu
                         numParticlesInSupercell0,
                         parCellList0,
                         nppc,
-                        accFilter0);
+                        accFilter0,superCell);
 
+                    worker.sync();
+#if 0
                     FramePtr1 firstFrame1 = pb1.getFirstFrame(superCellIdx);
                     prepareList(
                         worker,
@@ -185,11 +190,11 @@ namespace picongpu
                         parCellList1,
                         nppc,
                         accFilter1);
-
-                    cellDensity(worker, forEachFrameElem, firstFrame0, pb0, parCellList0, densityArray0, accFilter0);
-                    cellDensity(worker, forEachFrameElem, firstFrame1, pb1, parCellList1, densityArray1, accFilter1);
+#endif
+                   // cellDensity(worker, forEachFrameElem, firstFrame0, pb0, parCellList0, densityArray0, accFilter0,numParticlesInSupercell0);
+                    //cellDensity(worker, forEachFrameElem, firstFrame1, pb1, parCellList1, densityArray1, accFilter1,numParticlesInSupercell1);
                     worker.sync();
-
+#if 0
                     // shuffle indices list of the longest particle list
                     forEachFrameElem(
                         [&](uint32_t const linearIdx)
@@ -243,16 +248,16 @@ namespace picongpu
                                 firstFrame0,
                                 linearIdx);
                         });
-
+#endif
                     worker.sync();
 
                     forEachFrameElem(
                         [&](uint32_t const linearIdx)
                         {
                             parCellList0[linearIdx].finalize(worker, deviceHeapHandle);
-                            parCellList1[linearIdx].finalize(worker, deviceHeapHandle);
+                       //     parCellList1[linearIdx].finalize(worker, deviceHeapHandle);
                         });
-
+#if 0
                     if constexpr(ifDebug)
                     {
                         auto onlyMaster = lockstep::makeMaster(worker);
@@ -316,6 +321,7 @@ namespace picongpu
                                     ::alpaka::hierarchy::Blocks{});
                             });
                     }
+#endif
                 }
 
 

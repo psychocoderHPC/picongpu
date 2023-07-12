@@ -46,7 +46,8 @@ namespace picongpu
                     T_ParBox parBox,
                     T_EntryListArray& parCellList,
                     T_Array& densityArray,
-                    T_Filter& filter)
+                    T_Filter& filter,
+                    uint32_t numParInSuperCell)
                 {
                     forEach(
                         [&](uint32_t const linearIdx)
@@ -56,6 +57,15 @@ namespace picongpu
                             float_X density(0.0);
                             for(uint32_t ii = 0; ii < numParInCell; ii++)
                             {
+                                PMACC_DEVICE_VERIFY_MSG(
+                                    parListStart[ii] < numParInSuperCell,
+                                    "Error2: Out of Range %u -> %u of %u (in cell %u) %s:%u\n",
+                                    ii,
+                                    parListStart[ii],
+                                    numParInSuperCell,
+                                    numParInCell,
+                                    __FILE__,
+                                    __LINE__);
                                 auto particle = getParticle(parBox, firstFrame, parListStart[ii]);
                                 if(filter(worker, particle))
                                 {
