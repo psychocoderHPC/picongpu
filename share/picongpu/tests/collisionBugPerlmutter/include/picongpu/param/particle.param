@@ -1,0 +1,144 @@
+/* Copyright 2013-2019 Axel Huebl, Rene Widera, Benjamin Worpitz,
+ *                     Richard Pausch
+ *
+ * This file is part of PIConGPU.
+ *
+ * PIConGPU is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * PIConGPU is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with PIConGPU.
+ * If not, see <http://www.gnu.org/licenses/>.
+ */
+
+/** @file
+ *
+ * Configurations for particle manipulators. Set up and declare functors that
+ * can be used in speciesInitalization.param for particle species
+ * initialization and manipulation, such as temperature distributions, drifts,
+ * pre-ionization and in-cell position.
+ */
+
+#pragma once
+
+#include "picongpu/particles/startPosition/functors.def"
+#include "picongpu/particles/manipulators/manipulators.def"
+
+namespace picongpu
+{
+namespace particles
+{
+
+    /** a particle with a weighting below MIN_WEIGHTING will not
+     *      be created / will be deleted
+     *
+     *  unit: none
+     *
+     * here we essentially allow any weighting since it has no real meaning in 2D3V
+     */
+    constexpr float_X MIN_WEIGHTING = 0.1;
+
+namespace manipulators
+        {
+            struct TemperatureParamElectrons
+            {
+                /* Initial temperature
+                 *  unit: keV
+                 */
+                static constexpr float_64 temperature = 0.0001;
+            };
+            using AddTemperatureElectrons = unary::Temperature<TemperatureParamElectrons>;
+			
+			struct TemperatureParamProtons
+            {
+                /* Initial temperature
+                 *  unit: keV
+                 */
+                static constexpr float_64 temperature = 0.0001;
+            };
+            using AddTemperatureProtons = unary::Temperature< TemperatureParamProtons >;
+        } // namespace manipulators
+
+
+namespace startPosition
+{
+    struct QuietParam8
+            {
+                /** Count of particles per cell per direction at initial state
+                 *
+                 *  unit: none */
+                using numParticlesPerDimension
+                    = mCT::shrinkTo<mCT::Int<2, 2, 2>, simDim>::type;
+            };
+            /** definition of quiet particle start */
+
+            struct QuietParam4
+            {
+                /** Count of particles per cell per direction at initial state
+                 *
+                 *  unit: none */
+                using numParticlesPerDimension
+                    = mCT::shrinkTo<mCT::Int<2, 2, 1>, simDim>::type;
+            };
+            /** definition of quiet particle start */
+
+            struct QuietParam2
+            {
+                /** Count of particles per cell per direction at initial state
+                 *
+                 *  unit: none */
+                using numParticlesPerDimension
+                    = mCT::shrinkTo<mCT::Int<1, 2, 1>, simDim>::type;
+            };
+            /** definition of quiet particle start */
+
+            struct QuietParam16
+            {
+                /** Count of particles per cell per direction at initial state
+                 *
+                 *  unit: none */
+                using numParticlesPerDimension
+                    = mCT::shrinkTo<mCT::Int<2, 4, 2>, simDim>::type;
+            };
+            struct QuietParam27
+            {
+                /** Count of particles per cell per direction at initial state
+                 *
+                 *  unit: none */
+                using numParticlesPerDimension
+                    = mCT::shrinkTo<mCT::Int<3, 3, 3>, simDim>::type;
+            };
+
+            /** definition of quiet particle start */
+
+            // using UsedPosition = QuietImpl<USED_QUIET_PARAM>;
+            
+            struct RandomParameter
+            {
+                /** Count of particles per cell at initial state
+                 *
+                 *  unit: none
+                 */
+                static constexpr uint32_t numParticlesPerCell = PARAM_PPC;
+            };
+            using UsedPosition = RandomImpl<RandomParameter>;
+
+            
+
+} // namespace startPosition
+
+    /** During unit normalization, we assume this is a typical
+     *  number of particles per cell for normalization of weighted
+     *  particle attributes.
+     */
+    constexpr uint32_t TYPICAL_PARTICLES_PER_CELL = PARAM_PPC;
+
+} // namespace particles
+} // namespace picongpu

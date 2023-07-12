@@ -1,0 +1,198 @@
+/* Copyright 2013-2019 Axel Huebl, Rene Widera, Felix Schmitt,
+ *                     Benjamin Worpitz, Richard Pausch
+ *
+ * This file is part of PIConGPU.
+ *
+ * PIConGPU is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * PIConGPU is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with PIConGPU.
+ * If not, see <http://www.gnu.org/licenses/>.
+ */
+
+#pragma once
+
+#include <pmacc/meta/conversion/MakeSeq.hpp>
+
+/* some forward declarations we need */
+#include "picongpu/fields/Fields.def"
+#include "picongpu/particles/filter/filter.def"
+#include "picongpu/particles/particleToGrid/CombinedDerive.def"
+#include "picongpu/particles/particleToGrid/ComputeGridValuePerFrame.def"
+
+
+
+namespace picongpu
+{
+    namespace particles
+    {
+        namespace particleToGrid
+        {
+            namespace derivedAttributes
+            {
+                /** DensityOverGammaSquared Operation for Particle to Grid Projections
+                 *
+                 * Derives a scalar density field from a particle species at runtime.
+                 * The particle contributions are weighted with 1/gamma^2
+                 * Each value is mapped per cell according to the species' spatial shape.
+                 */
+                struct DensityOverGammaSquared
+                {
+                    HDINLINE float1_64 getUnit() const;
+
+                    HINLINE std::vector<float_64> getUnitDimension() const
+                    {
+                        /* L, M, T, I, theta, N, J
+                         *
+                         * Density is in inverse cubic meter: m^-3
+                         *   -> L^-3
+                         */
+                        std::vector<float_64> unitDimension(7, 0.0);
+                        unitDimension.at(SIBaseUnits::length) = -3.0;
+
+                        return unitDimension;
+                    }
+
+                    HINLINE static std::string getName()
+                    {
+                        return "densityOverGammaSquared";
+                    }
+
+                    /** Calculate a new attribute  per particle
+                     *
+                     * Returns a new (on-the-fly calculated) attribute of a particle
+                     * that can then be mapped to the cells the particle contributes to.
+                     * This method is called on a per-thread basis (each thread of a block
+                     * handles a particle of a frame).
+                     *
+                     * @tparam T_Particle particle in the frame
+                     * @param particle particle in the frame
+                     *
+                     * @return new attribute for the particle (type @see T_AttributeType)
+                     */
+                    template<class T_Particle>
+                    DINLINE float_X operator()(T_Particle& particle) const;
+                };
+            } // namespace derivedAttributes
+        } // namespace particleToGrid
+
+        namespace traits
+        {
+            template<typename T_Species>
+            struct SpeciesEligibleForSolver<T_Species, particleToGrid::derivedAttributes::DensityOverGammaSquared>
+            {
+                using FrameType = typename T_Species::FrameType;
+
+                using RequiredIdentifiers = MakeSeq_t<weighting, position<>, momentum>;
+
+                using type = typename pmacc::traits::HasIdentifiers<FrameType, RequiredIdentifiers>::type;
+            };
+        } // namespace traits
+    } // namespace particles
+
+    /** FieldTmp output (calculated at runtime) *******************************
+     *
+     * Those operations derive scalar field quantities from particle species
+     * at runtime. Each value is mapped per cell. Some operations are identical
+     * up to a constant, so avoid writing those twice to save storage.
+     *
+     * you can choose any of these particle to grid projections:
+     *   - Density: particle position + shape on the grid
+     *   - BoundElectronDensity: density of bound electrons
+     *       note: only makes sense for partially ionized ions
+     *   - ChargeDensity: density * charge
+     *       note: for species that do not change their charge state, this is
+     *             the same as the density times a constant for the charge
+     *   - Energy: sum of kinetic particle energy per cell with respect to shape
+     *   - EnergyDensity: average kinetic particle energy per cell times the
+     *                    particle density
+     *       note: this is the same as the sum of kinetic particle energy
+     *             divided by a constant for the cell volume
+     *   - MomentumComponent: ratio between a selected momentum component and
+     *                        the absolute momentum with respect to shape
+     *   - LarmorPower: radiated Larmor power
+     *                  (species must contain the attribute `momentumPrev1`)
+     *
+     * for debugging:
+     *   - MidCurrentDensityComponent:
+     *       density * charge * velocity_component
+     *   - Counter: counts point like particles per cell
+     *   - MacroCounter: counts point like macro particles per cell
+     */
+    namespace deriveField = particles::particleToGrid;
+
+    /* Density section */
+    using Density_Seq = deriveField::CreateEligible_t<
+        VectorAllSpecies,
+        deriveField::derivedAttributes::Density
+    >;
+    
+    /* Density section */
+    using DensityOverGammaSquared_Seq = deriveField::CreateEligible_t<
+        MakeSeq_t<Electrons>,
+        deriveField::derivedAttributes::DensityOverGammaSquared
+    >;
+
+
+    /* BoundElectronDensity section */
+    using BoundElectronDensity_Seq = deriveField::CreateEligible_t<
+        VectorAllSpecies,
+        deriveField::derivedAttributes::BoundElectronDensity
+    >;
+
+    /* ChargeDensity section */
+    using ChargeDensity_Seq = deriveField::CreateEligible_t<
+        VectorAllSpecies,
+        deriveField::derivedAttributes::ChargeDensity
+    >;
+
+    /* EnergyDensity section */
+    using EnergyDensity_Seq = deriveField::CreateEligible_t<
+        VectorAllSpecies,
+        deriveField::derivedAttributes::EnergyDensity
+    >;
+     /* EnergyDensity section */
+    using MacroCounter_Seq = deriveField::CreateEligible_t<
+        VectorAllSpecies,
+        deriveField::derivedAttributes::MacroCounter
+    >;
+
+    /** FieldTmpSolvers groups all solvers that create data for FieldTmp ******
+     *
+     * FieldTmpSolvers is used in @see FieldTmp to calculate the exchange size
+     */
+    using FieldTmpSolvers = MakeSeq_t<Density_Seq, MacroCounter_Seq, EnergyDensity_Seq, DensityOverGammaSquared_Seq>;
+
+
+    /** FileOutputFields: Groups all Fields that shall be dumped *************/
+
+    /** Possible native fields: FieldE, FieldB, FieldJ
+     */
+    using NativeFileOutputFields = MakeSeq_t<
+        FieldE,
+        FieldB,
+        FieldJ
+    >;
+
+    using FileOutputFields = MakeSeq_t<
+        NativeFileOutputFields,
+        FieldTmpSolvers
+    >;
+
+
+    /** FileOutputParticles: Groups all Species that shall be dumped **********
+     *
+     * hint: to enable particle output set to
+     *   using FileOutputParticles = VectorAllSpecies;
+     */
+    using FileOutputParticles = VectorAllSpecies;
+
+}

@@ -1,0 +1,100 @@
+/* Copyright 2013-2019 Axel Huebl, Heiko Burau, Rene Widera, Felix Schmitt,
+ *                     Richard Pausch
+ *
+ * This file is part of PIConGPU.
+ *
+ * PIConGPU is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * PIConGPU is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with PIConGPU.
+ * If not, see <http://www.gnu.org/licenses/>.
+ */
+
+/** @file
+ *
+ * Configure existing or define new normalized density profiles here.
+ * During particle species creation in speciesInitialization.param,
+ * those profiles can be translated to spatial particle distributions.
+ */
+
+#pragma once
+
+#include "picongpu/particles/densityProfiles/profiles.def"
+
+namespace picongpu
+{
+namespace SI
+{
+    /** Base density in particles per m^3 in the density profiles.
+     *
+     * This is often taken as reference maximum density in normalized profiles.
+     * Individual particle species can define a `densityRatio` flag relative
+     * to this value.
+     *
+     * unit: ELEMENTS/m^3
+     *
+     * We take n_e ("fully ionized") as reference density.
+     * Our target material (see speciesDefinition) is a liquid crystal called
+     * 8CB (4'-octyl-4-cyanobiphenyl).
+     */
+     constexpr float_64 nc = 1.11485e21 * 1.e6 / 0.8 / 0.8;
+     constexpr float_64 BASE_DENSITY_SI = 30. * nc;
+
+} // namespace SI
+
+namespace densityProfiles
+{
+    struct CircleWithRampFunctor
+    {
+        /** This formula uses SI quantities only.
+         *  The profile will be multiplied by BASE_DENSITY_SI.
+         *
+         * @param position_SI total offset including all slides [meter]
+         * @param cellSize_SI cell sizes [meter]
+         *
+         * @return float_X density [normalized to 1.0]
+         */
+        HDINLINE float_X
+        operator()(
+            const floatD_64& position_SI,
+            const float3_64& cellSize_SI
+        )
+        {
+            // center of the jet in mu and radii
+            constexpr float_64 y0( 4.0 );
+            constexpr float_64 x0( 4.0 );
+            constexpr float_64 r0( 2.5 );
+            constexpr float_64 r_scale( 100.0e-3);
+            constexpr float_64 r_cutoff( r0 + 4.0 * r_scale );
+            constexpr float_64 r02 {r0 * r0};
+            const float_64 dens_norm = static_cast<float_X>(r02 / (r02 + 2.0 * (r_scale * (r0 + r_scale) 
+                - r_scale * (r_cutoff + r_scale) * math::exp((r0 - r_cutoff)/ r_scale))));
+
+            // compute x and y and r in mu
+            const float_64 x(position_SI.x() * 1.e6);
+            const float_64 y(position_SI.y() * 1.e6);
+            const float_64 r( math::sqrt( (y - y0) * (y  - y0) + (x - x0) * (x - x0)));
+            float_64 dens = 0.0;
+            // plateau
+            if( r <= r0 )
+                dens = dens_norm;
+            if( r > r0 && r < r_cutoff )
+                dens = dens_norm * math::exp( ( r0 - r ) / r_scale );
+            dens *= float_64( dens >= 0.0 );
+            return dens;
+        }
+    };
+
+    // definition of free formula profile
+      using CircleWithRamp = FreeFormulaImpl< CircleWithRampFunctor >;
+    //  using CircleWithRamp = HomogenousImpl;
+} // namespace densityProfiles
+} // namespace picongpu
