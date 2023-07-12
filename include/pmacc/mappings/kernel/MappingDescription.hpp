@@ -88,6 +88,11 @@ namespace pmacc
             return this->gridSuperCells;
         }
 
+        HDINLINE DataSpace<DIM> getGridSuperCellsWithoutGuards() const
+        {
+            return this->gridSuperCells - 2 * this->guardingSuperCells;
+        }
+
         HDINLINE DataSpace<DIM> getGuardingSuperCells() const
         {
             return guardingSuperCells;
