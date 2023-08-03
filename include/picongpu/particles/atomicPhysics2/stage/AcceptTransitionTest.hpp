@@ -62,8 +62,11 @@ namespace picongpu::particles::atomicPhysics2::stage
         using RngFactoryFloat = particles::functor::misc::Rng<DistributionFloat>;
 
         //! call of kernel for every superCell
-        HINLINE void operator()(picongpu::MappingDesc const mappingDesc, uint32_t const currentStep) const
+        HINLINE void operator()(picongpu::MappingDesc const mappingDesc, uint32_t const currentStep, EventTask depEvent1) const
         {
+            EventTask stageEvent;
+
+            eventSystem::startTransaction(depEvent1);
             // full local domain, no guards
             pmacc::AreaMapping<CORE + BORDER, MappingDesc> mapper(mappingDesc);
             pmacc::DataConnector& dc = pmacc::Environment<>::get().DataConnector();
@@ -91,6 +94,9 @@ namespace picongpu::particles::atomicPhysics2::stage
 
             RngFactoryFloat rngFactory = RngFactoryFloat{currentStep};
 
+            auto depEvent=eventSystem::endTransaction();
+
+            eventSystem::startTransaction(depEvent);
             // transition no-change
             PMACC_LOCKSTEP_KERNEL(
                 picongpu::particles::atomicPhysics2::kernel::AcceptTransitionTestKernel_NoChange<
@@ -105,11 +111,13 @@ namespace picongpu::particles::atomicPhysics2::stage
                 localRateCacheField.getDeviceDataBox(),
                 atomicData.template getChargeStateOrgaDataBox<false>(),
                 atomicData.template getAtomicStateDataDataBox<false>());
+            stageEvent+=eventSystem::endTransaction();
 
             // bound-bound up
             //      electronic collisional excitation
             if constexpr(AtomicDataType::switchElectronicExcitation)
             {
+                eventSystem::startTransaction(depEvent);
                 PMACC_LOCKSTEP_KERNEL(
                     picongpu::particles::atomicPhysics2::kernel ::AcceptTransitionTestKernel_ElectronicDeOrExcitation<
                         picongpu::atomicPhysics2::ElectronHistogram,
@@ -127,12 +135,14 @@ namespace picongpu::particles::atomicPhysics2::stage
                     atomicData.template getBoundBoundTransitionDataBox<
                         false,
                         procClass::TransitionOrdering::byLowerState>());
+                stageEvent+=eventSystem::endTransaction();
             }
 
             // bound-bound down
             //      electronic collisional deexcitation
             if constexpr(AtomicDataType::switchElectronicDeexcitation)
             {
+                eventSystem::startTransaction(depEvent);
                 PMACC_LOCKSTEP_KERNEL(
                     picongpu::particles::atomicPhysics2::kernel::AcceptTransitionTestKernel_ElectronicDeOrExcitation<
                         picongpu::atomicPhysics2::ElectronHistogram,
@@ -150,10 +160,12 @@ namespace picongpu::particles::atomicPhysics2::stage
                     atomicData.template getBoundBoundTransitionDataBox<
                         false,
                         procClass::TransitionOrdering::byUpperState>());
+                stageEvent+=eventSystem::endTransaction();
             }
             //      spontaneous radiative deexcitation
             if constexpr(AtomicDataType::switchSpontaneousDeexcitation)
             {
+                eventSystem::startTransaction(depEvent);
                 PMACC_LOCKSTEP_KERNEL(
                     picongpu::particles::atomicPhysics2::kernel::AcceptTransitionTestKernel_SpontaneousDeexcitation<
                         AtomicDataType::ConfigNumber::numberLevels,
@@ -168,12 +180,14 @@ namespace picongpu::particles::atomicPhysics2::stage
                     atomicData.template getBoundBoundTransitionDataBox<
                         false,
                         procClass::TransitionOrdering::byUpperState>());
+                stageEvent+=eventSystem::endTransaction();
             }
 
             // bound-free up
             //      electronic collisional ionization
             if constexpr(AtomicDataType::switchElectronicIonization)
             {
+                eventSystem::startTransaction(depEvent);
                 PMACC_LOCKSTEP_KERNEL(
                     picongpu::particles::atomicPhysics2::kernel::AcceptTransitionTestKernel_ElectronicIonization<
                         picongpu::atomicPhysics2::ElectronHistogram,
@@ -190,6 +204,7 @@ namespace picongpu::particles::atomicPhysics2::stage
                     atomicData.template getAtomicStateDataDataBox<false>(),
                     atomicData
                         .template getBoundFreeTransitionDataBox<false, procClass::TransitionOrdering::byLowerState>());
+                stageEvent+=eventSystem::endTransaction();
             }
             //      fieldIonization
             /// @todo implement field ionization, Brian Marre, 2023
@@ -200,6 +215,7 @@ namespace picongpu::particles::atomicPhysics2::stage
             // autonomous ionization
             if constexpr(AtomicDataType::switchAutonomousIonization)
             {
+                eventSystem::startTransaction(depEvent);
                 PMACC_LOCKSTEP_KERNEL(
                     picongpu::particles::atomicPhysics2::kernel::AcceptTransitionTestKernel_AutonomousIonization<
                         picongpu::atomicPhysics2::ProbabilityApproximationFunctor>(),
@@ -212,7 +228,9 @@ namespace picongpu::particles::atomicPhysics2::stage
                     atomicData.template getAutonomousTransitionDataBox<
                         false,
                         procClass::TransitionOrdering::byUpperState>());
+                stageEvent+=eventSystem::endTransaction();
             }
+            eventSystem::setTransactionEvent(stageEvent);
         }
     };
 } // namespace picongpu::particles::atomicPhysics2::stage

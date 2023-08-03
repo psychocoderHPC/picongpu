@@ -38,7 +38,7 @@ namespace picongpu
  *  example: using UsedParticleShape = particles::shapes::CIC;
  */
 #ifndef PARAM_PARTICLESHAPE
-#    define PARAM_PARTICLESHAPE CIC
+#    define PARAM_PARTICLESHAPE TSC
 #endif
     using UsedParticleShape = particles::shapes::PARAM_PARTICLESHAPE;
 

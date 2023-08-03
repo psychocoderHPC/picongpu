@@ -76,7 +76,10 @@ namespace pmacc
                  * that the dependency chain not brake
                  */
                 auto* task = static_cast<StreamTask*>(baseTask);
-                return task->getEventStream();
+                //return task->getEventStream();
+                EventStream* stream = Environment<>::get().StreamController().getNextStream();
+                stream->waitOn(task->getCudaEventHandle());
+                return stream;
             }
             baseEvent.waitForFinished();
         }

@@ -81,6 +81,10 @@ namespace picongpu::particles::atomicPhysics2::kernel
                 = superCellIdx - areaMapping.getGuardingSuperCells();
 
             float_X const timeStep = localTimeStepBox(superCellFieldIdx);
+
+            if(timeStep <= 0.0_X)
+                return;
+
             auto& rateCache = localRateCacheBox(superCellFieldIdx);
 
             auto forEachLocalIonBoxEntry = pmacc::particles::algorithm::acc::makeForEach(worker, ionBox, superCellIdx);

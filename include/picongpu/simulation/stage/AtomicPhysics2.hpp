@@ -64,6 +64,8 @@
 #include <cstdint>
 #include <string>
 
+#include <cuda_profiler_api.h>
+
 // debug only
 #include <iostream>
 
@@ -145,6 +147,8 @@ namespace picongpu::simulation::stage
         //! atomic physics stage sub-stage calls
         void operator()(picongpu::MappingDesc const mappingDesc, uint32_t const currentStep) const
         {
+            if(currentStep >= 1u)
+                cudaProfilerStart();
             //! reset macro particle attribute accepted to false for each ion species
             using ForEachIonSpeciesResetAcceptedStatus = pmacc::meta::ForEach<
                 SpeciesRepresentingIons,
@@ -277,9 +281,15 @@ namespace picongpu::simulation::stage
                 while(true)
                 {
                     // randomly roll transition for each not yet accepted macro ion
-                    ForEachIonSpeciesChooseTransition{}(mappingDesc, currentStep);
-                    ForEachIonSpeciesExtractTransitionCollectionIndex{}(mappingDesc, currentStep);
-                    ForEachIonSpeciesDoAcceptTransitionTest{}(mappingDesc, currentStep);
+                    ForEachIonSpeciesChooseTransition{}(mappingDesc, currentStep, eventSystem::getTransactionEvent());
+                    ForEachIonSpeciesExtractTransitionCollectionIndex{}(
+                        mappingDesc,
+                        currentStep,
+                        eventSystem::getTransactionEvent());
+                    ForEachIonSpeciesDoAcceptTransitionTest{}(
+                        mappingDesc,
+                        currentStep,
+                        eventSystem::getTransactionEvent());
 
                     // reject overSubscription loop, ends when no histogram bin oversubscribed
                     while(true)
@@ -460,6 +470,9 @@ namespace picongpu::simulation::stage
                 // debug only
                 counterSubStep++;
             } // end atomicPhysics sub-stepping loop
+
+            if(currentStep >= 1u)
+                cudaProfilerStop();
         }
     };
 } // namespace picongpu::simulation::stage

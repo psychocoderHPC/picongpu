@@ -44,8 +44,10 @@ namespace picongpu::particles::atomicPhysics2::stage
         using IonSpecies = pmacc::particles::meta::FindByNameOrType_t<VectorAllSpecies, T_IonSpecies>;
 
         //! call of kernel for every superCell
-        HINLINE void operator()(picongpu::MappingDesc const mappingDesc, uint32_t const currentStep) const
+        HINLINE void operator()(picongpu::MappingDesc const mappingDesc, uint32_t const currentStep, EventTask depEvent1) const
         {
+            eventSystem::startTransaction(depEvent1);
+
             // full local domain, no guards
             pmacc::AreaMapping<CORE + BORDER, MappingDesc> mapper(mappingDesc);
             pmacc::DataConnector& dc = pmacc::Environment<>::get().DataConnector();
@@ -57,17 +59,23 @@ namespace picongpu::particles::atomicPhysics2::stage
             using SpeciesConfigNumberType = typename AtomicDataType::ConfigNumber;
 
             auto& ions = *dc.get<IonSpecies>(IonSpecies::FrameType::getName());
+            auto depEvent=eventSystem::endTransaction();
 
+            EventTask stageEvent;
+
+            eventSystem::startTransaction(depEvent);
             // no-change transition
             PMACC_LOCKSTEP_KERNEL(
                 picongpu::particles::atomicPhysics2::kernel::ExtractTransitionCollectionIndexKernel_NoChange(),
                 workerCfg)
             (mapper.getGridDim())(mapper, ions.getDeviceParticlesBox());
+            stageEvent+=eventSystem::endTransaction();
 
             if constexpr(
                 AtomicDataType::switchElectronicExcitation || AtomicDataType::switchElectronicDeexcitation
                 || AtomicDataType::switchSpontaneousDeexcitation)
             {
+                eventSystem::startTransaction(depEvent);
                 // bound-bound transitions
                 PMACC_LOCKSTEP_KERNEL(
                     picongpu::particles::atomicPhysics2::kernel::ExtractTransitionCollectionIndexKernel_BoundBound<
@@ -87,10 +95,12 @@ namespace picongpu::particles::atomicPhysics2::stage
                     atomicData.template getAtomicStateDataDataBox<false>(),
                     atomicData.template getBoundBoundNumberTransitionsDataBox<false>(),
                     atomicData.template getBoundBoundStartIndexBlockDataBox<false>());
+                stageEvent+=eventSystem::endTransaction();
             }
 
             if constexpr(AtomicDataType::switchElectronicIonization || AtomicDataType::switchFieldIonization)
             {
+                eventSystem::startTransaction(depEvent);
                 // bound-free transitions
                 PMACC_LOCKSTEP_KERNEL(
                     picongpu::particles::atomicPhysics2::kernel::ExtractTransitionCollectionIndexKernel_BoundFree<
@@ -110,10 +120,12 @@ namespace picongpu::particles::atomicPhysics2::stage
                     atomicData.template getAtomicStateDataDataBox<false>(),
                     atomicData.template getBoundFreeNumberTransitionsDataBox<false>(),
                     atomicData.template getBoundFreeStartIndexBlockDataBox<false>());
+                stageEvent+=eventSystem::endTransaction();
             }
 
             if constexpr(AtomicDataType::switchAutonomousIonization)
             {
+                eventSystem::startTransaction(depEvent);
                 // autonomous transitions
                 PMACC_LOCKSTEP_KERNEL(
                     picongpu::particles::atomicPhysics2::kernel::ExtractTransitionCollectionIndexKernel_Autonomous<
@@ -132,7 +144,9 @@ namespace picongpu::particles::atomicPhysics2::stage
                     atomicData.template getAtomicStateDataDataBox<false>(),
                     atomicData.template getAutonomousNumberTransitionsDataBox<false>(),
                     atomicData.template getAutonomousStartIndexBlockDataBox<false>());
+                stageEvent+=eventSystem::endTransaction();
             }
+            eventSystem::setTransactionEvent(stageEvent);
         }
     };
 } // namespace picongpu::particles::atomicPhysics2::stage

@@ -91,6 +91,9 @@ namespace picongpu::particles::atomicPhysics2::kernel
 
             float_X const timeStep = localTimeStepBox(superCellFieldIdx);
 
+            if(timeStep <= 0.0_X)
+                return;
+
             auto forEachLocalIonBoxEntry = pmacc::particles::algorithm::acc::makeForEach(worker, ionBox, superCellIdx);
 
             if(!forEachLocalIonBoxEntry.hasParticles())

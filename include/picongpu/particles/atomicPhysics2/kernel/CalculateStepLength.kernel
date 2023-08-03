@@ -67,6 +67,9 @@ namespace picongpu::particles::atomicPhysics2::kernel
             auto& rateCache = localRateCacheBox(superCellFieldIdx);
             float_X& timeStep = localTimeStepBox(superCellFieldIdx);
 
+            if(timeStep <= 0.0_X)
+                return;
+
             auto forEachAtomicState = pmacc::lockstep::makeForEach<T_numberAtomicStates, T_Worker>(worker);
 
             forEachAtomicState(

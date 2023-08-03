@@ -51,8 +51,9 @@ namespace picongpu::particles::atomicPhysics2::stage
         using RngFactoryInt = particles::functor::misc::Rng<DistributionInt>;
 
         //! call of kernel for every superCell
-        HINLINE void operator()(picongpu::MappingDesc const mappingDesc, uint32_t const currentStep) const
+        HINLINE void operator()(picongpu::MappingDesc const mappingDesc, uint32_t const currentStep, EventTask depEvent) const
         {
+            eventSystem::startTransaction(depEvent);
             // full local domain, no guards
             pmacc::AreaMapping<CORE + BORDER, MappingDesc> mapper(mappingDesc);
             pmacc::DataConnector& dc = pmacc::Environment<>::get().DataConnector();
@@ -77,6 +78,7 @@ namespace picongpu::particles::atomicPhysics2::stage
                 atomicData.template getChargeStateOrgaDataBox<false>(),
                 atomicData.template getAtomicStateDataDataBox<false>(),
                 atomicData.template getTransitionSelectionDataBox<false>());
+            eventSystem::setTransactionEvent(eventSystem::endTransaction());
         }
     };
 } // namespace picongpu::particles::atomicPhysics2::stage

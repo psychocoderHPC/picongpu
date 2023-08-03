@@ -131,6 +131,9 @@ namespace picongpu::particles::atomicPhysics2::kernel
 
             float_X const timeStep = localTimeStepBox(superCellFieldIdx);
 
+            if(timeStep <= 0.0_X)
+                return;
+
             // end kernel if no particles
             if(!forEachLocalIonBoxEntry.hasParticles())
                 return;
