@@ -63,6 +63,8 @@
 #include <cstdint>
 #include <string>
 
+#include <cuda_profiler_api.h>
+
 // debug only
 #include <iostream>
 
@@ -221,13 +223,19 @@ namespace picongpu::simulation::stage
                 = localElectronHistogramOverSubscribedField.getGridLayout().getDataSpaceWithoutGuarding();
 
             /// @todo find better way than hard code old value, Brian Marre, 2023
-            pmacc::device::Reduce deviceLocalReduce = pmacc::device::Reduce(static_cast<uint32_t>(1200u));
+            static pmacc::device::Reduce deviceLocalReduce = pmacc::device::Reduce(static_cast<uint32_t>(1200u));
 
             setTimeRemaining(); // = (Delta t)_PIC
             ForEachIonSpeciesFixAtomicState{}(mappingDesc);
 
             uint16_t counterSubStep = 0u;
             // atomicPhysics sub-stepping loop, ends when timeRemaining<=0._X
+
+#if 1
+            if(currentStep >= 1u)
+                cudaProfilerStart();
+#endif
+
             while(true)
             {
                 // debug only
@@ -464,6 +472,10 @@ namespace picongpu::simulation::stage
                 // debug only
                 counterSubStep++;
             } // end atomicPhysics sub-stepping loop
+#if 1
+            if(currentStep >= 1u)
+                cudaProfilerStop();
+#endif
         }
     };
 } // namespace picongpu::simulation::stage

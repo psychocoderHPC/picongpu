@@ -63,36 +63,32 @@ namespace picongpu::particles::atomicPhysics2::rollElectronBin
      * @param electronHistogram electron histogram
      * @param atomicData atomicData dataBoxes
      */
-    template<typename T_Histogram, typename T_RateFunctional, typename... T_AtomicData>
+    template<typename T_RateFunctional, typename T_Histogram, typename... T_AtomicData>
     HDINLINE static uint32_t findBin(
         float_X const rngValue,
         uint32_t const transitionIndex,
         float_X const rate_total,
-        T_Histogram const& electronHistogram,
+        T_Histogram const& electronHistData,
         T_AtomicData... atomicData)
     {
-        // UNIT_LENGTH^3
-        constexpr float_X volumeScalingFactor
-            = pmacc::math::CT::volume<SuperCellSize>::type::value * picongpu::CELL_VOLUME;
-
         float_X probabilityOffset = 0._X;
 
-        constexpr uint32_t numberBinsMinus1 = T_Histogram::numberBins - 1u;
-        for(uint32_t i = 0u; i < numberBinsMinus1; ++i)
+        uint32_t i = 0u;
+        // return the last index if no other is fitting
+        for(; i < electronHistData.numBins() - 1u; ++i)
         {
-            // eV
-            float_X const energy = electronHistogram.getBinEnergy(i);
-            // eV
-            float_X const binWidth = electronHistogram.getBinWidth(i);
-            // 1/(UNIT_LENGTH^3 * eV)
-            float_X const density = electronHistogram.getBinWeight0(i) / volumeScalingFactor / binWidth;
             // 1/UNIT_TIME
-            float_X const rate_bin = T_RateFunctional::rate(energy, binWidth, density, transitionIndex, atomicData...);
+            float_X const rate_bin = T_RateFunctional::rate(
+                electronHistData.energy[i],
+                electronHistData.binWidth[i],
+                electronHistData.density[i],
+                transitionIndex,
+                atomicData...);
 
             probabilityOffset += rate_bin / rate_total;
             if(probabilityOffset > rngValue)
-                return i;
+                break;
         }
-        return numberBinsMinus1;
+        return i;
     }
 } // namespace picongpu::particles::atomicPhysics2::rollElectronBin

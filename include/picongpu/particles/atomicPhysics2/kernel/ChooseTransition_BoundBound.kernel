@@ -30,6 +30,7 @@
 #include "picongpu/particles/atomicPhysics2/enums/TransitionDirection.hpp"
 #include "picongpu/particles/atomicPhysics2/enums/TransitionOrderingFor.hpp"
 #include "picongpu/particles/atomicPhysics2/enums/TransitionType.hpp"
+#include "picongpu/particles/atomicPhysics2/kernel/HistogramMetaData.hpp"
 #include "picongpu/particles/atomicPhysics2/rateCalculation/BoundBoundTransitionRates.hpp"
 
 #include <pmacc/particles/algorithm/ForEach.hpp>
@@ -154,6 +155,21 @@ namespace picongpu::particles::atomicPhysics2::kernel
             auto& rateCache = localRateCacheBox(superCellFieldIdx);
             T_Histogram& electronHistogram = localElectronHistogramDataBox(superCellFieldIdx);
 
+            // get possible transitions' collectionIndices
+            constexpr bool isUpward = (u8(T_TransitionDirection) == u8(s_enums::TransitionDirection::upward));
+            constexpr bool electronicChannelActive
+                = (T_electronicDeexcitation && !isUpward) || ((T_electronicExcitation && isUpward));
+            // UNIT_LENGTH^3
+            constexpr float_X volumeScalingFactor
+                = pmacc::math::CT::volume<SuperCellSize>::type::value * picongpu::CELL_VOLUME;
+
+            constexpr int numberBins = (electronicChannelActive) ? static_cast<int>(T_Histogram::numberBins) : 0;
+
+            PMACC_SMEM(worker, electronHistData, HistogramMetaData<numberBins>);
+            // no need to fill the histogram cache if we do not use the histogram
+            if(numberBins != 0)
+                electronHistData.fill(worker, electronHistogram, volumeScalingFactor);
+
             // check whether bound-bound transition and if yes,
             //      extract transition and roll random bin
             forEachLocalIonBoxEntry(
@@ -162,7 +178,7 @@ namespace picongpu::particles::atomicPhysics2::kernel
                  &numberTransitionsBox,
                  &startIndexBox,
                  &transitionDataBox,
-                 &electronHistogram,
+                 &electronHistData,
                  &rateCache](T_Worker const& worker, auto& ion)
                 {
                     // debug
@@ -175,9 +191,6 @@ namespace picongpu::particles::atomicPhysics2::kernel
                         return;
 
                     uint32_t const atomicStateCollectionIndex = ion[atomicStateCollectionIndex_];
-
-                    // get possible transitions' collectionIndices
-                    constexpr bool isUpward = (u8(T_TransitionDirection) == u8(s_enums::TransitionDirection::upward));
 
                     uint32_t numberTransitions;
                     if constexpr(isUpward)
@@ -207,14 +220,6 @@ namespace picongpu::particles::atomicPhysics2::kernel
                     float_X const r = rngGeneratorFloat();
 
                     // compare to cumulative sum of normalized transition rates to find choosen transition
-                    // UNIT_LENGTH^3
-                    constexpr float_X volumeScalingFactor
-                        = pmacc::math::CT::volume<SuperCellSize>::type::value * picongpu::CELL_VOLUME;
-
-                    constexpr bool electronicChannelActive
-                        = (T_electronicDeexcitation && !isUpward) || ((T_electronicExcitation && isUpward));
-                    constexpr int numberBins
-                        = (electronicChannelActive) ? static_cast<int>(T_Histogram::numberBins) : 0;
 
                     /// init with last resort, last possible transition
                     ///@{
@@ -240,22 +245,15 @@ namespace picongpu::particles::atomicPhysics2::kernel
                             // test for each bin separately
                             for(; binIndex < numberBins; ++binIndex)
                             {
-                                // eV
-                                float_X const energy = electronHistogram.getBinEnergy(u32(binIndex));
-                                // eV
-                                float_X const binWidth = electronHistogram.getBinWidth(u32(binIndex));
-                                // 1/(UNIT_LENGTH^3 * eV)
-                                float_X const density
-                                    = electronHistogram.getBinWeight0(u32(binIndex)) / volumeScalingFactor / binWidth;
-
+                                float_X const density = electronHistData.density[binIndex];
                                 // 1/UNIT_TIME
                                 float_X const rateTransition = picongpu::particles::atomicPhysics2::rateCalculation::
                                     BoundBoundTransitionRates<T_n_max>::template rateCollisionalBoundBoundTransition<
                                         T_AtomicStateDataDataBox,
                                         T_BoundBoundTransitionDataBox,
                                         isUpward>(
-                                        energy,
-                                        binWidth,
+                                        electronHistData.energy[binIndex],
+                                        electronHistData.binWidth[binIndex],
                                         density,
                                         transitionID + startIndexTransitionBlock,
                                         atomicStateDataDataBox,

@@ -25,6 +25,7 @@
 #include "picongpu/particles/atomicPhysics2/ConvertEnumToUint.hpp"
 #include "picongpu/particles/atomicPhysics2/enums/ProcessClassGroup.hpp"
 #include "picongpu/particles/atomicPhysics2/enums/TransitionDataSet.hpp"
+#include "picongpu/particles/atomicPhysics2/kernel/HistogramMetaData.hpp"
 #include "picongpu/particles/atomicPhysics2/rateCalculation/BoundBoundTransitionRates.hpp"
 
 #include <pmacc/algorithms/math/PowerFunction.hpp>
@@ -144,12 +145,20 @@ namespace picongpu::particles::atomicPhysics2::kernel
             auto& rateCache = localRateCacheBox(superCellFieldIdx);
             auto& histogram = localElectronHistogramDataBox(superCellFieldIdx);
 
+
+            // UNIT_LENGTH^3
+            constexpr float_X volumeScalingFactor
+                = pmacc::math::CT::volume<SuperCellSize>::type::value * picongpu::CELL_VOLUME;
+
+            PMACC_SMEM(worker, electronHistData, HistogramMetaData<T_numberBins>);
+            electronHistData.fill(worker, histogram, volumeScalingFactor);
+
             if constexpr((isUpward && T_electronicExcitation) || ((!isUpward) && T_electronicDeexcitation))
             {
                 forEachAtomicStateAndBin(
                     [&worker,
                      &rateCache,
-                     &histogram,
+                     &electronHistData,
                      &atomicStateDataDataBox,
                      &startIndexDataBox,
                      &numberTransitionsDataBox,
@@ -176,9 +185,9 @@ namespace picongpu::particles::atomicPhysics2::kernel
                         else
                             offset = startIndexDataBox.startIndexBlockTransitionsDown(atomicStateCollectionIndex);
 
-                        // UNIT_LENGTH^3
-                        constexpr float_X volumeScalingFactor
-                            = pmacc::math::CT::volume<SuperCellSize>::type::value * picongpu::CELL_VOLUME;
+                        auto const energy = electronHistData.energy[binIndex];
+                        auto const binWidth = electronHistData.binWidth[binIndex];
+                        auto const density = electronHistData.density[binIndex];
 
                         for(uint32_t transitionID = static_cast<uint32_t>(0u); transitionID < numberTransitions;
                             ++transitionID)
@@ -196,11 +205,9 @@ namespace picongpu::particles::atomicPhysics2::kernel
                                             T_AtomicStateDataDataBox,
                                             T_BoundBoundTransitionDataBox,
                                             isUpward>(
-                                            histogram.getBinEnergy(binIndex),
-                                            histogram.getBinWidth(binIndex),
-                                            // 1/(UNIT_LENGTH^3*eV)
-                                            histogram.getBinWeight0(binIndex) / volumeScalingFactor
-                                                / histogram.getBinWidth(binIndex),
+                                            energy,
+                                            binWidth,
+                                            density,
                                             offset + transitionID,
                                             atomicStateDataDataBox,
                                             boundBoundTransitionDataBox));
@@ -218,11 +225,9 @@ namespace picongpu::particles::atomicPhysics2::kernel
                                             T_AtomicStateDataDataBox,
                                             T_BoundBoundTransitionDataBox,
                                             isUpward>(
-                                            histogram.getBinEnergy(binIndex),
-                                            histogram.getBinWidth(binIndex),
-                                            // 1/(UNIT_LENGTH^3*eV)
-                                            histogram.getBinWeight0(binIndex) / volumeScalingFactor
-                                                / histogram.getBinWidth(binIndex),
+                                            energy,
+                                            binWidth,
+                                            density,
                                             offset + transitionID,
                                             atomicStateDataDataBox,
                                             boundBoundTransitionDataBox));

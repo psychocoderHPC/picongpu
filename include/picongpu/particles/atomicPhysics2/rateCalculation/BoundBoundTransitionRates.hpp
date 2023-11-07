@@ -38,32 +38,32 @@
 
 
 /** @file implements calculation of rates for bound-bound atomic physics transitions
- *
- * this includes:
- *  - electron-interaction base de-/excitation
- *  - spontaneous photon emission
- *  @todo photon interaction based processes, Brian Marre, 2022
- *
+*
+* this includes:
+*  - electron-interaction base de-/excitation
+*  - spontaneous photon emission
+*  @todo photon interaction based processes, Brian Marre, 2022
+*
 
- * based on the rate calculation of FLYCHK, as extracted by Axel Huebl in the original
- *  flylite prototype.
- *
- * References:
- * - Axel Huebl
- *  first flylite prototype, not published
- *
- * - R. Mewe.
- *  "Interpolation formulae for the electron impact excitation of ions in
- *  the H-, He-, Li-, and Ne-sequences."
- *  Astronomy and Astrophysics 20, 215 (1972)
- *
- * - H.-K. Chung, R.W. Lee, M.H. Chen.
- *  "A fast method to generate collisional excitation cross-sections of
- *  highly charged ions in a hot dense matter"
- *  High Energy Density Physics 3, 342-352 (2007)
- *
- * - and https://en.wikipedia.org/wiki/Einstein_coefficients for the SI version
- */
+* based on the rate calculation of FLYCHK, as extracted by Axel Huebl in the original
+*  flylite prototype.
+*
+* References:
+* - Axel Huebl
+*  first flylite prototype, not published
+*
+* - R. Mewe.
+*  "Interpolation formulae for the electron impact excitation of ions in
+*  the H-, He-, Li-, and Ne-sequences."
+*  Astronomy and Astrophysics 20, 215 (1972)
+*
+* - H.-K. Chung, R.W. Lee, M.H. Chen.
+*  "A fast method to generate collisional excitation cross-sections of
+*  highly charged ions in a hot dense matter"
+*  High Energy Density Physics 3, 342-352 (2007)
+*
+* - and https://en.wikipedia.org/wiki/Einstein_coefficients for the SI version
+*/
 
 namespace picongpu::particles::atomicPhysics2::rateCalculation
 {
@@ -126,10 +126,11 @@ namespace picongpu::particles::atomicPhysics2::rateCalculation
                 }
                 else
                 {
+                    auto const aPlusU = a + U;
                     // avoid division by 0
-                    if((U + a) != 0._X)
+                    if(aPlusU != 0._X)
                         // chuung approximation
-                        g = A * logU + B + C / (U + a) + D / ((U + a) * (U + a)); // unitless
+                        g = A * logU + B + C / aPlusU + D / (aPlusU * aPlusU); // unitless
                 }
 
                 bool const gauntFitUnPhysical = (g < 0._X);
@@ -253,48 +254,40 @@ namespace picongpu::particles::atomicPhysics2::rateCalculation
             // [1e6b * (eV)^2]
 
             // 1e6b*(eV)^2 / (eV)^2 * unitless * (eV)/(eV) * unitless = 1e6b
-            float_X crossSection_butGaunt = constantPart / math::sqrt(3.)
+            float_X crossSection_butGaunt = constantPart / math::sqrt(3._X)
                 / pmacc::math::cPow(energyDifference, static_cast<uint8_t>(2u)) * collisionalOscillatorStrength
                 * (energyDifference / energyElectron);
             // [1e6b]
 
+            float_X result = 0.0_X;
+
             // safeguard against negative cross sections due to imperfect approximations
-            if(crossSection_butGaunt < 0._X)
+            if(crossSection_butGaunt > 0._X)
             {
-                return 0._X;
-            }
-
-            // eV
-            float_X U;
-            // unitless
-            float_X ratio;
-
-            if constexpr(T_excitation)
-            {
-                // excitation
-                ratio = 1._X;
-
-                U = energyElectron / energyDifference;
-            }
-            else
-            {
-                // deexcitation
-                //      different multiplicityConfigNumber for deexcitation
+                // eV
+                float_X U = energyElectron / energyDifference;
                 // unitless
-                ratio = static_cast<float_X>(
-                    atomicStateDataBox.multiplicity(lowerStateClctIdx)
-                    / atomicStateDataBox.multiplicity(upperStateClctIdx));
+                // 1.0 is default value for excitation
+                float_X ratio = 1._X;
+                if constexpr(!T_excitation)
+                {
+                    // deexcitation
+                    //      different multiplicityConfigNumber for deexcitation
+                    // unitless
+                    ratio = static_cast<float_X>(
+                        atomicStateDataBox.multiplicity(lowerStateClctIdx)
+                        / atomicStateDataBox.multiplicity(upperStateClctIdx));
 
-                if constexpr(picongpu::atomicPhysics2::debug::rateCalculation::DEBUG_CHECKS)
-                    debugChecksMultiplicity(ratio, lowerStateClctIdx, upperStateClctIdx, atomicStateDataBox);
+                    if constexpr(picongpu::atomicPhysics2::debug::rateCalculation::DEBUG_CHECKS)
+                        debugChecksMultiplicity(ratio, lowerStateClctIdx, upperStateClctIdx, atomicStateDataBox);
+                    // equal to U = (energyElectron + energyDifference) / energyDifference;
+                    U += 1.0_X;
+                }
 
-                U = (energyElectron + energyDifference) / energyDifference;
+                // [1e6b]
+                result = crossSection_butGaunt * ratio
+                    * gauntFactor(U, transitionCollectionIndex, boundBoundTransitionDataBox);
             }
-
-            // [1e6b]
-            float_X result = crossSection_butGaunt * ratio
-                * gauntFactor(U, transitionCollectionIndex, boundBoundTransitionDataBox);
-
             return result;
         }
 
