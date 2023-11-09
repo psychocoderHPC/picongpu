@@ -204,10 +204,7 @@ namespace picongpu::particles::atomicPhysics2::kernel
                             {
                                 // 1/UNIT_TIME
                                 float_X const rateTransition = picongpu::particles::atomicPhysics2::rateCalculation::
-                                    BoundFreeTransitionRates<T_n_max>::template rateCollisionalIonizationTransition<
-                                        T_ChargeStateDataDataBox,
-                                        T_AtomicStateDataDataBox,
-                                        T_BoundFreeTransitionDataBox>(
+                                    BoundFreeTransitionRates<T_n_max>::rateCollisionalIonizationTransition(
                                         cachedHistogram.energy[binIndex],
                                         cachedHistogram.binWidth[binIndex],
                                         cachedHistogram.density[binIndex],

@@ -309,7 +309,7 @@ namespace picongpu::particles::atomicPhysics2::rateCalculation
          *
          * @return unit: 1/UNIT_TIME
          */
-        template<typename T_AtomicStateDataBox, typename T_BoundBoundTransitionDataBox, bool T_excitation>
+        template<bool T_excitation, typename T_AtomicStateDataBox, typename T_BoundBoundTransitionDataBox>
         HDINLINE static float_X rateCollisionalBoundBoundTransition(
             float_X const energyElectron, // [eV]
             float_X const energyElectronBinWidth, // [eV]

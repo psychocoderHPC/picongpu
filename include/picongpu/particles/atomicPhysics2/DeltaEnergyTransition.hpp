@@ -78,15 +78,13 @@ namespace picongpu::particles::atomicPhysics2
             uint8_t const upperStateChargeState,
             T_ChargeStateDataBox const chargeStateDataBox)
         {
-            if constexpr(u8(T_ProcessClassGroup) == u8(s_enums::ProcessClassGroup::boundFreeBased))
+            constexpr bool isValidTransitionType
+                = u8(T_ProcessClassGroup) == u8(s_enums::ProcessClassGroup::boundFreeBased)
+                || u8(T_ProcessClassGroup) == u8(s_enums::ProcessClassGroup::autonomousBased);
+            if constexpr(isValidTransitionType)
                 return ionizationEnergyHelper<T_ChargeStateDataBox>(
                     lowerStateChargeState,
                     upperStateChargeState,
-                    chargeStateDataBox);
-            if constexpr(u8(T_ProcessClassGroup) == u8(s_enums::ProcessClassGroup::autonomousBased))
-                return ionizationEnergyHelper<T_ChargeStateDataBox>(
-                    upperStateChargeState,
-                    lowerStateChargeState,
                     chargeStateDataBox);
             else
             {

@@ -82,8 +82,8 @@ namespace picongpu::particles::atomicPhysics2::localHelperFields
          *
          * @attention no range checks outside a debug compile, invalid memory write on failure
          */
-        template<typename T_Worker, particles::atomicPhysics2::enums::TransitionDataSet T_TransitionDataSet>
-        HDINLINE void add(T_Worker const& worker, uint32_t const collectionIndex, float_X rate)
+        template<particles::atomicPhysics2::enums::TransitionDataSet T_TransitionDataSet, typename T_Worker>
+        HDINLINE void atomicAdd(T_Worker const& worker, uint32_t const collectionIndex, float_X rate)
         {
             PMACC_CASSERT_MSG(
                 noChange_not_allowed_as_T_TransitionDataSet,

@@ -192,46 +192,21 @@ namespace picongpu::particles::atomicPhysics2::kernel
                         for(uint32_t transitionID = static_cast<uint32_t>(0u); transitionID < numberTransitions;
                             ++transitionID)
                         {
-                            // electronic excitation
-                            if constexpr(isUpward)
-                            {
-                                rateCache.template add<T_Worker, s_enums::TransitionDataSet::boundBoundUpward>(
-                                    worker,
-                                    atomicStateCollectionIndex,
-                                    // rate
-                                    picongpu::particles::atomicPhysics2::rateCalculation::BoundBoundTransitionRates<
-                                        T_numberLevels>::
-                                        template rateCollisionalBoundBoundTransition<
-                                            T_AtomicStateDataDataBox,
-                                            T_BoundBoundTransitionDataBox,
-                                            isUpward>(
-                                            energy,
-                                            binWidth,
-                                            density,
-                                            offset + transitionID,
-                                            atomicStateDataDataBox,
-                                            boundBoundTransitionDataBox));
-                            }
-                            // electronic deexcitation
-                            else
-                            {
-                                rateCache.template add<T_Worker, s_enums::TransitionDataSet::boundBoundDownward>(
-                                    worker,
-                                    atomicStateCollectionIndex,
-                                    // rate
-                                    picongpu::particles::atomicPhysics2::rateCalculation::BoundBoundTransitionRates<
-                                        T_numberLevels>::
-                                        template rateCollisionalBoundBoundTransition<
-                                            T_AtomicStateDataDataBox,
-                                            T_BoundBoundTransitionDataBox,
-                                            isUpward>(
-                                            energy,
-                                            binWidth,
-                                            density,
-                                            offset + transitionID,
-                                            atomicStateDataDataBox,
-                                            boundBoundTransitionDataBox));
-                            }
+                            constexpr auto dataSet = isUpward ? s_enums::TransitionDataSet::boundBoundUpward
+                                                              : s_enums::TransitionDataSet::boundBoundDownward;
+                            rateCache.template atomicAdd<dataSet>(
+                                worker,
+                                atomicStateCollectionIndex,
+                                // rate
+                                picongpu::particles::atomicPhysics2::rateCalculation::BoundBoundTransitionRates<
+                                    T_numberLevels>::
+                                    template rateCollisionalBoundBoundTransition<isUpward>(
+                                        energy,
+                                        binWidth,
+                                        density,
+                                        offset + transitionID,
+                                        atomicStateDataDataBox,
+                                        boundBoundTransitionDataBox));
                         }
                     });
             }
@@ -265,9 +240,7 @@ namespace picongpu::particles::atomicPhysics2::kernel
                                 // rate
                                 picongpu::particles::atomicPhysics2::rateCalculation::BoundBoundTransitionRates<
                                     T_numberLevels>::
-                                    template rateSpontaneousRadiativeDeexcitation<
-                                        T_AtomicStateDataDataBox,
-                                        T_BoundBoundTransitionDataBox>(
+                                    template rateSpontaneousRadiativeDeexcitation(
                                         // transitionCollectionIndex
                                         offset + transitionID,
                                         atomicStateDataDataBox,

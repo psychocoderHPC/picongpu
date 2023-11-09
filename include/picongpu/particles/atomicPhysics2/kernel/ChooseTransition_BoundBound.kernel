@@ -160,12 +160,15 @@ namespace picongpu::particles::atomicPhysics2::kernel
             auto rngGeneratorFloat = rngFactoryFloat(worker, superCellFieldIdx);
             auto& rateCache = localRateCacheBox(superCellFieldIdx);
             T_Histogram& electronHistogram = localElectronHistogramDataBox(superCellFieldIdx);
-            
+
             // UNIT_LENGTH^3
             constexpr float_X volumeScalingFactor
                 = pmacc::math::CT::volume<SuperCellSize>::type::value * picongpu::CELL_VOLUME;
 
-            PMACC_SMEM(worker, cachedHistogram, CachedHistogram<electronicChannelActive ? T_Histogram::numberBins: 0>);
+            PMACC_SMEM(
+                worker,
+                cachedHistogram,
+                CachedHistogram < electronicChannelActive ? T_Histogram::numberBins : 0 >);
             // no need to fill the histogram cache if we do not use the histogram
             if(electronicChannelActive)
                 cachedHistogram.fill(worker, electronHistogram, volumeScalingFactor);
@@ -235,8 +238,6 @@ namespace picongpu::particles::atomicPhysics2::kernel
                                 // 1/UNIT_TIME
                                 float_X const rateTransition = picongpu::particles::atomicPhysics2::rateCalculation::
                                     BoundBoundTransitionRates<T_n_max>::template rateCollisionalBoundBoundTransition<
-                                        T_AtomicStateDataDataBox,
-                                        T_BoundBoundTransitionDataBox,
                                         isUpward>(
                                         cachedHistogram.energy[binIndex],
                                         cachedHistogram.binWidth[binIndex],
@@ -289,9 +290,7 @@ namespace picongpu::particles::atomicPhysics2::kernel
 
                             // 1/UNIT_TIME
                             float_X const rateTransition = picongpu::particles::atomicPhysics2::rateCalculation::
-                                BoundBoundTransitionRates<T_n_max>::template rateSpontaneousRadiativeDeexcitation<
-                                    T_AtomicStateDataDataBox,
-                                    T_BoundBoundTransitionDataBox>(
+                                BoundBoundTransitionRates<T_n_max>::rateSpontaneousRadiativeDeexcitation(
                                     transitionID + startIndexTransitionBlock,
                                     atomicStateDataDataBox,
                                     transitionDataBox);

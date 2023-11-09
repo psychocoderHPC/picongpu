@@ -300,7 +300,7 @@ namespace picongpu::particles::atomicPhysics2::rateCalculation::debug
             float_64 const rate
                 = static_cast<float_64>(
                       rateCalculation::BoundBoundTransitionRates<T_n_max>::
-                          template rateCollisionalBoundBoundTransition<S_AtomicStateBox, S_BoundBoundBox, true>(
+                          template rateCollisionalBoundBoundTransition<true>(
                               energyElectron,
                               energyElectronBinWidth,
                               static_cast<float_X>(densityElectrons * pmacc::math::cPow(picongpu::UNIT_LENGTH, 3u)),
@@ -320,7 +320,7 @@ namespace picongpu::particles::atomicPhysics2::rateCalculation::debug
             float_64 const rate
                 = static_cast<float_64>(
                       rateCalculation::BoundBoundTransitionRates<T_n_max>::
-                          template rateCollisionalBoundBoundTransition<S_AtomicStateBox, S_BoundBoundBox, false>(
+                          template rateCollisionalBoundBoundTransition<false>(
                               energyElectron,
                               energyElectronBinWidth,
                               static_cast<float_X>(densityElectrons * pmacc::math::cPow(picongpu::UNIT_LENGTH, 3u)),
