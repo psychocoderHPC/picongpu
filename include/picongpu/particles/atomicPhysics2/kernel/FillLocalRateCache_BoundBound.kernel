@@ -27,6 +27,7 @@
 #include "picongpu/particles/atomicPhysics2/enums/ProcessClassGroup.hpp"
 #include "picongpu/particles/atomicPhysics2/enums/TransitionDataSet.hpp"
 #include "picongpu/particles/atomicPhysics2/rateCalculation/BoundBoundTransitionRates.hpp"
+#include "picongpu/particles/atomicPhysics2/rateCalculation/CollisionalRate.hpp"
 
 #include <pmacc/algorithms/math/PowerFunction.hpp>
 #include <pmacc/lockstep/ForEach.hpp>
@@ -151,7 +152,7 @@ namespace picongpu::particles::atomicPhysics2::kernel
                 = pmacc::math::CT::volume<SuperCellSize>::type::value * picongpu::CELL_VOLUME;
 
             PMACC_SMEM(worker, cachedHistogram, CachedHistogram<T_numberBins>);
-            cachedHistogram.fill(worker, histogram, volumeScalingFactor);
+            cachedHistogram.fill(worker, histogram, volumeScalingFactor, rateCalculation::CollisionalRate{});
 
             if constexpr((isUpward && T_electronicExcitation) || ((!isUpward) && T_electronicDeexcitation))
             {
@@ -186,8 +187,7 @@ namespace picongpu::particles::atomicPhysics2::kernel
                             offset = startIndexDataBox.startIndexBlockTransitionsDown(atomicStateCollectionIndex);
 
                         auto const energy = cachedHistogram.energy[binIndex];
-                        auto const binWidth = cachedHistogram.binWidth[binIndex];
-                        auto const density = cachedHistogram.density[binIndex];
+                        auto const collisionalRate = cachedHistogram.collisionalRate[binIndex];
 
                         for(uint32_t transitionID = static_cast<uint32_t>(0u); transitionID < numberTransitions;
                             ++transitionID)
@@ -202,8 +202,7 @@ namespace picongpu::particles::atomicPhysics2::kernel
                                     T_numberLevels>::
                                     template rateCollisionalBoundBoundTransition<isUpward>(
                                         energy,
-                                        binWidth,
-                                        density,
+                                        collisionalRate,
                                         offset + transitionID,
                                         atomicStateDataDataBox,
                                         boundBoundTransitionDataBox));

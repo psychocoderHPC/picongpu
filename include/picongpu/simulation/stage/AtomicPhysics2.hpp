@@ -63,6 +63,8 @@
 #include <cstdint>
 #include <string>
 
+#include <cuda_profiler_api.h>
+
 // debug only
 #include <iostream>
 
@@ -226,6 +228,11 @@ namespace picongpu::simulation::stage
 
             setTimeRemaining(); // = (Delta t)_PIC
             ForEachIonSpeciesFixAtomicState{}(mappingDesc);
+
+#if 1
+            if(currentStep >= 1u)
+                cudaProfilerStart();
+#endif
 
             uint16_t counterSubStep = 0u;
             // atomicPhysics sub-stepping loop, ends when timeRemaining<=0._X
@@ -465,6 +472,10 @@ namespace picongpu::simulation::stage
                 // debug only
                 counterSubStep++;
             } // end atomicPhysics sub-stepping loop
+#if 1
+            if(currentStep >= 1u)
+                cudaProfilerStop();
+#endif
         }
     };
 } // namespace picongpu::simulation::stage

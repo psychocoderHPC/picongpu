@@ -32,6 +32,7 @@
 #include "picongpu/particles/atomicPhysics2/enums/TransitionOrderingFor.hpp"
 #include "picongpu/particles/atomicPhysics2/enums/TransitionType.hpp"
 #include "picongpu/particles/atomicPhysics2/rateCalculation/BoundBoundTransitionRates.hpp"
+#include "picongpu/particles/atomicPhysics2/rateCalculation/CollisionalRate.hpp"
 
 #include <pmacc/particles/algorithm/ForEach.hpp>
 #include <pmacc/static_assert.hpp>
@@ -171,7 +172,8 @@ namespace picongpu::particles::atomicPhysics2::kernel
                 CachedHistogram < electronicChannelActive ? T_Histogram::numberBins : 0 >);
             // no need to fill the histogram cache if we do not use the histogram
             if(electronicChannelActive)
-                cachedHistogram.fill(worker, electronHistogram, volumeScalingFactor);
+                cachedHistogram
+                    .fill(worker, electronHistogram, volumeScalingFactor, rateCalculation::CollisionalRate{});
 
             // check whether bound-bound transition and if yes,
             //      extract transition and roll random bin
@@ -234,14 +236,12 @@ namespace picongpu::particles::atomicPhysics2::kernel
                             // test for each bin separately
                             for(int binIndex = 0; binIndex < T_Histogram::numberBins; ++binIndex)
                             {
-                                float_X const density = cachedHistogram.density[binIndex];
                                 // 1/UNIT_TIME
                                 float_X const rateTransition = picongpu::particles::atomicPhysics2::rateCalculation::
                                     BoundBoundTransitionRates<T_n_max>::template rateCollisionalBoundBoundTransition<
                                         isUpward>(
                                         cachedHistogram.energy[binIndex],
-                                        cachedHistogram.binWidth[binIndex],
-                                        density,
+                                        cachedHistogram.collisionalRate[binIndex],
                                         transitionID + startIndexTransitionBlock,
                                         atomicStateDataDataBox,
                                         transitionDataBox);
@@ -262,7 +262,6 @@ namespace picongpu::particles::atomicPhysics2::kernel
                                         printf("    transitionID = %u\n", transitionID);
                                         printf("    rateTransition = %f\n", rateTransition);
                                         printf("        binIndex = %i\n", binIndex);
-                                        printf("        density = %f\n", density);
                                         printf(
                                             "    rateCache.rate = %.8e\n",
                                             rateCache.rate(u32(transitionDataSet), atomicStateCollectionIndex));

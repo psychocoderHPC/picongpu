@@ -28,7 +28,6 @@
 
 #include "picongpu/particles/atomicPhysics2/DeltaEnergyTransition.hpp"
 #include "picongpu/particles/atomicPhysics2/atomicData/AtomicData.hpp"
-#include "picongpu/particles/atomicPhysics2/rateCalculation/CollisionalRate.hpp"
 #include "picongpu/particles/atomicPhysics2/rateCalculation/Multiplicities.hpp"
 
 #include <pmacc/algorithms/math.hpp>
@@ -301,8 +300,7 @@ namespace picongpu::particles::atomicPhysics2::rateCalculation
          * @tparam T_excitation true =^= excitation, false =^= deexcitation, direction of transition
          *
          * @param energyElectron kinetic energy of interacting electron(/electron bin), [eV]
-         * @param energyElectronBinWidth energy width of electron bin, [eV]
-         * @param densityElectrons [1/(m^3 * eV)]
+         * @param collisionalRate
          * @param transitionCollectionIndex index of transition in boundBoundTransitionDataBox
          * @param atomicStateDataBox access to atomic state property data
          * @param boundBoundTransitionDataBox access to bound-bound transition data
@@ -312,8 +310,7 @@ namespace picongpu::particles::atomicPhysics2::rateCalculation
         template<bool T_excitation, typename T_AtomicStateDataBox, typename T_BoundBoundTransitionDataBox>
         HDINLINE static float_X rateCollisionalBoundBoundTransition(
             float_X const energyElectron, // [eV]
-            float_X const energyElectronBinWidth, // [eV]
-            float_X const densityElectrons, // [1/(UNIT_LENGTH^3*eV)]
+            float_X const collisionalRate,
             uint32_t const transitionCollectionIndex,
             T_AtomicStateDataBox const atomicStateDataBox,
             T_BoundBoundTransitionDataBox const boundBoundTransitionDataBox)
@@ -327,11 +324,7 @@ namespace picongpu::particles::atomicPhysics2::rateCalculation
                 atomicStateDataBox,
                 boundBoundTransitionDataBox); // [1e6*b]
 
-            float_X const result = picongpu::particles2::atomicPhysics2::rateCalculation::collisionalRate(
-                energyElectron,
-                energyElectronBinWidth,
-                densityElectrons,
-                sigma);
+            float_X const result = collisionalRate * sigma;
 
             if(result < 0._X)
             {

@@ -193,8 +193,7 @@ namespace picongpu::particles::atomicPhysics2::rateCalculation
          * @tparam T_BoundFreeTransitionDataBox instantiated type of dataBox
          *
          * @param energyElectron kinetic energy of interacting electron(/electron bin), [eV]
-         * @param energyElectronBinWidth energy width of electron bin, [eV]
-         * @param densityElectrons [1/(m^3 * eV)], local superCell number density of electrons in this bin
+         * @param collisionalRate
          * @param transitionCollectionIndex index of transition in boundBoundTransitionDataBox
          * @param atomicStateDataBox access to atomic state property data
          * @param boundBoundTransitionDataBox access to bound-bound transition data
@@ -207,8 +206,7 @@ namespace picongpu::particles::atomicPhysics2::rateCalculation
             typename T_BoundFreeTransitionDataBox>
         HDINLINE static float_X rateCollisionalIonizationTransition(
             float_X const energyElectron, // [eV]
-            float_X const energyElectronBinWidth, // [eV]
-            float_X const densityElectrons, // [1/(UNIT_LENGTH^3*eV)]
+            float_X const collisionalRate,
             uint32_t const transitionCollectionIndex,
             T_ChargeStateDataBox const chargeStateDataBox,
             T_AtomicStateDataBox const atomicStateDataBox,
@@ -221,11 +219,7 @@ namespace picongpu::particles::atomicPhysics2::rateCalculation
                 atomicStateDataBox,
                 boundFreeTransitionDataBox); // [1e6*b]
 
-            return picongpu::particles2::atomicPhysics2::rateCalculation::collisionalRate(
-                energyElectron,
-                energyElectronBinWidth,
-                densityElectrons,
-                sigma);
+            return collisionalRate * sigma;
         }
 
         /** rate for field ionization due to external field

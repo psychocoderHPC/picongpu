@@ -31,8 +31,7 @@ namespace picongpu::particles::atomicPhysics2::kernel
     struct CachedHistogram
     {
         pmacc::memory::Array<float_X, T_size> energy;
-        pmacc::memory::Array<float_X, T_size> binWidth;
-        pmacc::memory::Array<float_X, T_size> density;
+        pmacc::memory::Array<float_X, T_size> collisionalRate;
 
         static constexpr uint32_t size = T_size;
 
@@ -51,22 +50,24 @@ namespace picongpu::particles::atomicPhysics2::kernel
          * @param electronHistogram
          * @param volumeScalingFactor
          */
-        template<typename T_Worker, typename T_Histogram>
+        template<typename T_Worker, typename T_Histogram, typename T_RateFunctor>
         HDINLINE void fill(
             T_Worker const& worker,
             T_Histogram const& electronHistogram,
-            float_X const volumeScalingFactor)
+            float_X const volumeScalingFactor,
+            T_RateFunctor const& rateFunctor)
         {
             auto forEachElement = lockstep::makeForEach<T_size>(worker);
             forEachElement(
                 [&](uint32_t const idx)
                 {
-                    energy[idx] = electronHistogram.getBinEnergy(idx);
+                    float_X energyValue = electronHistogram.getBinEnergy(idx);
+                    energy[idx] = energyValue;
                     // eV
-                    float_X const binWithValue = electronHistogram.getBinWidth(idx);
-                    binWidth[idx] = binWithValue;
+                    float_X const binWith = electronHistogram.getBinWidth(idx);
                     // 1/(UNIT_LENGTH^3 * eV)
-                    density[idx] = electronHistogram.getBinWeight0(idx) / volumeScalingFactor / binWithValue;
+                    float_X const density = electronHistogram.getBinWeight0(idx) / volumeScalingFactor / binWith;
+                    collisionalRate[idx] = rateFunctor(energyValue, binWith, density);
                 });
             worker.sync();
         }

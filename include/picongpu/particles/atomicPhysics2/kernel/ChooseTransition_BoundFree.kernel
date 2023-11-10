@@ -28,6 +28,7 @@
 #include "picongpu/particles/atomicPhysics2/enums/ProcessClassGroup.hpp"
 #include "picongpu/particles/atomicPhysics2/enums/TransitionDataSet.hpp"
 #include "picongpu/particles/atomicPhysics2/rateCalculation/BoundFreeTransitionRates.hpp"
+#include "picongpu/particles/atomicPhysics2/rateCalculation/CollisionalRate.hpp"
 
 #include <pmacc/particles/algorithm/ForEach.hpp>
 #include <pmacc/static_assert.hpp>
@@ -146,7 +147,7 @@ namespace picongpu::particles::atomicPhysics2::kernel
                 = pmacc::math::CT::volume<SuperCellSize>::type::value * picongpu::CELL_VOLUME;
 
             PMACC_SMEM(worker, cachedHistogram, CachedHistogram<T_Histogram::numberBins>);
-            cachedHistogram.fill(worker, electronHistogram, volumeScalingFactor);
+            cachedHistogram.fill(worker, electronHistogram, volumeScalingFactor, rateCalculation::CollisionalRate{});
 
 
             // check whether bound-free transition and if yes,
@@ -206,8 +207,7 @@ namespace picongpu::particles::atomicPhysics2::kernel
                                 float_X const rateTransition = picongpu::particles::atomicPhysics2::rateCalculation::
                                     BoundFreeTransitionRates<T_n_max>::rateCollisionalIonizationTransition(
                                         cachedHistogram.energy[binIndex],
-                                        cachedHistogram.binWidth[binIndex],
-                                        cachedHistogram.density[binIndex],
+                                        cachedHistogram.collisionalRate[binIndex],
                                         transitionID + startIndexTransitionBlock,
                                         chargeStateDataDataBox,
                                         atomicStateDataDataBox,

@@ -36,6 +36,7 @@
 #include "picongpu/particles/atomicPhysics2/enums/TransitionOrdering.hpp"
 #include "picongpu/particles/atomicPhysics2/rateCalculation/BoundBoundTransitionRates.hpp"
 #include "picongpu/particles/atomicPhysics2/rateCalculation/BoundFreeTransitionRates.hpp"
+#include "picongpu/particles/atomicPhysics2/rateCalculation/CollisionalRate.hpp"
 
 #include <pmacc/algorithms/math.hpp>
 
@@ -297,17 +298,17 @@ namespace picongpu::particles::atomicPhysics2::rateCalculation::debug
         bool testCollisionalExcitationRate()
         {
             float_64 const correctRate = 6.472768268762e+16; // 1/s
-            float_64 const rate
-                = static_cast<float_64>(
-                      rateCalculation::BoundBoundTransitionRates<T_n_max>::
-                          template rateCollisionalBoundBoundTransition<true>(
-                              energyElectron,
-                              energyElectronBinWidth,
-                              static_cast<float_X>(densityElectrons * pmacc::math::cPow(picongpu::UNIT_LENGTH, 3u)),
-                              // 1/(eV*m^3) * (m/UNIT_LENGTH)^3 = = 1/(eV * UNIT_LENGTH^3)
-                              0u,
-                              atomicStateBuffer->getHostDataBox(),
-                              boundBoundBuffer->getHostDataBox()))
+            auto const collisionalRate = rateCalculation::CollisionalRate{}(
+                energyElectron,
+                energyElectronBinWidth,
+                static_cast<float_X>(densityElectrons * pmacc::math::cPow(picongpu::UNIT_LENGTH, 3u)));
+            float_64 const rate = static_cast<float_64>(rateCalculation::BoundBoundTransitionRates<T_n_max>::
+                                                            template rateCollisionalBoundBoundTransition<true>(
+                                                                energyElectron,
+                                                                collisionalRate,
+                                                                0u,
+                                                                atomicStateBuffer->getHostDataBox(),
+                                                                boundBoundBuffer->getHostDataBox()))
                 * 1. / UNIT_TIME; // 1/s
 
             return testRelativeError(correctRate, rate, "collisional excitation rate", 1e-5);
@@ -317,16 +318,17 @@ namespace picongpu::particles::atomicPhysics2::rateCalculation::debug
         bool testCollisionalDeexcitationRate()
         {
             float_64 const correctRate = 3.398488386461e+15; // 1/s
-            float_64 const rate
-                = static_cast<float_64>(
-                      rateCalculation::BoundBoundTransitionRates<T_n_max>::
-                          template rateCollisionalBoundBoundTransition<false>(
-                              energyElectron,
-                              energyElectronBinWidth,
-                              static_cast<float_X>(densityElectrons * pmacc::math::cPow(picongpu::UNIT_LENGTH, 3u)),
-                              0u,
-                              atomicStateBuffer->getHostDataBox(),
-                              boundBoundBuffer->getHostDataBox()))
+            auto const collisionalRate = rateCalculation::CollisionalRate{}(
+                energyElectron,
+                energyElectronBinWidth,
+                static_cast<float_X>(densityElectrons * pmacc::math::cPow(picongpu::UNIT_LENGTH, 3u)));
+            float_64 const rate = static_cast<float_64>(rateCalculation::BoundBoundTransitionRates<T_n_max>::
+                                                            template rateCollisionalBoundBoundTransition<false>(
+                                                                energyElectron,
+                                                                collisionalRate,
+                                                                0u,
+                                                                atomicStateBuffer->getHostDataBox(),
+                                                                boundBoundBuffer->getHostDataBox()))
                 * 1. / UNIT_TIME; // 1/s
 
             return testRelativeError(correctRate, rate, "collisional deexcitation rate", 1e-5);
