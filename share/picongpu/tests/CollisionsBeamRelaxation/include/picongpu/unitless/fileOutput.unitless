@@ -31,7 +31,7 @@ namespace picongpu
             {
                 HDINLINE float1_64 WeightedTransverseVelocitySquared::getUnit() const
                 {
-                    return UNIT_SPEED * UNIT_SPEED;
+                    return setup(unit::si_).unit.speed * setup(unit::si_).unit.speed;
                 }
 
                 template<typename T_Particle>

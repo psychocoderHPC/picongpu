@@ -48,12 +48,12 @@ namespace picongpu
                 /// @todo : choose algorithm by particle? @BrianMarre, 2021
                 float_64 const energyPhysicalElectron
                     = picongpu::particles::atomicPhysics::GetRealKineticEnergy::KineticEnergy(electron)
-                    / picongpu::SI::ATOMIC_UNIT_ENERGY; // unit: ATOMIC_UNIT_ENERGY
+                    / picongpu::SI::ATOMIC_setup(unit::si_).unit.energy; // unit: ATOMIC_setup(unit::si_).unit.energy
 
                 // look up in the histogram, which bin corresponds to this energy
                 uint16_t binIndex = histogram.getBinIndex(
                     worker,
-                    energyPhysicalElectron, // unit: ATOMIC_UNIT_ENERGY
+                    energyPhysicalElectron, // unit: ATOMIC_setup(unit::si_).unit.energy
                     atomicDataBox);
 
                 // case: electron missing from histogram due to not enough histogram
@@ -63,21 +63,21 @@ namespace picongpu
 
                 float_X const weightBin = histogram.getWeightBin(binIndex); // unitless
                 float_X const deltaEnergyBin = histogram.getDeltaEnergyBin(binIndex);
-                // unit: ATOMIC_UNIT_ENERGY
+                // unit: ATOMIC_setup(unit::si_).unit.energy
 
                 /// @todo : create attribute functor for physical particle properties?, @BrianMarre, 2021
-                constexpr float_64 c_SI = picongpu::SI::SPEED_OF_LIGHT_SI; // unit: m/s, SI
-                float_64 m_e_rel = attribute::getMass(1.0_X, electron) * picongpu::UNIT_MASS * c_SI * c_SI
-                    / picongpu::SI::ATOMIC_UNIT_ENERGY; // unit: ATOMIC_UNIT_ENERGY
+                constexpr float_64 c_SI = picongpu::setup(unit::si_).physicalConstant.speed_of_light; // unit: m/s, SI
+                float_64 m_e_rel = attribute::getMass(1.0_X, electron) * picongpu::setup(unit::si_).unit.mass * c_SI * c_SI
+                    / picongpu::SI::ATOMIC_setup(unit::si_).unit.energy; // unit: ATOMIC_setup(unit::si_).unit.energy
 
                 // distribute energy change as mean by weight on all electrons in bin
                 float_64 newEnergyPhysicalElectron
                     = energyPhysicalElectron
                     + static_cast<float_64>(
                           deltaEnergyBin
-                          / (static_cast<float_X>(picongpu::particles::TYPICAL_NUM_PARTICLES_PER_MACROPARTICLE)
+                          / (static_cast<float_X>(picongpu::setup().base.particle.typical_num_particles_per_macroparticle)
                              * weightBin));
-                // unit:: ATOMIC_UNIT_ENERGY
+                // unit:: ATOMIC_setup(unit::si_).unit.energy
 
                 // case: too much energy removed
                 if(newEnergyPhysicalElectron < 0)
@@ -85,8 +85,8 @@ namespace picongpu
 
                 float_64 newPhysicalElectronMomentum
                     = math::sqrt(newEnergyPhysicalElectron * (newEnergyPhysicalElectron + 2 * m_e_rel))
-                    * picongpu::SI::ATOMIC_UNIT_ENERGY / c_SI;
-                // AU = ATOMIC_UNIT_ENERGY
+                    * picongpu::SI::ATOMIC_setup(unit::si_).unit.energy / c_SI;
+                // AU = ATOMIC_setup(unit::si_).unit.energy
                 // sqrt(AU * (AU + AU)) / (AU/J) / c = sqrt(AU^2)/(AU/J) / c = J/c = kg*m^2/s^2/(m/s)
                 // unit: kg*m/s, SI
 
@@ -102,7 +102,7 @@ namespace picongpu
                 electron[momentum_] *= 1 / previousMomentumVectorLength2 // get unity vector of momentum
                     * static_cast<float_X>(newPhysicalElectronMomentum
                                            * electron[weighting_] // new momentum scaled and in internal units
-                                           / (picongpu::UNIT_MASS * picongpu::UNIT_LENGTH / picongpu::UNIT_TIME));
+                                           / (picongpu::setup(unit::si_).unit.mass * picongpu::setup(unit::si_).unit.length / picongpu::setup(unit::si_).unit.time));
                 // unit: internal units
             }
 

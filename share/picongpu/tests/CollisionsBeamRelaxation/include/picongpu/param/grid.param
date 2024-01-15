@@ -60,7 +60,7 @@ namespace picongpu
         /** equals X
          *
          *  unit: meter */
-        constexpr float_64 REFERENCE_LENGTH_SI = SPEED_OF_LIGHT_SI * REFERENCE_TIME_SI;
+        constexpr float_64 REFERENCE_LENGTH_SI = setup(unit::si_).physicalConstant.speed_of_light * REFERENCE_TIME_SI;
         constexpr float_64 CELL_WIDTH_SI = 2.0 * REFERENCE_LENGTH_SI;
         /** equals Y - the laser & moving window propagation direction
          *  unit: meter */

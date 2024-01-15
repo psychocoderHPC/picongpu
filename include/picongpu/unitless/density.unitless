@@ -24,7 +24,7 @@
 namespace picongpu
 
 {
-    constexpr float_X BASE_DENSITY = float_X(SI::BASE_DENSITY_SI * UNIT_LENGTH * UNIT_LENGTH * UNIT_LENGTH);
+    constexpr float_X BASE_DENSITY = float_X(SI::BASE_DENSITY_SI * setup(unit::si_).unit.length * setup(unit::si_).unit.length * setup(unit::si_).unit.length);
 }
 
 #include "picongpu/particles/densityProfiles/profiles.hpp"

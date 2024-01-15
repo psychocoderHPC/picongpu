@@ -52,7 +52,7 @@ namespace picongpu
                 float_64 const timeStep = static_cast<float_64>(getTimeStep());
 
                 //! Grid steps as float_64
-                float3_64 const step = precisionCast<float_64>(cellSize);
+                float3_64 const step = precisionCast<float_64>(setup().cell);
 
                 //! Angular frequency
                 float_64 const omega;
@@ -93,7 +93,7 @@ namespace picongpu
                         auto const term = absK * direction[d];
                         rhs += term * term;
                     }
-                    auto const lhsTerm = omega / SPEED_OF_LIGHT;
+                    auto const lhsTerm = omega / setup().physicalConstant.speed_of_light;
                     auto const lhs = lhsTerm * lhsTerm;
                     return rhs - lhs;
                 }

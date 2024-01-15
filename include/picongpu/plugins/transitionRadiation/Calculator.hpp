@@ -173,7 +173,7 @@ namespace picongpu
 
                     float_X const a = detectorSinTheta * parMomSinTheta * math::cos(parMomPhi - detectorPhi);
                     float_X const b
-                        = -(particle.getPosPara()) * (1 / particle.getVel() - a / SPEED_OF_LIGHT) / (parMomCosTheta);
+                        = -(particle.getPosPara()) * (1 / particle.getVel() - a / setup().physicalConstant.speed_of_light) / (parMomCosTheta);
                     float_X const c
                         = -detectorSinTheta * particle.getPosPerp() * math::cos(particle.getPosPhi() - detectorPhi);
 

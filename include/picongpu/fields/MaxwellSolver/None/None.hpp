@@ -70,22 +70,17 @@ namespace picongpu
                 }
             };
 
-            /** Specialization of the CFL condition checker for the None solver
+            /**  CFL condition checker for the None solver
              *
-             * @tparam T_Defer technical parameter to defer evaluation
+             * No limitations for this solver, allow any dt
+             *
+             * @return value of 'X' to fulfill the condition 'c * dt <= X`
              */
-            template<typename T_Defer>
-            struct CFLChecker<None, T_Defer>
+            inline float_X checkCfl(None const&)
             {
-                /** No limitations for this solver, allow any dt
-                 *
-                 * @return value of 'X' to fulfill the condition 'c * dt <= X`
-                 */
-                float_X operator()() const
-                {
-                    return std::numeric_limits<float_X>::infinity();
-                }
-            };
+                return std::numeric_limits<float_X>::infinity();
+            }
+
 
         } // namespace maxwellSolver
     } // namespace fields

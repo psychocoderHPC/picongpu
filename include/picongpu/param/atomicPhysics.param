@@ -64,8 +64,8 @@ namespace picongpu
         constexpr uint8_t numProcesses = 2u;
 
         // histogram parameter
-        constexpr float_X initialGridWidth = 1._X; // unit: ATOMIC_UNIT_ENERGY
-        constexpr float_X relativeErrorTarget = 0.5_X; // unit: 1/s /(1/( m^3 * ATOMIC_UNIT_ENERGY ))
+        constexpr float_X initialGridWidth = 1._X; // unit: ATOMIC_setup(unit::si_).unit.energy
+        constexpr float_X relativeErrorTarget = 0.5_X; // unit: 1/s /(1/( m^3 * ATOMIC_setup(unit::si_).unit.energy ))
         constexpr uint16_t maxNumBins = 80;
 
     } // namespace atomicPhysics

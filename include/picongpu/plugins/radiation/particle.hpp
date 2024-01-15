@@ -128,21 +128,21 @@ namespace picongpu
                 {
                     // returns beta=v/c
                     const picongpu::float_32 gamma1 = calc_gamma(momentum);
-                    return momentum * (1.0 / (mass * picongpu::SPEED_OF_LIGHT * gamma1));
+                    return momentum * (1.0 / (mass * picongpu::setup().physicalConstant.speed_of_light * gamma1));
                 }
 
                 HDINLINE picongpu::float_64 calc_gamma(const vector_X& momentum) const
                 {
                     // return gamma = E/(mc^2)
                     const picongpu::float_32 x = util::square<vector_X, picongpu::float_32>(
-                        momentum * (1.0 / (mass * picongpu::SPEED_OF_LIGHT)));
+                        momentum * (1.0 / (mass * picongpu::setup().physicalConstant.speed_of_light)));
                     return picongpu::math::sqrt(1.0 + x);
                 }
 
                 HDINLINE picongpu::float_64 calc_gamma_inv_square(const vector_X& momentum) const
                 {
                     // returns 1/gamma^2 = m^2*c^2/(m^2*c^2 + p^2)
-                    const picongpu::float_32 Emass = mass * picongpu::SPEED_OF_LIGHT;
+                    const picongpu::float_32 Emass = mass * picongpu::setup().physicalConstant.speed_of_light;
                     return Emass / (Emass + (util::square<vector_X, picongpu::float_32>(momentum)) / Emass);
                 }
 

@@ -62,7 +62,7 @@ namespace picongpu
                 , beta_0(beta_0)
                 , tdelay_user_SI(tdelay_user_SI)
                 , dt(SI::DELTA_T_SI)
-                , unit_length(UNIT_LENGTH)
+                , unit_length(setup(unit::si_).unit.length)
                 , auto_tdelay(auto_tdelay)
                 , pol(pol)
             {
@@ -304,13 +304,13 @@ namespace picongpu
                  * float_T const eta = (PI / 2) - (phiReal - alphaTilt);
                  */
 
-                auto const cspeed = float_T(SI::SPEED_OF_LIGHT_SI / UNIT_SPEED);
-                auto const lambda0 = float_T(wavelength_SI / UNIT_LENGTH);
+                auto const cspeed = float_T(setup(unit::si_).physicalConstant.speed_of_light / setup(unit::si_).unit.speed);
+                auto const lambda0 = float_T(wavelength_SI / setup(unit::si_).unit.length);
                 float_T const om0 = float_T(2.0 * PI) * cspeed / lambda0;
                 /* factor 2  in tauG arises from definition convention in laser formula */
-                auto const tauG = float_T(pulselength_SI * 2.0 / UNIT_TIME);
+                auto const tauG = float_T(pulselength_SI * 2.0 / setup(unit::si_).unit.time);
                 /* w0 is wx here --> w0 could be replaced by wx */
-                auto const w0 = float_T(w_x_SI / UNIT_LENGTH);
+                auto const w0 = float_T(w_x_SI / setup(unit::si_).unit.length);
                 auto const rho0 = float_T(PI * w0 * w0 / lambda0);
                 auto const k = float_T(2.0 * PI / lambda0);
 
@@ -325,7 +325,7 @@ namespace picongpu
                 pmacc::math::sincos(precisionCast<float_64>(phi), sinPhiVal, cosPhiVal);
                 float_64 const tanAlpha = (1.0 - beta_0 * cosPhiVal) / (beta_0 * sinPhiVal);
                 float_64 const tanFocalLine = math::tan(PI / 2.0 - phi);
-                float_64 const deltaT = wavelength_SI / SI::SPEED_OF_LIGHT_SI * (1.0 + tanAlpha / tanFocalLine);
+                float_64 const deltaT = wavelength_SI / setup(unit::si_).physicalConstant.speed_of_light * (1.0 + tanAlpha / tanFocalLine);
                 float_64 const deltaY = wavelength_SI / tanFocalLine;
                 float_64 const deltaZ = -wavelength_SI;
                 float_64 const numberOfPeriods = math::floor(time / deltaT);
@@ -333,10 +333,10 @@ namespace picongpu
                 auto const yMod = float_T(pos.y() + numberOfPeriods * deltaY);
                 auto const zMod = float_T(pos.z() + numberOfPeriods * deltaZ);
 
-                auto const x = float_T(phiPositive * pos.x() / UNIT_LENGTH);
-                auto const y = float_T(phiPositive * yMod / UNIT_LENGTH);
-                auto const z = float_T(zMod / UNIT_LENGTH);
-                auto const t = float_T(timeMod / UNIT_TIME);
+                auto const x = float_T(phiPositive * pos.x() / setup(unit::si_).unit.length);
+                auto const y = float_T(phiPositive * yMod / setup(unit::si_).unit.length);
+                auto const z = float_T(zMod / setup(unit::si_).unit.length);
+                auto const t = float_T(timeMod / setup(unit::si_).unit.time);
 
                 /* Calculating shortcuts for speeding up field calculation */
                 float_T sinPhi;

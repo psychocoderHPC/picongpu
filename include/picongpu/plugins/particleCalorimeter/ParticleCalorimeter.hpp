@@ -112,8 +112,8 @@ namespace picongpu
             // override some attributes according to the calorimeter plugin
             if(this->numBinsEnergy > 1)
             {
-                const float_64 minEnergy_SI = this->minEnergy * UNIT_ENERGY;
-                const float_64 maxEnergy_SI = this->maxEnergy * UNIT_ENERGY;
+                const float_64 minEnergy_SI = this->minEnergy * setup(unit::si_).unit.energy;
+                const float_64 maxEnergy_SI = this->maxEnergy * setup(unit::si_).unit.energy;
                 const float_64 minEnergy_keV = minEnergy_SI * UNITCONV_Joule_to_keV;
                 const float_64 maxEnergy_keV = maxEnergy_SI * UNITCONV_Joule_to_keV;
 
@@ -137,7 +137,7 @@ namespace picongpu
                     = {float_X(maxPitch_deg - posPitch_deg) / dataset.getExtent()[1],
                        float_X(maxYaw_deg - posYaw_deg) / dataset.getExtent()[2]};
             }
-            constexpr float_64 unitSI = particles::TYPICAL_NUM_PARTICLES_PER_MACROPARTICLE * UNIT_ENERGY;
+            constexpr float_64 unitSI = setup().base.particle.typical_num_particles_per_macroparticle * setup(unit::si_).unit.energy;
             setMeshAttributes.m_unitSI = unitSI;
             setMeshAttributes.m_unitDimension // Joule
                 = {{::openPMD::UnitDimension::M, 1},
@@ -299,8 +299,8 @@ namespace picongpu
             /* convert units */
             const float_64 minEnergy_SI = this->minEnergy * UNITCONV_keV_to_Joule;
             const float_64 maxEnergy_SI = this->maxEnergy * UNITCONV_keV_to_Joule;
-            this->minEnergy = minEnergy_SI / UNIT_ENERGY;
-            this->maxEnergy = maxEnergy_SI / UNIT_ENERGY;
+            this->minEnergy = minEnergy_SI / setup(unit::si_).unit.energy;
+            this->maxEnergy = maxEnergy_SI / setup(unit::si_).unit.energy;
 
             /* allocate memory buffers */
             auto detectorSize = DataSpace<DIM3>(this->numBinsYaw, this->numBinsPitch, this->numBinsEnergy);

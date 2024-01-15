@@ -42,7 +42,7 @@ namespace picongpu
          *  note: formulated to automatically fullfill the 3D CFL criteria for Yee
          *
          *  unit: meter */
-        constexpr float_64 CELL_WIDTH_SI = DELTA_T_SI * SPEED_OF_LIGHT_SI * SQRT_OF_3;
+        constexpr float_64 CELL_WIDTH_SI = DELTA_T_SI * setup(unit::si_).physicalConstant.speed_of_light * SQRT_OF_3;
         /** equals Y - the laser & moving window propagation direction
          *  unit: meter */
         constexpr float_64 CELL_HEIGHT_SI = CELL_WIDTH_SI;

@@ -1282,7 +1282,7 @@ make sure that environment variable OPENPMD_BP_BACKEND is not set to ADIOS1.
                         * float_64(params->window.globalDimensions.offset[d] + globalSlideOffset[d]);
 
                 mesh.setGridGlobalOffset(std::move(gridGlobalOffset));
-                mesh.setGridUnitSI(UNIT_LENGTH);
+                mesh.setGridUnitSI(setup(unit::si_).unit.length);
                 mesh.setAttribute("fieldSmoothing", "none");
             }
 

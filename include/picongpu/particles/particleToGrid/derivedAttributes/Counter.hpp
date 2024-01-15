@@ -37,7 +37,7 @@ namespace picongpu
             {
                 HDINLINE float1_64 Counter::getUnit() const
                 {
-                    return particles::TYPICAL_NUM_PARTICLES_PER_MACROPARTICLE;
+                    return setup().base.particle.typical_num_particles_per_macroparticle;
                 }
 
                 template<class T_Particle>
@@ -48,7 +48,7 @@ namespace picongpu
 
                     /* calculate new attribute */
                     const float_X particleCounter
-                        = weighting / static_cast<float_X>(particles::TYPICAL_NUM_PARTICLES_PER_MACROPARTICLE);
+                        = weighting / static_cast<float_X>(setup().base.particle.typical_num_particles_per_macroparticle);
 
                     /* return attribute */
                     return particleCounter;

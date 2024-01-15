@@ -113,7 +113,7 @@ namespace picongpu
                 const float_32 mass = frame::getMass<FrameType>();
                 const auto densityRatio = traits::GetDensityRatio<T_Species>::type::getValue();
                 const auto density = BASE_DENSITY * densityRatio;
-                const auto omegaP_dt = sqrt(density * charge / mass * charge / EPS0) * DELTA_T;
+                const auto omegaP_dt = sqrt(density * charge / mass * charge / EPS0) * setup().delta_t;
                 log<picLog::PHYSICS>("species %2%: omega_p * dt <= 0.1 ? (omega_p * dt = %1%)") % omegaP_dt
                     % FrameType::getName();
             }
@@ -126,12 +126,12 @@ namespace picongpu
         {
             if(Environment<simDim>::get().GridController().getGlobalRank() == 0)
             {
-                auto maxC_DT = fields::maxwellSolver::CFLChecker<fields::Solver>{}();
+                auto maxC_DT = checkCfl(setup(component::solver_).fieldSolver.get());
                 auto const isSubstepping = fields::maxwellSolver::traits::IsSubstepping<fields::Solver>::value;
                 auto const dtName = std::string{isSubstepping ? "substepping_dt" : "dt"};
                 auto const cflMessage
                     = std::string{"Field solver condition: c * "} + dtName + " <= %1% ? (c * " + dtName + " = %2%)";
-                log<picLog::PHYSICS>(cflMessage.c_str()) % maxC_DT % (SPEED_OF_LIGHT * DELTA_T);
+                log<picLog::PHYSICS>(cflMessage.c_str()) % maxC_DT % (setup().physicalConstant.speed_of_light * setup().delta_t);
 
                 printDispersionInformation();
 
@@ -149,20 +149,20 @@ namespace picongpu
                 const int localNrOfCells
                     = cellDescription->getGridLayout().getDataSpaceWithoutGuarding().productOfComponents();
                 log<picLog::PHYSICS>("macro particles per device: %1%")
-                    % (localNrOfCells * particles::TYPICAL_PARTICLES_PER_CELL
+                    % (localNrOfCells * setup().particle.num_per_cellL
                        * (pmacc::mp_size<VectorAllSpecies>::value));
                 log<picLog::PHYSICS>("typical macro particle weighting: %1%")
-                    % (particles::TYPICAL_NUM_PARTICLES_PER_MACROPARTICLE);
+                    % (setup().base.particle.typical_num_particles_per_macroparticle);
 
 
-                log<picLog::PHYSICS>("UNIT_SPEED %1%") % UNIT_SPEED;
-                log<picLog::PHYSICS>("UNIT_TIME %1%") % UNIT_TIME;
-                log<picLog::PHYSICS>("UNIT_LENGTH %1%") % UNIT_LENGTH;
-                log<picLog::PHYSICS>("UNIT_MASS %1%") % UNIT_MASS;
-                log<picLog::PHYSICS>("UNIT_CHARGE %1%") % UNIT_CHARGE;
-                log<picLog::PHYSICS>("UNIT_EFIELD %1%") % UNIT_EFIELD;
-                log<picLog::PHYSICS>("UNIT_BFIELD %1%") % UNIT_BFIELD;
-                log<picLog::PHYSICS>("UNIT_ENERGY %1%") % UNIT_ENERGY;
+                log<picLog::PHYSICS>("setup(unit::si_).unit.speed %1%") % setup(unit::si_).unit.speed;
+                log<picLog::PHYSICS>("setup(unit::si_).unit.time %1%") % setup(unit::si_).unit.time;
+                log<picLog::PHYSICS>("setup(unit::si_).unit.length %1%") % setup(unit::si_).unit.length;
+                log<picLog::PHYSICS>("setup(unit::si_).unit.mass %1%") % setup(unit::si_).unit.mass;
+                log<picLog::PHYSICS>("setup(unit::si_).unit.charge %1%") % setup(unit::si_).unit.charge;
+                log<picLog::PHYSICS>("setup(unit::si_).unit.efield %1%") % setup(unit::si_).unit.efield;
+                log<picLog::PHYSICS>("setup(unit::si_).unit.bfield %1%") % setup(unit::si_).unit.bfield;
+                log<picLog::PHYSICS>("setup(unit::si_).unit.energy %1%") % setup(unit::si_).unit.energy;
             }
         }
 
@@ -216,7 +216,7 @@ namespace picongpu
                 if(printInfo)
                 {
                     auto const phaseVelocity = fields::incidentField::getPhaseVelocity<T_Profile>();
-                    auto const phaseVelocityC = phaseVelocity / SPEED_OF_LIGHT;
+                    auto const phaseVelocityC = phaseVelocity / setup().physicalConstant.speed_of_light;
                     auto const message = std::string{"Incident field \""} + T_Profile::getName()
                         + "\" numerical dispersion: v_phase = %1% * c";
                     log<picLog::PHYSICS>(message.c_str()) % phaseVelocityC;

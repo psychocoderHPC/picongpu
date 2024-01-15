@@ -20,7 +20,6 @@
 
 #pragma once
 
-#include "picongpu/simulation_defines.hpp"
 
 #include "picongpu/fields/FieldB.hpp"
 #include "picongpu/fields/FieldE.hpp"
@@ -28,8 +27,8 @@
 #include "picongpu/fields/MaxwellSolver/AddCurrentDensity.hpp"
 #include "picongpu/fields/MaxwellSolver/FDTD/FDTDBase.kernel"
 #include "picongpu/fields/MaxwellSolver/GetTimeStep.hpp"
-#include "picongpu/fields/absorber/Absorber.hpp"
-#include "picongpu/fields/absorber/pml/Pml.hpp"
+#include "picongpu/fields/boundary/impl/Exponential.hpp"
+#include "picongpu/fields/boundary/impl/Pml.hpp"
 #include "picongpu/fields/currentInterpolation/CurrentInterpolation.hpp"
 #include "picongpu/fields/incidentField/Solver.hpp"
 
@@ -37,7 +36,7 @@
 
 #include <cstdint>
 #include <memory>
-
+#include <optional>
 
 namespace picongpu
 {
@@ -70,11 +69,7 @@ namespace picongpu
                      *
                      * @param cellDescription mapping description for kernels
                      */
-                    FDTDBase(MappingDesc const cellDescription)
-                        : cellDescription(cellDescription)
-                        ,
-                        // Make sure the absorber instance is created here, before particle memory allocation
-                        absorberImpl(fields::absorber::AbsorberImpl::getImpl(cellDescription))
+                    FDTDBase(MappingDesc const cellDescription) : cellDescription(cellDescription)
                     {
                         DataConnector& dc = Environment<>::get().DataConnector();
                         fieldE = dc.get<FieldE>(FieldE::getName());
@@ -82,9 +77,6 @@ namespace picongpu
                     }
 
                 protected:
-                    //! Time step used for each field solver update
-                    static constexpr auto timeStep = getTimeStep();
-
                     /** Perform the first part of E and B propagation
                      *  from t_start = currentStep * DELTA_T to t_end = t_start + timeStep.
                      *
@@ -96,6 +88,8 @@ namespace picongpu
                      */
                     void updateBeforeCurrent(float_X const currentStep)
                     {
+                        auto timeStep = getTimeStep();
+
                         /* As typical for electrodynamic PIC codes, we split an FDTD update of B into two halves.
                          * (This comes from commonly used particle pushers needing E and B at the same time.)
                          * Here we do the second half of updating B.
@@ -114,7 +108,7 @@ namespace picongpu
                          * It uses values of B_inc at time = currentStep * DELTA_T + 0.5 * timeStep.
                          * In units of DELTA_T that is equal to currentStep + 0.5 * timeStep / DELTA_T
                          */
-                        incidentFieldSolver.updateE(currentStep + 0.5_X * timeStep / DELTA_T);
+                        incidentFieldSolver.updateE(currentStep + 0.5_X * timeStep / setup().delta_t);
                         updateE<CORE>(currentStep);
                         eventSystem::setTransactionEvent(eRfieldB);
                         updateE<BORDER>(currentStep);
@@ -151,11 +145,12 @@ namespace picongpu
                     void updateAfterCurrent(float_X const currentStep)
                     {
                         auto& absorber = absorber::Absorber::get();
-                        if(absorber.getKind() == absorber::Absorber::Kind::Exponential)
+                        if(boundaryExponential)
                         {
-                            auto& exponentialImpl = absorberImpl.asExponentialImpl();
-                            exponentialImpl.run(currentStep, fieldE->getDeviceDataBox());
+                            boundaryExponential->run(currentStep, fieldE->getDeviceDataBox());
                         }
+
+                        auto timeStep = getTimeStep();
 
                         // Incident field solver update does not use exchanged E, so does not have to wait for it
                         auto incidentFieldSolver = fields::incidentField::Solver{cellDescription};
@@ -163,7 +158,7 @@ namespace picongpu
                          * It uses values of E_inc at time = currentStep * DELTA_T + timeStep.
                          * In units of DELTA_T that is equal to currentStep + timeStep / DELTA_T
                          */
-                        incidentFieldSolver.updateBHalf(currentStep + timeStep / DELTA_T);
+                        incidentFieldSolver.updateBHalf(currentStep + timeStep / setup().delta_t);
 
                         EventTask eRfieldE = fieldE->asyncCommunication(eventSystem::getTransactionEvent());
 
@@ -172,10 +167,9 @@ namespace picongpu
                         eventSystem::setTransactionEvent(eRfieldE);
                         updateBFirstHalf<BORDER>(currentStep);
 
-                        if(absorber.getKind() == absorber::Absorber::Kind::Exponential)
+                        if(boundaryExponential)
                         {
-                            auto& exponentialImpl = absorberImpl.asExponentialImpl();
-                            exponentialImpl.run(currentStep, fieldB->getDeviceDataBox());
+                            boundaryExponential->run(currentStep, fieldB->getDeviceDataBox());
                         }
 
                         EventTask eRfieldB = fieldB->asyncCommunication(eventSystem::getTransactionEvent());
@@ -241,12 +235,10 @@ namespace picongpu
                         auto const mapper = pmacc::makeAreaMapper<T_Area>(cellDescription);
 
                         // The ugly transition from run-time to compile-time polymorphism is contained here
-                        auto& absorber = absorber::Absorber::get();
-                        if(absorber.getKind() == absorber::Absorber::Kind::Pml)
+                        if(boundaryPml)
                         {
-                            auto& pmlImpl = absorberImpl.asPmlImpl();
                             auto const updateFunctor
-                                = pmlImpl.template getUpdateBHalfFunctor<CurlE>(currentStep, updatePsiB);
+                                = boundaryPml->getUpdateBHalfFunctor<CurlE>(currentStep, updatePsiB);
                             PMACC_LOCKSTEP_KERNEL(Kernel{}, workerCfg)
                             (mapper.getGridDim())(
                                 mapper,
@@ -280,11 +272,9 @@ namespace picongpu
                         auto const mapper = pmacc::makeAreaMapper<T_Area>(cellDescription);
 
                         // The ugly transition from run-time to compile-time polymorphism is contained here
-                        auto& absorber = absorber::Absorber::get();
-                        if(absorber.getKind() == absorber::Absorber::Kind::Pml)
+                        if(boundaryPml)
                         {
-                            auto& pmlImpl = absorberImpl.asPmlImpl();
-                            auto const updateFunctor = pmlImpl.template getUpdateEFunctor<CurlB>(currentStep);
+                            auto const updateFunctor = boundaryPml->getUpdateEFunctor<CurlB>(currentStep);
                             PMACC_LOCKSTEP_KERNEL(Kernel{}, workerCfg)
                             (mapper.getGridDim())(
                                 mapper,
@@ -307,8 +297,9 @@ namespace picongpu
                     std::shared_ptr<FieldE> fieldE;
                     std::shared_ptr<FieldB> fieldB;
 
-                    // Absorber implementation
-                    fields::absorber::AbsorberImpl& absorberImpl;
+                    // Absorber implementations
+                    std::optional<fields::boundary::impl::Exponential> boundaryExponential;
+                    std::optional<fields::boundary::impl::Pml> boundaryPml;
                 };
             } // namespace fdtd
         } // namespace maxwellSolver

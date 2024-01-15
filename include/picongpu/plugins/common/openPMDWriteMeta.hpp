@@ -20,7 +20,6 @@
 #pragma once
 #include "picongpu/simulation_defines.hpp"
 
-#include "picongpu/fields/absorber/Absorber.hpp"
 #include "picongpu/fields/currentInterpolation/CurrentInterpolation.hpp"
 #include "picongpu/plugins/common/openPMDVersion.def"
 #include "picongpu/plugins/common/stringHelpers.hpp"
@@ -135,9 +134,9 @@ namespace picongpu
                 ::openPMD::Container<::openPMD::Mesh>& meshes = iteration.meshes;
 
                 // iteration-level attributes
-                iteration.setDt<float_X>(DELTA_T);
-                iteration.setTime(float_X(currentStep) * DELTA_T);
-                iteration.setTimeUnitSI(UNIT_TIME);
+                iteration.setDt<float_X>(setup().delta_t);
+                iteration.setTime(float_X(currentStep) * setup().delta_t);
+                iteration.setTimeUnitSI(setup(unit::si_).unit.time);
 
                 if(writeFieldMeta)
                 {
@@ -215,20 +214,20 @@ namespace picongpu
                 std::string names[3] = {"cell_width", "cell_height", "cell_depth"};
                 for(unsigned i = 0; i < 3; ++i)
                 {
-                    iteration.setAttribute(names[i], cellSize[i]);
+                    iteration.setAttribute(names[i], setup().cell[i]);
                 }
 
 
                 /* write base units */
                 log<picLog::INPUT_OUTPUT>("openPMD: meta: units");
-                iteration.setAttribute<double>("unit_energy", UNIT_ENERGY);
-                iteration.setAttribute<double>("unit_length", UNIT_LENGTH);
-                iteration.setAttribute<double>("unit_speed", UNIT_SPEED);
-                iteration.setAttribute<double>("unit_time", UNIT_TIME);
-                iteration.setAttribute<double>("unit_mass", UNIT_MASS);
-                iteration.setAttribute<double>("unit_charge", UNIT_CHARGE);
-                iteration.setAttribute<double>("unit_efield", UNIT_EFIELD);
-                iteration.setAttribute<double>("unit_bfield", UNIT_BFIELD);
+                iteration.setAttribute<double>("unit_energy", setup(unit::si_).unit.energy);
+                iteration.setAttribute<double>("unit_length", setup(unit::si_).unit.length);
+                iteration.setAttribute<double>("unit_speed", setup(unit::si_).unit.speed);
+                iteration.setAttribute<double>("unit_time", setup(unit::si_).unit.time);
+                iteration.setAttribute<double>("unit_mass", setup(unit::si_).unit.mass);
+                iteration.setAttribute<double>("unit_charge", setup(unit::si_).unit.charge);
+                iteration.setAttribute<double>("unit_efield", setup(unit::si_).unit.efield);
+                iteration.setAttribute<double>("unit_bfield", setup(unit::si_).unit.bfield);
 
 
                 /* write physical constants */

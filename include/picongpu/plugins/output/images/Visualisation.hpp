@@ -104,7 +104,7 @@ namespace picongpu
             return float3_X(float_X(1.0), float_X(1.0), float_X(1.0));
 #else
             constexpr auto baseCharge = BASE_CHARGE;
-            const float_X lambda_pl = pmacc::math::Pi<float_X>::doubleValue * SPEED_OF_LIGHT
+            const float_X lambda_pl = pmacc::math::Pi<float_X>::doubleValue * setup().physicalConstant.speed_of_light
                 * sqrt(BASE_MASS * EPS0 / BASE_DENSITY / baseCharge / baseCharge);
             const float_X tyEField = lambda_pl * BASE_DENSITY / 3.0f / EPS0;
             const float_X tyBField = tyEField * MUE0_EPS0;
@@ -130,10 +130,10 @@ namespace picongpu
 #else
             // Convert customNormalizationSI to internal units
             using visPreview::customNormalizationSI;
-            constexpr auto normalizationB = static_cast<float_X>(customNormalizationSI[0] / UNIT_BFIELD);
-            constexpr auto normalizationE = static_cast<float_X>(customNormalizationSI[1] / UNIT_EFIELD);
+            constexpr auto normalizationB = static_cast<float_X>(customNormalizationSI[0] / setup(unit::si_).unit.bfield);
+            constexpr auto normalizationE = static_cast<float_X>(customNormalizationSI[1] / setup(unit::si_).unit.efield);
             constexpr auto normalizationCurrent
-                = static_cast<float_X>(customNormalizationSI[2] / (UNIT_CHARGE / UNIT_TIME));
+                = static_cast<float_X>(customNormalizationSI[2] / (setup(unit::si_).unit.charge / setup(unit::si_).unit.time));
             return float3_X{normalizationB, normalizationE, normalizationCurrent};
 #endif
         }
@@ -150,9 +150,9 @@ namespace picongpu
             return float3_X::create(1.0_X);
 #else
             constexpr auto baseCharge = BASE_CHARGE;
-            const float_X tyCurrent = particles::TYPICAL_PARTICLES_PER_CELL
-                * static_cast<float_X>(particles::TYPICAL_NUM_PARTICLES_PER_MACROPARTICLE) * math::abs(baseCharge)
-                / DELTA_T;
+            const float_X tyCurrent = setup().particle.num_per_cellL
+                * static_cast<float_X>(setup().base.particle.typical_num_particles_per_macroparticle) * math::abs(baseCharge)
+                / setup().delta_t;
             const float_X tyEField = getAmplitude() + FLT_MIN;
             const float_X tyBField = tyEField * MUE0_EPS0;
             return float3_X(tyBField, tyEField, tyCurrent);
@@ -488,7 +488,7 @@ namespace picongpu
                             &(counter(reducedCell)),
                             // normalize the value to avoid bad precision for large macro particle weightings
                             particle[weighting_]
-                                / static_cast<float_X>(particles::TYPICAL_NUM_PARTICLES_PER_MACROPARTICLE),
+                                / static_cast<float_X>(setup().base.particle.typical_num_particles_per_macroparticle),
                             ::alpaka::hierarchy::Threads{});
                     }
                 });
@@ -511,12 +511,12 @@ namespace picongpu
 
                         DataSpace<DIM2> const localCell(cellIdx[transpose.x()], cellIdx[transpose.y()]);
 
-                        /** Note: normally, we would multiply by particles::TYPICAL_NUM_PARTICLES_PER_MACROPARTICLE
+                        /** Note: normally, we would multiply by setup().base.particle.typical_num_particles_per_macroparticle
                          * again. BUT: since we are interested in a simple value between 0 and 1, we stay with this
                          * number (normalized to the order of macro particles) and devide by the number of typical
                          * macro particles per cell
                          */
-                        float_X value = counter(localCell) / float_X(particles::TYPICAL_PARTICLES_PER_CELL);
+                        float_X value = counter(localCell) / float_X(setup().particle.num_per_cellL);
                         if(value > 1.0)
                             value = 1.0;
 

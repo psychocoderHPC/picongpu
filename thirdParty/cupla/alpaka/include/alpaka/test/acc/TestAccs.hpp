@@ -89,7 +89,7 @@ namespace alpaka::test
 #endif
 #if defined(ALPAKA_ACC_ANY_BT_OACC_ENABLED) && !(defined(TEST_UNIT_KERNEL_KERNEL_STD_FUNCTION))                       \
     && !(                                                                                                             \
-        defined(TEST_UNIT_TIME) /*no clock in OpenACC*/                                                               \
+        defined(TEST_setup(unit::si_).unit.time) /*no clock in OpenACC*/                                                               \
         || defined(TEST_UNIT_FENCE) /*no mem fence in OpenACC*/)                                                      \
     && !(                                                                                                             \
         BOOST_COMP_GNUC                                                                                               \

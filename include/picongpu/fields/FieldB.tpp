@@ -38,7 +38,7 @@ namespace picongpu
 
     HDINLINE FieldB::UnitValueType FieldB::getUnit()
     {
-        return UnitValueType{UNIT_BFIELD, UNIT_BFIELD, UNIT_BFIELD};
+        return UnitValueType{setup(unit::si_).unit.bfield, setup(unit::si_).unit.bfield, setup(unit::si_).unit.bfield};
     }
 
     std::vector<float_64> FieldB::getUnitDimension()

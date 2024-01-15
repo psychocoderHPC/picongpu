@@ -37,10 +37,10 @@ namespace picongpu
                 template<typename T_Particle>
                 HDINLINE static float_64 KineticEnergy(T_Particle const& particle)
                 {
-                    constexpr float_64 c_SI = picongpu::SI::SPEED_OF_LIGHT_SI; // unit: m/s, SI
+                    constexpr float_64 c_SI = picongpu::setup(unit::si_).physicalConstant.speed_of_light; // unit: m/s, SI
 
                     // mass of physical particle
-                    float_64 m_p_SI_rel = attribute::getMass(1.0_X, particle) * picongpu::UNIT_MASS * c_SI * c_SI;
+                    float_64 m_p_SI_rel = attribute::getMass(1.0_X, particle) * picongpu::setup(unit::si_).unit.mass * c_SI * c_SI;
                     // unit: J, SI
 
                     float3_X vectorMomentum_Scaled = particle[momentum_]; // unit: internal, scaled
@@ -49,11 +49,11 @@ namespace picongpu
                     // unit: internal, not scaled
 
                     float_64 momentumSquared_p_SI_rel = c_SI * c_SI
-                        * (momentumSquared * picongpu::UNIT_MASS * picongpu::UNIT_MASS * picongpu::UNIT_LENGTH
-                           * picongpu::UNIT_LENGTH
-                           / (picongpu::UNIT_TIME * picongpu::UNIT_TIME)); // unit: J^2, SI, not scaled
+                        * (momentumSquared * picongpu::setup(unit::si_).unit.mass * picongpu::setup(unit::si_).unit.mass * picongpu::setup(unit::si_).unit.length
+                           * picongpu::setup(unit::si_).unit.length
+                           / (picongpu::setup(unit::si_).unit.time * picongpu::setup(unit::si_).unit.time)); // unit: J^2, SI, not scaled
 
-                    // TODO: switch to ATOMIC_UNIT_ENERGY for intermediate calculations, Brian Marre, 2021
+                    // TODO: switch to ATOMIC_setup(unit::si_).unit.energy for intermediate calculations, Brian Marre, 2021
 
                     // relativistic kinetic energy
                     // E_kin = sqrt((m*c^2)^2 + (p*c)^2) - m*c^2

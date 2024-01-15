@@ -617,7 +617,7 @@ namespace picongpu
                             if((this->binWeight[index] + this->binDeltaWeight[index])
                                        * this->getEnergyBin(worker, index, atomicDataBox)
                                        * static_cast<float_X>(
-                                           picongpu::particles::TYPICAL_NUM_PARTICLES_PER_MACROPARTICLE)
+                                           picongpu::setup().base.particle.typical_num_particles_per_macroparticle)
                                    + deltaEnergy
                                >= 0.0)
                             {

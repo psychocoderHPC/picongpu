@@ -176,7 +176,7 @@ namespace picongpu
                 /**returns the energy of the given state respective to the ground state of its ionization
                  *
                  * @param ConfigNumber ... configNumber of atomic state
-                 * return unit: ATOMIC_UNIT_ENERGY
+                 * return unit: ATOMIC_setup(unit::si_).unit.energy
                  */
                 // @TODO: replace dumb linear search @BrianMarre 2021
                 HDINLINE ValueType operator()(Idx const ConfigNumber) const
@@ -456,7 +456,7 @@ namespace picongpu
             private:
                 // pointers to storage
                 std::unique_ptr<BufferValue>
-                    dataStateEnergy; // unit: eV, @TODO change to ATOMIC_UNIT_ENERGY?, BrianMarre, 2021
+                    dataStateEnergy; // unit: eV, @TODO change to ATOMIC_setup(unit::si_).unit.energy?, BrianMarre, 2021
                 std::unique_ptr<BufferNumber> dataNumTransitions; // unit: unitless
                 std::unique_ptr<BufferNumber> dataStartIndexBlockTransitions; // unit: unitless
                 std::unique_ptr<BufferConfigNumber> dataConfigNumber; // unit: unitless

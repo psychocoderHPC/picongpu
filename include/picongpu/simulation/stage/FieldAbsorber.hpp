@@ -19,8 +19,6 @@
 
 #pragma once
 
-#include "picongpu/fields/absorber/Absorber.hpp"
-
 #include <pmacc/Environment.hpp>
 
 #include <boost/program_options/options_description.hpp>
@@ -64,6 +62,7 @@ namespace picongpu
                  */
                 void load()
                 {
+#if 0
                     using namespace fields::absorber;
                     auto kind = Absorber::Kind{};
                     /* For the all-periodic boundaries case, we override the user's choice and use None.
@@ -81,6 +80,7 @@ namespace picongpu
                         throw std::runtime_error("Unsupported field absorber type");
                     auto& absorberFactory = AbsorberFactory::get();
                     absorberFactory.setKind(kind);
+#endif
                 }
 
             private:

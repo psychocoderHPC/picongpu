@@ -22,30 +22,19 @@
 #include "picongpu/simulation_defines.hpp"
 
 
-namespace picongpu
+namespace picongpu::fields::maxwellSolver
 {
-    namespace fields
+    /** Check the CFL condition
+     *
+     * @tparam T_FieldSolver field solver type
+     * @return value of 'X' to fulfill the condition 'c * dt <= X`
+     */
+    template<typename T_FieldSolver>
+    inline float_X checkCfl(T_FieldSolver const&)
     {
-        namespace maxwellSolver
-        {
-            /** Functor to check the Courant-Friedrichs-Lewy-Condition for the given field solver
-             *
-             * Performs either a compile-time check or a run-time check and throws if failed.
-             *
-             * @tparam T_FieldSolver field solver type
-             * @tparam T_Defer technical parameter to defer evaluation;
-             *                 is needed for specializations with non-template solver classes
-             */
-            template<typename T_FieldSolver, typename T_Defer = void>
-            struct CFLChecker
-            {
-                /** Check the CFL condition
-                 *
-                 * @return value of 'X' to fulfill the condition 'c * dt <= X`
-                 */
-                float_X operator()() const;
-            };
-
-        } // namespace maxwellSolver
-    } // namespace fields
-} // namespace picongpu
+        static_assert(
+            sizeof(T_FieldSolver) && false,
+            "checkCfl() not implemented for the current selected field solver.");
+        return 0.0_X;
+    }
+} // namespace picongpu::fields::maxwellSolver

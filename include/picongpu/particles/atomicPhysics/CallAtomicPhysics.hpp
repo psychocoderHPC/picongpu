@@ -362,8 +362,8 @@ namespace picongpu
                        ions.getDeviceParticlesBox(),
                        mapper,
                        atomicData->getDeviceDataBox(this->numberStates, this->numberTransitions),
-                       picongpu::atomicPhysics::initialGridWidth, // unit: ATOMIC_UNIT_ENERGY
-                       picongpu::atomicPhysics::relativeErrorTarget, // unit: 1/s /( 1/( m^3 * ATOMIC_UNIT_ENERGY ) )
+                       picongpu::atomicPhysics::initialGridWidth, // unit: ATOMIC_setup(unit::si_).unit.energy
+                       picongpu::atomicPhysics::relativeErrorTarget, // unit: 1/s /( 1/( m^3 * ATOMIC_setup(unit::si_).unit.energy ) )
                        step);
                 }
             };

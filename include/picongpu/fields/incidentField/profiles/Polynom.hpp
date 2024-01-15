@@ -61,8 +61,8 @@ namespace picongpu
                         //! Base unitless parameters
                         using Base = BaseTransversalGaussianParamUnitless<T_Params>;
 
-                        // unit: UNIT_TIME
-                        static constexpr float_X INIT_TIME = static_cast<float_X>(Params::PULSE_LENGTH_SI / UNIT_TIME);
+                        // unit: setup(unit::si_).unit.time
+                        const float_X INIT_TIME = static_cast<float_X>(Params::PULSE_LENGTH_SI / setup(unit::si_).unit.time);
                     };
 
                     /** Polynom incident E functor

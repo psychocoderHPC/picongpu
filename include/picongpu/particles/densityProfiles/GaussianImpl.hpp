@@ -49,15 +49,15 @@ namespace picongpu
              */
             HDINLINE float_X operator()(const DataSpace<simDim>& totalCellOffset)
             {
-                const float_X vacuum_y = float_X(ParamClass::vacuumCellsY) * cellSize.y();
-                const float_X gas_center_left = ParamClass::gasCenterLeft_SI / UNIT_LENGTH;
-                const float_X gas_center_right = ParamClass::gasCenterRight_SI / UNIT_LENGTH;
-                const float_X gas_sigma_left = ParamClass::gasSigmaLeft_SI / UNIT_LENGTH;
-                const float_X gas_sigma_right = ParamClass::gasSigmaRight_SI / UNIT_LENGTH;
+                const float_X vacuum_y = float_X(ParamClass::vacuumCellsY) * setup().cell.y();
+                const float_X gas_center_left = ParamClass::gasCenterLeft_SI / setup(unit::si_).unit.length;
+                const float_X gas_center_right = ParamClass::gasCenterRight_SI / setup(unit::si_).unit.length;
+                const float_X gas_sigma_left = ParamClass::gasSigmaLeft_SI / setup(unit::si_).unit.length;
+                const float_X gas_sigma_right = ParamClass::gasSigmaRight_SI / setup(unit::si_).unit.length;
 
-                const floatD_X globalCellPos(precisionCast<float_X>(totalCellOffset) * cellSize.shrink<simDim>());
+                const floatD_X globalCellPos(precisionCast<float_X>(totalCellOffset) * setup().cell.shrink<simDim>());
 
-                if(globalCellPos.y() * cellSize.y() < vacuum_y)
+                if(globalCellPos.y() * setup().cell.y() < vacuum_y)
                 {
                     return float_X(0.0);
                 }

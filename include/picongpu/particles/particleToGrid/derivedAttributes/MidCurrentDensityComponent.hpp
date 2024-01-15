@@ -38,8 +38,8 @@ namespace picongpu
                 template<size_t T_direction>
                 HDINLINE float1_64 MidCurrentDensityComponent<T_direction>::getUnit() const
                 {
-                    const float_64 UNIT_AREA = UNIT_LENGTH * UNIT_LENGTH;
-                    return UNIT_CHARGE / (UNIT_TIME * UNIT_AREA);
+                    const float_64 UNIT_AREA = setup(unit::si_).unit.length * setup(unit::si_).unit.length;
+                    return setup(unit::si_).unit.charge / (setup(unit::si_).unit.time * UNIT_AREA);
                 }
 
                 template<size_t T_direction>

@@ -612,7 +612,7 @@ for contributions to this release!
    - Doc: Add System Links #2818
    - remove grep file redirect #2788
    - Correct jupyter widget example #3191
-   - fix typo: `UNIT_LENGHT` to `UNIT_LENGTH` #3194
+   - fix typo: `UNIT_LENGHT` to `setup(unit::si_).unit.length` #3194
    - Change link to CRP group @ HZDR #2814
  - Examples: Unify .cfg #2826
  - Remove unused ABSORBER_FADE_IN_STEPS from .param files in examples #2942

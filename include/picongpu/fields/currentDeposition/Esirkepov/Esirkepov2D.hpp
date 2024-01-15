@@ -74,8 +74,7 @@ namespace picongpu
                 const float_X deltaTime)
             {
                 this->charge = charge;
-                const float2_X deltaPos
-                    = float2_X(velocity.x() * deltaTime / cellSize.x(), velocity.y() * deltaTime / cellSize.y());
+                const float2_X deltaPos = velocity.shrink<2>() * deltaTime / setup().cell.shrink<2>();
                 const PosType oldPos = pos - deltaPos;
                 Line<float2_X> line(oldPos, pos);
 
@@ -175,7 +174,7 @@ namespace picongpu
                  * in-cell particle `position` (and it's change in DELTA_T) is normalize to [0,1)
                  */
                 const float_X currentSurfaceDensity
-                    = this->charge * (1.0_X / float_X(CELL_VOLUME * DELTA_T)) * cellEdgeLength;
+                    = this->charge * (1.0_X / float_X(CELL_VOLUME * setup().delta_t)) * cellEdgeLength;
 
                 for(int j = begin; j < end + 1; ++j)
                     if(j < end + bitpacking::getValue(parStatus[1], bitpacking::Status::LEAVE_CELL))

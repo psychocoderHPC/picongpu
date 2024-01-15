@@ -39,7 +39,7 @@ namespace picongpu
          * Please follow these rules for defining ionization energies of atomic species,
          * unless your chosen ionization model requires a different unit system than `AU::`
          *     - input of values in either atomic units or converting eV or Joule to them
-         *     -> use either UNITCONV_eV_to_AU or SI::ATOMIC_UNIT_ENERGY for that purpose
+         *     -> use either UNITCONV_eV_to_AU or SI::ATOMIC_setup(unit::si_).unit.energy for that purpose
          *     - use `float_X` as the preferred data type
          *
          * example:

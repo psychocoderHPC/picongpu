@@ -24,7 +24,6 @@
 #include "picongpu/fields/MaxwellSolver/ArbitraryOrderFDTD/ArbitraryOrderFDTD.def"
 #include "picongpu/fields/MaxwellSolver/ArbitraryOrderFDTD/Derivative.hpp"
 #include "picongpu/fields/MaxwellSolver/ArbitraryOrderFDTD/Weights.hpp"
-#include "picongpu/fields/MaxwellSolver/CFLChecker.hpp"
 #include "picongpu/fields/MaxwellSolver/DispersionRelation.hpp"
 #include "picongpu/fields/MaxwellSolver/GetTimeStep.hpp"
 #include "picongpu/fields/differentiation/Curl.hpp"
@@ -41,41 +40,35 @@ namespace picongpu
     {
         namespace maxwellSolver
         {
-            /** Specialization of the CFL condition checker for the arbitrary-order FDTD
-             *
-             * @tparam T_neighbors number of neighbors used to calculate the derivatives
-             */
             template<uint32_t T_neighbors>
-            struct CFLChecker<ArbitraryOrderFDTD<T_neighbors>>
+            inline float_X checkCfl(aoFDTD::AOFDTDWeights<T_neighbors> const&)
             {
-                /** Check the CFL condition, throws when failed
-                 *
-                 * * @return value of 'X' to fulfill the condition 'c * dt <= X`
-                 */
-                float_X operator()() const
+                // The equations are given at https://picongpu.readthedocs.io/en/latest/models/AOFDTD.html
+                auto weights = aoFDTD::AOFDTDWeights<T_neighbors>{};
+                auto additionalFactor = 0.0_X;
+                for(uint32_t i = 0u; i < T_neighbors; i++)
                 {
-                    // The equations are given at https://picongpu.readthedocs.io/en/latest/models/AOFDTD.html
-                    auto weights = aoFDTD::AOFDTDWeights<T_neighbors>{};
-                    auto additionalFactor = 0.0_X;
-                    for(uint32_t i = 0u; i < T_neighbors; i++)
-                    {
-                        auto const term = (i % 2) ? -weights[i] : weights[i];
-                        additionalFactor += term;
-                    }
-                    auto const invCorrectedCell2Sum = INV_CELL2_SUM * additionalFactor * additionalFactor;
-                    auto const maxC_DT = 1.0_X / math::sqrt(invCorrectedCell2Sum);
-                    constexpr auto dt = getTimeStep();
-                    if(SPEED_OF_LIGHT * SPEED_OF_LIGHT * dt * dt * invCorrectedCell2Sum > 1.0_X)
-                    {
-                        throw std::runtime_error(
-                            std::string("Courant-Friedrichs-Lewy condition check failed, check your grid.param file\n")
-                            + "Courant Friedrichs Lewy condition: c * dt <= " + std::to_string(maxC_DT)
-                            + " ? (c * dt = " + std::to_string(SPEED_OF_LIGHT * dt) + ")");
-                    }
-
-                    return maxC_DT;
+                    auto const term = (i % 2) ? -weights[i] : weights[i];
+                    additionalFactor += term;
                 }
-            };
+                float_X invSquareSum = 0._X;
+                for(uint32_t d = 0; d < simDim; ++d)
+                    invSquareSum += 1.0_X / setup().cell[d];
+                auto const invCorrectedCell2Sum = invSquareSum * additionalFactor * additionalFactor;
+                auto const maxC_DT = 1.0_X / math::sqrt(invCorrectedCell2Sum);
+                auto dt = getTimeStep();
+                if(setup().physicalConstant.speed_of_light * setup().physicalConstant.speed_of_light * dt * dt
+                       * invCorrectedCell2Sum
+                   > 1.0_X)
+                {
+                    throw std::runtime_error(
+                        std::string("Courant-Friedrichs-Lewy condition check failed, check your grid.param file\n")
+                        + "Courant Friedrichs Lewy condition: c * dt <= " + std::to_string(maxC_DT)
+                        + " ? (c * dt = " + std::to_string(setup().physicalConstant.speed_of_light * dt) + ")");
+                }
+
+                return maxC_DT;
+            }
 
             //! Specialization of the dispersion relation for the arbitrary-order FDTD
             template<uint32_t T_neighbors>
@@ -111,7 +104,8 @@ namespace picongpu
                         }
                         rhs += term * term;
                     }
-                    auto const lhsTerm = math::sin(0.5 * omega * timeStep) / (SPEED_OF_LIGHT * timeStep);
+                    auto const lhsTerm
+                        = math::sin(0.5 * omega * timeStep) / (setup().physicalConstant.speed_of_light * timeStep);
                     auto const lhs = lhsTerm * lhsTerm;
                     return rhs - lhs;
                 }

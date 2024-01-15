@@ -63,22 +63,22 @@ namespace picongpu
                         //! Base unitless parameters
                         using Base = BaseTransversalGaussianParamUnitless<T_Params>;
 
-                        // unit: UNIT_TIME
+                        // unit: setup(unit::si_).unit.time
                         static constexpr float_X LASER_NOFOCUS_CONSTANT
-                            = static_cast<float_X>(Params::LASER_NOFOCUS_CONSTANT_SI / UNIT_TIME);
+                            = static_cast<float_X>(Params::LASER_NOFOCUS_CONSTANT_SI / setup(unit::si_).unit.time);
 
                         static constexpr float_X TIME_PREPULSE
-                            = static_cast<float_X>(Params::TIME_PREPULSE_SI / UNIT_TIME);
+                            = static_cast<float_X>(Params::TIME_PREPULSE_SI / setup(unit::si_).unit.time);
                         static constexpr float_X TIME_PEAKPULSE
-                            = static_cast<float_X>(Params::TIME_PEAKPULSE_SI / UNIT_TIME);
-                        static constexpr float_X TIME_1 = static_cast<float_X>(Params::TIME_POINT_1_SI / UNIT_TIME);
-                        static constexpr float_X TIME_2 = static_cast<float_X>(Params::TIME_POINT_2_SI / UNIT_TIME);
-                        static constexpr float_X TIME_3 = static_cast<float_X>(Params::TIME_POINT_3_SI / UNIT_TIME);
+                            = static_cast<float_X>(Params::TIME_PEAKPULSE_SI / setup(unit::si_).unit.time);
+                        static constexpr float_X TIME_1 = static_cast<float_X>(Params::TIME_POINT_1_SI / setup(unit::si_).unit.time);
+                        static constexpr float_X TIME_2 = static_cast<float_X>(Params::TIME_POINT_2_SI / setup(unit::si_).unit.time);
+                        static constexpr float_X TIME_3 = static_cast<float_X>(Params::TIME_POINT_3_SI / setup(unit::si_).unit.time);
                         static constexpr float_X endUpramp = TIME_PEAKPULSE - 0.5_X * LASER_NOFOCUS_CONSTANT;
                         static constexpr float_X startDownramp = TIME_PEAKPULSE + 0.5_X * LASER_NOFOCUS_CONSTANT;
 
                         static constexpr float_X INIT_TIME = static_cast<float_X>(
-                            (TIME_PEAKPULSE + Params::RAMP_INIT * Base::PULSE_LENGTH) / UNIT_TIME);
+                            (TIME_PEAKPULSE + Params::RAMP_INIT * Base::PULSE_LENGTH) / setup(unit::si_).unit.time);
 
                         // compile-time checks for physical sanity:
                         static_assert(

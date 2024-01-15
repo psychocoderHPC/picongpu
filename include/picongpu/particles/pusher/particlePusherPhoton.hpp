@@ -58,11 +58,11 @@ namespace picongpu
                     particle[probeE_] = eField;
 
                 const float_X normMom = pmacc::math::l2norm(mom);
-                const MomType vel = mom * (SPEED_OF_LIGHT / normMom);
+                const MomType vel = mom * (setup().physicalConstant.speed_of_light / normMom);
 
                 for(uint32_t d = 0; d < simDim; ++d)
                 {
-                    pos[d] += (vel[d] * DELTA_T) / cellSize[d];
+                    pos[d] += (vel[d] * setup().delta_t) / setup().cell[d];
                 }
             }
 

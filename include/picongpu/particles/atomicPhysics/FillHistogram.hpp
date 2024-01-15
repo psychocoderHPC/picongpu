@@ -83,7 +83,7 @@ namespace picongpu
                                 histogram->binObject(
                                     worker,
                                     static_cast<float_X>(
-                                        energy_SI / picongpu::SI::ATOMIC_UNIT_ENERGY), // unit: ATOMIC_UNIT_ENERGY
+                                        energy_SI / picongpu::SI::ATOMIC_setup(unit::si_).unit.energy), // unit: ATOMIC_setup(unit::si_).unit.energy
                                     particle[weighting_],
                                     atomicDataBox);
                             }

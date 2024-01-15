@@ -187,7 +187,7 @@ namespace picongpu
                     HINLINE BaseFunctorE(float_X const currentStep, float3_64 const unitField)
                         : origin(getOrigin())
                         , focus(getFocus())
-                        , currentTimeOrigin(currentStep * DELTA_T)
+                        , currentTimeOrigin(currentStep * setup().delta_t)
                         , phaseVelocity(getPhaseVelocity())
                     {
                         checkUnit(unitField);
@@ -412,7 +412,7 @@ namespace picongpu
                     //! Check that the input units are valid
                     HINLINE static void checkUnit(float3_64 const unitField)
                     {
-                        /* Ensure that we always get unitField = (UNIT_EFIELD, UNIT_EFIELD, UNIT_EFIELD) so that
+                        /* Ensure that we always get unitField = (setup(unit::si_).unit.efield, setup(unit::si_).unit.efield, setup(unit::si_).unit.efield) so that
                          * we can always calculate in internal units and avoid conversions in child types.
                          * We can afford it each time, as this is done on host before kernel.
                          */
@@ -422,12 +422,12 @@ namespace picongpu
                             constexpr double ulp = 4.0;
                             constexpr double eps = std::numeric_limits<double>::epsilon();
                             bool const isMatchingUnit
-                                = (std::fabs(unitField[axis] - UNIT_EFIELD) <= eps * UNIT_EFIELD * ulp);
+                                = (std::fabs(unitField[axis] - setup(unit::si_).unit.efield) <= eps * setup(unit::si_).unit.efield * ulp);
                             if(!isMatchingUnit)
                             {
                                 throw std::runtime_error(
                                     "Incident field BaseFunctorE created with wrong unit: expected "
-                                    + std::to_string(UNIT_EFIELD) + ", got " + std::to_string(unitField[axis]));
+                                    + std::to_string(setup(unit::si_).unit.efield) + ", got " + std::to_string(unitField[axis]));
                             }
                         }
                     }
@@ -570,7 +570,7 @@ namespace picongpu
                     using Base = T_FunctorIncidentE;
 
                     //! Relation between unitField for E and B: E = B * unitConversionBtoE
-                    static constexpr float_64 unitConversionBtoE = UNIT_EFIELD / UNIT_BFIELD;
+                    static constexpr float_64 unitConversionBtoE = setup(unit::si_).unit.efield / setup(unit::si_).unit.bfield;
 
                     /** Create a functor on the host side for the given time step
                      *
@@ -596,7 +596,7 @@ namespace picongpu
                     {
                         // Get corresponding E value, it is already in internal units
                         auto const eValue = Base::operator()(totalCellIdx);
-                        return pmacc::math::cross(Base::getDirection(), eValue) / SPEED_OF_LIGHT;
+                        return pmacc::math::cross(Base::getDirection(), eValue) / setup().physicalConstant.speed_of_light;
                     }
                 };
             } // namespace detail

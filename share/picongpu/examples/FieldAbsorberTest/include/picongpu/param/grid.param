@@ -81,7 +81,7 @@ namespace picongpu
          *  unit: seconds */
         constexpr float_64 CFL_RATIO = 0.999 / SELECTED_CFL_FACTOR;
         constexpr float_64 SQRT_3 = 1.73205080757;
-        constexpr float_64 DELTA_T_SI = CFL_RATIO * CELL_SIZE_SI / (SPEED_OF_LIGHT_SI * SQRT_3);
+        constexpr float_64 DELTA_T_SI = CFL_RATIO * CELL_SIZE_SI / (setup(unit::si_).physicalConstant.speed_of_light * SQRT_3);
 
         /** Note on units in reduced dimensions
          *

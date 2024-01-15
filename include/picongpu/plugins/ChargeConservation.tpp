@@ -253,7 +253,7 @@ namespace picongpu
 
         if(globalReduce->hasResult(mpiReduceMethod))
         {
-            this->output_file << currentStep << " " << (maxChargeDiff * CELL_VOLUME).x() << " " << UNIT_CHARGE
+            this->output_file << currentStep << " " << (maxChargeDiff * CELL_VOLUME).x() << " " << setup(unit::si_).unit.charge
                               << std::endl;
         }
     }

@@ -29,7 +29,7 @@ namespace picongpu
     HDINLINE T_PrecisionType Gamma<T_PrecisionType>::operator()(T_MomType const& mom, T_MassType const mass) const
     {
         valueType const fMom2 = pmacc::math::l2norm2(precisionCast<valueType>(mom));
-        constexpr valueType c2 = SPEED_OF_LIGHT * SPEED_OF_LIGHT;
+        constexpr valueType c2 = setup().physicalConstant.speed_of_light * setup().physicalConstant.speed_of_light;
 
         valueType const m2_c2_reci = valueType(1.0) / precisionCast<valueType>(mass * mass * c2);
 

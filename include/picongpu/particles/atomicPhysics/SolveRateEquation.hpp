@@ -20,8 +20,8 @@
  * If not, see <http://www.gnu.org/licenses/>.
  */
 
-//@TODO: change normalization, such that [sigma] = UNIT_LENGTH^2 and [densities] = UNIT_LENGTH^3, Brian Marre 2021
-//@TODO: change normalization of time remaining to UNIT_TIME, Brian Marre 2021
+//@TODO: change normalization, such that [sigma] = setup(unit::si_).unit.length^2 and [densities] = setup(unit::si_).unit.length^3, Brian Marre 2021
+//@TODO: change normalization of time remaining to setup(unit::si_).unit.time, Brian Marre 2021
 
 #pragma once
 
@@ -135,7 +135,7 @@ namespace picongpu
                         // for further interactions
                         histogram->shiftWeight(
                             worker,
-                            energyElectron - deltaEnergyTransition, // new electron energy, unit: ATOMIC_UNIT_ENERGY
+                            energyElectron - deltaEnergyTransition, // new electron energy, unit: ATOMIC_setup(unit::si_).unit.energy
                             affectedWeighting,
                             atomicDataBox);
 
@@ -199,7 +199,7 @@ namespace picongpu
                             histogram->shiftWeight(
                                 worker,
                                 energyElectron
-                                    - deltaEnergyTransition, // new electron energy, unit: ATOMIC_UNIT_ENERGY
+                                    - deltaEnergyTransition, // new electron energy, unit: ATOMIC_setup(unit::si_).unit.energy
                                 affectedWeighting,
                                 atomicDataBox);
 
@@ -362,22 +362,22 @@ namespace picongpu
                 T_ConfigNumberDataType newState, // unit: unitless
                 uint32_t transitionIndex,
                 uint16_t histogramBinIndex,
-                float_X energyElectron, // unit: ATOMIC_UNIT_ENERGY
-                float_X deltaEnergyTransition // unit: ATOMIC_UNIT_ENERGY
+                float_X energyElectron, // unit: ATOMIC_setup(unit::si_).unit.energy
+                float_X deltaEnergyTransition // unit: ATOMIC_setup(unit::si_).unit.energy
             )
             {
                 using AtomicRate = T_AtomicRate;
 
                 // conversion factors
-                constexpr float_64 UNIT_VOLUME = UNIT_LENGTH * UNIT_LENGTH * UNIT_LENGTH;
+                constexpr float_64 UNIT_VOLUME = setup(unit::si_).unit.length * setup(unit::si_).unit.length * setup(unit::si_).unit.length;
                 constexpr auto numCellsPerSuperCell = pmacc::math::CT::volume<SuperCellSize>::type::value;
 
                 // get width of histogram bin with this collection index
                 float_X energyElectronBinWidth = histogram->getBinWidth(
                     worker,
                     true, // answer to question: directionPositive?
-                    histogram->getLeftBoundaryBin(histogramBinIndex), // unit: ATOMIC_UNIT_ENERGY
-                    atomicDataBox); // unit: ATOMIC_UNIT_ENERGY
+                    histogram->getLeftBoundaryBin(histogramBinIndex), // unit: ATOMIC_setup(unit::si_).unit.energy
+                    atomicDataBox); // unit: ATOMIC_setup(unit::si_).unit.energy
 
                 // calculate density of electrons based on weight of electrons in this bin
                 // REMEMBER: histogram is filled by direct add of particle[weighting_]
@@ -395,14 +395,14 @@ namespace picongpu
                     oldState, // unitless
                     newState, // unitless
                     transitionIndex, // unitless
-                    energyElectron, // unit: ATOMIC_UNIT_ENERGY
-                    energyElectronBinWidth, // unit: ATOMIC_UNIT_ENERGY
-                    densityElectrons, // unit: 1/(m^3*ATOMIC_UNIT_ENERGY)
+                    energyElectron, // unit: ATOMIC_setup(unit::si_).unit.energy
+                    energyElectronBinWidth, // unit: ATOMIC_setup(unit::si_).unit.energy
+                    densityElectrons, // unit: 1/(m^3*ATOMIC_setup(unit::si_).unit.energy)
                     atomicDataBox); // unit: 1/s, SI
 
                 // get the change of electron energy in bin due to transition
                 float_X deltaEnergy = (-deltaEnergyTransition) * ion[weighting_];
-                // unit: ATOMIC_UNIT_ENERGY, scaled with number of ions represented
+                // unit: ATOMIC_setup(unit::si_).unit.energy, scaled with number of ions represented
 
                 float_X quasiProbability = rate_SI * timeRemaining_SI;
 
@@ -445,7 +445,7 @@ namespace picongpu
                 uint32_t const newStateIndex,
                 T_ConfigNumberDataType const newState,
                 uint32_t const transitionIndex,
-                float_X const deltaEnergyTransition // unit: ATOMIC_UNIT_ENERGY
+                float_X const deltaEnergyTransition // unit: ATOMIC_setup(unit::si_).unit.energy
             )
             {
                 using AtomicRate = T_AtomicRate;
@@ -496,7 +496,7 @@ namespace picongpu
                 using AtomicRate = T_AtomicRate;
 
                 // conversion factors
-                constexpr float_64 UNIT_VOLUME = UNIT_LENGTH * UNIT_LENGTH * UNIT_LENGTH;
+                constexpr float_64 UNIT_VOLUME = setup(unit::si_).unit.length * setup(unit::si_).unit.length * setup(unit::si_).unit.length;
                 constexpr auto numCellsPerSuperCell = pmacc::math::CT::volume<SuperCellSize>::type::value;
 
                 float_X rate_SI;
@@ -513,14 +513,14 @@ namespace picongpu
                     float_X energyElectron = histogram->getEnergyBin(
                         worker,
                         histogramBinIndex,
-                        atomicDataBox); // unit: ATOMIC_UNIT_ENERGY
+                        atomicDataBox); // unit: ATOMIC_setup(unit::si_).unit.energy
 
                     // get width of histogram bin width for this collection index
                     float_X energyElectronBinWidth = histogram->getBinWidth(
                         worker,
                         true, // answer to question: directionPositive?
-                        histogram->getLeftBoundaryBin(histogramBinIndex), // unit: ATOMIC_UNIT_ENERGY
-                        atomicDataBox); // unit: ATOMIC_UNIT_ENERGY
+                        histogram->getLeftBoundaryBin(histogramBinIndex), // unit: ATOMIC_setup(unit::si_).unit.energy
+                        atomicDataBox); // unit: ATOMIC_setup(unit::si_).unit.energy
 
                     // see freeElectronInteraction() for more info
                     float_X densityElectrons = (histogram->getWeightBin(histogramBinIndex)
@@ -536,8 +536,8 @@ namespace picongpu
                     rate_SI = AtomicRate::totalRate(
                         worker,
                         oldState, // unitless
-                        energyElectron, // unit: ATOMIC_UNIT_ENERGY
-                        energyElectronBinWidth, // unit: ATOMIC_UNIT_ENERGY
+                        energyElectron, // unit: ATOMIC_setup(unit::si_).unit.energy
+                        energyElectronBinWidth, // unit: ATOMIC_setup(unit::si_).unit.energy
                         densityElectrons, // unit: 1/(m^3*AU), SI
                         atomicDataBox); // unit: 1/s, SI @TODO: update total rate calculation
                 }
@@ -665,13 +665,13 @@ namespace picongpu
                             float_X energyElectron = histogram->getEnergyBin(
                                 worker,
                                 histogramBinIndex,
-                                atomicDataBox); // unit: ATOMIC_UNIT_ENERGY
+                                atomicDataBox); // unit: ATOMIC_setup(unit::si_).unit.energy
 
                             float_X deltaEnergyTransition = AtomicRate::energyDifference(
                                 worker,
                                 oldState,
                                 newState,
-                                atomicDataBox); // unit: ATOMIC_UNIT_ENERGY
+                                atomicDataBox); // unit: ATOMIC_setup(unit::si_).unit.energy
 
                             // check whether transition is actually possible with choosen energy bin
                             if(deltaEnergyTransition <= energyElectron)
@@ -690,8 +690,8 @@ namespace picongpu
                                     newState, // unit: unitless
                                     transitionIndex,
                                     histogramBinIndex,
-                                    energyElectron, // unit: ATOMIC_UNIT_ENERGY
-                                    deltaEnergyTransition); // unit: ATOMIC_UNIT_ENERGY
+                                    energyElectron, // unit: ATOMIC_setup(unit::si_).unit.energy
+                                    deltaEnergyTransition); // unit: ATOMIC_setup(unit::si_).unit.energy
                                 break;
                             }
                         }
@@ -703,7 +703,7 @@ namespace picongpu
                                 worker,
                                 oldState,
                                 newState,
-                                atomicDataBox); // unit: ATOMIC_UNIT_ENERGY
+                                atomicDataBox); // unit: ATOMIC_setup(unit::si_).unit.energy
 
                             if(deltaEnergyTransition <= 0)
                             {

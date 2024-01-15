@@ -115,7 +115,7 @@ namespace picongpu
                         float_X const mom2 = pmacc::math::l2norm2(mom);
                         float_X const weighting = particle[weighting_];
                         float_X const mass = attribute::getMass(weighting, particle);
-                        float_X const c2 = SPEED_OF_LIGHT * SPEED_OF_LIGHT;
+                        float_X const c2 = setup().physicalConstant.speed_of_light * setup().physicalConstant.speed_of_light;
 
                         // calculate kinetic energy of the macro particle
                         localEnergyKin += KinEnergy<>()(mom, mass);
@@ -124,7 +124,7 @@ namespace picongpu
                          *    E^2 = p^2*c^2 + m^2*c^4
                          *        = c^2 * [p^2 + m^2*c^2]
                          */
-                        localEnergy += math::sqrt(mom2 + mass * mass * c2) * SPEED_OF_LIGHT;
+                        localEnergy += math::sqrt(mom2 + mass * mass * c2) * setup().physicalConstant.speed_of_light;
                     }
                 });
 
@@ -385,8 +385,8 @@ namespace picongpu
                 using dbl = std::numeric_limits<float_64>;
 
                 outFile.precision(dbl::digits10);
-                outFile << currentStep << " " << std::scientific << reducedEnergy[0] * UNIT_ENERGY << " "
-                        << reducedEnergy[1] * UNIT_ENERGY << std::endl;
+                outFile << currentStep << " " << std::scientific << reducedEnergy[0] * setup(unit::si_).unit.energy << " "
+                        << reducedEnergy[1] * setup(unit::si_).unit.energy << std::endl;
             }
         }
 

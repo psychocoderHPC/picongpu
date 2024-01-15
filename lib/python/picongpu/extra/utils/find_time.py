@@ -68,10 +68,10 @@ class FindTime(object):
         # matches floats and scientific floats
         rg_flt = r"([-\+[0-9]+\.[0-9]*[Ee]*[\+-]*[0-9]*)"
 
-        # our UNIT_TIME is scaled to dt
+        # our setup(unit::si_).unit.time is scaled to dt
         dt = np.fromregex(
             data_file_path,
-            r"\s+UNIT_TIME " +
+            r"\s+setup(unit::si_).unit.time " +
             rg_flt + r"\n",
             dtype=np.dtype([('dt', 'float')])
         )

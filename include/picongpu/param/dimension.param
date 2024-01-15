@@ -24,6 +24,7 @@
 
 #pragma once
 
+#include <pmacc/types.hpp>
 
 /** Possible values: DIM3 for 3D3V and DIM2 for 2D3V.
  */

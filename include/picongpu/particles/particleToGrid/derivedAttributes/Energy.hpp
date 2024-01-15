@@ -38,7 +38,7 @@ namespace picongpu
             {
                 HDINLINE float1_64 Energy::getUnit() const
                 {
-                    return UNIT_ENERGY;
+                    return setup(unit::si_).unit.energy;
                 }
 
                 template<class T_Particle>

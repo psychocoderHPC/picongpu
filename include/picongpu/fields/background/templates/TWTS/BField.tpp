@@ -65,7 +65,7 @@ namespace picongpu
                 , beta_0(beta_0)
                 , tdelay_user_SI(tdelay_user_SI)
                 , dt(SI::DELTA_T_SI)
-                , unit_length(UNIT_LENGTH)
+                , unit_length(setup(unit::si_).unit.length)
                 , auto_tdelay(auto_tdelay)
                 , pol(pol)
             {
@@ -296,11 +296,11 @@ namespace picongpu
                 using complex_T = alpaka::Complex<float_T>;
                 using complex_64 = alpaka::Complex<float_64>;
                 /* Unit of speed */
-                const float_64 UNIT_SPEED = SI::SPEED_OF_LIGHT_SI;
+                const float_64 setup(unit::si_).unit.speed = setup(unit::si_).physicalConstant.speed_of_light;
                 /* Unit of time */
-                const float_64 UNIT_TIME = SI::DELTA_T_SI;
+                const float_64 setup(unit::si_).unit.time = SI::DELTA_T_SI;
                 /* Unit of length */
-                const float_64 UNIT_LENGTH = UNIT_TIME * UNIT_SPEED;
+                const float_64 setup(unit::si_).unit.length = setup(unit::si_).unit.time * setup(unit::si_).unit.speed;
 
                 /* Propagation speed of overlap normalized to the speed of light [Default: beta0=1.0] */
                 const auto beta0 = float_T(beta_0);
@@ -328,25 +328,25 @@ namespace picongpu
                  * const float_T eta = float_T(PI/2) - (phiReal - alphaTilt);
                  */
 
-                const auto cspeed = float_T(SI::SPEED_OF_LIGHT_SI / UNIT_SPEED);
-                const auto lambda0 = float_T(wavelength_SI / UNIT_LENGTH);
+                const auto cspeed = float_T(setup(unit::si_).physicalConstant.speed_of_light / setup(unit::si_).unit.speed);
+                const auto lambda0 = float_T(wavelength_SI / setup(unit::si_).unit.length);
                 const auto om0 = float_T(2.0 * PI * cspeed / lambda0);
                 /* factor 2  in tauG arises from definition convention in laser formula */
-                const auto tauG = float_T(pulselength_SI * 2.0 / UNIT_TIME);
+                const auto tauG = float_T(pulselength_SI * 2.0 / setup(unit::si_).unit.time);
                 /* w0 is wx here --> w0 could be replaced by wx */
-                const auto w0 = float_T(w_x_SI / UNIT_LENGTH);
+                const auto w0 = float_T(w_x_SI / setup(unit::si_).unit.length);
                 const auto rho0 = float_T(PI * w0 * w0 / lambda0);
                 /* wy is width of TWTS pulse */
-                const auto wy = float_T(w_y_SI / UNIT_LENGTH);
+                const auto wy = float_T(w_y_SI / setup(unit::si_).unit.length);
                 const auto k = float_T(2.0 * PI / lambda0);
                 /* If phi < 0 the entire pulse is rotated by 180 deg around the
                  * z-axis of the coordinate system without also changing
                  * the orientation of the resulting field vectors.
                  */
-                const auto x = float_T(phiPositive * pos.x() / UNIT_LENGTH);
-                const auto y = float_T(phiPositive * pos.y() / UNIT_LENGTH);
-                const auto z = float_T(pos.z() / UNIT_LENGTH);
-                const auto t = float_T(time / UNIT_TIME);
+                const auto x = float_T(phiPositive * pos.x() / setup(unit::si_).unit.length);
+                const auto y = float_T(phiPositive * pos.y() / setup(unit::si_).unit.length);
+                const auto z = float_T(pos.z() / setup(unit::si_).unit.length);
+                const auto t = float_T(time / setup(unit::si_).unit.time);
 
                 /* Shortcuts for speeding up the field calculation. */
                 const float_T sinPhi = math::sin(phiT);
@@ -434,7 +434,7 @@ namespace picongpu
                        * math::pow(helpVar3, float_T(-1.5)))
                     / (float_T(2.0) * helpVar5 * math::sqrt(helpVar6));
 
-                return result.real() / UNIT_SPEED;
+                return result.real() / setup(unit::si_).unit.speed;
             }
 
             /** Calculate the Bz(r,t) field
@@ -446,11 +446,11 @@ namespace picongpu
             {
                 using complex_T = alpaka::Complex<float_T>;
                 /** Unit of Speed */
-                const float_64 UNIT_SPEED = SI::SPEED_OF_LIGHT_SI;
+                const float_64 setup(unit::si_).unit.speed = setup(unit::si_).physicalConstant.speed_of_light;
                 /** Unit of time */
-                const float_64 UNIT_TIME = SI::DELTA_T_SI;
+                const float_64 setup(unit::si_).unit.time = SI::DELTA_T_SI;
                 /** Unit of length */
-                const float_64 UNIT_LENGTH = UNIT_TIME * UNIT_SPEED;
+                const float_64 setup(unit::si_).unit.length = setup(unit::si_).unit.time * setup(unit::si_).unit.speed;
 
                 /* propagation speed of overlap normalized to the speed of light [Default: beta0=1.0] */
                 const auto beta0 = float_T(beta_0);
@@ -479,25 +479,25 @@ namespace picongpu
                  * const float_T eta = float_T(float_T(PI / 2)) - (phiReal - alphaTilt);
                  */
 
-                const auto cspeed = float_T(SI::SPEED_OF_LIGHT_SI / UNIT_SPEED);
-                const auto lambda0 = float_T(wavelength_SI / UNIT_LENGTH);
+                const auto cspeed = float_T(setup(unit::si_).physicalConstant.speed_of_light / setup(unit::si_).unit.speed);
+                const auto lambda0 = float_T(wavelength_SI / setup(unit::si_).unit.length);
                 const auto om0 = float_T(2.0 * PI * cspeed / lambda0);
                 /* factor 2  in tauG arises from definition convention in laser formula */
-                const auto tauG = float_T(pulselength_SI * 2.0 / UNIT_TIME);
+                const auto tauG = float_T(pulselength_SI * 2.0 / setup(unit::si_).unit.time);
                 /* w0 is wx here --> w0 could be replaced by wx */
-                const auto w0 = float_T(w_x_SI / UNIT_LENGTH);
+                const auto w0 = float_T(w_x_SI / setup(unit::si_).unit.length);
                 const auto rho0 = float_T(PI * w0 * w0 / lambda0);
                 /* wy is width of TWTS pulse */
-                const auto wy = float_T(w_y_SI / UNIT_LENGTH);
+                const auto wy = float_T(w_y_SI / setup(unit::si_).unit.length);
                 const auto k = float_T(2.0 * PI / lambda0);
                 /* If phi < 0 the entire pulse is rotated by 180 deg around the
                  * z-axis of the coordinate system without also changing
                  * the orientation of the resulting field vectors.
                  */
-                const auto x = float_T(phiPositive * pos.x() / UNIT_LENGTH);
-                const auto y = float_T(phiPositive * pos.y() / UNIT_LENGTH);
-                const auto z = float_T(pos.z() / UNIT_LENGTH);
-                const auto t = float_T(time / UNIT_TIME);
+                const auto x = float_T(phiPositive * pos.x() / setup(unit::si_).unit.length);
+                const auto y = float_T(phiPositive * pos.y() / setup(unit::si_).unit.length);
+                const auto z = float_T(pos.z() / setup(unit::si_).unit.length);
+                const auto t = float_T(time / setup(unit::si_).unit.time);
 
                 /* Shortcuts for speeding up the field calculation. */
                 const float_T sinPhi = math::sin(phiT);
@@ -547,7 +547,7 @@ namespace picongpu
                        * math::sqrt((om0 * rho0) / helpVar3))
                     / math::pow(helpVar7, float_T(1.5));
 
-                return result.real() / UNIT_SPEED;
+                return result.real() / setup(unit::si_).unit.speed;
             }
 
             /** Calculate the Bx(r,t) field
@@ -573,11 +573,11 @@ namespace picongpu
                 using complex_T = alpaka::Complex<float_T>;
                 using complex_64 = alpaka::Complex<float_64>;
                 /** Unit of speed */
-                const float_64 UNIT_SPEED = SI::SPEED_OF_LIGHT_SI;
+                const float_64 setup(unit::si_).unit.speed = setup(unit::si_).physicalConstant.speed_of_light;
                 /** Unit of time */
-                const float_64 UNIT_TIME = SI::DELTA_T_SI;
+                const float_64 setup(unit::si_).unit.time = SI::DELTA_T_SI;
                 /** Unit of length */
-                const float_64 UNIT_LENGTH = UNIT_TIME * UNIT_SPEED;
+                const float_64 setup(unit::si_).unit.length = setup(unit::si_).unit.time * setup(unit::si_).unit.speed;
 
                 /* Propagation speed of overlap normalized to the speed of light [Default: beta0=1.0] */
                 const auto beta0 = float_T(beta_0);
@@ -605,25 +605,25 @@ namespace picongpu
                  * const float_T eta = float_T(float_T(PI / 2)) - (phiReal - alphaTilt);
                  */
 
-                const auto cspeed = float_T(SI::SPEED_OF_LIGHT_SI / UNIT_SPEED);
-                const auto lambda0 = float_T(wavelength_SI / UNIT_LENGTH);
+                const auto cspeed = float_T(setup(unit::si_).physicalConstant.speed_of_light / setup(unit::si_).unit.speed);
+                const auto lambda0 = float_T(wavelength_SI / setup(unit::si_).unit.length);
                 const auto om0 = float_T(2.0 * PI * cspeed / lambda0);
                 /* factor 2  in tauG arises from definition convention in laser formula */
-                const auto tauG = float_T(pulselength_SI * 2.0 / UNIT_TIME);
+                const auto tauG = float_T(pulselength_SI * 2.0 / setup(unit::si_).unit.time);
                 /* w0 is wx here --> w0 could be replaced by wx */
-                const auto w0 = float_T(w_x_SI / UNIT_LENGTH);
+                const auto w0 = float_T(w_x_SI / setup(unit::si_).unit.length);
                 const auto rho0 = float_T(PI * w0 * w0 / lambda0);
                 /* wy is width of TWTS pulse */
-                const auto wy = float_T(w_y_SI / UNIT_LENGTH);
+                const auto wy = float_T(w_y_SI / setup(unit::si_).unit.length);
                 const auto k = float_T(2.0 * PI / lambda0);
                 /* If phi < 0 the entire pulse is rotated by 180 deg around the
                  * z-axis of the coordinate system without also changing
                  * the orientation of the resulting field vectors.
                  */
-                const auto x = float_T(phiPositive * pos.x() / UNIT_LENGTH);
-                const auto y = float_T(phiPositive * pos.y() / UNIT_LENGTH);
-                const auto z = float_T(pos.z() / UNIT_LENGTH);
-                const auto t = float_T(time / UNIT_TIME);
+                const auto x = float_T(phiPositive * pos.x() / setup(unit::si_).unit.length);
+                const auto y = float_T(phiPositive * pos.y() / setup(unit::si_).unit.length);
+                const auto z = float_T(pos.z() / setup(unit::si_).unit.length);
+                const auto t = float_T(time / setup(unit::si_).unit.time);
 
                 /* Shortcuts for speeding up the field calculation. */
                 const float_T sinPhi = math::sin(phiT);
@@ -703,7 +703,7 @@ namespace picongpu
                     * (cspeed * math::exp(helpVar3) * k * tauG * x * math::pow(helpVar2, float_T(-1.5))
                        / math::sqrt(helpVar4));
 
-                return result.real() / UNIT_SPEED;
+                return result.real() / setup(unit::si_).unit.speed;
             }
 
         } /* namespace twts */

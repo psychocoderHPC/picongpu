@@ -84,8 +84,8 @@ namespace picongpu
                     T_IonBox ionBox,
                     T_Mapping mapper,
                     T_AtomicDataBox const atomicDataBox,
-                    float_X const initialGridWidth, // unit: ATOMIC_UNIT_ENERGY
-                    float_X const relativeErrorTarget, // unit: 1/s /( 1/( m^3 * ATOMIC_UNIT_ENERGY ) )
+                    float_X const initialGridWidth, // unit: ATOMIC_setup(unit::si_).unit.energy
+                    float_X const relativeErrorTarget, // unit: 1/s /( 1/( m^3 * ATOMIC_setup(unit::si_).unit.energy ) )
                     uint32_t const step) const
                 {
                     // Create and initialize a histogram on shared memory

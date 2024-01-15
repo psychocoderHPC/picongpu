@@ -47,12 +47,12 @@ namespace picongpu
              */
             HDINLINE float_X operator()(const DataSpace<simDim>& totalCellOffset)
             {
-                const float_X vacuum_y = float_X(ParamClass::vacuumCellsY) * cellSize.y();
-                const float_X gas_a = ParamClass::gasA_SI * UNIT_LENGTH;
-                const float_X gas_d = ParamClass::gasD_SI * UNIT_LENGTH;
-                const float_X gas_y_max = ParamClass::gasYMax_SI / UNIT_LENGTH;
+                const float_X vacuum_y = float_X(ParamClass::vacuumCellsY) * setup().cell.y();
+                const float_X gas_a = ParamClass::gasA_SI * setup(unit::si_).unit.length;
+                const float_X gas_d = ParamClass::gasD_SI * setup(unit::si_).unit.length;
+                const float_X gas_y_max = ParamClass::gasYMax_SI / setup(unit::si_).unit.length;
 
-                const floatD_X globalCellPos(precisionCast<float_X>(totalCellOffset) * cellSize.shrink<simDim>());
+                const floatD_X globalCellPos(precisionCast<float_X>(totalCellOffset) * setup().cell.shrink<simDim>());
                 auto density = float_X(0.0);
 
                 if(globalCellPos.y() < vacuum_y)

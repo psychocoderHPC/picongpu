@@ -70,7 +70,7 @@ namespace picongpu
                                  * For the macroweighted momentums we store as particle[ momentum_ ],
                                  * the same relation holds, just m and E are also macroweighted
                                  */
-                                float_X const energy = (temperatureKeV * UNITCONV_keV_to_Joule) / UNIT_ENERGY;
+                                float_X const energy = (temperatureKeV * UNITCONV_keV_to_Joule) / setup(unit::si_).unit.energy;
                                 float_X const macroWeighting = particle[weighting_];
                                 float_X const macroEnergy = macroWeighting * energy;
                                 float_X const macroMass = attribute::getMass(macroWeighting, particle);
@@ -151,11 +151,10 @@ namespace picongpu
                             T_Particle& particle,
                             T_Args&&...)
                         {
-                            auto const unitLength = UNIT_LENGTH;
-                            auto const cellSize_SI = precisionCast<float_64>(cellSize) * unitLength;
+                            auto const cellSize_SI = setup(unit::si_).cell;
                             auto const position_SI = (precisionCast<float_64>(totalCellOffset)
                                                       + precisionCast<float_64>(particle[position_]))
-                                * cellSize_SI.shrink<simDim>();
+                                * setup(unit::si_).cell.shrink<simDim>();
                             auto const temperatureKeV = UserFunctor::operator()(position_SI, cellSize_SI);
                             Base::operator()(standardNormalRng, particle, temperatureKeV);
                         }

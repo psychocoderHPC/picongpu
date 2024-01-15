@@ -23,29 +23,29 @@
 namespace picongpu
 {
     //! reduced Planck constant
-    constexpr float_X HBAR = (float_X) (SI::HBAR_SI / UNIT_ENERGY / UNIT_TIME);
+    constexpr float_X HBAR = (float_X) (SI::HBAR_SI / setup(unit::si_).unit.energy / setup(unit::si_).unit.time);
 
     //! Charge of electron
-    constexpr float_X ELECTRON_CHARGE = (float_X) (SI::ELECTRON_CHARGE_SI / UNIT_CHARGE);
+    constexpr float_X ELECTRON_CHARGE = (float_X) (SI::ELECTRON_CHARGE_SI / setup(unit::si_).unit.charge);
     //! Mass of electron
-    constexpr float_X ELECTRON_MASS = (float_X) (SI::ELECTRON_MASS_SI / UNIT_MASS);
+    constexpr float_X ELECTRON_MASS = (float_X) (SI::ELECTRON_MASS_SI / setup(unit::si_).unit.mass);
 
     //! magnetic constexprant must be double 3.92907e-39
-    constexpr float_X MUE0 = (float_X) (SI::MUE0_SI / UNIT_LENGTH / UNIT_MASS * UNIT_CHARGE * UNIT_CHARGE);
+    constexpr float_X MUE0 = (float_X) (SI::MUE0_SI / setup(unit::si_).unit.length / setup(unit::si_).unit.mass * setup(unit::si_).unit.charge * setup(unit::si_).unit.charge);
 
     //! electric constexprant must be double 2.54513e+38
-    constexpr float_X EPS0 = (float_X) (1. / MUE0 / SPEED_OF_LIGHT / SPEED_OF_LIGHT);
+    constexpr float_X EPS0 = (float_X) (1. / MUE0 / setup().physicalConstant.speed_of_light / setup().physicalConstant.speed_of_light);
 
     // = 1/c^2
-    constexpr float_X MUE0_EPS0 = float_X(1. / SPEED_OF_LIGHT / SPEED_OF_LIGHT);
+    constexpr float_X MUE0_EPS0 = float_X(1. / setup().physicalConstant.speed_of_light / setup().physicalConstant.speed_of_light);
 
     //! Impedance of free space
-    constexpr float_X Z0 = MUE0 * SPEED_OF_LIGHT;
+    constexpr float_X Z0 = MUE0 * setup().physicalConstant.speed_of_light;
 
     /* Atomic unit of electric field in PIC Efield units */
-    constexpr float_X ATOMIC_UNIT_EFIELD = float_X(SI::ATOMIC_UNIT_EFIELD / UNIT_EFIELD);
+    constexpr float_X ATOMIC_setup(unit::si_).unit.efield = float_X(SI::ATOMIC_setup(unit::si_).unit.efield / setup(unit::si_).unit.efield);
 
     /* Atomic unit of time in PIC units */
-    constexpr float_X ATOMIC_UNIT_TIME = float_X(SI::ATOMIC_UNIT_TIME / UNIT_TIME);
+    constexpr float_X ATOMIC_setup(unit::si_).unit.time = float_X(SI::ATOMIC_setup(unit::si_).unit.time / setup(unit::si_).unit.time);
 
 } // namespace picongpu

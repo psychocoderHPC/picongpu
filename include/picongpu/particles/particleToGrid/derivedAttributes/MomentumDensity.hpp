@@ -38,8 +38,8 @@ namespace picongpu
                 template<size_t T_direction>
                 HDINLINE float1_64 MomentumDensity<T_direction>::getUnit() const
                 {
-                    constexpr float_64 UNIT_VOLUME = (UNIT_LENGTH * UNIT_LENGTH * UNIT_LENGTH);
-                    return UNIT_MASS * UNIT_SPEED / UNIT_VOLUME;
+                    constexpr float_64 UNIT_VOLUME = (setup(unit::si_).unit.length * setup(unit::si_).unit.length * setup(unit::si_).unit.length);
+                    return setup(unit::si_).unit.mass * setup(unit::si_).unit.speed / UNIT_VOLUME;
                 }
 
                 template<size_t T_direction>

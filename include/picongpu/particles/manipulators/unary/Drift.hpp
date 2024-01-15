@@ -69,7 +69,7 @@ namespace picongpu
 
                             float3_X const mom(
                                 normDir
-                                * float_X(myGamma * initFreeBeta * float_64(macroMass) * float_64(SPEED_OF_LIGHT)));
+                                * float_X(myGamma * initFreeBeta * float_64(macroMass) * float_64(setup().physicalConstant.speed_of_light)));
 
                             ValueFunctor::operator()(particle[momentum_], mom);
                         }

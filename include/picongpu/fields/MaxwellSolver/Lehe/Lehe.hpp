@@ -39,34 +39,30 @@ namespace picongpu
     {
         namespace maxwellSolver
         {
-            /** Specialization of the CFL condition checker for Lehe solver
+            /** CFL condition checker for Lehe solver
              *
              * @tparam T_CherenkovFreeDir the direction (axis) which should be free of cherenkov radiation
              *                            0 = x, 1 = y, 2 = z
-             * @tparam T_Defer technical parameter to defer evaluation
+             *                            Check the CFL condition according to the paper, doesn't compile when
+             * failed
+             *
+             * @return value of 'X' to fulfill the condition 'c * dt <= X`
              */
-            template<uint32_t T_cherenkovFreeDir, typename T_Defer>
-            struct CFLChecker<Lehe<T_cherenkovFreeDir>, T_Defer>
+            template<uint32_t T_cherenkovFreeDir>
+            inline float_X checkCfl(Lehe<T_cherenkovFreeDir> const&)
             {
-                /** Check the CFL condition according to the paper, doesn't compile when failed
-                 *
-                 * @return value of 'X' to fulfill the condition 'c * dt <= X`
-                 */
-                float_X operator()() const
-                {
-                    // cellSize is not constexpr currently, so make an own constexpr array
-                    constexpr float_X step[3] = {CELL_WIDTH, CELL_HEIGHT, CELL_DEPTH};
-                    constexpr auto stepFreeDirection = step[T_cherenkovFreeDir];
+                // cellSize is not constexpr currently, so make an own constexpr array
+                auto stepFreeDirection = setup().cell[T_cherenkovFreeDir];
 
-                    // Dependance on T_Defer is required, otherwise this check would have been enforced for each setup
-                    constexpr auto dt = getTimeStep();
-                    PMACC_CASSERT_MSG(
-                        Courant_Friedrichs_Lewy_condition_failure____check_your_grid_param_file,
-                        (SPEED_OF_LIGHT * dt) <= stepFreeDirection && sizeof(T_Defer*) != 0);
+                // Dependance on T_Defer is required, otherwise this check would have been enforced for each setup
+                auto dt = getTimeStep();
+                PMACC_VERIFY_MSG(
+                    (setup().physicalConstant.speed_of_light * dt) <= stepFreeDirection != 0,
+                    "Courant_Friedrichs_Lewy_condition_failure____check_your_grid_param_file");
 
-                    return stepFreeDirection;
-                }
-            };
+                return stepFreeDirection;
+            } // namespace maxwellSolver
+
 
             /** Specialization of the dispersion relation for Lehe solver
              *
@@ -92,11 +88,13 @@ namespace picongpu
                 float3_64 const stepSquared = step * step;
 
                 //! Inverse of Courant factor for the Cherenkov-free direction
-                float_64 const stepRatio = step[dir0] / static_cast<float_64>(SPEED_OF_LIGHT * timeStep);
+                float_64 const stepRatio
+                    = step[dir0] / static_cast<float_64>(setup().physicalConstant.speed_of_light * timeStep);
 
                 //! Helper to calculate delta
                 float_64 const coeff = stepRatio
-                    * math::sin(pmacc::math::Pi<float_64>::halfValue * static_cast<float_64>(SPEED_OF_LIGHT * timeStep)
+                    * math::sin(pmacc::math::Pi<float_64>::halfValue
+                                * static_cast<float_64>(setup().physicalConstant.speed_of_light * timeStep)
                                 / step[dir0]);
 
                 /** delta_x0 from eq. (10) in Lehe et al., generalized for any direction
@@ -149,7 +147,8 @@ namespace picongpu
                         * sSquared[dir1];
                     rhs -= 4.0 * (betaDir2 / stepSquared[dir2] + betaDir0 / stepSquared[dir0]) * sSquared[dir0]
                         * sSquared[dir2];
-                    auto const lhsTerm = math::sin(0.5 * omega * timeStep) / (SPEED_OF_LIGHT * timeStep);
+                    auto const lhsTerm
+                        = math::sin(0.5 * omega * timeStep) / (setup().physicalConstant.speed_of_light * timeStep);
                     auto const lhs = lhsTerm * lhsTerm;
                     return rhs - lhs;
                 }
@@ -161,8 +160,9 @@ namespace picongpu
                 float_64 relationDerivative(float_64 const absK) const
                 {
                     /* Due to the structure of the relation, it is more convenient to operate with variables
-                     * sSquared(absK) from function relation() rather than s. So e.g. for calculating d(s^4)/d(absK) we
-                     * use d(sSquared^2)/d(absK). Precalculate d(sSquared(absK))/d(absK) for x, y, z components.
+                     * sSquared(absK) from function relation() rather than s. So e.g. for calculating
+                     * d(s^4)/d(absK) we use d(sSquared^2)/d(absK). Precalculate d(sSquared(absK))/d(absK) for x,
+                     * y, z components.
                      */
                     auto sSquaredDerivative = float3_64::create(0.0);
                     for(uint32_t d = 0; d < simDim; d++)

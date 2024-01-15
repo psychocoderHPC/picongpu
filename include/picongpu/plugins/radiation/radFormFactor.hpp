@@ -112,7 +112,7 @@ namespace picongpu
                         float_X sincValue = 1.0_X;
                         for(uint32_t d = 0; d < DIM3; ++d)
                             sincValue *= pmacc::math::sinc(
-                                observerUnitVec[d] * cellSize[d] / (SPEED_OF_LIGHT * 2.0_X) * omega);
+                                observerUnitVec[d] * cellSize[d] / (setup().physicalConstant.speed_of_light * 2.0_X) * omega);
                         return pmacc::math::cPow(sincValue, static_cast<uint32_t>(2u) * T_shapeOrder);
                     }
                 };
@@ -184,7 +184,7 @@ namespace picongpu
                      */
                     HDINLINE radFormFactor(const float_X omega, vector_64 const&)
                         : normalizedCoherentAmplification(
-                            util::square(pmacc::math::sinc(CELL_HEIGHT / (SPEED_OF_LIGHT * 2.0_X) * omega)))
+                            util::square(pmacc::math::sinc(CELL_HEIGHT / (setup().physicalConstant.speed_of_light * 2.0_X) * omega)))
                     {
                     }
 
@@ -226,7 +226,7 @@ namespace picongpu
                      */
                     HDINLINE radFormFactor(const float_X omega, vector_64 const&)
                         : normalizedCoherentAmplification(
-                            util::square(math::exp(-0.5_X * util::square(omega * 0.5_X * DELTA_T))))
+                            util::square(math::exp(-0.5_X * util::square(omega * 0.5_X * setup().delta_t))))
                     {
                     }
 
@@ -292,9 +292,9 @@ namespace picongpu
                     {
                         return util::square(math::exp(
                             -0.5_X
-                            * (util::square(observerUnitVec.x() * CELL_WIDTH / (SPEED_OF_LIGHT * 2.0_X) * omega)
-                               + util::square(observerUnitVec.y() * CELL_HEIGHT / (SPEED_OF_LIGHT * 2.0_X) * omega)
-                               + util::square(observerUnitVec.z() * CELL_DEPTH / (SPEED_OF_LIGHT * 2.0_X) * omega))));
+                            * (util::square(observerUnitVec.x() * CELL_WIDTH / (setup().physicalConstant.speed_of_light * 2.0_X) * omega)
+                               + util::square(observerUnitVec.y() * CELL_HEIGHT / (setup().physicalConstant.speed_of_light * 2.0_X) * omega)
+                               + util::square(observerUnitVec.z() * CELL_DEPTH / (setup().physicalConstant.speed_of_light * 2.0_X) * omega))));
                     }
                 };
             } // namespace radFormFactor_Gauss_cell

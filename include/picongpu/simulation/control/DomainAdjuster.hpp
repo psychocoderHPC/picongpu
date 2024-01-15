@@ -19,7 +19,7 @@
 
 #pragma once
 
-#include "picongpu/fields/absorber/Absorber.hpp"
+#include "picongpu/fields/boundary/Boundary.hpp"
 
 #include <pmacc/Environment.hpp>
 #include <pmacc/dimensions/DataSpace.hpp>
@@ -223,8 +223,7 @@ namespace picongpu
             bool const isBoundaryDevice = (m_mpiPosition[dim] == 0 || m_mpiPosition[dim] == m_numDevices[dim] - 1);
             if(isAbsorberEnabled && isBoundaryDevice)
             {
-                auto const& absorber = fields::absorber::Absorber::get();
-                auto const absorberThickness = absorber.getGlobalThickness();
+                auto const absorberThickness = fields::boundary::Boundary::get().getGlobalThickness();
                 size_t boundary = m_mpiPosition[dim] == 0u ? 0u : 1u;
                 int maxAbsorberCells = absorberThickness(dim, boundary);
 

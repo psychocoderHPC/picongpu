@@ -37,8 +37,8 @@ namespace picongpu
             {
                 HDINLINE float1_64 ChargeDensity::getUnit() const
                 {
-                    const float_64 UNIT_VOLUME = (UNIT_LENGTH * UNIT_LENGTH * UNIT_LENGTH);
-                    return UNIT_CHARGE / UNIT_VOLUME;
+                    const float_64 UNIT_VOLUME = (setup(unit::si_).unit.length * setup(unit::si_).unit.length * setup(unit::si_).unit.length);
+                    return setup(unit::si_).unit.charge / UNIT_VOLUME;
                 }
 
                 template<class T_Particle>

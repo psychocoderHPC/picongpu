@@ -42,7 +42,7 @@ namespace picongpu
                 const float_COLL DELTA_T_COLL = static_cast<float_COLL>(DELTA_T);
                 const float_COLL EPS0_COLL = static_cast<float_COLL>(EPS0);
                 const float_COLL WEIGHT_NORM_COLL
-                    = static_cast<float_COLL>(particles::TYPICAL_NUM_PARTICLES_PER_MACROPARTICLE);
+                    = static_cast<float_COLL>(setup().base.particle.typical_num_particles_per_macroparticle);
                 const float_COLL CELL_VOLUME_COLL = static_cast<float_COLL>(CELL_VOLUME);
             } // namespace precision
         } // namespace collision

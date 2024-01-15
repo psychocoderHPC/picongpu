@@ -128,7 +128,7 @@ namespace picongpu
                     {
                         float_X const weighting = particle[weighting_];
                         float_X const normedWeighting
-                            = weighting / float_X(particles::TYPICAL_NUM_PARTICLES_PER_MACROPARTICLE);
+                            = weighting / float_X(setup().base.particle.typical_num_particles_per_macroparticle);
                         float3_X const mom = particle[momentum_] / weighting;
                         floatD_X const pos = particle[position_];
                         lcellId_t const cellIdx = particle[localCellIdx_];
@@ -138,7 +138,7 @@ namespace picongpu
                             = (superCellIdx - mapper.getGuardingSuperCells()) * MappingDesc::SuperCellSize::toRT();
                         int const index_y = frameCellOffset.y();
                         auto const globalCellOffset = globalOffset + localSupercellStart + frameCellOffset;
-                        float_X const posX = (float_X(globalCellOffset.x()) + pos.x()) * cellSize.x();
+                        float_X const posX = (float_X(globalCellOffset.x()) + pos.x()) * setup().cell.x();
 
                         cupla::atomicAdd(
                             lockstepWorker.getAcc(),
@@ -645,15 +645,15 @@ namespace picongpu
                     for(int i = startWindow_y; i < endWindow_y; i++)
                     {
                         numElec_all += static_cast<long double>(globalCount_e.getBasePointer()[i]);
-                        ux2_all += static_cast<long double>(globalSumMom2.getBasePointer()[i]) * UNIT_MASS * UNIT_MASS
+                        ux2_all += static_cast<long double>(globalSumMom2.getBasePointer()[i]) * setup(unit::si_).unit.mass * setup(unit::si_).unit.mass
                             / (SI::ELECTRON_MASS_SI * SI::ELECTRON_MASS_SI);
                         pos2_SI_all
-                            += static_cast<long double>(globalSumPos2.getBasePointer()[i]) * UNIT_LENGTH * UNIT_LENGTH;
-                        xux_all += static_cast<long double>(globalSumMomPos.getBasePointer()[i]) * UNIT_MASS
-                            * UNIT_LENGTH / SI::ELECTRON_MASS_SI;
+                            += static_cast<long double>(globalSumPos2.getBasePointer()[i]) * setup(unit::si_).unit.length * setup(unit::si_).unit.length;
+                        xux_all += static_cast<long double>(globalSumMomPos.getBasePointer()[i]) * setup(unit::si_).unit.mass
+                            * setup(unit::si_).unit.length / SI::ELECTRON_MASS_SI;
                     }
                     /* the scaling with normalized weighting (weighting /
-                     * particles::TYPICAL_NUM_PARTICLES_PER_MACROPARTICLE) is compendated by the division by
+                     * setup().base.particle.typical_num_particles_per_macroparticle) is compendated by the division by
                      * (normalized) number of particles
                      */
                     float_64 emit_all = math::sqrt(
@@ -674,21 +674,21 @@ namespace picongpu
                     {
                         float_64 numElec = globalCount_e.getBasePointer()[i];
                         float_64 mom2_SI
-                            = globalSumMom2.getBasePointer()[i] * UNIT_MASS * UNIT_SPEED * UNIT_MASS * UNIT_SPEED;
-                        float_64 pos2_SI = globalSumPos2.getBasePointer()[i] * UNIT_LENGTH * UNIT_LENGTH;
+                            = globalSumMom2.getBasePointer()[i] * setup(unit::si_).unit.mass * setup(unit::si_).unit.speed * setup(unit::si_).unit.mass * setup(unit::si_).unit.speed;
+                        float_64 pos2_SI = globalSumPos2.getBasePointer()[i] * setup(unit::si_).unit.length * setup(unit::si_).unit.length;
                         float_64 mompos_SI
-                            = globalSumMomPos.getBasePointer()[i] * UNIT_MASS * UNIT_SPEED * UNIT_LENGTH;
+                            = globalSumMomPos.getBasePointer()[i] * setup(unit::si_).unit.mass * setup(unit::si_).unit.speed * setup(unit::si_).unit.length;
                         for(int j = i + 1; j < i + 10 && j < endWindow_y; j++)
                         {
                             numElec += globalCount_e.getBasePointer()[j];
                             mom2_SI
-                                += globalSumMom2.getBasePointer()[j] * UNIT_MASS * UNIT_SPEED * UNIT_MASS * UNIT_SPEED;
-                            pos2_SI += globalSumPos2.getBasePointer()[j] * UNIT_LENGTH * UNIT_LENGTH;
-                            mompos_SI += globalSumMomPos.getBasePointer()[j] * UNIT_MASS * UNIT_SPEED * UNIT_LENGTH;
+                                += globalSumMom2.getBasePointer()[j] * setup(unit::si_).unit.mass * setup(unit::si_).unit.speed * setup(unit::si_).unit.mass * setup(unit::si_).unit.speed;
+                            pos2_SI += globalSumPos2.getBasePointer()[j] * setup(unit::si_).unit.length * setup(unit::si_).unit.length;
+                            mompos_SI += globalSumMomPos.getBasePointer()[j] * setup(unit::si_).unit.mass * setup(unit::si_).unit.speed * setup(unit::si_).unit.length;
                         }
                         float_64 ux2
-                            = mom2_SI / (UNIT_SPEED * UNIT_SPEED * SI::ELECTRON_MASS_SI * SI::ELECTRON_MASS_SI);
-                        float_64 xux = mompos_SI / (UNIT_SPEED * SI::ELECTRON_MASS_SI);
+                            = mom2_SI / (setup(unit::si_).unit.speed * setup(unit::si_).unit.speed * SI::ELECTRON_MASS_SI * SI::ELECTRON_MASS_SI);
+                        float_64 xux = mompos_SI / (setup(unit::si_).unit.speed * SI::ELECTRON_MASS_SI);
                         float_64 emit = math::sqrt((pos2_SI * ux2 - xux * xux)) / numElec;
                         if(numElec < std::numeric_limits<float_64>::epsilon())
                         {

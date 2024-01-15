@@ -42,7 +42,7 @@ namespace picongpu
                 //! Get the time step value
                 HDINLINE constexpr float_X operator()()
                 {
-                    return DELTA_T;
+                    return setup().delta_t;
                 }
             };
 
@@ -57,14 +57,20 @@ namespace picongpu
                 //! Get the time step value
                 HDINLINE constexpr float_X operator()()
                 {
-                    return DELTA_T / static_cast<float_X>(T_numSubsteps);
+                    return setup().delta_t / static_cast<float_X>(T_numSubsteps);
                 }
             };
 
             //! Get time step used inside the field solver
-            HDINLINE constexpr float_X getTimeStep()
+            HDINLINE float_X getTimeStep()
             {
+#if 0
                 return GetTimeStep<Solver>{}();
+#else
+                // @todo Rene This should be a interface call to the fieldsolver (please implement during the transition to runtime)
+                return setup().delta_t;
+
+#endif
             }
 
         } // namespace maxwellSolver

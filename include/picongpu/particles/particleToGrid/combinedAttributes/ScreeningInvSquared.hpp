@@ -74,7 +74,7 @@ namespace picongpu
                     HDINLINE float1_64 getUnit() const
                     {
                         // inverse squared screening length has unit:
-                        return 1.0 / (UNIT_LENGTH * UNIT_LENGTH);
+                        return 1.0 / (setup(unit::si_).unit.length * setup(unit::si_).unit.length);
                     }
 
                     HINLINE std::vector<float_64> getUnitDimension() const

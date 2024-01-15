@@ -48,35 +48,35 @@ namespace picongpu
 
                         /** Wave length along propagation direction
                          *
-                         * unit: UNIT_LENGTH
+                         * unit: setup(unit::si_).unit.length
                          */
-                        static constexpr float_X WAVE_LENGTH
-                            = static_cast<float_X>(Params::WAVE_LENGTH_SI / UNIT_LENGTH);
+                        const float_X WAVE_LENGTH
+                            = static_cast<float_X>(Params::WAVE_LENGTH_SI / setup(unit::si_).unit.length);
 
                         /** Frequency
                          *
-                         * unit: 1/UNIT_TIME
+                         * unit: 1/setup(unit::si_).unit.time
                          */
-                        static constexpr float_X f = static_cast<float_X>(SPEED_OF_LIGHT / WAVE_LENGTH);
+                        const float_X f = static_cast<float_X>(setup().physicalConstant.speed_of_light / WAVE_LENGTH);
 
                         /** Angular frequency
                          *
-                         * unit: 1/UNIT_TIME
+                         * unit: 1/setup(unit::si_).unit.time
                          */
-                        static constexpr float_X w = pmacc::math::Pi<float_X>::doubleValue * f;
+                        const float_X w = pmacc::math::Pi<float_X>::doubleValue * f;
 
                         /** Max amplitude of E field
                          *
-                         * unit: UNIT_EFIELD
+                         * unit: setup(unit::si_).unit.efield
                          */
-                        static constexpr float_X AMPLITUDE = static_cast<float_X>(Params::AMPLITUDE_SI / UNIT_EFIELD);
+                        const float_X AMPLITUDE = static_cast<float_X>(Params::AMPLITUDE_SI / setup(unit::si_).unit.efield);
 
                         /** Pulse length
                          *
-                         * unit: UNIT_TIME
+                         * unit: setup(unit::si_).unit.time
                          */
-                        static constexpr float_X PULSE_LENGTH
-                            = static_cast<float_X>(Params::PULSE_LENGTH_SI / UNIT_TIME);
+                        const float_X PULSE_LENGTH
+                            = static_cast<float_X>(Params::PULSE_LENGTH_SI / setup(unit::si_).unit.time);
 
                         // Some utility that is not part of public interface
                     private:
@@ -139,16 +139,16 @@ namespace picongpu
 
                         /** Focus position in total cooridnate system
                          *
-                         * unit: UNIT_LENGTH
+                         * unit: setup(unit::si_).unit.length
                          *
                          * @{
                          */
-                        static constexpr float_X FOCUS_POSITION_X
-                            = static_cast<float_X>(Params::FOCUS_POSITION_X_SI / UNIT_LENGTH);
-                        static constexpr float_X FOCUS_POSITION_Y
-                            = static_cast<float_X>(Params::FOCUS_POSITION_Y_SI / UNIT_LENGTH);
-                        static constexpr float_X FOCUS_POSITION_Z
-                            = static_cast<float_X>(getFocusPositionZ() / UNIT_LENGTH);
+                        const float_X FOCUS_POSITION_X
+                            = static_cast<float_X>(Params::FOCUS_POSITION_X_SI / setup(unit::si_).unit.length);
+                        const float_X FOCUS_POSITION_Y
+                            = static_cast<float_X>(Params::FOCUS_POSITION_Y_SI / setup(unit::si_).unit.length);
+                        const float_X FOCUS_POSITION_Z
+                            = static_cast<float_X>(getFocusPositionZ() / setup(unit::si_).unit.length);
                         /** @} */
                     };
 
@@ -165,10 +165,10 @@ namespace picongpu
                         //! User SI parameters
                         using Params = T_BaseParam;
 
-                        // unit: UNIT_LENGTH
-                        static constexpr float_X W0_AXIS_1 = static_cast<float_X>(Params::W0_AXIS_1_SI / UNIT_LENGTH);
-                        // unit: UNIT_LENGTH
-                        static constexpr float_X W0_AXIS_2 = static_cast<float_X>(Params::W0_AXIS_2_SI / UNIT_LENGTH);
+                        // unit: setup(unit::si_).unit.length
+                        const float_X W0_AXIS_1 = static_cast<float_X>(Params::W0_AXIS_1_SI / setup(unit::si_).unit.length);
+                        // unit: setup(unit::si_).unit.length
+                        const float_X W0_AXIS_2 = static_cast<float_X>(Params::W0_AXIS_2_SI / setup(unit::si_).unit.length);
                     };
 
                 } // namespace detail

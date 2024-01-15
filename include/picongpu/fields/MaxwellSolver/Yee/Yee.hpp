@@ -36,28 +36,27 @@ namespace picongpu
     {
         namespace maxwellSolver
         {
-            /** Specialization of the CFL condition checker for the classic Yee solver
+            /**  CFL condition checker for the classic Yee solver
              *
-             * @tparam T_Defer technical parameter to defer evaluation
+             * Check the CFL condition, doesn't compile when failed
+             *
+             * @return value of 'X' to fulfill the condition 'c * dt <= X`
              */
-            template<typename T_Defer>
-            struct CFLChecker<Yee, T_Defer>
+            inline float_X checkCfl(Yee const&)
             {
-                /** Check the CFL condition, doesn't compile when failed
-                 *
-                 * @return value of 'X' to fulfill the condition 'c * dt <= X`
-                 */
-                float_X operator()() const
-                {
-                    // Dependance on T_Defer is required, otherwise this check would have been enforced for each setup
-                    constexpr auto dt = getTimeStep();
-                    PMACC_CASSERT_MSG(
-                        Courant_Friedrichs_Lewy_condition_failure____check_your_grid_param_file,
-                        (SPEED_OF_LIGHT * SPEED_OF_LIGHT * dt * dt * INV_CELL2_SUM) <= 1.0 && sizeof(T_Defer*) != 0);
+                // Dependance on T_Defer is required, otherwise this check would have been enforced for each setup
+                auto dt = getTimeStep();
+                float_X invSquareSum = 0._X;
+                for(uint32_t d = 0; d < simDim; ++d)
+                    invSquareSum += 1.0_X / setup().cell[d];
+                PMACC_VERIFY_MSG(
+                    (setup().physicalConstant.speed_of_light * setup().physicalConstant.speed_of_light * dt * dt
+                     * invSquareSum)
+                        <= 1.0,
+                    "Courant_Friedrichs_Lewy_condition_failure____check_your_grid_param_file");
 
-                    return 1.0_X / math::sqrt(INV_CELL2_SUM);
-                }
-            };
+                return 1.0_X / math::sqrt(invSquareSum);
+            }
 
             //! Specialization of the dispersion relation for the classic Yee solver
             template<>
@@ -88,7 +87,8 @@ namespace picongpu
                         auto const term = math::sin(arg) / step[d];
                         rhs += term * term;
                     }
-                    auto const lhsTerm = math::sin(0.5 * omega * timeStep) / (SPEED_OF_LIGHT * timeStep);
+                    auto const lhsTerm
+                        = math::sin(0.5 * omega * timeStep) / (setup().physicalConstant.speed_of_light * timeStep);
                     auto const lhs = lhsTerm * lhsTerm;
                     return rhs - lhs;
                 }

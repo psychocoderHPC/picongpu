@@ -194,7 +194,7 @@ namespace picongpu
                      */
 
                     // Base coefficient in front of J in Ampere's law
-                    constexpr float_X baseCoeff = -(1.0_X / EPS0) * getTimeStep();
+                    float_X baseCoeff = -(1.0_X / EPS0) * getTimeStep();
                     auto const alpha = static_cast<float_X>((subStep + 0.5) / this->numSubsteps);
                     auto const prevCoeff = (0.5_X - alpha) * baseCoeff;
                     auto const currentCoeff = (0.5_X + alpha) * baseCoeff;
@@ -271,18 +271,18 @@ namespace picongpu
                 bool previousJInitialized;
             };
 
-            /** Specialization of the CFL condition checker for substepping solver
+            /** CFL condition checker for substepping solver
              *
              * Uses CFL of the base solver, those already take care of using the correct time (sub)step.
              *
              * @tparam T_BaseSolver base field solver, follows requirements of field solvers
              * @tparam T_numSubsteps number of substeps per PIC time iteration
-             * @tparam T_Defer technical parameter to defer evaluation
              */
-            template<typename T_BaseSolver, uint32_t T_numSubsteps, typename T_Defer>
-            struct CFLChecker<Substepping<T_BaseSolver, T_numSubsteps>, T_Defer> : CFLChecker<T_BaseSolver, T_Defer>
+            template<typename T_BaseSolver, uint32_t T_numSubsteps>
+            inline float_X checkCfl(Substepping<T_BaseSolver, T_numSubsteps> const& solver)
             {
-            };
+                return checkCfl(static_cast<T_BaseSolver>(solver));
+            }
 
             /** Specialization of the dispersion relation for substepping solver
              *

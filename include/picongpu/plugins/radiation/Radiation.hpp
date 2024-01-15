@@ -774,10 +774,10 @@ namespace picongpu
                     ::openPMD::Iteration openPMDdataFileIteration = openPMDdataFile.writeIterations()[currentStep];
 
                     /* begin required openPMD global attributes */
-                    openPMDdataFileIteration.setDt<float_X>(DELTA_T);
-                    const float_X time = float_X(currentStep) * DELTA_T;
+                    openPMDdataFileIteration.setDt<float_X>(setup().delta_t);
+                    const float_X time = float_X(currentStep) * setup().delta_t;
                     openPMDdataFileIteration.setTime(time);
-                    openPMDdataFileIteration.setTimeUnitSI(UNIT_TIME);
+                    openPMDdataFileIteration.setTimeUnitSI(setup(unit::si_).unit.time);
                     /* end required openPMD global attributes */
 
                     // begin: write amplitude data
@@ -797,7 +797,7 @@ namespace picongpu
 
                     /* get the radiation amplitude unit */
                     Amplitude UnityAmplitude(1., 0., 0., 0., 0., 0.);
-                    const picongpu::float_64 factor = UnityAmplitude.calc_radiation() * UNIT_ENERGY * UNIT_TIME;
+                    const picongpu::float_64 factor = UnityAmplitude.calc_radiation() * setup(unit::si_).unit.energy * setup(unit::si_).unit.time;
 
                     {
                         // buffer for data re-arangement
@@ -925,7 +925,7 @@ namespace picongpu
 
                     // write mesh attributes
                     ::openPMD::MeshRecordComponent omega_mrc = mesh_omega[dataLabelsDetectorFrequency(0)];
-                    const picongpu::float_64 factorOmega = 1.0 / UNIT_TIME;
+                    const picongpu::float_64 factorOmega = 1.0 / setup(unit::si_).unit.time;
                     omega_mrc.setUnitSI(factorOmega);
                     omega_mrc.setPosition(std::vector<double>{0.0, 0.0, 0.0});
 
@@ -1041,7 +1041,7 @@ namespace picongpu
                                 // and write to file.
                                 outFile << values[index_omega + index_direction * radiation_frequencies::N_omega]
                                                .calc_radiation()
-                                        * UNIT_ENERGY * UNIT_TIME
+                                        * setup(unit::si_).unit.energy * setup(unit::si_).unit.time
                                         << "\t";
                             }
                             outFile << std::endl;

@@ -131,8 +131,8 @@ namespace picongpu
 
                 /** gaunt factor like suppression of crosssection
                  *
-                 * @param energyDifference ... difference of energy between atomic states, unit: ATOMIC_UNIT_ENERGY
-                 * @param energyElectron ... energy of electron, unit ATOMIC_UNIT_ENERGY
+                 * @param energyDifference ... difference of energy between atomic states, unit: ATOMIC_setup(unit::si_).unit.energy
+                 * @param energyElectron ... energy of electron, unit ATOMIC_setup(unit::si_).unit.energy
                  * @param indexTransition ... internal index of transition in atomicDataBox
                  *      use findIndexTransition method of atomicDataBox and screen for not found value
                  *      BEWARE: method assumes that indexTransition is valid, undefined behaviour otherwise
@@ -140,8 +140,8 @@ namespace picongpu
                  * return unit: unitless
                  */
                 DINLINE static float_X gauntFactor(
-                    float_X energyDifference, // unit: ATOMIC_UNIT_ENERGY
-                    float_X energyElectron, // unit: ATOMIC_UNIT_ENERGY
+                    float_X energyDifference, // unit: ATOMIC_setup(unit::si_).unit.energy
+                    float_X energyElectron, // unit: ATOMIC_setup(unit::si_).unit.energy
                     uint32_t indexTransition, // unitless
                     AtomicDataBox atomicDataBox)
                 {
@@ -160,7 +160,7 @@ namespace picongpu
                 }
 
             public:
-                // return unit: ATOMIC_UNIT_ENERGY
+                // return unit: ATOMIC_setup(unit::si_).unit.energy
                 template<typename T_Worker>
                 DINLINE static float_X energyDifference(
                     T_Worker const& worker,
@@ -169,7 +169,7 @@ namespace picongpu
                     AtomicDataBox atomicDataBox)
                 {
                     return (atomicDataBox(newConfigNumber) - atomicDataBox(oldConfigNumber));
-                    // unit: ATOMIC_UNIT_ENERGY
+                    // unit: ATOMIC_setup(unit::si_).unit.energy
                 }
 
                 /** returns the cross section for collisional exitation and deexcitation
@@ -177,7 +177,7 @@ namespace picongpu
                  * NOTE: does not check whether electron has enough energy, this is
                  * expected to be done by caller
                  *
-                 * @param energyElectron ... kinetic energy only, unit: ATOMIC_UNIT_ENERGY
+                 * @param energyElectron ... kinetic energy only, unit: ATOMIC_setup(unit::si_).unit.energy
                  * return unit: m^2
                  */
                 template<typename T_Worker>
@@ -186,7 +186,7 @@ namespace picongpu
                     Idx const oldConfigNumber, // unitless
                     Idx const newConfigNumber, // unitless
                     uint32_t const transitionIndex, // unitless
-                    float_X energyElectron, // unit: ATOMIC_UNIT_ENERGY
+                    float_X energyElectron, // unit: ATOMIC_setup(unit::si_).unit.energy
                     AtomicDataBox const atomicDataBox)
                 {
                     // energy difference between atomic states
@@ -194,7 +194,7 @@ namespace picongpu
                         worker,
                         oldConfigNumber,
                         newConfigNumber,
-                        atomicDataBox); // unit: ATOMIC_UNIT_ENERGY
+                        atomicDataBox); // unit: ATOMIC_setup(unit::si_).unit.energy
 
                     // case no physical transition possible, since insufficient electron energy
                     if(m_energyDifference > energyElectron)
@@ -206,7 +206,7 @@ namespace picongpu
                     if(m_energyDifference < 0._X)
                     {
                         // deexcitation
-                        m_energyDifference = -m_energyDifference; // unit: ATOMIC_UNIT_ENERGY
+                        m_energyDifference = -m_energyDifference; // unit: ATOMIC_setup(unit::si_).unit.energy
 
                         // ratio due to multiplicity
                         // unitless/unitless * (AU + AU) / AU = unitless
@@ -226,7 +226,7 @@ namespace picongpu
                                 m_energyDifference);
                         }
 
-                        energyElectron = energyElectron + m_energyDifference; // unit; ATOMIC_UNIT_ENERGY
+                        energyElectron = energyElectron + m_energyDifference; // unit; ATOMIC_setup(unit::si_).unit.energy
                     }
                     else
                     {
@@ -249,7 +249,7 @@ namespace picongpu
 
                     // scaling constants * E_Ry^2/deltaE_Trans^2 * f * deltaE_Trans/E_kin
                     // m^2 * (AUE/AUE)^2 * unitless * AUE/AUE * unitless<-[ J, J, unitless, unitless ] = m^2
-                    // AUE =^= ATOMIC_UNIT_ENERGY
+                    // AUE =^= ATOMIC_setup(unit::si_).unit.energy
                     float_X crossSection_SI = c0_SI * (1._X / 4._X) / (m_energyDifference * m_energyDifference)
                         * collisionalOscillatorStrength * (m_energyDifference / energyElectron)
                         * gauntFactor(m_energyDifference,
@@ -268,13 +268,13 @@ namespace picongpu
 
                 /** returns total cross section for a specific electron energy
                  *
-                 * @param energyElectron ... kinetic energy only, unit: ATOMIC_UNIT_ENERGY
+                 * @param energyElectron ... kinetic energy only, unit: ATOMIC_setup(unit::si_).unit.energy
                  * return unit: m^2, SI
                  */
                 template<typename T_Worker>
                 DINLINE static float_X totalElectronInteractionCrossSection(
                     T_Worker const& worker,
-                    float_X const energyElectron, // unit: ATOMIC_UNIT_ENERGY
+                    float_X const energyElectron, // unit: ATOMIC_setup(unit::si_).unit.energy
                     AtomicDataBox const atomicDataBox,
                     bool const debug = false)
                 {
@@ -312,7 +312,7 @@ namespace picongpu
                                     lowerStateConfigNumber, // unitless
                                     upperStateConfigNumber, // unitless
                                     transitionIndex, // unitless
-                                    energyElectron, // unit: ATOMIC_UNIT_ENERGY
+                                    energyElectron, // unit: ATOMIC_setup(unit::si_).unit.energy
                                     atomicDataBox); // unit: m^2, SI
                             }
 
@@ -328,7 +328,7 @@ namespace picongpu
                                         lowerStateConfigNumber, // unitless
                                         upperStateConfigNumber, // unitless
                                         transitionIndex, // uintless
-                                        energyElectron, // unit: ATOMIC_UNIT_ENERGY
+                                        energyElectron, // unit: ATOMIC_setup(unit::si_).unit.energy
                                         atomicDataBox),
                                     lowerStateConfigNumber,
                                     upperStateConfigNumber,
@@ -354,7 +354,7 @@ namespace picongpu
                                         upperStateConfigNumber, // unitless
                                         lowerStateConfigNumber, // unitless
                                         transitionIndex, // uintless
-                                        energyElectron, // unit: ATOMIC_UNIT_ENERGY
+                                        energyElectron, // unit: ATOMIC_setup(unit::si_).unit.energy
                                         atomicDataBox));
                             }
                         }
@@ -370,8 +370,8 @@ namespace picongpu
                  * TODO: change density to internal units
                  * TODO: change return unit to internal units
                  *
-                 * @param energyElectron ... kinetic energy only, unit: ATOMIC_UNIT_ENERGY
-                 * @param energyElectronBinWidth ... unit: ATOMIC_UNIT_ENERGY
+                 * @param energyElectron ... kinetic energy only, unit: ATOMIC_setup(unit::si_).unit.energy
+                 * @param energyElectronBinWidth ... unit: ATOMIC_setup(unit::si_).unit.energy
                  * @param densityElectrons ... unit: 1/(m^3 * J)
                  * @param atomicDataBox ... acess to input atomic data
                  *
@@ -383,15 +383,15 @@ namespace picongpu
                     Idx const oldState, // unit: unitless
                     Idx const newState, // unit: unitless
                     uint32_t const transitionIndex,
-                    float_X const energyElectron, // unit: ATOMIC_UNIT_ENERGY
-                    float_X const energyElectronBinWidth, // unit: ATOMIC_UNIT_ENERGY
-                    float_X const densityElectrons, // unit: 1/(m^3*ATOMIC_UNIT_ENERGY)
+                    float_X const energyElectron, // unit: ATOMIC_setup(unit::si_).unit.energy
+                    float_X const energyElectronBinWidth, // unit: ATOMIC_setup(unit::si_).unit.energy
+                    float_X const densityElectrons, // unit: 1/(m^3*ATOMIC_setup(unit::si_).unit.energy)
                     AtomicDataBox const atomicDataBox)
                 {
-                    // Notation Note: AU is a shorthand for ATOMIC_UNIT_ENERGY in this context
+                    // Notation Note: AU is a shorthand for ATOMIC_setup(unit::si_).unit.energy in this context
 
                     // constants in SI
-                    constexpr float_64 c_SI = picongpu::SI::SPEED_OF_LIGHT_SI; // unit: m/s, SI
+                    constexpr float_64 c_SI = picongpu::setup(unit::si_).physicalConstant.speed_of_light; // unit: m/s, SI
                     constexpr float_64 m_e_SI = picongpu::SI::ELECTRON_MASS_SI; // unit: kg, SI
 
                     const float_64 E_e_SI = energyElectron * picongpu::UNITCONV_AU_to_eV * UNITCONV_eV_to_Joule;
@@ -402,7 +402,7 @@ namespace picongpu
                         oldState, // unitless
                         newState, // unitless
                         transitionIndex,
-                        energyElectron, // unit: ATOMIC_UNIT_ENERGY
+                        energyElectron, // unit: ATOMIC_setup(unit::si_).unit.energy
                         atomicDataBox); // unit: (m^2), SI
 
                     // AU * m^2 * 1/(m^3*AU) * m/s * sqrt( unitless - [ ( (kg*m^2/s^2)/J )^2 = Nm/J = J/J = unitless ]
@@ -430,13 +430,13 @@ namespace picongpu
                     Idx const oldState, // unit: unitless
                     Idx const newState, // unit: unitless
                     uint32_t const transitionIndex,
-                    float_X deltaEnergyTransition, // unit: ATOMIC_UNIT_ENERGY
+                    float_X deltaEnergyTransition, // unit: ATOMIC_setup(unit::si_).unit.energy
                     AtomicDataBox const atomicDataBox)
                 {
-                    // Notation Note: AU is a shorthand for ATOMIC_UNIT_ENERGY in this context
+                    // Notation Note: AU is a shorthand for ATOMIC_setup(unit::si_).unit.energy in this context
 
                     // constants in SI
-                    constexpr float_64 c_SI = picongpu::SI::SPEED_OF_LIGHT_SI; // unit: m/s, SI
+                    constexpr float_64 c_SI = picongpu::setup(unit::si_).physicalConstant.speed_of_light; // unit: m/s, SI
                     constexpr float_64 m_e_SI = picongpu::SI::ELECTRON_MASS_SI; // unit: kg, SI
                     constexpr float_64 e_SI = picongpu::SI::ELECTRON_CHARGE_SI; // unit: C, SI
 
@@ -444,7 +444,7 @@ namespace picongpu
                     constexpr float_64 pi = picongpu::PI; // unit: unitless
                     constexpr float_64 hbar_SI = picongpu::SI::HBAR_SI; // unit: Js, SI
 
-                    constexpr float_64 au_SI = picongpu::SI::ATOMIC_UNIT_ENERGY; // unit: J, SI
+                    constexpr float_64 au_SI = picongpu::SI::ATOMIC_setup(unit::si_).unit.energy; // unit: J, SI
 
                     // (2 * pi * e^2)/(eps_0 * m_e * c^3) = (2 * pi * e^2 * mue_0) / (m_e * c)
                     constexpr float_X constFactor
@@ -476,9 +476,9 @@ namespace picongpu
                 DINLINE static float_X totalRate(
                     T_Worker const& worker,
                     Idx oldState, // unitless
-                    float_X energyElectron, // unit: ATOMIC_UNIT_ENERGY
-                    float_X energyElectronBinWidth, // unit: ATOMIC_UNIT_ENERGY
-                    float_X densityElectrons, // unit: 1/(m^3*ATOMIC_UNIT_ENERGY)
+                    float_X energyElectron, // unit: ATOMIC_setup(unit::si_).unit.energy
+                    float_X energyElectronBinWidth, // unit: ATOMIC_setup(unit::si_).unit.energy
+                    float_X densityElectrons, // unit: 1/(m^3*ATOMIC_setup(unit::si_).unit.energy)
                     AtomicDataBox atomicDataBox) // unit: 1/s, SI
                 {
                     // NOTE on Notation: the term upper-/lowerState refers
@@ -508,23 +508,23 @@ namespace picongpu
                                     oldState, // unitless
                                     lowerState, // newstate, unitless
                                     indexTransition,
-                                    energyElectron, // unit: ATOMIC_UNIT_ENERGY
-                                    energyElectronBinWidth, // unit: ATOMIC_UNIT_ENERGY
-                                    densityElectrons, // unit: 1/(m^3*ATOMIC_UNIT_ENERGY)
+                                    energyElectron, // unit: ATOMIC_setup(unit::si_).unit.energy
+                                    energyElectronBinWidth, // unit: ATOMIC_setup(unit::si_).unit.energy
+                                    densityElectrons, // unit: 1/(m^3*ATOMIC_setup(unit::si_).unit.energy)
                                     atomicDataBox); // unit: 1/s, SI
 
                                 float_X deltaEnergyTransition = energyDifference(
                                     worker,
                                     oldState,
                                     lowerState,
-                                    atomicDataBox); // unit: ATOMIC_UNIT_ENERGY
+                                    atomicDataBox); // unit: ATOMIC_setup(unit::si_).unit.energy
 
                                 totalRate += RateSpontaneousPhotonEmission(
                                     worker,
                                     oldState,
                                     lowerState,
                                     indexTransition,
-                                    deltaEnergyTransition, // unit: ATOMIC_UNIT_ENERGY
+                                    deltaEnergyTransition, // unit: ATOMIC_setup(unit::si_).unit.energy
                                     atomicDataBox); // unit: 1/s, SI
                             }
 
@@ -537,9 +537,9 @@ namespace picongpu
                                     oldState, // unitless
                                     upperState, // newstate, unitless
                                     indexTransition,
-                                    energyElectron, // unit: ATOMIC_UNIT_ENERGY
-                                    energyElectronBinWidth, // unit: ATOMIC_UNIT_ENERGY
-                                    densityElectrons, // unit: 1/(m^3*ATOMIC_UNIT_ENERGY)
+                                    energyElectron, // unit: ATOMIC_setup(unit::si_).unit.energy
+                                    energyElectronBinWidth, // unit: ATOMIC_setup(unit::si_).unit.energy
+                                    densityElectrons, // unit: 1/(m^3*ATOMIC_setup(unit::si_).unit.energy)
                                     atomicDataBox); // unit: 1/s, SI
 
                             // else do nothing
@@ -586,14 +586,14 @@ namespace picongpu
                                     worker,
                                     oldState,
                                     lowerState,
-                                    atomicDataBox); // unit: ATOMIC_UNIT_ENERGY
+                                    atomicDataBox); // unit: ATOMIC_setup(unit::si_).unit.energy
 
                                 totalRate += RateSpontaneousPhotonEmission(
                                     worker,
                                     oldState,
                                     lowerState,
                                     indexTransition,
-                                    deltaEnergyTransition, // unit: ATOMIC_UNIT_ENERGY
+                                    deltaEnergyTransition, // unit: ATOMIC_setup(unit::si_).unit.energy
                                     atomicDataBox); // unit: 1/s, SI
                             }
 

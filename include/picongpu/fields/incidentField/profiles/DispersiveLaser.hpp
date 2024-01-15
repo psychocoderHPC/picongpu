@@ -57,27 +57,27 @@ namespace picongpu
                         //! Base unitless parameters
                         using Base = BaseParamUnitless<T_Params>;
 
-                        // unit: UNIT_LENGTH
-                        static constexpr float_X W0 = static_cast<float_X>(Params::W0_SI / UNIT_LENGTH);
+                        // unit: setup(unit::si_).unit.length
+                        static constexpr float_X W0 = static_cast<float_X>(Params::W0_SI / setup(unit::si_).unit.length);
 
                         // rayleigh length in propagation direction
                         static constexpr float_X R = pmacc::math::Pi<float_X>::value * W0 * W0 / Base::WAVE_LENGTH;
 
-                        // unit: UNIT_TIME
+                        // unit: setup(unit::si_).unit.time
                         // corresponds to period length of DFT
                         static constexpr float_X INIT_TIME
                             = static_cast<float_X>(Params::PULSE_INIT) * Base::PULSE_LENGTH;
 
                         // Dispersion parameters
-                        // unit: UNIT_LENGTH * UNIT_TIME
-                        static constexpr float_X SD = static_cast<float_X>(Params::SD_SI / UNIT_TIME / UNIT_LENGTH);
-                        // unit: rad * UNIT_TIME
-                        static constexpr float_X AD = static_cast<float_X>(Params::AD_SI / UNIT_TIME);
-                        // unit: UNIT_TIME^2
-                        static constexpr float_X GDD = static_cast<float_X>(Params::GDD_SI / UNIT_TIME / UNIT_TIME);
-                        // unit: UNIT_TIME^3
+                        // unit: setup(unit::si_).unit.length * setup(unit::si_).unit.time
+                        static constexpr float_X SD = static_cast<float_X>(Params::SD_SI / setup(unit::si_).unit.time / setup(unit::si_).unit.length);
+                        // unit: rad * setup(unit::si_).unit.time
+                        static constexpr float_X AD = static_cast<float_X>(Params::AD_SI / setup(unit::si_).unit.time);
+                        // unit: setup(unit::si_).unit.time^2
+                        static constexpr float_X GDD = static_cast<float_X>(Params::GDD_SI / setup(unit::si_).unit.time / setup(unit::si_).unit.time);
+                        // unit: setup(unit::si_).unit.time^3
                         static constexpr float_X TOD
-                            = static_cast<float_X>(Params::TOD_SI / UNIT_TIME / UNIT_TIME / UNIT_TIME);
+                            = static_cast<float_X>(Params::TOD_SI / setup(unit::si_).unit.time / setup(unit::si_).unit.time / setup(unit::si_).unit.time);
                     };
 
                     /** DispersiveLaser incident E functor
@@ -133,7 +133,7 @@ namespace picongpu
                          */
                         HDINLINE float_X expandedWaveVectorX(float_X const Omega) const
                         {
-                            return Unitless::W0 / SPEED_OF_LIGHT
+                            return Unitless::W0 / setup().physicalConstant.speed_of_light
                                 * (Unitless::w * Unitless::AD * (Omega - Unitless::w)
                                    + Unitless::AD * (Omega - Unitless::w) * (Omega - Unitless::w)
                                    - Unitless::w / 6.0_X * Unitless::AD * Unitless::AD * Unitless::AD
@@ -166,7 +166,7 @@ namespace picongpu
 
                             // Center of a frequency's spatial distribution
                             float_X center = Unitless::SD * (Omega - Unitless::w)
-                                + SPEED_OF_LIGHT * alpha * focusPos / (Unitless::W0 * Unitless::w);
+                                + setup().physicalConstant.speed_of_light * alpha * focusPos / (Unitless::W0 * Unitless::w);
 
                             // gaussian envelope in frequency domain
                             float_X mag = math::exp(
@@ -216,7 +216,7 @@ namespace picongpu
 
                             // Center of a frequency's spatial distribution
                             float_X center = Unitless::SD * (Omega - Unitless::w)
-                                + SPEED_OF_LIGHT * alpha * focusPos / (Unitless::W0 * Unitless::w);
+                                + setup().physicalConstant.speed_of_light * alpha * focusPos / (Unitless::W0 * Unitless::w);
 
                             // inverse radius of curvature of the beam's  wavefronts
                             auto const R_inv = -focusPos / (Unitless::R * Unitless::R + focusPos * focusPos);
@@ -225,9 +225,9 @@ namespace picongpu
 
                             // shifting pulse for half of INIT_TIME to start with the front of the laser pulse
                             constexpr auto mue = 0.5_X * Unitless::INIT_TIME;
-                            float_X const timeDelay = mue + focusPos / SPEED_OF_LIGHT;
+                            float_X const timeDelay = mue + focusPos / setup().physicalConstant.speed_of_light;
 
-                            float_X phase = -Omega * focusPos / SPEED_OF_LIGHT
+                            float_X phase = -Omega * focusPos / setup().physicalConstant.speed_of_light
                                 + 0.5_X * Unitless::GDD * (Omega - Unitless::w) * (Omega - Unitless::w)
                                 + Unitless::TOD / 6.0_X * (Omega - Unitless::w) * (Omega - Unitless::w)
                                     * (Omega - Unitless::w)
@@ -237,7 +237,7 @@ namespace picongpu
                             if constexpr(simDim == DIM2)
                             {
                                 phase
-                                    += (pos[1] - center) * (pos[1] - center) * Omega * 0.5_X * R_inv / SPEED_OF_LIGHT;
+                                    += (pos[1] - center) * (pos[1] - center) * Omega * 0.5_X * R_inv / setup().physicalConstant.speed_of_light;
                                 phase -= alpha * pos[1] / Unitless::W0;
                                 phase += alpha * alpha / 4.0_X * focusPos / Unitless::R;
                                 phase -= 0.5_X * xi;
@@ -246,7 +246,7 @@ namespace picongpu
                             {
                                 phase
                                     += ((pos[1] - center) * (pos[1] - center) + (pos[2] - center) * (pos[2] - center))
-                                    * Omega * 0.5_X * R_inv / SPEED_OF_LIGHT;
+                                    * Omega * 0.5_X * R_inv / setup().physicalConstant.speed_of_light;
                                 phase -= alpha * (pos[1] + pos[2]) / Unitless::W0;
                                 phase += alpha * alpha / 2.0_X * focusPos / Unitless::R;
                                 phase -= xi;
@@ -273,8 +273,8 @@ namespace picongpu
                             else if(time > Unitless::INIT_TIME)
                                 return 0.0_X;
 
-                            // timestep also in UNIT_TIME
-                            float_X const dt = static_cast<float_X>(picongpu::SI::DELTA_T_SI / UNIT_TIME);
+                            // timestep also in setup(unit::si_).unit.time
+                            float_X const dt = static_cast<float_X>(picongpu::SI::DELTA_T_SI / setup(unit::si_).unit.time);
                             // interpolation order
                             float_X N_raw = Unitless::INIT_TIME / dt;
                             int n = static_cast<int>(N_raw * 0.5_X); // -0 instead of -1 for rounding up N_raw
@@ -315,14 +315,14 @@ namespace picongpu
                         using Unitless = DispersiveLaserUnitless<T_Params>;
 
                         //! Relation between unitField for E and B: E = B * unitConversionBtoE
-                        static constexpr float_64 unitConversionBtoE = UNIT_EFIELD / UNIT_BFIELD;
+                        static constexpr float_64 unitConversionBtoE = setup(unit::si_).unit.efield / setup(unit::si_).unit.bfield;
 
                         using complex_X = alpaka::Complex<float_X>;
 
-                        //! Cell size in UNIT_LENGTH
-                        float_X const d0 = static_cast<float_X>(picongpu::SI::CELL_WIDTH_SI / UNIT_LENGTH);
-                        float_X const d1 = static_cast<float_X>(picongpu::SI::CELL_HEIGHT_SI / UNIT_LENGTH);
-                        float_X const d2 = static_cast<float_X>(picongpu::SI::CELL_DEPTH_SI / UNIT_LENGTH);
+                        //! Cell size in setup(unit::si_).unit.length
+                        float_X const d0 = static_cast<float_X>(setup(unit::si_).cell.x() / setup(unit::si_).unit.length);
+                        float_X const d1 = static_cast<float_X>(setup(unit::si_).cell.y() / setup(unit::si_).unit.length);
+                        float_X const d2 = static_cast<float_X>(setup(unit::si_).cell.z() / setup(unit::si_).unit.length);
                         float3_X const d = float3_X(d0, d1, d2);
 
                         /** Create a functor on the host side for the given time step
@@ -469,8 +469,8 @@ namespace picongpu
                             else if(time > Unitless::INIT_TIME)
                                 return 0.0_X;
 
-                            // timestep also in UNIT_TIME
-                            float_X const dt = static_cast<float_X>(picongpu::SI::DELTA_T_SI / UNIT_TIME);
+                            // timestep also in setup(unit::si_).unit.time
+                            float_X const dt = static_cast<float_X>(picongpu::SI::DELTA_T_SI / setup(unit::si_).unit.time);
                             // interpolation order
                             float_X N_raw = Unitless::INIT_TIME / dt;
                             int n = static_cast<int>(N_raw / 2); // -0 instead of -1 for rounding up N_raw

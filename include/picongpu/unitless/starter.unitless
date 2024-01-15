@@ -24,7 +24,6 @@
 #include "picongpu/simulation/control/Simulation.hpp"
 #include "picongpu/simulation/control/SimulationStarter.hpp"
 
-
 namespace picongpu
 {
     namespace defaultPIConGPU

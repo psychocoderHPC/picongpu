@@ -22,6 +22,7 @@
 #include "picongpu/simulation_defines.hpp"
 
 #include "picongpu/fields/MaxwellSolver/DispersionRelationSolver.hpp"
+#include "picongpu/fields/incidentField/profiles/profiles.def"
 
 #include <pmacc/algorithms/math/defines/pi.hpp>
 #include <pmacc/meta/conversion/MakeSeq.hpp>
@@ -88,11 +89,11 @@ namespace picongpu
                 HINLINE float_X calculatePhaseVelocity()
                 {
                     auto const omega = pmacc::math::Pi<float_64>::doubleValue
-                        * static_cast<float_64>(SPEED_OF_LIGHT / T_Unitless::WAVE_LENGTH);
+                        * static_cast<float_64>(setup().physicalConstant.speed_of_light / T_Unitless::WAVE_LENGTH);
                     // Assume propagation along y as all laser profiles do it
                     auto const direction = float3_64{T_Unitless::DIR_X, T_Unitless::DIR_Y, T_Unitless::DIR_Z};
                     auto const absK = maxwellSolver::DispersionRelationSolver<Solver>{}(omega, direction);
-                    auto const phaseVelocity = omega / absK / SPEED_OF_LIGHT;
+                    auto const phaseVelocity = omega / absK / setup().physicalConstant.speed_of_light;
                     return static_cast<float_X>(phaseVelocity);
                 }
 
@@ -121,7 +122,7 @@ namespace picongpu
                 {
                     HINLINE float_X operator()() const
                     {
-                        return SPEED_OF_LIGHT;
+                        return setup().physicalConstant.speed_of_light;
                     }
                 };
 
@@ -131,7 +132,7 @@ namespace picongpu
                 {
                     HINLINE float_X operator()() const
                     {
-                        return SPEED_OF_LIGHT;
+                        return setup().physicalConstant.speed_of_light;
                     }
                 };
 

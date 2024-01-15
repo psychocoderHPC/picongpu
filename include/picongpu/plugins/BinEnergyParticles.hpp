@@ -166,7 +166,7 @@ namespace picongpu
                          * for the reduced weighting if the particle weighting is very large
                          */
                         float_X const normedWeighting
-                            = weighting / float_X(particles::TYPICAL_NUM_PARTICLES_PER_MACROPARTICLE);
+                            = weighting / float_X(setup().base.particle.typical_num_particles_per_macroparticle);
                         cupla::atomicAdd(
                             lockstepWorker.getAcc(),
                             &(shBin[binNumber]),
@@ -427,8 +427,8 @@ namespace picongpu
             auto particles = dc.get<ParticlesType>(ParticlesType::FrameType::getName());
 
             /* convert energy values from keV to PIConGPU units */
-            float_X const minEnergy = minEnergy_keV * UNITCONV_keV_to_Joule / UNIT_ENERGY;
-            float_X const maxEnergy = maxEnergy_keV * UNITCONV_keV_to_Joule / UNIT_ENERGY;
+            float_X const minEnergy = minEnergy_keV * UNITCONV_keV_to_Joule / setup(unit::si_).unit.energy;
+            float_X const maxEnergy = maxEnergy_keV * UNITCONV_keV_to_Joule / setup(unit::si_).unit.energy;
 
             auto const mapper = makeAreaMapper<AREA>(*m_cellDescription);
 
@@ -476,13 +476,13 @@ namespace picongpu
                 for(int i = 0; i < realNumBins; ++i)
                 {
                     count_particles += float_64(binReduced[i]);
-                    outFile << std::scientific << (binReduced[i]) * particles::TYPICAL_NUM_PARTICLES_PER_MACROPARTICLE
+                    outFile << std::scientific << (binReduced[i]) * setup().base.particle.typical_num_particles_per_macroparticle
                             << " ";
                 }
                 /* endl: Flush any step to the file.
                  * Thus, we will have data if the program should crash.
                  */
-                outFile << std::scientific << count_particles * particles::TYPICAL_NUM_PARTICLES_PER_MACROPARTICLE
+                outFile << std::scientific << count_particles * setup().base.particle.typical_num_particles_per_macroparticle
                         << std::endl;
             }
         }

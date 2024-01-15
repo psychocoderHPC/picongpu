@@ -19,6 +19,8 @@
 
 #pragma once
 
+#include <pmacc/types.hpp>
+
 #ifndef PARAM_DIMENSION
 #    define PARAM_DIMENSION DIM3
 #endif

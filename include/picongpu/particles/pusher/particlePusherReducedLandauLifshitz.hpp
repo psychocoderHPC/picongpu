@@ -83,7 +83,7 @@ namespace picongpu
                 if constexpr(pmacc::traits::HasIdentifier<T_Particle, probeE>::type::value)
                     particle[probeE_] = eField;
 
-                const float_X deltaT = DELTA_T;
+                const float_X deltaT = setup().delta_t;
                 const uint32_t dimMomentum = GetNComponents<TypeMomentum>::value;
                 // the transver data type adjust to 3D3V, 2D3V, 2D2V, ...
                 using VariableType = pmacc::math::Vector<picongpu::float_X, simDim + dimMomentum>;
@@ -175,7 +175,7 @@ namespace picongpu
                     for(uint32_t i = 0; i < picongpu::simDim; ++i)
                     {
                         posInterpolation[i] = var[i];
-                        pos[i] = var[i] * cellSize[i];
+                        pos[i] = var[i] * setup().cell[i];
                     }
 
                     auto fieldE = fieldEFunc(
@@ -192,7 +192,7 @@ namespace picongpu
 
                     VelocityType velocityCalc;
                     GammaType gammaCalc;
-                    const float_X c = SPEED_OF_LIGHT;
+                    const float_X c = setup().physicalConstant.speed_of_light;
                     const float3_X velocity = velocityCalc(mom, mass);
                     const float_X gamma = gammaCalc(mom, mass);
                     const float_X conversionMomentum2Beta = 1.0 / (gamma * mass * c);
@@ -216,7 +216,7 @@ namespace picongpu
 
                     VariableType returnVar;
                     for(uint32_t i = 0; i < picongpu::simDim; ++i)
-                        returnVar[i] = diffPos[i] / cellSize[i];
+                        returnVar[i] = diffPos[i] / setup().cell[i];
 
                     for(uint32_t i = 0; i < dimMomentum; ++i)
                         returnVar[simDim + i] = diffMom[i];
