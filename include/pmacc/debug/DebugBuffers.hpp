@@ -60,9 +60,9 @@ namespace pmacc
 
             typename HostBuffer<TYPE, DIM2>::DataBoxType db = hostBuffer.getDataBox();
 
-            for(size_t y = 0; y < hostBuffer.getDataSpace().y(); y++)
+            for(size_t y = 0; y < hostBuffer->getDataSpace().y(); y++)
             {
-                for(size_t x = 0; x < hostBuffer.getDataSpace().x(); x++)
+                for(size_t x = 0; x < hostBuffer->getDataSpace().x(); x++)
                     stream << db[y][x] << " ";
 
                 stream << std::endl;
@@ -83,13 +83,13 @@ namespace pmacc
 
             typename HostBuffer<TYPE, DIM3>::DataBoxType db = hostBuffer.getDataBox();
 
-            for(size_t z = 0; z < hostBuffer.getDataSpace().z(); z++)
+            for(size_t z = 0; z < hostBuffer->getDataSpace().z(); z++)
             {
                 stream << "z = " << z << std::endl;
 
-                for(size_t y = 0; y < hostBuffer.getDataSpace().y(); y++)
+                for(size_t y = 0; y < hostBuffer->getDataSpace().y(); y++)
                 {
-                    for(size_t x = 0; x < hostBuffer.getDataSpace().x(); x++)
+                    for(size_t x = 0; x < hostBuffer->getDataSpace().x(); x++)
                         stream << db[z][y][x] << " ";
 
                     stream << std::endl;

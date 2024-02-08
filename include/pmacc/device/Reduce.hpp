@@ -82,7 +82,7 @@ namespace pmacc
 
                 if(threads > n)
                     threads = n;
-                auto* dest = (Type*) reduceBuffer->getDeviceBuffer().getBasePointer();
+                auto* dest = (Type*) reduceBuffer->getDeviceBuffer().getDataBox().getPointer();
 
                 uint32_t blocks = threads / 2 / blockcount;
                 if(blocks == 0)
@@ -145,7 +145,7 @@ namespace pmacc
 
                 reduceBuffer->deviceToHost();
                 eventSystem::getTransactionEvent().waitForFinished();
-                return *((Type*) (reduceBuffer->getHostBuffer().getBasePointer()));
+                return *((Type*) (reduceBuffer->getHostBuffer().getDataBox().getPointer()));
             }
 
         private:

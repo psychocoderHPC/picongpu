@@ -23,6 +23,8 @@
 
 
 #include "pmacc/Environment.def"
+#include "pmacc/acc.hpp"
+#include "pmacc/cuplaHelper/Device.hpp"
 #include "pmacc/types.hpp"
 
 #include <pmacc/communication/manager_common.hpp>
@@ -53,7 +55,9 @@ namespace pmacc
                 size_t freeInternal = 0;
                 size_t totalInternal = 0;
 
-                CUDA_CHECK(cuplaMemGetInfo(&freeInternal, &totalInternal));
+                auto& device = manager::Device<AccDev>::get().current();
+                freeInternal = ::alpaka::getMemBytes(device);
+                totalInternal = ::alpaka::getFreeMemBytes(device);
 
                 if(free != nullptr)
                 {

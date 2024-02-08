@@ -91,7 +91,7 @@ namespace pmacc
             if constexpr(DIM > DIM1)
             {
                 /*create double buffer on gpu for faster memory transfers*/
-                deviceDoubleBuffer = std::make_unique<DeviceBuffer>(tmp_size, false, true);
+                deviceDoubleBuffer = std::make_unique<DeviceBuffer>(tmp_size, false);
             }
 
             if(!Environment<>::get().isMpiDirectEnabled())
@@ -113,7 +113,7 @@ namespace pmacc
             if constexpr(DIM > DIM1)
             {
                 /*create double buffer on gpu for faster memory transfers*/
-                deviceDoubleBuffer = std::make_unique<DeviceBuffer>(exchangeDataSpace, false, true);
+                deviceDoubleBuffer = std::make_unique<DeviceBuffer>(exchangeDataSpace, false);
             }
 
             if(!Environment<>::get().isMpiDirectEnabled())
@@ -289,17 +289,17 @@ namespace pmacc
          *
          * The buffer can point to device or host memory.
          */
-        Buffer<TYPE, DIM>* getCommunicationBuffer()
+        typename Buffer<TYPE, DIM>::CPtr getCPtr(bool send)
         {
             if(Environment<>::get().isMpiDirectEnabled())
             {
                 if(hasDeviceDoubleBuffer())
-                    return &(getDeviceDoubleBuffer());
+                    return getDeviceDoubleBuffer().getCPtr(send);
                 else
-                    return &(getDeviceBuffer());
+                    return getDeviceBuffer().getCPtr(send);
             }
 
-            return &(getHostBuffer());
+            return getHostBuffer().getCPtr(send);
         }
 
     protected:

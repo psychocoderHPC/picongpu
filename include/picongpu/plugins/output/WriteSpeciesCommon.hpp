@@ -37,7 +37,7 @@ namespace picongpu
         {
             using type = typename pmacc::traits::Resolve<T_Type>::type::type;
 
-            bool isMappedMemorySupported = alpaka::hasMappedBufSupport<::alpaka::Platform<cupla::AccDev>>;
+            bool isMappedMemorySupported = alpaka::hasMappedBufSupport<::alpaka::Platform<pmacc::AccDev>>;
 
             PMACC_VERIFY_MSG(isMappedMemorySupported, "Device must support mapped memory!");
 

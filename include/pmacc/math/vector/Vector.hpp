@@ -24,6 +24,7 @@
 
 #include "pmacc/algorithms/math.hpp"
 #include "pmacc/math/vector/navigator/IdentityNavigator.hpp"
+#include "pmacc/memory/Align.hpp"
 #include "pmacc/memory/Array.hpp"
 #include "pmacc/static_assert.hpp"
 #include "pmacc/types.hpp"
@@ -143,15 +144,21 @@ namespace pmacc
                     (*this)[i] = other[i];
             }
 
-            template<
-                typename T_OtherType,
-
-                typename T_OtherNavigator,
-                typename T_OtherStorage>
+            template<typename T_OtherType, typename T_OtherNavigator, typename T_OtherStorage>
             HDINLINE explicit Vector(const Vector<T_OtherType, dim, T_OtherNavigator, T_OtherStorage>& other)
             {
                 for(uint32_t i = 0u; i < dim; i++)
                     (*this)[i] = static_cast<type>(other[i]);
+            }
+
+            /** constructor.
+             * Sets imports from alpaka.
+             */
+            template<typename T_MemberType>
+            HDINLINE explicit Vector(alpaka::Vec<::alpaka::DimInt<T_dim>, T_MemberType> const& value)
+            {
+                for(uint32_t i = 0u; i < T_dim; i++)
+                    (*this)[T_dim - 1 - i] = value[i];
             }
 
             /** Allow static_cast / explicit cast to member type for 1D vector */
@@ -505,12 +512,11 @@ namespace pmacc
                 return stream.str();
             }
 
-            HDINLINE cupla::dim3 toDim3() const
+            HDINLINE alpaka::Vec<::alpaka::DimInt<T_dim>, T_Type> toAlpakaVec() const
             {
-                cupla::dim3 result;
-                unsigned int* ptr = &result.x;
-                for(uint32_t d = 0u; d < dim; ++d)
-                    ptr[d] = (*this)[d];
+                alpaka::Vec<::alpaka::DimInt<T_dim>, T_Type> result;
+                for(uint32_t i = 0u; i < T_dim; i++)
+                    result[T_dim - 1 - i] = (*this)[i];
                 return result;
             }
         };

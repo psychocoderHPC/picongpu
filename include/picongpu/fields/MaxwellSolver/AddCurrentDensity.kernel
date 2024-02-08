@@ -72,7 +72,7 @@ namespace picongpu::fields::maxwellSolver
 
             pmacc::math::operation::Assign assign;
             DataSpace<simDim> const block(
-                mapper.getSuperCellIndex(DataSpace<simDim>(cupla::blockIdx(worker.getAcc()))));
+                mapper.getSuperCellIndex(DataSpace<simDim>(device::getBlockIdx(worker.getAcc()))));
             DataSpace<simDim> const blockCell = block * MappingDesc::SuperCellSize::toRT();
 
             auto fieldJBlock = fieldJ.shift(blockCell);

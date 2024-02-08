@@ -366,9 +366,9 @@ namespace picongpu
             using ParticleList = ListForIsaac<pmacc::mp_transform<ParticleSource, Particle_Seq>>;
 
             using VisualizationType = IsaacVisualization<
-                cupla::AccHost,
-                cupla::Acc,
-                cupla::AccStream,
+                pmacc::AccHost,
+                pmacc::Acc,
+                pmacc::AccStream,
                 cupla::KernelDim,
                 SourceList,
                 VectorFieldSourceList,
@@ -698,9 +698,9 @@ namespace picongpu
                         position[i] = subGrid.getLocalDomain().offset[i];
                     }
                     visualization = std::make_unique<VisualizationType>(
-                        cupla::manager::Device<cupla::AccHost>::get().current(),
-                        cupla::manager::Device<cupla::AccDev>::get().current(),
-                        cupla::manager::Stream<cupla::AccDev, cupla::AccStream>::get().stream(),
+                        cupla::manager::Device<pmacc::AccHost>::get().current(),
+                        cupla::manager::Device<pmacc::AccDev>::get().current(),
+                        cupla::manager::Stream<pmacc::AccDev, pmacc::AccStream>::get().stream(),
                         name,
                         0,
                         url,

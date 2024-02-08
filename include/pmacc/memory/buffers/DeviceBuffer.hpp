@@ -36,22 +36,60 @@ namespace pmacc
 {
     class EventTask;
 
-    template<class TYPE, unsigned DIM>
+    template<class T_Type, unsigned T_dim>
     class HostBuffer;
 
-    template<class TYPE, unsigned DIM>
+    template<class T_Type, unsigned T_dim>
+    class DeviceBuffer;
+
+    template<class T_Type, unsigned T_dim>
     class Buffer;
 
-    /** DIM-dimensional Buffer of type TYPE on the device.
+    /** T_dim-dimensional Buffer of type T_Type on the device.
      *
-     * @tparam TYPE datatype of the buffer
-     * @tparam DIM dimension of the buffer
+     * @tparam T_Type datatype of the buffer
+     * @tparam T_dim dimension of the buffer
      */
-    template<class TYPE, unsigned DIM>
-    class DeviceBuffer : public Buffer<TYPE, DIM>
+    template<class T_Type, unsigned T_dim>
+    class DeviceBuffer
+        : public Buffer<T_Type, T_dim>
+        , public std::enable_shared_from_this<DeviceBuffer<T_Type, T_dim>>
     {
+        using BufferType = ::alpaka::Buf<AccDev, T_Type, AlpakaDim<DIM1>, IdxType>;
+        using ViewType = alpaka::ViewPlainPtr<AccDev, T_Type, AlpakaDim<T_dim>, IdxType>;
+        using CurrentSizeBufferDevice = ::alpaka::Buf<AccDev, size_t, AlpakaDim<DIM1>, IdxType>;
+
     public:
-        using DataBoxType = typename Buffer<TYPE, DIM>::DataBoxType;
+        using DataBoxType = typename Buffer<T_Type, T_dim>::DataBoxType;
+        std::shared_ptr<BufferType> devBuffer;
+        std::shared_ptr<ViewType> view;
+        std::shared_ptr<CurrentSizeBufferDevice> currentSizeBufferDevice;
+
+        using BufferType1D = ::alpaka::ViewPlainPtr<AccDev, T_Type, AlpakaDim<DIM1>, IdxType>;
+
+        BufferType1D as1DBuffer()
+        {
+            auto currentSize = this->getCurrentSize();
+            eventSystem::startOperation(ITask::TASK_DEVICE);
+            return BufferType1D(
+                alpaka::getPtrNative(*view),
+                alpaka::getDev(*devBuffer),
+                DataSpace<DIM1>(currentSize).toAlpakaVec());
+        }
+
+        BufferType1D as1DBufferNElem(size_t const numElements)
+        {
+            eventSystem::startOperation(ITask::TASK_DEVICE);
+            return BufferType1D(
+                alpaka::getPtrNative(*view),
+                alpaka::getDev(*devBuffer),
+                DataSpace<DIM1>(numElements).toAlpakaVec());
+        }
+
+        ViewType& getAlpakaView() const
+        {
+            return *view;
+        }
 
         /** Create device buffer
          *
@@ -59,29 +97,30 @@ namespace pmacc
          *
          * @param size extent for each dimension (in elements)
          * @param sizeOnDevice memory with the current size of the grid is stored on device
-         * @param useVectorAsBase use a vector as base of the array (is not lined pitched)
-         *                      if true size on device is atomaticly set to false
          */
-        DeviceBuffer(DataSpace<DIM> size, bool sizeOnDevice = false, bool useVectorAsBase = false)
-            : Buffer<TYPE, DIM>(size, size)
-            , offset(DataSpace<DIM>())
-            , sizeOnDevice(sizeOnDevice)
-            , useOtherMemory(false)
+        DeviceBuffer(DataSpace<T_dim> const& size, bool sizeOnDevice = false)
+            : Buffer<T_Type, T_dim>(size)
+            , devBuffer(std::make_shared<BufferType>(alpaka::allocBuf<T_Type, IdxType>(
+                  manager::Device<AccDev>::get().current(),
+                  DataSpace<DIM1>(size.productOfComponents()).toAlpakaVec())))
         {
-            // create size on device before any use of setCurrentSize
-            if(useVectorAsBase)
-            {
-                this->sizeOnDevice = false;
-                createSizeOnDevice(this->sizeOnDevice);
-                createFakeData();
-                this->data1D = true;
-            }
-            else
-            {
-                createSizeOnDevice(this->sizeOnDevice);
-                createData();
-                this->data1D = false;
-            }
+            DataSpace<T_dim> pitchInBytes;
+            pitchInBytes.x() = sizeof(T_Type);
+            for(uint32_t d = 1u; d < T_dim; ++d)
+                pitchInBytes[d] = pitchInBytes[d - 1u] * size[d - 1u];
+            view = std::make_shared<ViewType>(
+                alpaka::getPtrNative(*devBuffer),
+                alpaka::getDev(*devBuffer),
+                size.toAlpakaVec(),
+                pitchInBytes.toAlpakaVec());
+
+            if(sizeOnDevice)
+                currentSizeBufferDevice = std::make_shared<CurrentSizeBufferDevice>(alpaka::allocBuf<size_t, IdxType>(
+                    manager::Device<AccDev>::get().current(),
+                    DataSpace<DIM1>(1).toAlpakaVec()));
+            this->setCurrentSize(size.productOfComponents());
+            this->data1D = true;
+            reset(false);
         }
 
         /** Create a shallow copy of the given source buffer
@@ -94,83 +133,52 @@ namespace pmacc
          * @param sizeOnDevice memory with the current size of the grid is stored on device
          */
         DeviceBuffer(
-            DeviceBuffer<TYPE, DIM>& source,
-            DataSpace<DIM> size,
-            DataSpace<DIM> offset,
+            DeviceBuffer<T_Type, T_dim>& source,
+            DataSpace<T_dim> size,
+            DataSpace<T_dim> offset,
             bool sizeOnDevice = false)
-            : Buffer<TYPE, DIM>(size, source.getPhysicalMemorySize())
-            , offset(offset + source.getOffset())
-            , sizeOnDevice(sizeOnDevice)
-            , data(source.getCudaPitched())
-            , useOtherMemory(true)
+            : Buffer<T_Type, T_dim>(size)
+            , devBuffer(source.devBuffer)
         {
-            createSizeOnDevice(sizeOnDevice);
-            this->data1D = false;
+            auto subView = createSubView(*source.view, size.toAlpakaVec(), offset.toAlpakaVec());
+            view = std::make_shared<ViewType>(
+                alpaka::getPtrNative(subView),
+                alpaka::getDev(subView),
+                alpaka::getExtents(subView),
+                alpaka::getPitchesInBytes(subView));
+            if(sizeOnDevice)
+                currentSizeBufferDevice = std::make_shared<CurrentSizeBufferDevice>(alpaka::allocBuf<size_t, IdxType>(
+                    manager::Device<AccDev>::get().current(),
+                    DataSpace<DIM1>(1).toAlpakaVec()));
+            this->setCurrentSize(size.productOfComponents());
+            this->data1D = false || T_dim == DIM1;
+            reset(true);
         }
 
         ~DeviceBuffer() override
         {
             eventSystem::startOperation(ITask::TASK_DEVICE);
-
-            if(sizeOnDevice)
-            {
-                CUDA_CHECK_NO_EXCEPT(cuplaFree(sizeOnDevicePtr));
-            }
-            if(!useOtherMemory)
-            {
-                CUDA_CHECK_NO_EXCEPT(cuplaFree(data.ptr));
-            }
         }
 
         void reset(bool preserveData = true) override
         {
-            this->setCurrentSize(Buffer<TYPE, DIM>::getDataSpace().productOfComponents());
+            this->setCurrentSize(Buffer<T_Type, T_dim>::getDataSpace().productOfComponents());
 
             eventSystem::startOperation(ITask::TASK_DEVICE);
             if(!preserveData)
             {
                 // Using Array is a workaround for types without default constructor
-                memory::Array<TYPE, 1> tmp;
-                memset(reinterpret_cast<void*>(tmp.data()), 0, sizeof(tmp));
+                memory::Array<uint8_t, sizeof(T_Type)> tmp(uint8_t{0});
                 // use first element to avoid issue because Array is aligned (sizeof can be larger than component type)
-                setValue(tmp[0]);
+                setValue(*reinterpret_cast<T_Type*>(tmp.data()));
             }
         }
 
         DataBoxType getDataBox() override
         {
             eventSystem::startOperation(ITask::TASK_DEVICE);
-            return DataBoxType(PitchedBox<TYPE, DIM>((TYPE*) data.ptr, this->getPhysicalMemorySize(), data.pitch))
-                .shift(offset);
-        }
-
-        TYPE* getPointer() override
-        {
-            eventSystem::startOperation(ITask::TASK_DEVICE);
-
-            if constexpr(DIM == DIM1)
-            {
-                return (TYPE*) (data.ptr) + this->offset[0];
-            }
-            else if constexpr(DIM == DIM2)
-            {
-                return (TYPE*) ((char*) data.ptr + this->offset[1] * this->data.pitch) + this->offset[0];
-            }
-
-            // path for the highest supported dimension DIM3
-            const size_t offsetY = this->offset[1] * this->data.pitch;
-            const size_t sizePlaneXY = this->getPhysicalMemorySize()[1] * this->data.pitch;
-            return (TYPE*) ((char*) data.ptr + this->offset[2] * sizePlaneXY + offsetY) + this->offset[0];
-        }
-
-        /**
-         * Returns offset of elements in every dimension.
-         *
-         * @return count of elements
-         */
-        DataSpace<DIM> getOffset() const
-        {
-            return offset;
+            auto pitchBytes = DataSpace<T_dim>(getPitchesInBytes(*view));
+            return DataBoxType(PitchedBox<T_Type, T_dim>(alpaka::getPtrNative(*view), pitchBytes));
         }
 
         /**
@@ -180,7 +188,7 @@ namespace pmacc
          */
         bool hasCurrentSizeOnDevice() const
         {
-            return sizeOnDevice;
+            return currentSizeBufferDevice != nullptr;
         }
 
         /**
@@ -188,30 +196,14 @@ namespace pmacc
          *
          * @return pointer which point to device memory of current size
          */
-        size_t* getCurrentSizeOnDevicePointer()
+        auto getCurrentSizeOnDeviceBuffer()
         {
             eventSystem::startOperation(ITask::TASK_DEVICE);
-            if(!sizeOnDevice)
+            if(!hasCurrentSizeOnDevice())
             {
                 throw std::runtime_error("Buffer has no size on device!, currentSize is only stored on host side.");
             }
-            return sizeOnDevicePtr;
-        }
-
-        /** Returns host pointer of current size storage
-         *
-         * @return pointer to stored value on host side
-         */
-        size_t* getCurrentSizeHostSidePointer()
-        {
-            eventSystem::startOperation(ITask::TASK_HOST);
-            return this->current_size;
-        }
-
-        TYPE* getBasePointer() override
-        {
-            eventSystem::startOperation(ITask::TASK_DEVICE);
-            return (TYPE*) data.ptr;
+            return currentSizeBufferDevice;
         }
 
         /*! Get current size of any dimension
@@ -219,14 +211,14 @@ namespace pmacc
          */
         size_t getCurrentSize() override
         {
-            if(sizeOnDevice)
+            if(hasCurrentSizeOnDevice())
             {
                 eventSystem::startTransaction(eventSystem::getTransactionEvent());
                 Environment<>::get().Factory().createTaskGetCurrentSizeFromDevice(*this);
                 eventSystem::endTransaction().waitForFinished();
             }
 
-            return Buffer<TYPE, DIM>::getCurrentSize();
+            return Buffer<T_Type, T_dim>::getCurrentSize();
         }
 
         /**
@@ -238,13 +230,13 @@ namespace pmacc
          *
          * @param size count of elements per dimension
          */
-        void setCurrentSize(const size_t size) override
+        void setCurrentSize(const size_t newSize) override
         {
-            Buffer<TYPE, DIM>::setCurrentSize(size);
+            Buffer<T_Type, T_dim>::setCurrentSize(newSize);
 
-            if(sizeOnDevice)
+            if(hasCurrentSizeOnDevice())
             {
-                Environment<>::get().Factory().createTaskSetCurrentSizeOnDevice(*this, size);
+                Environment<>::get().Factory().createTaskSetCurrentSizeOnDevice(*this, newSize);
             }
         }
 
@@ -253,10 +245,10 @@ namespace pmacc
          *
          * @param other the HostBuffer to copy from
          */
-        void copyFrom(HostBuffer<TYPE, DIM>& other)
+        void copyFrom(HostBuffer<T_Type, T_dim>& other)
         {
             PMACC_ASSERT(this->isMyDataSpaceGreaterThan(other.getCurrentDataSpace()));
-            Environment<>::get().Factory().createTaskCopyHostToDevice(other, *this);
+            Environment<>::get().Factory().createTaskCopy(other, *this);
         }
 
         /**
@@ -264,137 +256,46 @@ namespace pmacc
          *
          * @param other the DeviceBuffer to copy from
          */
-        void copyFrom(DeviceBuffer<TYPE, DIM>& other)
+        void copyFrom(DeviceBuffer<T_Type, T_dim>& other)
         {
             PMACC_ASSERT(this->isMyDataSpaceGreaterThan(other.getCurrentDataSpace()));
-            Environment<>::get().Factory().createTaskCopyDeviceToDevice(other, *this);
+            Environment<>::get().Factory().createTaskCopy(other, *this);
         }
 
-        /**
-         * Returns the internal pitched cupla pointer.
-         *
-         * @return internal pitched cupla pointer
-         */
-        const cuplaPitchedPtr getCudaPitched() const
-        {
-            eventSystem::startOperation(ITask::TASK_DEVICE);
-            return data;
-        }
-
-        /** get line pitch of memory in byte
-         *
-         * @return size of one line in memory
-         */
-        size_t getPitch() const
-        {
-            return data.pitch;
-        }
-
-        void setValue(const TYPE& value) override
+        void setValue(T_Type const& value) override
         {
             Environment<>::get().Factory().createTaskSetValue(*this, value);
         };
 
-    private:
-        /*! create native array with pitched lines
-         */
-        void createData()
+        auto getCurrentSizeDeviceSideBuffer()
         {
             eventSystem::startOperation(ITask::TASK_DEVICE);
-            data.ptr = nullptr;
-            data.pitch = 1;
-            data.xsize = this->getDataSpace()[0] * sizeof(TYPE);
-            data.ysize = 1;
-
-            if constexpr(DIM == DIM1)
-            {
-                log<ggLog::MEMORY>("Create device 1D data: %1% MiB") % (data.xsize / 1024 / 1024);
-                CUDA_CHECK(cuplaMallocPitch(&data.ptr, &data.pitch, data.xsize, 1));
-            }
-            if constexpr(DIM == DIM2)
-            {
-                data.ysize = this->getDataSpace()[1];
-                log<ggLog::MEMORY>("Create device 2D data: %1% MiB") % (data.xsize * data.ysize / 1024 / 1024);
-                CUDA_CHECK(cuplaMallocPitch(&data.ptr, &data.pitch, data.xsize, data.ysize));
-            }
-            if constexpr(DIM == DIM3)
-            {
-                cuplaExtent extent;
-                extent.width = this->getDataSpace()[0] * sizeof(TYPE);
-                extent.height = this->getDataSpace()[1];
-                extent.depth = this->getDataSpace()[2];
-
-                log<ggLog::MEMORY>("Create device 3D data: %1% MiB")
-                    % (this->getDataSpace().productOfComponents() * sizeof(TYPE) / 1024 / 1024);
-                CUDA_CHECK(cuplaMalloc3D(&data, extent));
-            }
-
-            reset(false);
+            return currentSizeBufferDevice;
         }
 
-        /*!create 1D, 2D, 3D Array which use only a vector as base
-         */
-        void createFakeData()
+        typename Buffer<T_Type, T_dim>::CPtr getCPtr(bool send) final
         {
             eventSystem::startOperation(ITask::TASK_DEVICE);
-            data.ptr = nullptr;
-            data.pitch = 1;
-            data.xsize = this->getDataSpace()[0] * sizeof(TYPE);
-            data.ysize = 1;
-
-            log<ggLog::MEMORY>("Create device fake data: %1% MiB")
-                % (this->getDataSpace().productOfComponents() * sizeof(TYPE) / 1024 / 1024);
-            CUDA_CHECK(cuplaMallocPitch(
-                &data.ptr,
-                &data.pitch,
-                this->getDataSpace().productOfComponents() * sizeof(TYPE),
-                1));
-
-            // fake the pitch, thus we can use this 1D Buffer as 2D or 3D
-            data.pitch = this->getDataSpace()[0] * sizeof(TYPE);
-
-            if constexpr(DIM > DIM1)
-            {
-                data.ysize = this->getDataSpace()[1];
-            }
-
-            reset(false);
+            if(send)
+                return {alpaka::getPtrNative(*view), this->getCurrentSize()};
+            else
+                return {alpaka::getPtrNative(*view), this->getDataSpace().productOfComponents()};
         }
-
-        void createSizeOnDevice(bool sizeOnDevice)
-        {
-            eventSystem::startOperation(ITask::TASK_HOST);
-            sizeOnDevicePtr = nullptr;
-
-            if(sizeOnDevice)
-            {
-                CUDA_CHECK(cuplaMalloc((void**) &sizeOnDevicePtr, sizeof(size_t)));
-            }
-            setCurrentSize(this->getDataSpace().productOfComponents());
-        }
-
-    private:
-        DataSpace<DIM> offset;
-
-        bool sizeOnDevice;
-        size_t* sizeOnDevicePtr;
-        cuplaPitchedPtr data;
-        bool useOtherMemory;
     };
 
     /** Factory for a new heap-allocated DeviceBuffer buffer object that is a deep copy of the given device
      * buffer
      *
-     * @tparam TYPE value type
-     * @tparam DIM index dimensionality
+     * @tparam T_Type value type
+     * @tparam T_dim index dimensionality
      *
      * @param source source device buffer
      */
-    template<class TYPE, unsigned DIM>
-    HINLINE std::unique_ptr<DeviceBuffer<TYPE, DIM>> makeDeepCopy(DeviceBuffer<TYPE, DIM>& source)
+    template<class T_Type, unsigned T_dim>
+    HINLINE std::unique_ptr<DeviceBuffer<T_Type, T_dim>> makeDeepCopy(DeviceBuffer<T_Type, T_dim>& source)
     {
         // We have to call this constructor to allocate a new data storage and not shallow-copy the source
-        auto result = std::make_unique<DeviceBuffer<TYPE, DIM>>(source.getDataSpace());
+        auto result = std::make_unique<DeviceBuffer<T_Type, T_dim>>(source.getDataSpace());
         result->copyFrom(source);
         // Wait for copy to finish, so that the resulting object is safe to use after return
         eventSystem::getTransactionEvent().waitForFinished();

@@ -23,38 +23,48 @@
 
 #pragma once
 
+#include <alpaka/alpaka.hpp>
+
 #include <iostream>
 #include <stdexcept>
-
-#include <cupla.hpp>
 
 
 /**
  * Print a cupla error message including file/line info to stderr
  */
-#define PMACC_PRINT_CUPLA_ERROR(msg)                                                                                  \
-    std::cerr << "[cupla] Error: <" << __FILE__ << ">:" << __LINE__ << " " << msg << std::endl
+#define PMACC_PRINT_ALPAKA_ERROR(msg)                                                                                 \
+    do                                                                                                                \
+    {                                                                                                                 \
+        std::cerr << "[alpaka] Error: <" << __FILE__ << ">:" << __LINE__ << " " << msg << std::endl;                  \
+    } while(false)
 
 /**
  * Print a cupla error message including file/line info to stderr and raises an exception
  */
-#define PMACC_PRINT_CUPLA_ERROR_AND_THROW(cuplaError, msg)                                                            \
-    PMACC_PRINT_CUPLA_ERROR(msg);                                                                                     \
-    throw std::runtime_error(std::string("[cupla] Error: ") + std::string(cuplaGetErrorString(cuplaError)))
+#define PMACC_PRINT_ALPAKA_ERROR_AND_THROW(msg)                                                                       \
+    do                                                                                                                \
+    {                                                                                                                 \
+        PMACC_PRINT_CUPLA_ERROR(msg);                                                                                 \
+        throw std::runtime_error(std::string("[alpaka] Error: ") + msg);                                              \
+    } while(false)
 
 /**
  * Captures CUDA errors and prints messages to stdout, including line number and file.
  *
  * @param cmd command with cuplaError_t return value to check
  */
-#define CUDA_CHECK(cmd)                                                                                               \
+#define CUDA_CHECK(...)                                                                                               \
+    do                                                                                                                \
     {                                                                                                                 \
-        cuplaError_t error = cmd;                                                                                     \
-        if(error != cuplaSuccess)                                                                                     \
+        try                                                                                                           \
         {                                                                                                             \
-            PMACC_PRINT_CUPLA_ERROR_AND_THROW(error, "");                                                             \
+            __VA_ARGS__;                                                                                              \
         }                                                                                                             \
-    }
+        catch(std::exception const& e)                                                                                \
+        {                                                                                                             \
+            PMACC_PRINT_ALPAKA_ERROR_AND_THROW(e.what());                                                             \
+        }                                                                                                             \
+    } while(false)
 
 /** Capture error, report and throw
  *
@@ -66,27 +76,20 @@
  * producing a new exception or propagating an existing one
  */
 #define CUDA_CHECK_MSG(cmd, msg)                                                                                      \
+    do                                                                                                                \
     {                                                                                                                 \
         try                                                                                                           \
         {                                                                                                             \
-            cuplaError_t error = cmd;                                                                                 \
-            if(error != cuplaSuccess)                                                                                 \
-            {                                                                                                         \
-                PMACC_PRINT_CUPLA_ERROR_AND_THROW(error, msg);                                                        \
-            }                                                                                                         \
+            cmd;                                                                                                      \
         }                                                                                                             \
-        catch(...)                                                                                                    \
+        catch(std::exception const& e)                                                                                \
         {                                                                                                             \
-            PMACC_PRINT_CUPLA_ERROR(msg);                                                                             \
-            throw;                                                                                                    \
+            PMACC_PRINT_ALPAKA_ERROR(e.what());                                                                       \
         }                                                                                                             \
-    }
+    } while(false)
 
-#define CUDA_CHECK_NO_EXCEPT(cmd)                                                                                     \
+#define CUDA_CHECK_NO_EXCEPT(...)                                                                                     \
+    do                                                                                                                \
     {                                                                                                                 \
-        cuplaError_t error = cmd;                                                                                     \
-        if(error != cuplaSuccess)                                                                                     \
-        {                                                                                                             \
-            PMACC_PRINT_CUPLA_ERROR("");                                                                              \
-        }                                                                                                             \
-    }
+        CUDA_CHECK_MSG(__VA_ARGS__, "");                                                                              \
+    } while(false)

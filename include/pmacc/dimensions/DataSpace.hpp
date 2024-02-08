@@ -60,28 +60,23 @@ namespace pmacc
 
         HDINLINE constexpr DataSpace& operator=(const DataSpace&) = default;
 
-        /**
-         * constructor.
-         * Sets size of all dimensions from cuda dim3.
-         */
-        HDINLINE explicit DataSpace(cupla::dim3 value)
+        HDINLINE alpaka::Vec<::alpaka::DimInt<T_dim>, IdxType> toAlpakaVec() const
         {
-            for(uint32_t i = 0; i < T_dim; ++i)
-            {
-                (*this)[i] = *(&(value.x) + i);
-            }
+            alpaka::Vec<::alpaka::DimInt<T_dim>, IdxType> result;
+            for(uint32_t i = 0u; i < T_dim; i++)
+                result[T_dim - 1 - i] = (*this)[i];
+            return result;
         }
 
-        /**
-         * constructor.
-         * Sets size of all dimensions from cupla uint3 (e.g. cupla::threadIdx(acc)/cupla::blockIdx(acc))
+        /** constructor.
+         *
+         * Sets size of all dimensions from alpaka.
          */
-        HDINLINE DataSpace(cupla::uint3 value)
+        template<typename T_MemberType>
+        HDINLINE explicit DataSpace(alpaka::Vec<::alpaka::DimInt<T_dim>, T_MemberType> const& value)
         {
-            for(uint32_t i = 0; i < T_dim; ++i)
-            {
-                (*this)[i] = *(&(value.x) + i);
-            }
+            for(uint32_t i = 0u; i < T_dim; i++)
+                (*this)[T_dim - 1 - i] = value[i];
         }
 
         /** Constructor for N-dimensional DataSpace.
@@ -156,11 +151,6 @@ namespace pmacc
             for(uint32_t i = 0; i < T_dim; i++)
                 result[i] = static_cast<size_t>((*this)[i]);
             return result;
-        }
-
-        HDINLINE operator cupla::dim3() const
-        {
-            return this->toDim3();
         }
     };
 

@@ -294,7 +294,7 @@ namespace picongpu
 
                 private:
                     //! Host-device buffer for field values
-                    std::unique_ptr<Buffer> data;
+                    std::shared_ptr<Buffer> data;
 
                     //! Grid layout for normal (non-PML) fields
                     pmacc::GridLayout<simDim> gridLayout;

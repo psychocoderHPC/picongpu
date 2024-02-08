@@ -31,6 +31,6 @@ namespace pmacc::exec::detail
      *
      * @tparam T_Kernel pmacc Kernel object
      */
-    template<typename T_Kernel>
+    template<typename T_Kernel, uint32_t T_dim>
     struct KernelLauncher;
 } // namespace pmacc::exec::detail

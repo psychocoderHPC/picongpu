@@ -23,9 +23,13 @@
 #pragma once
 
 #include "pmacc/Environment.hpp"
+#include "pmacc/acc.hpp"
 #include "pmacc/attribute/FunctionSpecifier.hpp"
 #include "pmacc/communication/manager_common.hpp"
+#include "pmacc/cuplaHelper/Device.hpp"
 #include "pmacc/types.hpp"
+
+#include <stdexcept>
 
 
 #if !defined(ALPAKA_API_PREFIX)
@@ -240,7 +244,7 @@ namespace pmacc
             {
                 eventSystem::waitForAllTasks();
                 // Required by scorep for flushing the buffers
-                cuplaDeviceSynchronize();
+                alpaka::wait(manager::Device<AccDev>::get().current());
                 m_isMpiInitialized = false;
                 /* Free the MPI context.
                  * The gpu context is freed by the `StreamController`, because
@@ -252,10 +256,10 @@ namespace pmacc
 
         void EnvironmentContext::setDevice(int deviceNumber)
         {
-            int num_gpus = 0; // number of gpus
-            cuplaGetDeviceCount(&num_gpus);
+            int num_gpus = manager::Device<AccDev>::get().count();
+
 #if(BOOST_LANG_CUDA || BOOST_COMP_HIP)
-            //##ERROR handling
+            // ##ERROR handling
             if(num_gpus < 1) // check if cupla device is found
             {
                 throw std::runtime_error("no CUDA capable devices detected");
@@ -265,7 +269,7 @@ namespace pmacc
             int maxTries = num_gpus;
             bool deviceSelectionSuccessful = false;
 
-            cuplaError rc;
+            bool isFailed = false;
 
             // search the first selectable device in the compute node
             for(int deviceOffset = 0; deviceOffset < maxTries; ++deviceOffset)
@@ -284,7 +288,9 @@ namespace pmacc
                 hipDeviceProp_t devProp;
 #    endif
 
-                CUDA_CHECK((cuplaError_t) ALPAKA_API_PREFIX(GetDeviceProperties)(&devProp, tryDeviceId));
+                auto err = ALPAKA_API_PREFIX(GetDeviceProperties)(&devProp, tryDeviceId);
+                if(err != cudaSuccess)
+                    throw std::runtime_error("Error reading device properties.");
 
                 /* If the cuda gpu compute mode is 'default'
                  * (https://docs.nvidia.com/cuda/cuda-c-programming-guide/#compute-modes)
@@ -299,11 +305,19 @@ namespace pmacc
                 }
 #endif
 
-                rc = cuplaSetDevice(tryDeviceId);
-
-                if(rc == cuplaSuccess)
+                try
                 {
-                    cuplaStream_t stream;
+                    manager::Device<AccDev>::get().device(tryDeviceId);
+                }
+                catch(const std::system_error& e)
+                {
+                    isFailed = true;
+                }
+                manager::Device<AccDev>::get().device(tryDeviceId);
+
+
+                if(!isFailed)
+                {
                     /* \todo: Check if this workaround is needed
                      *
                      * - since NVIDIA change something in driver cuplaSetDevice never
@@ -313,12 +327,20 @@ namespace pmacc
                      * an other process.
                      * - cuplaStreamCreate fails if gpu is already in use
                      */
-                    rc = cuplaStreamCreate(&stream);
+                    try
+                    {
+                        auto testStream = AccStream(manager::Device<AccDev>::get().current());
+                    }
+                    catch(const std::system_error& e)
+                    {
+                        isFailed = true;
+                    }
                 }
 
-                if(rc == cuplaSuccess)
+                if(!isFailed)
                 {
-#if(BOOST_LANG_CUDA || BOOST_LANG_HIP)
+#if 0
+#    if(BOOST_LANG_CUDA || BOOST_LANG_HIP)
                     CUDA_CHECK((cuplaError_t) ALPAKA_API_PREFIX(GetDeviceProperties)(&devProp, tryDeviceId));
                     log<ggLog::CUDA_RT>("Set device to %1%: %2%") % tryDeviceId % devProp.name;
                     if(ALPAKA_API_PREFIX(ErrorSetOnActiveProcess)
@@ -332,25 +354,17 @@ namespace pmacc
                         CUDA_CHECK(
                             (cuplaError_t) ALPAKA_API_PREFIX(SetDeviceFlags)(ALPAKA_API_PREFIX(DeviceScheduleSpin)));
                     }
+#    endif
 #endif
-                    CUDA_CHECK(cuplaGetLastError());
+                    isFailed = false;
                     deviceSelectionSuccessful = true;
                     break;
                 }
-                else if(
-                    rc == cuplaErrorDeviceAlreadyInUse
-#if(PMACC_CUDA_ENABLED == 1)
-                    || rc == (cuplaError) cudaErrorDevicesUnavailable
-#endif
-                )
-                {
-                    cuplaGetLastError(); // reset all errors
-                    log<ggLog::CUDA_RT>("Device %1% already in use, try next.") % tryDeviceId;
-                    continue;
-                }
                 else
                 {
-                    CUDA_CHECK(rc); /*error message*/
+                    isFailed = false;
+                    log<ggLog::CUDA_RT>("Device %1% already in use, try next.") % tryDeviceId;
+                    continue;
                 }
             }
             if(!deviceSelectionSuccessful)

@@ -52,7 +52,7 @@ namespace picongpu
         DINLINE void operator()(T_Worker const& worker, ParBox parBox, CounterBox counterBox, Mapping mapper) const
         {
             const DataSpace<simDim> superCellIdx(
-                mapper.getSuperCellIndex(DataSpace<simDim>(cupla::blockIdx(worker.getAcc()))));
+                mapper.getSuperCellIndex(DataSpace<simDim>(device::getBlockIdx(worker.getAcc()))));
             /* counterBox has no guarding supercells*/
             const DataSpace<simDim> superCellIdxNoGuard = superCellIdx - mapper.getGuardingSuperCells();
 
@@ -68,7 +68,7 @@ namespace picongpu
             forEachParticle(
                 [&counterValue](auto const& lockstepWorker, auto& /*particle*/)
                 {
-                    cupla::atomicAdd(
+                    alpaka::atomicAdd(
                         lockstepWorker.getAcc(),
                         &counterValue,
                         static_cast<uint64_cu>(1LU),

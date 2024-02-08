@@ -66,7 +66,8 @@ namespace pmacc
                     forEachCell(
                         [&](int32_t const linearIdx)
                         {
-                            uint32_t const linearTid = cupla::blockIdx(worker.getAcc()).x * T_blockSize + linearIdx;
+                            uint32_t const linearTid
+                                = device::getBlockIdx(worker.getAcc()).x() * T_blockSize + linearIdx;
 
                             if(linearTid >= boxSize.productOfComponents())
                                 return;
@@ -78,7 +79,7 @@ namespace pmacc
                             for(uint32_t i = 0u; i < numSamples; i++)
                             {
                                 Space2D idx = vWorkerRand(worker, boxSize);
-                                cupla::atomicAdd(worker.getAcc(), &box(idx), 1u, ::alpaka::hierarchy::Blocks{});
+                                alpaka::atomicAdd(worker.getAcc(), &box(idx), 1u, ::alpaka::hierarchy::Blocks{});
                             }
                         });
                 }
@@ -118,7 +119,7 @@ namespace pmacc
             template<class T_Buffer>
             void writePGM(const std::string& filePath, T_Buffer& buffer)
             {
-                const Space2D size = buffer.getDataSpace();
+                const Space2D size = buffer->getDataSpace();
                 uint32_t maxVal = 0;
                 for(int y = 0; y < size.y(); y++)
                 {
@@ -165,7 +166,7 @@ namespace pmacc
                 T_DeviceBuffer& buffer,
                 const T_Random& rand)
             {
-                cuplaEvent_t start, stop;
+                EventType start, stop;
                 CUDA_CHECK(cuplaEventCreate(&start));
                 CUDA_CHECK(cuplaEventCreate(&stop));
 
@@ -178,19 +179,19 @@ namespace pmacc
                     /* we need to pass a stream to avoid that we record the event in
                      * an empty or wrong stream
                      */
-                    pmacc::eventSystem::getEventStream(pmacc::ITask::TASK_DEVICE)->getCudaStream()));
+                    pmacc::eventSystem::getStream(pmacc::ITask::TASK_DEVICE)));
 
                 auto workerCfg = lockstep::makeWorkerCfg<blockSize>();
 
                 PMACC_LOCKSTEP_KERNEL(RandomFiller<blockSize>{}, workerCfg)
-                (gridSize)(buffer.getDataBox(), buffer.getDataSpace(), rand, numSamples);
+                (gridSize)(buffer.getDataBox(), buffer->getDataSpace(), rand, numSamples);
 
                 CUDA_CHECK(cuplaEventRecord(
                     stop,
                     /* we need to pass a stream to avoid that we record the event in
                      * an empty or wrong stream
                      */
-                    pmacc::eventSystem::getEventStream(pmacc::ITask::TASK_DEVICE)->getCudaStream()));
+                    pmacc::eventSystem::getStream(pmacc::ITask::TASK_DEVICE)));
                 CUDA_CHECK(cuplaEventSynchronize(stop));
                 float milliseconds = 0;
                 CUDA_CHECK(cuplaEventElapsedTime(&milliseconds, start, stop));
@@ -298,7 +299,7 @@ int main(int argc, char** argv)
 
     const uint32_t numSamples = (argc > 1) ? atoi(argv[1]) : 100;
 
-    runTest<random::methods::AlpakaRand<cupla::Acc>>(numSamples);
+    runTest<random::methods::AlpakaRand<pmacc::Acc<DIM1>>>(numSamples);
 
     /* finalize the pmacc context */
     Environment<>::get().finalize();

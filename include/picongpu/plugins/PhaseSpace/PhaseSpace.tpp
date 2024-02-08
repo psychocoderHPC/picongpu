@@ -210,9 +210,9 @@ namespace picongpu
 
         /* transfer to host */
         this->dBuffer->deviceToHost();
-        auto bufferExtent = this->dBuffer->getDeviceBuffer().getDataSpace();
+        auto bufferExtent = this->dBuffer->getDeviceBuffer()->getDataSpace();
 
-        auto hReducedBuffer = HostBuffer<float_PS, 2>(this->dBuffer->getDeviceBuffer().getDataSpace());
+        auto hReducedBuffer = HostBuffer<float_PS, 2>(this->dBuffer->getDeviceBuffer()->getDataSpace());
 
         eventSystem::getTransactionEvent().waitForFinished();
 
@@ -224,8 +224,8 @@ namespace picongpu
          */
         (*planeReduce)(
             pmacc::math::operation::Add(),
-            hReducedBuffer.getBasePointer(),
-            this->dBuffer->getHostBuffer().getBasePointer(),
+            hReducedBuffer.getDataBox().getPointer(),
+            this->dBuffer->getHostBuffer().getDataBox().getPointer(),
             bufferExtent.productOfComponents(),
             mpi::reduceMethods::Reduce());
 

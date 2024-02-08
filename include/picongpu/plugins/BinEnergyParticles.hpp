@@ -105,7 +105,7 @@ namespace picongpu
             int const realNumBins = numBins + 2;
 
             DataSpace<simDim> const superCellIdx(
-                mapper.getSuperCellIndex(DataSpace<simDim>(cupla::blockIdx(worker.getAcc()))));
+                mapper.getSuperCellIndex(DataSpace<simDim>(device::getBlockIdx(worker.getAcc()))));
 
             auto forEachParticle = pmacc::particles::algorithm::acc::makeForEach(worker, pb, superCellIdx);
 
@@ -167,7 +167,7 @@ namespace picongpu
                          */
                         float_X const normedWeighting
                             = weighting / float_X(particles::TYPICAL_NUM_PARTICLES_PER_MACROPARTICLE);
-                        cupla::atomicAdd(
+                        alpaka::atomicAdd(
                             lockstepWorker.getAcc(),
                             &(shBin[binNumber]),
                             normedWeighting,
@@ -181,7 +181,7 @@ namespace picongpu
                 [&](uint32_t const linearIdx)
                 {
                     for(int i = linearIdx; i < realNumBins; i += numWorkers)
-                        cupla::atomicAdd(
+                        alpaka::atomicAdd(
                             worker.getAcc(),
                             &(gBins[i]),
                             float_64(shBin[i]),
@@ -458,7 +458,7 @@ namespace picongpu
             reduce(
                 pmacc::math::operation::Add(),
                 binReduced.data(),
-                gBins->getHostBuffer().getBasePointer(),
+                gBins->getHostBuffer().getDataBox().getPointer(),
                 realNumBins,
                 mpi::reduceMethods::Reduce());
 

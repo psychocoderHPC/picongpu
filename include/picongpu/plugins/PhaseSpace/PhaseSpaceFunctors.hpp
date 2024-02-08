@@ -87,7 +87,7 @@ namespace picongpu
                 p_bin = num_pbins - 1;
 
             /** @todo take particle shape into account */
-            cupla::atomicAdd(
+            alpaka::atomicAdd(
                 worker.getAcc(),
                 &(sharedMemHist(DataSpace<2>(p_bin, r_bin))),
                 particleChargeDensity,
@@ -154,7 +154,7 @@ namespace picongpu
         DINLINE void operator()(const T_Worker& worker, T_Mapping const& mapper) const
         {
             const DataSpace<simDim> superCellIdx(
-                mapper.getSuperCellIndex(DataSpace<simDim>(cupla::blockIdx(worker.getAcc()))));
+                mapper.getSuperCellIndex(DataSpace<simDim>(device::getBlockIdx(worker.getAcc()))));
 
             /* create shared mem */
             constexpr int blockCellsInDir = SuperCellSize::template at<r_dir>::type::value;

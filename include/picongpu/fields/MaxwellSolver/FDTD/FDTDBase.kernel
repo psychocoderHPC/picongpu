@@ -164,7 +164,7 @@ namespace picongpu
                          * the index includes guards, same as all indices in this kernel
                          */
                         auto const beginCellIdx
-                            = mapper.getSuperCellIndex(DataSpace<simDim>(cupla::blockIdx(worker.getAcc())))
+                            = mapper.getSuperCellIndex(DataSpace<simDim>(device::getBlockIdx(worker.getAcc())))
                             * MappingDesc::SuperCellSize::toRT();
 
                         // Description of the area and guards where the stencil is performed.

@@ -71,11 +71,19 @@ namespace pmacc
              * but with the some result (create page-locked memory)
              */
             hostPtr = new char[deviceHeapInfo.size];
-            CUDA_CHECK((cuplaError_t) cudaHostRegister(hostPtr, deviceHeapInfo.size, cudaHostRegisterDefault));
+            cudaError_t err = cudaHostRegister(hostPtr, deviceHeapInfo.size, cudaHostRegisterDefault);
+            if(cudaSuccess != err)
+            {
+                throw std::runtime_error(std::string("MallocMCBuffer") + cudaGetErrorString(err));
+            }
 #    else
             // we do not use hipHostRegister because this would require a strict alignment
             // https://github.com/alpaka-group/alpaka/pull/896
-            CUDA_CHECK((cuplaError_t) hipHostMalloc((void**) &hostPtr, deviceHeapInfo.size, hipHostMallocDefault));
+            hipError_t err = hipHostMalloc((void**) &hostPtr, deviceHeapInfo.size, hipHostMallocDefault);
+            if(hipSuccess != (err = cudaHostRegister(hostPtr, deviceHeapInfo.size, cudaHostRegisterDefault)))
+            {
+                throw std::runtime_error(std::string("MallocMCBuffer") + hipGetErrorString(err));
+            }
 #    endif
 
             this->hostBufferOffset = static_cast<int64_t>(reinterpret_cast<char*>(deviceHeapInfo.p) - hostPtr);
@@ -83,7 +91,19 @@ namespace pmacc
         /* add event system hints */
         eventSystem::startOperation(ITask::TASK_DEVICE);
         eventSystem::startOperation(ITask::TASK_HOST);
-        CUDA_CHECK(cuplaMemcpy(hostPtr, deviceHeapInfo.p, deviceHeapInfo.size, cuplaMemcpyDeviceToHost));
+        auto bufferSize = pmacc::math::Vector<pmacc::IdxType, 1>(deviceHeapInfo.size).toAlpakaVec();
+
+        auto hostView = ::alpaka::ViewPlainPtr<AccHost, char, AlpakaDim<DIM1>, pmacc::IdxType>(
+            hostPtr,
+            manager::Device<AccHost>::get().current(),
+            bufferSize);
+        auto devView = ::alpaka::ViewPlainPtr<AccDev, char, AlpakaDim<DIM1>, pmacc::IdxType>(
+            (char*) deviceHeapInfo.p,
+            manager::Device<AccDev>::get().current(),
+            bufferSize);
+        auto alpakaStream = pmacc::eventSystem::getEventStream(ITask::TASK_DEVICE)->getCudaStream();
+        alpaka::memcpy(alpakaStream, hostView, devView, bufferSize);
+        alpaka::wait(alpakaStream);
     }
 
 } // namespace pmacc

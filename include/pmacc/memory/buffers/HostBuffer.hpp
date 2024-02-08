@@ -22,7 +22,9 @@
 
 #pragma once
 
+#include "pmacc/acc.hpp"
 #include "pmacc/assert.hpp"
+#include "pmacc/cuplaHelper/Device.hpp"
 #include "pmacc/dimensions/DataSpace.hpp"
 #include "pmacc/eventSystem/eventSystem.hpp"
 #include "pmacc/eventSystem/tasks/Factory.hpp"
@@ -42,31 +44,70 @@ namespace pmacc
 
     /** DIM-dimensional Buffer of type TYPE on the host
      *
-     * @tparam TYPE datatype for buffer data
-     * @tparam DIM dimension of the buffer
+     * @tparam T_Type datatype for buffer data
+     * @tparam T_dim dimension of the buffer
      */
-    template<class TYPE, unsigned DIM>
-    class HostBuffer : public Buffer<TYPE, DIM>
+    template<typename T_Type, uint32_t T_dim>
+    class HostBuffer : public Buffer<T_Type, T_dim>
     {
+        using BufferType = ::alpaka::Buf<AccHost, T_Type, AlpakaDim<DIM1>, IdxType>;
+        using ViewType = alpaka::ViewPlainPtr<AccHost, T_Type, AlpakaDim<T_dim>, IdxType>;
+
     public:
-        using DataBoxType = typename Buffer<TYPE, DIM>::DataBoxType;
+        using DataBoxType = typename Buffer<T_Type, T_dim>::DataBoxType;
+        std::shared_ptr<BufferType> hostBuffer;
+        std::shared_ptr<ViewType> view;
+
+        using BufferType1D = ::alpaka::ViewPlainPtr<AccHost, T_Type, AlpakaDim<DIM1>, IdxType>;
+
+        BufferType1D as1DBuffer()
+        {
+            auto currentSize = this->getCurrentSize();
+            eventSystem::startOperation(ITask::TASK_DEVICE);
+            return BufferType1D(
+                alpaka::getPtrNative(*view),
+                alpaka::getDev(*hostBuffer),
+                DataSpace<DIM1>(currentSize).toAlpakaVec());
+        }
+
+        ViewType& getAlpakaView() const
+        {
+            return *view;
+        }
 
         /** constructor
          *
          * @param size extent for each dimension (in elements)
          */
-        HostBuffer(DataSpace<DIM> size) : Buffer<TYPE, DIM>(size, size), pointer(nullptr), ownPointer(true)
+        HostBuffer(DataSpace<T_dim> size)
+            : Buffer<T_Type, T_dim>(size)
+            , hostBuffer(std::make_shared<BufferType>(alpaka::allocMappedBufIfSupported<T_Type, IdxType>(
+                  manager::Device<AccHost>::get().current(),
+                  manager::Device<AccDev>::get().getPlatform(),
+                  DataSpace<DIM1>(size.productOfComponents()).toAlpakaVec())))
         {
-            CUDA_CHECK(cuplaMallocHost((void**) &pointer, size.productOfComponents() * sizeof(TYPE)));
+            DataSpace<T_dim> pitchInBytes;
+            pitchInBytes.x() = sizeof(T_Type);
+            for(uint32_t d = 1u; d < T_dim; ++d)
+                pitchInBytes[d] = pitchInBytes[d - 1u] * size[d - 1u];
+            view = std::make_shared<ViewType>(
+                alpaka::getPtrNative(*hostBuffer),
+                alpaka::getDev(*hostBuffer),
+                size.toAlpakaVec(),
+                pitchInBytes.toAlpakaVec());
             reset(false);
         }
 
-        HostBuffer(HostBuffer& source, DataSpace<DIM> size, DataSpace<DIM> offset = DataSpace<DIM>())
-            : Buffer<TYPE, DIM>(size, source.getPhysicalMemorySize())
-            , pointer(nullptr)
-            , ownPointer(false)
+        HostBuffer(HostBuffer& source, DataSpace<T_dim> size, DataSpace<T_dim> offset = DataSpace<T_dim>())
+            : Buffer<T_Type, T_dim>(size)
+            , hostBuffer(source->hostBuffer)
         {
-            pointer = &(source.getDataBox()(offset)); /*fix me, this is a bad way*/
+            auto subView = createSubView(*source.view, size.toAlpakaVec(), offset.toAlpakaVec());
+            view = std::make_shared<ViewType>(
+                alpaka::getPtrNative(subView),
+                alpaka::getDev(subView),
+                alpaka::getExtents(subView),
+                alpaka::getPitchesInBytes(subView));
             reset(true);
         }
 
@@ -76,37 +117,6 @@ namespace pmacc
         ~HostBuffer() override
         {
             eventSystem::startOperation(ITask::TASK_HOST);
-
-            if(pointer && ownPointer)
-            {
-                CUDA_CHECK_NO_EXCEPT(cuplaFreeHost(pointer));
-            }
-        }
-
-        /**
-         * Returns the current size pointer.
-         *
-         * @return pointer to current size
-         */
-        size_t* getCurrentSizePointer()
-        {
-            eventSystem::startOperation(ITask::TASK_HOST);
-            return this->current_size;
-        }
-
-        /*! Get pointer of memory
-         * @return pointer to memory
-         */
-        TYPE* getBasePointer() override
-        {
-            eventSystem::startOperation(ITask::TASK_HOST);
-            return pointer;
-        }
-
-        TYPE* getPointer() override
-        {
-            eventSystem::startOperation(ITask::TASK_HOST);
-            return pointer;
         }
 
         /**
@@ -114,13 +124,13 @@ namespace pmacc
          *
          * @param other DeviceBuffer to copy data from
          */
-        void copyFrom(DeviceBuffer<TYPE, DIM>& other)
+        void copyFrom(DeviceBuffer<T_Type, T_dim>& other)
         {
             PMACC_ASSERT(this->isMyDataSpaceGreaterThan(other.getCurrentDataSpace()));
-            Environment<>::get().Factory().createTaskCopyDeviceToHost(other, *this);
+            Environment<>::get().Factory().createTaskCopy(other, *this);
         }
 
-        void reset(bool preserveData = true) override
+        void reset(bool preserveData = true)
         {
             eventSystem::startOperation(ITask::TASK_HOST);
             this->setCurrentSize(this->getDataSpace().productOfComponents());
@@ -129,24 +139,23 @@ namespace pmacc
                 /* if it is a pointer out of other memory we can not assume that
                  * that the physical memory is contiguous
                  */
-                if(ownPointer)
+                if(hostBuffer && alpaka::getPtrNative(*hostBuffer) == alpaka::getPtrNative(*view))
                     memset(
-                        reinterpret_cast<void*>(pointer),
+                        reinterpret_cast<void*>(alpaka::getPtrNative(*view)),
                         0,
-                        this->getDataSpace().productOfComponents() * sizeof(TYPE));
+                        this->getDataSpace().productOfComponents() * sizeof(T_Type));
                 else
                 {
                     // Using Array is a workaround for types without default constructor
-                    memory::Array<TYPE, 1> tmp;
-                    memset(reinterpret_cast<void*>(tmp.data()), 0, sizeof(tmp));
+                    memory::Array<uint8_t, sizeof(T_Type)> tmp(uint8_t{0});
                     // use first element to avoid issue because Array is aligned (sizeof can be larger than component
                     // type)
-                    setValue(tmp[0]);
+                    setValue(*reinterpret_cast<T_Type*>(tmp.data()));
                 }
             }
         }
 
-        void setValue(const TYPE& value) override
+        void setValue(const T_Type& value)
         {
             eventSystem::startOperation(ITask::TASK_HOST);
             auto current_size = static_cast<int64_t>(this->getCurrentSize());
@@ -160,18 +169,21 @@ namespace pmacc
             }
         }
 
-        DataBoxType getDataBox() override
+        DataBoxType getDataBox()
         {
+            auto pitchBytes = DataSpace<T_dim>(getPitchesInBytes(*view));
             eventSystem::startOperation(ITask::TASK_HOST);
-            return DataBoxType(PitchedBox<TYPE, DIM>(
-                pointer,
-                this->getPhysicalMemorySize(),
-                this->getPhysicalMemorySize()[0] * sizeof(TYPE)));
+            return DataBoxType(PitchedBox<T_Type, T_dim>(alpaka::getPtrNative(*view), pitchBytes));
         }
 
-    private:
-        TYPE* pointer;
-        bool ownPointer;
+        typename Buffer<T_Type, T_dim>::CPtr getCPtr(bool send) final
+        {
+            eventSystem::startOperation(ITask::TASK_HOST);
+            if(send)
+                return {alpaka::getPtrNative(*view), this->getCurrentSize()};
+            else
+                return {alpaka::getPtrNative(*view), this->getDataSpace().productOfComponents()};
+        }
     };
 
 } // namespace pmacc

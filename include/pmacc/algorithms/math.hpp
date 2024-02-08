@@ -32,3 +32,4 @@
 #include "pmacc/algorithms/math/defines/norm.hpp"
 #include "pmacc/algorithms/math/defines/pi.hpp"
 #include "pmacc/algorithms/math/defines/trigo.hpp"
+#include "pmacc/cuplaHelper/math.hpp"
