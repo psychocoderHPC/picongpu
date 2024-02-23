@@ -212,6 +212,10 @@ namespace picongpu::particles::collision
                                     uint32_t const parInSuperCellIdx = frameIdx * numFrameSlots + linearIdx;
                                     particleIds(parLocalIndex)[parOffset] = parInSuperCellIdx;
                                 }
+                                else
+                                    pmacc::device_verify_msg(
+                                        particle[multiMask_] != 0,
+                                        "touched invalid particle: forEachParticle is broken!");
                             },
                             frameCtx);
                         // increment frame index after all particles in the current frame are processed
@@ -397,6 +401,24 @@ namespace picongpu::particles::collision
             // Count eligible
             auto forEachParticle = pmacc::particles::algorithm::acc::makeForEach(worker, pb, superCellIdx);
             particlesCntHistogram(worker, forEachParticle, nppc, filter);
+            worker.sync();
+
+            // validate num particles per cell
+            auto onlyMaster = lockstep::makeMaster(worker);
+            onlyMaster(
+                [&]()
+                {
+                    uint32_t numPar = 0u;
+                    for(int i = 0; i < nppc.size(); ++i)
+                        numPar += nppc[i];
+                    auto& superCell = pb.getSuperCell(superCellIdx);
+                    uint32_t numParticlesInSupercell = superCell.getNumParticles();
+
+                    pmacc::device_verify_msg(
+                        numPar == numParticlesInSupercell,
+                        "histogram and particle per supercell differ!");
+                });
+
             worker.sync();
             // memory for particle indices
             listEntrys.init(worker, deviceHeapHandle, pb, superCellIdx, nppc);
