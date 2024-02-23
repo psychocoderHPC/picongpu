@@ -28,12 +28,14 @@ namespace picongpu::particles::collision::detail
     template<
         typename T_FramePtr,
         typename T_Worker,
+        typename T_ParBox,
         typename T_ForEachCell,
         typename T_EntryListArray,
         typename T_Array,
         typename T_Filter>
     DINLINE void cellDensity(
         T_Worker const& worker,
+        T_ParBox const& pb,
         T_ForEachCell forEachCell,
         T_EntryListArray& parCellList,
         T_Array& densityArray,
@@ -42,7 +44,7 @@ namespace picongpu::particles::collision::detail
         forEachCell(
             [&](uint32_t const linearIdx)
             {
-                auto parAccess = parCellList.getParticlesAccessor(linearIdx);
+                auto parAccess = parCellList.getParticlesAccessor(pb, linearIdx);
                 uint32_t const numParInCell = parAccess.size();
                 float_X density(0.0);
                 for(uint32_t partIdx = 0; partIdx < numParInCell; partIdx++)
