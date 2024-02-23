@@ -167,8 +167,8 @@ namespace picongpu::particles::collision
                             allocMem<frameListChunkSize>(worker, numFrames * framePtrBytes, deviceHeapHandle);
 
                         auto frame = pb.getFirstFrame(superCellIdx);
-                        uint32_t frameId = 0u;
-                        while(frame.isValid())
+
+                        for(uint32_t frameId = 0u; frameId < numFrames; ++frameId)
                         {
                             pmacc::device_verify_msg(frame.ptr != nullptr, "null ptr access\n");
                             pmacc::device_verify_msg(
@@ -178,7 +178,6 @@ namespace picongpu::particles::collision
                                 numFrames);
                             framePtr[frameId] = frame;
                             frame = pb.getNextFrame(frame);
-                            ++frameId;
                         }
                     });
                 auto forEachCell = lockstep::makeForEach<T_numElem>(worker);
