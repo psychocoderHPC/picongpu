@@ -147,8 +147,6 @@ namespace picongpu::particles::collision
             uint32_t numParticles1 = superCell1.getNumParticles();
 
             // if we have no particles in one species there is no need to perform any calculations
-            if(numParticles0 == 0 || numParticles1 == 0)
-                return;
 
             // offset of the superCell (in cells, without any guards) to the
             // origin of the local domain
@@ -164,20 +162,26 @@ namespace picongpu::particles::collision
 
             auto forEachCell = lockstep::makeForEach<numCellsPerSuperCell>(worker);
 
-            prepareList(worker, forEachCell, pb0, superCellIdx, deviceHeapHandle, parCellList0, nppc, accFilter0);
+            if(numParticles0 != 0)
+                prepareList(worker, forEachCell, pb0, superCellIdx, deviceHeapHandle, parCellList0, nppc, accFilter0);
 
-            prepareList(worker, forEachCell, pb1, superCellIdx, deviceHeapHandle, parCellList1, nppc, accFilter1);
+            if(numParticles1 != 0)
+                prepareList(worker, forEachCell, pb1, superCellIdx, deviceHeapHandle, parCellList1, nppc, accFilter1);
 
             using FramePtr0 = typename T_ParBox0::FramePtr;
             using FramePtr1 = typename T_ParBox1::FramePtr;
-            detail::cellDensity<FramePtr0>(worker, forEachCell, parCellList0, densityArray0, accFilter0);
-            detail::cellDensity<FramePtr1>(worker, forEachCell, parCellList1, densityArray1, accFilter1);
+            if(numParticles0 != 0)
+                detail::cellDensity<FramePtr0>(worker, forEachCell, parCellList0, densityArray0, accFilter0);
+            if(numParticles1 != 0)
+                detail::cellDensity<FramePtr1>(worker, forEachCell, parCellList1, densityArray1, accFilter1);
             worker.sync();
 
             // shuffle indices list of the longest particle list
             forEachCell(
                 [&](uint32_t const linearIdx)
                 {
+                    // set electrons to zero
+                    parCellList1.size(linearIdx) = 0;
                     uint32_t maxListLength = math::max(parCellList0.size(linearIdx), parCellList1.size(linearIdx));
 
                     uint32_t* parIdListLong = parCellList0.size(linearIdx) == maxListLength
@@ -185,7 +189,8 @@ namespace picongpu::particles::collision
                         : parCellList1.particleIds(linearIdx);
                     detail::shuffle(worker, parIdListLong, maxListLength, rngHandle);
                 });
-
+// do not run this because pb0 has no particles
+#if 0
             auto collisionFunctorCtx = forEachCell(
                 [&](uint32_t const linearIdx)
                 {
@@ -201,12 +206,13 @@ namespace picongpu::particles::collision
                         parCellList1.template getParticlesAccessor<FramePtr1>(linearIdx),
                         linearIdx);
                 });
-
+#endif
             worker.sync();
-
-            parCellList0.finalize(worker, deviceHeapHandle);
-            parCellList1.finalize(worker, deviceHeapHandle);
-
+            if(numParticles0 != 0)
+                parCellList0.finalize(worker, deviceHeapHandle);
+            if(numParticles1 != 0)
+                parCellList1.finalize(worker, deviceHeapHandle);
+#if 0
             if constexpr(ifDebug)
             {
                 auto onlyMaster = lockstep::makeMaster(worker);
@@ -270,6 +276,7 @@ namespace picongpu::particles::collision
                             ::alpaka::hierarchy::Blocks{});
                     });
             }
+#endif
         }
 
 
