@@ -586,9 +586,8 @@ namespace mallocMC
                                     0u,
                                     minAllocation);
                                 // Check if the chunk size can be used even if the size is not an exact match.
-                                auto const isChunkSizeInRange = [&](uint32_t currentChunkSize) {
-                                    return currentChunkSize >= bytes && currentChunkSize <= maxchunksize;
-                                };
+                                auto const isChunkSizeInRange = [&](uint32_t currentChunkSize)
+                                { return currentChunkSize >= bytes && currentChunkSize <= maxchunksize; };
                                 uint32_t useChunkSize = 0u;
                                 if(beforeChunkSize == 0u)
                                 {
@@ -848,6 +847,8 @@ namespace mallocMC
             template<typename AlpakaAcc>
             ALPAKA_FN_ACC auto allocPageBased(const AlpakaAcc& acc, uint32 bytes) -> void*
             {
+                printf("alocate page based mem %u\n", bytes);
+                __trap();
                 // this is rather slow, but we dont expect that to happen often
                 // anyway
 
@@ -1073,7 +1074,8 @@ namespace mallocMC
                                       const AlpakaAcc& m_acc,
                                       T_DeviceAllocator* m_heap,
                                       void* m_heapmem,
-                                      size_t m_memsize) {
+                                      size_t m_memsize)
+                {
                     m_heap->pool = m_heapmem;
                     m_heap->initDeviceFunction(m_acc, m_heapmem, m_memsize);
                 };
@@ -1246,7 +1248,8 @@ namespace mallocMC
                                                    const AlpakaAcc& acc,
                                                    T_DeviceAllocator* heapPtr,
                                                    size_t numBytes,
-                                                   unsigned* slots) -> void {
+                                                   unsigned* slots) -> void
+                {
                     const auto gid = alpaka::getIdx<alpaka::Grid, alpaka::Threads>(acc).sum();
 
                     const auto nWorker = alpaka::getWorkDiv<alpaka::Grid, alpaka::Threads>(acc).prod();
