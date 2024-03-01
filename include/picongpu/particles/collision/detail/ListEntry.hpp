@@ -142,17 +142,16 @@ namespace picongpu::particles::collision
 
                         // Chunk size in bytes based on the typical initial number of frames within a supercell.
                         constexpr uint32_t frameListChunkSize = cellListChunkSize * framePtrBytes;
-                        framePtr = (FramePtrType*)
+                        auto* ptr = (FramePtrType*)
                             allocMem<frameListChunkSize>(worker, numFrames * framePtrBytes, deviceHeapHandle);
 
                         auto frame = pb.getFirstFrame(superCellIdx);
-                        uint32_t frameId = 0u;
-                        while(frame.isValid())
+                        for(uint32_t frameId = 0u; frameId < numFrames; ++frameId)
                         {
-                            framePtr[frameId] = frame;
+                            ptr[frameId] = frame;
                             frame = pb.getNextFrame(frame);
-                            ++frameId;
                         }
+                        framePtr = ptr;
                     });
                 auto forEachCell = lockstep::makeForEach<T_numElem>(worker);
                 // memory for particle indices
