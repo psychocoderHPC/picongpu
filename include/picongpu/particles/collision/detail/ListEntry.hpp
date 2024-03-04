@@ -148,6 +148,11 @@ namespace picongpu::particles::collision
                         auto frame = pb.getFirstFrame(superCellIdx);
                         for(uint32_t frameId = 0u; frameId < numFrames; ++frameId)
                         {
+                            pmacc::device_verify_msg(
+                                frame.isValid(),
+                                "access non valid frame %u/%u\n",
+                                frameId,
+                                numFrames);
                             ptr[frameId] = frame;
                             frame = pb.getNextFrame(frame);
                         }
