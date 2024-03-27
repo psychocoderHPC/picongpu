@@ -562,7 +562,7 @@ namespace mallocMC
                  */
                 for(uint32 finder = 0; finder < 2; ++finder)
                 {
-                    uint32 global_page = global_start_page;
+                    volatile uint32 global_page = global_start_page;
                     /* Loop over all pages until we found a free one or arrived to global_start_page again
                      * This and the following loop are done as do-while to potentially save registers by avoiding an
                      * extra loop counter variable
@@ -574,7 +574,7 @@ namespace mallocMC
                         const uint32 region_offset = region * regionsize;
                         if(regionfilllevel < checklevel)
                         {
-                            uint32 page_in_region = global_page;
+                            volatile uint32 page_in_region = global_page;
                             // loop over pages within a region
                             do
                             {
