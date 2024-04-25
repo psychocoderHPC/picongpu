@@ -100,8 +100,6 @@ namespace picongpu
 
                 log<picLog::INPUT_OUTPUT>("openPMD:  (begin) write species attribute: %1%") % Identifier::getName();
 
-                std::shared_ptr<ComponentType> storeBfr;
-
                 for(uint32_t d = 0; d < components; d++)
                 {
                     ::openPMD::RecordComponent recordComponent
