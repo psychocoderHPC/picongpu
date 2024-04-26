@@ -47,7 +47,7 @@ cat $MODIFIED_REQUIREMENT_TXT
 echo ""
 
 # run quick tests
-pip3 install -r $MODIFIED_REQUIREMENT_TXT
+pip3 install --break-system-packages -r $MODIFIED_REQUIREMENT_TXT
 cd $CI_PROJECT_DIR/test/python/picongpu
 python3 -m quick
 
