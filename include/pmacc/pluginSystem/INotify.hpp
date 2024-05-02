@@ -48,6 +48,7 @@ namespace pmacc
          * @param currentStep current simulation iteration step
          */
         virtual void notify(uint32_t currentStep) = 0;
+        virtual void notifySub(uint32_t currentStep, uint32_t currentSubStep){};
 
         /** When was the plugin notified last?
          *

@@ -1145,10 +1145,26 @@ make sure that environment variable OPENPMD_BP_BACKEND is not set to ADIOS1.
 
                 eventSystem::getTransactionEvent().waitForFinished();
 
-                mThreadParams.initFromConfig(*m_help, m_id, currentStep, outputDirectory);
+                auto myStep = currentStep * 1000;
+                mThreadParams.initFromConfig(*m_help, m_id, myStep, outputDirectory);
 
                 mThreadParams.isCheckpoint = false;
-                dumpData(currentStep);
+                dumpData(myStep);
+            }
+
+            void notifySub(uint32_t currentStep, uint32_t currentSubStep) override
+            {
+                // notify is only allowed if the plugin is not controlled by the
+                // class Checkpoint
+                assert(m_help->selfRegister);
+
+                eventSystem::getTransactionEvent().waitForFinished();
+
+                auto myStep = currentStep * 1000 + currentSubStep;
+                mThreadParams.initFromConfig(*m_help, m_id, myStep, outputDirectory);
+
+                mThreadParams.isCheckpoint = false;
+                dumpData(myStep);
             }
 
             void restart(uint32_t const restartStep, std::string const& restartDirectory) override

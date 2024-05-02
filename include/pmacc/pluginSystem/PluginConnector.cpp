@@ -114,6 +114,18 @@ namespace pmacc
         }
     }
 
+    void PluginConnector::notifyPluginsSub(uint32_t currentStep, uint32_t currentSubStep)
+    {
+        for(auto iter = notificationList.begin(); iter != notificationList.end(); ++iter)
+        {
+            if(containsStep((*iter).second, currentStep))
+            {
+                INotify* notifiedObj = iter->first;
+                notifiedObj->notifySub(currentStep, currentSubStep);
+            }
+        }
+    }
+
     void PluginConnector::checkpointPlugins(uint32_t currentStep, const std::string checkpointDirectory)
     {
         for(auto iter = plugins.begin(); iter != plugins.end(); ++iter)

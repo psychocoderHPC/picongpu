@@ -87,6 +87,7 @@ namespace pmacc
          * @param currentStep current simulation iteration step
          */
         void notifyPlugins(uint32_t currentStep);
+        void notifyPluginsSub(uint32_t currentStep, uint32_t currentSubStep);
 
         /**
          * Notifies plugins that a restartable checkpoint should be dumped.
