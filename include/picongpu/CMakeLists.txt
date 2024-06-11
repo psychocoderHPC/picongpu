@@ -507,7 +507,7 @@ endif()
 ################################################################################
 
 find_path(PIC_EXTENSION_PATH
-    NAMES include/picongpu/param/components.param
+    NAMES include/picongpu/param/unit.param
     PATHS "${PIConGPUapp_SOURCE_DIR}"
     DOC "search PATH to extension folder"
     NO_DEFAULT_PATH
@@ -532,6 +532,16 @@ include_directories(BEFORE ${PIC_EXTENSION_PATH}/include)
 list(APPEND ACCSRCFILES
     "${PIConGPUapp_SOURCE_DIR}/main.cpp"
     "${PIConGPUapp_SOURCE_DIR}/versionFormat.cpp"
+    "${PIConGPUapp_SOURCE_DIR}/simulation/stage/CurrentDeposition.cpp"
+    "${PIConGPUapp_SOURCE_DIR}/simulation/stage/CurrentInterpolationAndAdditionToEMF.cpp"
+    "${PIConGPUapp_SOURCE_DIR}/simulation/stage/ParticlePush.cpp"
+    "${PIConGPUapp_SOURCE_DIR}/simulation/stage/ParticleIonization.cpp"
+    "${PIConGPUapp_SOURCE_DIR}/simulation/stage/SynchrotronRadiation.cpp"
+    "${PIConGPUapp_SOURCE_DIR}/simulation/stage/ParticleBoundaries.cpp"
+    "${PIConGPUapp_SOURCE_DIR}/simulation/control/Simulation.cpp"
+    "${PIConGPUapp_SOURCE_DIR}/plugins/PluginController_StandAlone.cpp"
+    "${PIConGPUapp_SOURCE_DIR}/plugins/PluginController_Species.cpp"
+    "${PIConGPUapp_SOURCE_DIR}/plugins/openPMD/toml.cpp"
 )
 
 # host-only sources
@@ -580,7 +590,7 @@ if(PIC_HAVE_openPMD)
         picongpu-hostonly
         SYSTEM PRIVATE
         $<TARGET_PROPERTY:toml11::toml11,INTERFACE_INCLUDE_DIRECTORIES>)
-    target_link_libraries(picongpu-hostonly PRIVATE toml11::toml11)
+    target_link_libraries(picongpu-hostonly PUBLIC toml11::toml11)
 
     # This is a workaround for a missing API call in the openPMD-api,
     # which currently does not re-export backend version information.

@@ -19,27 +19,26 @@
  * If not, see <http://www.gnu.org/licenses/>.
  */
 
-#pragma once
+
+#include "picongpu/simulation/stage/ParticleIonization.hpp"
+
+#include "picongpu/particles/ParticlesFunctors.hpp"
+
+#include <pmacc/meta/ForEach.hpp>
+#include <pmacc/particles/traits/FilterByFlag.hpp>
+
+#include <boost/mpl/placeholders.hpp>
 
 #include <cstdint>
 
 
-namespace picongpu
+namespace picongpu::simulation::stage
 {
-    namespace simulation
+    void ParticleIonization::operator()(uint32_t const step) const
     {
-        namespace stage
-        {
-            //! Functor for the stage of the PIC loop performing current deposition
-            struct CurrentDeposition
-            {
-                /** Compute the current created by particles and add it to the current
-                 *  density
-                 *
-                 * @param step index of time iteration
-                 */
-                void operator()(uint32_t const step) const;
-            };
-        } // namespace stage
-    } // namespace simulation
-} // namespace picongpu
+        using pmacc::particles::traits::FilterByFlag;
+        using SpeciesWithIonizers = typename FilterByFlag<VectorAllSpecies, ionizers<>>::type;
+        pmacc::meta::ForEach<SpeciesWithIonizers, particles::CallIonization<boost::mpl::_1>> particleIonization;
+        particleIonization(cellDescription, step);
+    }
+} // namespace picongpu::simulation::stage

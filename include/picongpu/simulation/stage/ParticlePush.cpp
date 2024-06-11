@@ -19,27 +19,23 @@
  * If not, see <http://www.gnu.org/licenses/>.
  */
 
-#pragma once
+#include "picongpu/simulation/stage/ParticlePush.hpp"
+
+#include "picongpu/particles/ParticlesFunctors.hpp"
+
+#include <pmacc/eventSystem/Manager.hpp>
 
 #include <cstdint>
 
 
-namespace picongpu
+namespace picongpu::simulation::stage
 {
-    namespace simulation
+    void ParticlePush::operator()(uint32_t const step, pmacc::EventTask& commEvent) const
     {
-        namespace stage
-        {
-            //! Functor for the stage of the PIC loop performing current deposition
-            struct CurrentDeposition
-            {
-                /** Compute the current created by particles and add it to the current
-                 *  density
-                 *
-                 * @param step index of time iteration
-                 */
-                void operator()(uint32_t const step) const;
-            };
-        } // namespace stage
-    } // namespace simulation
-} // namespace picongpu
+        pmacc::EventTask initEvent = eventSystem::getTransactionEvent();
+        pmacc::EventTask updateEvent;
+        particles::PushAllSpecies pushAllSpecies;
+        pushAllSpecies(step, initEvent, updateEvent, commEvent);
+        eventSystem::setTransactionEvent(updateEvent);
+    }
+} // namespace picongpu::simulation::stage

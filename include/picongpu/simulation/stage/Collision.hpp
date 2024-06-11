@@ -28,7 +28,9 @@
 #include "picongpu/particles/particleToGrid/combinedAttributes/CombinedAttributes.def"
 
 #include <pmacc/Environment.hpp>
+#include <pmacc/algorithms/GlobalReduce.hpp>
 #include <pmacc/dataManagement/DataConnector.hpp>
+#include <pmacc/memory/boxes/DataBoxUnaryTransform.hpp>
 #include <pmacc/meta/ForEach.hpp>
 
 #include <cstdint>
