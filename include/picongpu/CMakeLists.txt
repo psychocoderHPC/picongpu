@@ -539,14 +539,15 @@ list(APPEND ACCSRCFILES
     "${PIConGPUapp_SOURCE_DIR}/simulation/stage/SynchrotronRadiation.cpp"
     "${PIConGPUapp_SOURCE_DIR}/simulation/stage/ParticleBoundaries.cpp"
     "${PIConGPUapp_SOURCE_DIR}/simulation/control/Simulation.cpp"
-    "${PIConGPUapp_SOURCE_DIR}/plugins/PluginController_StandAlone.cpp"
-    "${PIConGPUapp_SOURCE_DIR}/plugins/PluginController_Species.cpp"
     "${PIConGPUapp_SOURCE_DIR}/plugins/openPMD/toml.cpp"
 )
+
+file(GLOB_RECURSE ADDITIONAL_ACCFILES "*.x.cpp")
 
 # host-only sources
 file(GLOB_RECURSE SRCFILES "*.cpp")
 list(REMOVE_ITEM SRCFILES ${ACCSRCFILES})
+list(REMOVE_ITEM SRCFILES ${ADDITIONAL_ACCFILES})
 
 add_library(picongpu-hostonly
     STATIC
@@ -558,7 +559,7 @@ target_link_libraries(picongpu-hostonly PUBLIC ${HOST_LIBS})
 target_link_libraries(picongpu-hostonly PRIVATE pmacc::filesystem)
 
 alpaka_add_executable(picongpu
-     ${ACCSRCFILES}
+     ${ACCSRCFILES} ${ADDITIONAL_ACCFILES}
 )
 
 target_link_libraries(picongpu PUBLIC ${LIBS} ${HOST_LIBS} picongpu-hostonly)

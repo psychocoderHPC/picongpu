@@ -25,10 +25,14 @@
 #include "picongpu/plugins/PhaseSpace/AxisDescription.hpp"
 #include "picongpu/plugins/PhaseSpace/PhaseSpaceFunctors.hpp"
 #include "picongpu/plugins/common/openPMDDefaultExtension.hpp"
+#include "picongpu/plugins/misc/misc.hpp"
+#include "picongpu/plugins/multi/multi.hpp"
 
 #include <pmacc/communication/manager_common.hpp>
 #include <pmacc/lockstep/lockstep.hpp>
 #include <pmacc/math/Vector.hpp>
+#include <pmacc/mpi/MPIReduce.hpp>
+#include <pmacc/mpi/reduceMethods/Reduce.hpp>
 #include <pmacc/pluginSystem/INotify.hpp>
 #include <pmacc/traits/HasFlag.hpp>
 #include <pmacc/traits/HasIdentifiers.hpp>
@@ -304,5 +308,3 @@ namespace picongpu
         } // namespace traits
     } // namespace particles
 } // namespace picongpu
-
-#include "PhaseSpace.tpp"

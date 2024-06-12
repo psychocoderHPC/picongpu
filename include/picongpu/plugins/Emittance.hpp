@@ -41,6 +41,7 @@
 #include <pmacc/memory/shared/Allocate.hpp>
 #include <pmacc/meta/ForEach.hpp>
 #include <pmacc/mpi/MPIReduce.hpp>
+#include <pmacc/mpi/reduceMethods/Reduce.hpp>
 #include <pmacc/particles/algorithm/ForEach.hpp>
 #include <pmacc/traits/HasFlag.hpp>
 #include <pmacc/traits/HasIdentifiers.hpp>

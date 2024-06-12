@@ -21,6 +21,7 @@
 
 #include "picongpu/simulation_defines.hpp"
 
+#include "picongpu/plugins/PluginController.hpp"
 #include "picongpu/simulation/control/Window.hpp"
 
 #include <pmacc/algorithms/math/defines/pi.hpp>

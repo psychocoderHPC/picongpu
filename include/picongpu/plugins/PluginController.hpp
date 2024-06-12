@@ -94,13 +94,7 @@ namespace picongpu
          */
         virtual void init()
         {
-            loadStandAlonePlugins();
-            loadSpeciesPlugins();
         }
-
-        void loadStandAlonePlugins();
-
-        void loadSpeciesPlugins();
 
     public:
         PluginController()
@@ -140,4 +134,119 @@ namespace picongpu
         }
     };
 
+    struct PluginRegistry
+    {
+        template<typename T_Plugin>
+        static void registerSpeciesPlugin()
+        {
+            using CombinedUnspecializedSpeciesPlugins = pmacc::AllCombinations<VectorAllSpecies, MakeSeq_t<T_Plugin>>;
+
+            using CombinedUnspecializedSpeciesPluginsEligible
+                = pmacc::mp_copy_if<CombinedUnspecializedSpeciesPlugins, TupleSpeciesPlugin::IsEligible>;
+
+            using SpeciesPlugins
+                = pmacc::mp_transform<TupleSpeciesPlugin::Apply, CombinedUnspecializedSpeciesPluginsEligible>;
+
+
+            meta::ForEach<SpeciesPlugins, PushBack<boost::mpl::_1>> pushBack;
+            pushBack(PluginRegistry::get().pluginList);
+        }
+
+        template<typename T_Plugin>
+        static void registerStandAlonePlugin()
+        {
+            meta::ForEach<MakeSeq_t<T_Plugin>, PushBack<boost::mpl::_1>> pushBack;
+            pushBack(PluginRegistry::get().pluginList);
+        }
+
+    private:
+        std::list<std::shared_ptr<ISimulationPlugin>> pluginList;
+
+        static PluginRegistry& get()
+        {
+            static PluginRegistry instance = PluginRegistry{};
+            return instance;
+        }
+
+        PluginRegistry() = default;
+
+        struct TupleSpeciesPlugin
+        {
+            enum Names
+            {
+                species = 0,
+                plugin = 1
+            };
+
+            /** apply the 1st vector component to the 2nd
+             *
+             * @tparam T_TupleVector vector of type
+             *                       pmacc::math::CT::vector< Species, Plugin >
+             *                       with two components
+             */
+            template<typename T_TupleVector>
+            using Apply = typename boost::mpl::
+                apply1<pmacc::mp_at_c<T_TupleVector, plugin>, pmacc::mp_at_c<T_TupleVector, species>>::type;
+
+            /** Check the combination Species+Plugin in the Tuple
+             *
+             * @tparam T_TupleVector with Species, Plugin
+             */
+            template<typename T_TupleVector>
+            struct IsEligible
+            {
+                using Species = pmacc::mp_at_c<T_TupleVector, species>;
+                using Solver = pmacc::mp_at_c<T_TupleVector, plugin>;
+
+                static constexpr bool value
+                    = particles::traits::SpeciesEligibleForSolver<Species, Solver>::type::value;
+            };
+        };
+
+        template<typename T_Type>
+        struct PushBack
+        {
+            template<typename T>
+            void operator()(T& list)
+            {
+                list.push_back(std::make_shared<T_Type>());
+            }
+        };
+    };
 } // namespace picongpu
+
+#define PIC_REGISTER_PLUGIN_DO(counter, ...)                                                                          \
+                                                                                                                      \
+    namespace picongpu::plugin                                                                                        \
+    {                                                                                                                 \
+        struct plugin_##counter                                                                                       \
+        {                                                                                                             \
+            plugin_##counter()                                                                                        \
+            {                                                                                                         \
+                picongpu::PluginRegistry::registerStandAlonePlugin<__VA_ARGS__>();                                    \
+            }                                                                                                         \
+        };                                                                                                            \
+    }                                                                                                                 \
+    static picongpu::plugin::plugin_##counter plugin_instance##counter                                                \
+    {                                                                                                                 \
+    }
+
+#define PIC_REGISTER_PLUGIN(...) PIC_REGISTER_PLUGIN_DO(__COUNTER__, __VA_ARGS__)
+
+#define PIC_REGISTER_SPECIES_PLUGIN_DO(counter, ...)                                                                  \
+                                                                                                                      \
+    namespace picongpu::plugin                                                                                        \
+    {                                                                                                                 \
+        struct plugin_##counter                                                                                       \
+        {                                                                                                             \
+            plugin_##counter()                                                                                        \
+            {                                                                                                         \
+                picongpu::PluginRegistry::registerSpeciesPlugin<__VA_ARGS__>();                                       \
+            }                                                                                                         \
+        };                                                                                                            \
+    }                                                                                                                 \
+    static picongpu::plugin::plugin_##counter plugin_instance##counter                                                \
+    {                                                                                                                 \
+    }
+
+#define PIC_REGISTER_SPECIES_PLUGIN(...) PIC_REGISTER_SPECIES_PLUGIN_DO(__COUNTER__, __VA_ARGS__)

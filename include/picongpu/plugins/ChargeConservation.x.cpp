@@ -17,10 +17,12 @@
  * If not, see <http://www.gnu.org/licenses/>.
  */
 
-#pragma once
+
+#include "picongpu/plugins/ChargeConservation.hpp"
 
 #include "common/txtFileHandling.hpp"
 #include "picongpu/fields/FieldJ.hpp"
+#include "picongpu/plugins/PluginController.hpp"
 
 #include <pmacc/dataManagement/DataConnector.hpp>
 #include <pmacc/mappings/kernel/AreaMapping.hpp>
@@ -258,3 +260,5 @@ namespace picongpu
     }
 
 } // namespace picongpu
+
+PIC_REGISTER_PLUGIN(picongpu::ChargeConservation);

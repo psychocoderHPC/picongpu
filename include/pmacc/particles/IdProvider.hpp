@@ -33,7 +33,7 @@ namespace pmacc
 {
     namespace idDetail
     {
-        DEVICEONLY uint64_cu nextId;
+        extern DEVICEONLY uint64_cu nextId;
 
         struct KernelSetNextId
         {
