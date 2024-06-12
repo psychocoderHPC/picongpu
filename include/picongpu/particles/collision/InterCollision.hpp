@@ -146,9 +146,10 @@ namespace picongpu::particles::collision
             uint32_t numParticles1 = superCell1.getNumParticles();
 
             // if we have no particles in one species there is no need to perform any calculations
+#if 0
             if(numParticles0 == 0 || numParticles1 == 0)
                 return;
-
+#endif
             // offset of the superCell (in cells, without any guards) to the
             // origin of the local domain
             DataSpace<simDim> const localSuperCellOffset = superCellIdx - mapper.getGuardingSuperCells();
