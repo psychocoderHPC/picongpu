@@ -25,6 +25,7 @@
 
 namespace pmacc::idDetail
 {
+    extern DEVICEONLY uint64_cu nextId;
     // avoid multiple definitions of the global variable if we add the variable to a compile unit
     DEVICEONLY uint64_cu nextId;
 } // namespace pmacc::idDetail

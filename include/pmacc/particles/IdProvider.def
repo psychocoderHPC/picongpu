@@ -26,6 +26,10 @@
 
 namespace pmacc
 {
+    namespace idDetail
+    {
+        extern DEVICEONLY uint64_cu nextId;
+    }
     /**
      * Provider for globally unique ids (even across ranks)
      * Implemented for use in static contexts which allows e.g. calling from CUDA kernels
