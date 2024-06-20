@@ -19,13 +19,21 @@
  * If not, see <http://www.gnu.org/licenses/>.
  */
 
+#include "pmacc/attribute/FunctionSpecifier.hpp"
+#include "pmacc/kernel/atomic.hpp"
 #include "pmacc/type/Integral.hpp"
-
-#include <pmacc/attribute/FunctionSpecifier.hpp>
 
 namespace pmacc::idDetail
 {
-    extern DEVICEONLY uint64_cu nextId;
-    // avoid multiple definitions of the global variable if we add the variable to a compile unit
-    DEVICEONLY uint64_cu nextId;
+    DEVICEONLY uint64_t nextId;
+
+    ALPAKA_FN_ACC uint64_t fetchAddId()
+    {
+        return kernel::atomicAllInc(&nextId);
+    }
+
+    ALPAKA_FN_ACC uint64_t& getIdRef()
+    {
+        return nextId;
+    }
 } // namespace pmacc::idDetail
