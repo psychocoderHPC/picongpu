@@ -75,7 +75,7 @@ cS_this_dir=$(cd `dirname $0` && pwd)
     execute_and_validate $cS_this_dir/../../bin/pic-create -f $cS_examples_path/$cS_example_name $param_folder
 
     execute_and_validate $cS_this_dir/../../bin/pic-configure $cS_globalCMakeOptions $caseOption $param_folder
-    execute_and_validate make install
+    execute_and_validate cmake --build . --target install
 
     echo "$myError" > ./returnCode
     echo "$myErrorTxt" > ./returnTxt

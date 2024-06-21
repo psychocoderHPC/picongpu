@@ -172,9 +172,8 @@ In detail, it does:
    pic-configure $OPTIONS ..
 
    # compile PIConGPU with the current input set (e.g. myLWFA)
-   # - "make -j install" runs implicitly "make -j" and then "make install"
-   # - make install copies resulting binaries to input set
-   make -j install
+   # compile and copy resulting binaries to input set
+   cmake --build . --target install
 
 ``pic-build`` accepts the same command line flags as :ref:`pic-configure <usage-basics-configure>`.
 For example, if you want to build for running on CPUs instead of a GPUs, call:
@@ -228,6 +227,6 @@ See ``pic-configure --help`` for more options during input set configuration:
 .. program-output:: ../../bin/pic-configure --help
 
 After running configure you can run ``ccmake .`` to set additional compile options (optimizations, debug levels, hardware version, etc.).
-This will influence your build done via ``make install``.
+This will influence your build done via ``cmake --build . --target install``.
 
 You can pass further options to configure PIConGPU directly instead of using ``ccmake .``, by passing ``-c "-DOPTION1=VALUE1 -DOPTION2=VALUE2"``.

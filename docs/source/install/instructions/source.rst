@@ -63,11 +63,10 @@ An example could look like this
    
    # configurate, build and install into $HOME/lib/project
    cmake -DCMAKE_INSTALL_PREFIX=$HOME/lib/project $HOME/src/project_to_compile
-   make
-   make install
+   cmake --build . --target install
 
 Often, you want to pass further options to CMake with ``-DOPTION=VALUE`` or modify them interactively with ``ccmake .`` after running the initial cmake command.
-The second step which compiles the project can in many cases be parallelized by ``make -j``.
+The second step which compiles the project can in many cases be parallelized by ``cmake --build . --target install --parallel``.
 In the final install step, you might need to prefix it with ``sudo`` in case ``CMAKE_INSTALL_PREFIX`` is pointing to a system directory.
 
 Some older projects often build *in-source* and use a build system called *autotools*.
@@ -80,8 +79,7 @@ The syntax is still very similar:
    
    # configurate, build and install into $HOME/lib/project
    configure --prefix=$HOME/lib/project
-   make
-   make install
+   cmake --build . --target install
 
 One can usually pass further options with ``--with-something=VALUE`` or ``--enable-thing`` to ``configure``.
 See ``configure --help`` when installing an *autotools* project.

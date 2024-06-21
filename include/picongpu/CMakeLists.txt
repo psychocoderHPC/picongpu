@@ -339,7 +339,7 @@ if(PIC_SEARCH_openPMD)
                     "${PIConGPUapp_SOURCE_DIR}/../../thirdParty/toml11"
                     "${CMAKE_CURRENT_BINARY_DIR}/build_toml11"
                     # EXCLUDE_FROM_ALL ensures that toml11 is not part of
-                    # make install.
+                    # the cmake install target.
                     # The library is header-only and linking it against
                     # PIConGPU targets is sufficient.
                     # It needs not be part of any build or install targets

@@ -29,7 +29,7 @@ help()
     echo "                       compile each of it"
     echo "-q                   - quiet run: don't ask the user and continue on errors"
     echo "                       but return a non-zero exit status"
-    echo "-j <N>                 - spawn N tests in parallel (do not omit N)"
+    echo "-J <N>               - spawn N tests in parallel (do not omit N)"
     echo "-c | --cmake         - overwrite options for cmake (e.g.: -c \"-DPIC_VERBOSE=1\")"
     echo "-h | --help          - show this help message"
     echo ""

@@ -33,7 +33,7 @@ help()
     echo "compiles current input set in it and installs the resulting"
     echo "binaries."
     echo "This is just a short-hand tool for switching to a temporary build"
-    echo "directory and running 'pic-configure ..' and 'make install'"
+    echo "directory and running 'pic-configure ..' and 'cmake --build . --target install"
     echo "manually."
     echo ""
     echo "You must run this command inside an input directory."
@@ -110,7 +110,7 @@ buildCommand="cmake --build . --target install --parallel ${nCompileThreads}"
 echo -e "\033[32mcall build:\033[0m ${buildCommand}"
 if ! $buildCommand; then
     echo ""
-    echo "ERROR: Could not successfully run make install in build directory:" >&2
+    echo "ERROR: Could not successfully run '${buildCommand}' in build directory:" >&2
     echo "       $build_dir" >&2
     exit 5
 fi

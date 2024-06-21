@@ -116,7 +116,7 @@ Further options are:
 If you ran your test with, let's say `-l -q -j 4`, and you got errors like
 >  [compileSuite] [error] In PIC_EXTENSION_PATH:PATH=.../params/KelvinHelmholtz/cmakePreset_0:
 >                         CMAKE_INSTALL_PREFIX:PATH=.../params/KelvinHelmholtz/cmakePreset_0
->                         (.../build) make install
+>                         (.../build) cmake --build . --target install
 
 check the specific test's output (in this case `examples/KelvinHelmholtz` with
 *CMake preset #0*) with:
