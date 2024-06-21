@@ -37,7 +37,6 @@
 #include "picongpu/particles/InitFunctors.hpp"
 #include "picongpu/particles/Manipulate.hpp"
 #include "picongpu/particles/ParticlesFunctors.hpp"
-#include "picongpu/particles/debyeLength/Check.hpp"
 #include "picongpu/particles/manipulators/manipulators.hpp"
 #include "picongpu/random/seed/ISeed.hpp"
 #include "picongpu/simulation/control/DomainAdjuster.hpp"

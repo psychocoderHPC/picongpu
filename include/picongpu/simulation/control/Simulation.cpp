@@ -21,6 +21,8 @@
  */
 #include "picongpu/simulation/control/Simulation.hpp"
 
+#include "picongpu/particles/debyeLength/Check.hpp"
+
 #include <pmacc/meta/ForEach.hpp>
 
 #include <boost/lexical_cast.hpp>
@@ -213,7 +215,7 @@ namespace picongpu
                 removeOuterParticlesAllSpecies(step);
 
                 // Check Debye resolution
-                particles::debyeLength::check(*cellDescription);
+                particles::debyeLength::check();
             }
         }
 
