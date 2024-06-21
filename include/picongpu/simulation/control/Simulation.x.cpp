@@ -22,7 +22,9 @@
 #include "picongpu/simulation/control/Simulation.hpp"
 
 #include "picongpu/particles/debyeLength/Check.hpp"
+#include "picongpu/simulation/stage/ParticleInit.hpp"
 
+#include <pmacc/functor/Call.hpp>
 #include <pmacc/meta/ForEach.hpp>
 
 #include <boost/lexical_cast.hpp>
@@ -204,16 +206,7 @@ namespace picongpu
             else
             {
                 initialiserController->init();
-                meta::ForEach<particles::InitPipeline, pmacc::functor::Call<boost::mpl::_1>> initSpecies;
-                initSpecies(0);
-                /* Remove all particles that are outside the respective boundaries
-                 * (this can happen if density functor didn't account for it).
-                 * For the rest of the simulation we can be sure the only external particles just crossed the
-                 * border.
-                 */
-                particles::RemoveOuterParticlesAllSpecies removeOuterParticlesAllSpecies;
-                removeOuterParticlesAllSpecies(step);
-
+                simulation::stage::ParticleInit{}(step);
                 // Check Debye resolution
                 particles::debyeLength::check();
             }

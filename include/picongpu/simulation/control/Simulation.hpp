@@ -36,7 +36,6 @@
 #include "picongpu/initialization/ParserGridDistribution.hpp"
 #include "picongpu/particles/InitFunctors.hpp"
 #include "picongpu/particles/Manipulate.hpp"
-#include "picongpu/particles/ParticlesFunctors.hpp"
 #include "picongpu/particles/manipulators/manipulators.hpp"
 #include "picongpu/random/seed/ISeed.hpp"
 #include "picongpu/simulation/control/DomainAdjuster.hpp"
@@ -59,7 +58,6 @@
 
 #include <pmacc/assert.hpp>
 #include <pmacc/dimensions/GridLayout.hpp>
-#include <pmacc/functor/Call.hpp>
 #include <pmacc/mappings/kernel/MappingDescription.hpp>
 #include <pmacc/mappings/simulation/GridController.hpp>
 #include <pmacc/mappings/simulation/SubGrid.hpp>

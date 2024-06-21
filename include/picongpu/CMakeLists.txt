@@ -532,13 +532,6 @@ include_directories(BEFORE ${PIC_EXTENSION_PATH}/include)
 list(APPEND ACCSRCFILES
     "${PIConGPUapp_SOURCE_DIR}/main.cpp"
     "${PIConGPUapp_SOURCE_DIR}/versionFormat.cpp"
-    "${PIConGPUapp_SOURCE_DIR}/simulation/stage/CurrentDeposition.cpp"
-    "${PIConGPUapp_SOURCE_DIR}/simulation/stage/CurrentInterpolationAndAdditionToEMF.cpp"
-    "${PIConGPUapp_SOURCE_DIR}/simulation/stage/ParticlePush.cpp"
-    "${PIConGPUapp_SOURCE_DIR}/simulation/stage/ParticleIonization.cpp"
-    "${PIConGPUapp_SOURCE_DIR}/simulation/stage/SynchrotronRadiation.cpp"
-    "${PIConGPUapp_SOURCE_DIR}/simulation/stage/ParticleBoundaries.cpp"
-    "${PIConGPUapp_SOURCE_DIR}/simulation/control/Simulation.cpp"
     "${PIConGPUapp_SOURCE_DIR}/plugins/openPMD/toml.cpp"
 )
 
