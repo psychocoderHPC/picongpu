@@ -113,13 +113,9 @@ namespace pmacc
     }
 
     template<unsigned T_dim>
-    HDINLINE uint64_t IdProvider<T_dim>::getNewId()
+    DINLINE uint64_t IdProvider<T_dim>::getNewId()
     {
-#if PMACC_DEVICE_COMPILE
         return idDetail::fetchAddId();
-#else
-        return getNewIdHost();
-#endif
     }
 
     template<unsigned T_dim>

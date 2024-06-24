@@ -25,7 +25,7 @@
 
 namespace pmacc::idDetail
 {
-    DEVICEONLY uint64_t nextId;
+    ALPAKA_FN_ACC uint64_t nextId;
 
     ALPAKA_FN_ACC uint64_t fetchAddId()
     {
