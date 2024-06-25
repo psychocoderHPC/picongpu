@@ -435,19 +435,21 @@ namespace mallocMC::CreationPolicies
         template<typename TAcc>
         static void initHeap(auto& dev, auto& queue, auto* heap, void* pool, size_t memsize)
         {
+#if 0
             if(memsize != T_HeapConfig::heapsize)
             {
                 throw "Memory size mismatch between runtime and compile-time.";
             }
-
+#endif
             using Dim = typename alpaka::trait::DimType<TAcc>::type;
             using Idx = typename alpaka::trait::IdxType<TAcc>::type;
+            using VecType = alpaka::Vec<Dim, Idx>;
 
             auto poolView = alpaka::createView(dev, reinterpret_cast<char*>(pool), alpaka::Vec<Dim, Idx>(memsize));
             alpaka::memset(queue, poolView, 0U);
             alpaka::wait(queue);
 
-            auto workDivSingleThread = alpaka::WorkDivMembers<Dim, Idx>{{1U}, {1U}, {1U}};
+            auto workDivSingleThread = alpaka::WorkDivMembers<Dim, Idx>{VecType::ones(), VecType::ones(), VecType::ones()};
             alpaka::exec<TAcc>(queue, workDivSingleThread, InitKernel{}, heap, pool);
             alpaka::wait(queue);
         }

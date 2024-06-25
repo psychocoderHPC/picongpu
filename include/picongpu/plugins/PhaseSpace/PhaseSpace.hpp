@@ -254,7 +254,7 @@ namespace picongpu
                     p_element,
                     axis_p_range,
                     filter);
-                PMACC_LOCKSTEP_KERNEL(functorBlock).config(mapper.getGridDim(), particlesBox)(mapper);
+                // PMACC_LOCKSTEP_KERNEL(functorBlock).config(mapper.getGridDim(), particlesBox)(mapper);
             }
         };
 

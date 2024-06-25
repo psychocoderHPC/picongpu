@@ -43,15 +43,25 @@ namespace picongpu
          * investigated and might be performance sensitive for multiple
          * particle species with heavily varying attributes (frame sizes)
          */
-        static constexpr uint32_t accessblocksize = 2u * 1024u * 1024u * 1024u;
+        static constexpr uint32_t accessblocksize = 10u * 1024u * 1024u * 1024u;
         static constexpr uint32_t regionsize = 16u;
-        static constexpr uint32_t wastefactor = 2u;
+        static constexpr uint32_t wastefactor = 1u;
 
         /** resetfreedpages is used to minimize memory fragmentation with
          * varying frame sizes
          */
         static constexpr bool resetfreedpages = true;
+        static constexpr size_t heapsize = 1024llu * 1024llu * 1024llu * 4;
     };
+
+    struct DefaultScatterHashingParams
+    {
+        static constexpr auto hashingK = 38183;
+        static constexpr auto hashingDistMP = 17497;
+        static constexpr auto hashingDistWP = 1;
+        static constexpr auto hashingDistWPRel = 1;
+    };
+
 
     /** Define a new allocator
      *
@@ -60,7 +70,7 @@ namespace picongpu
      */
     using DeviceHeap = mallocMC::Allocator<
         pmacc::Acc<DIM1>,
-        mallocMC::CreationPolicies::Scatter<DeviceHeapConfig>,
+        mallocMC::CreationPolicies::Scatter<DeviceHeapConfig, DefaultScatterHashingParams>,
         mallocMC::DistributionPolicies::Noop,
         mallocMC::OOMPolicies::ReturnNull,
         mallocMC::ReservePoolPolicies::AlpakaBuf<pmacc::Acc<DIM1>>,
