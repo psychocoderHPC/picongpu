@@ -31,6 +31,7 @@ macro(alpaka_add_executable In_Name)
         # We have to set this here since CUDA_SEPARABLE_COMPILATION is not propagated by the alpaka::alpaka target.
         if(alpaka_RELOCATABLE_DEVICE_CODE STREQUAL ON)
             set_property(TARGET ${In_Name} PROPERTY CUDA_SEPARABLE_COMPILATION ON)
+          #  set_property(TARGET ${In_Name} PROPERTY CUDA_RESOLVE_DEVICE_SYMBOLS ON)
         elseif(alpaka_RELOCATABLE_DEVICE_CODE STREQUAL OFF)
             set_property(TARGET ${In_Name} PROPERTY CUDA_SEPARABLE_COMPILATION OFF)
         endif()

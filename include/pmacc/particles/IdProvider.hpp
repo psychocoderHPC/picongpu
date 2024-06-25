@@ -33,9 +33,9 @@ namespace pmacc
 {
     namespace idDetail
     {
-        ALPAKA_FN_ACC extern uint64_t fetchAddId();
+        ALPAKA_FN_ACC ALPAKA_FN_EXTERN uint64_t fetchAddId();
 
-        ALPAKA_FN_ACC extern uint64_t& getIdRef();
+        ALPAKA_FN_ACC ALPAKA_FN_EXTERN uint64_t& getIdRef();
 
         struct KernelSetNextId
         {
