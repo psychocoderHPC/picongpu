@@ -31,7 +31,7 @@
 #include <cstdint>
 
 template<typename TAcc, typename TFunctor, typename... TArgs>
-ALPAKA_FN_ACC [[nodiscard]] inline auto internalWrappingLoop(
+ALPAKA_FN_ACC  inline auto internalWrappingLoop(
     TAcc const& acc,
     size_t const startIndex,
     size_t const endIndex,
@@ -48,7 +48,7 @@ ALPAKA_FN_ACC [[nodiscard]] inline auto internalWrappingLoop(
 }
 
 template<typename TAcc, typename TFunctor, typename... TArgs>
-ALPAKA_FN_ACC [[nodiscard]] inline auto wrappingLoop(
+ALPAKA_FN_ACC  inline auto wrappingLoop(
     TAcc const& acc,
     size_t const startIndex,
     size_t const size,

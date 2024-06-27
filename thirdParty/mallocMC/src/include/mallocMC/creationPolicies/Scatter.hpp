@@ -435,7 +435,7 @@ struct InitKernel
 namespace mallocMC::CreationPolicies
 {
 
-    template<typename T_HeapConfig, typename T_HashConfig>
+    template<typename T_HeapConfig, typename T_HashConfig = void>
     struct Scatter : public ScatterAlloc::Heap<T_HeapConfig::accessblocksize, T_HeapConfig::pagesize>
     {
         static_assert(T_HeapConfig::resetfreedpages, "resetfreedpages = false is no longer implemented.");

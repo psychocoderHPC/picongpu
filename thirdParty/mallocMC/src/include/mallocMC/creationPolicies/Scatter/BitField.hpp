@@ -124,20 +124,20 @@ namespace mallocMC::CreationPolicies::ScatterAlloc
             return (mask - other.mask);
         }
 
-        ALPAKA_FN_ACC [[nodiscard]] auto none() const
+        ALPAKA_FN_ACC  auto none() const
         {
             return mask == 0U;
         }
 
         template<typename TAcc>
-        ALPAKA_FN_ACC [[nodiscard]] auto all(TAcc const& acc) const
+        ALPAKA_FN_ACC  auto all(TAcc const& acc) const
         {
             return atomicAnd(acc, mask, allOnes);
         }
 
 
         template<typename TAcc>
-        ALPAKA_FN_ACC [[nodiscard]] inline auto firstFreeBit(
+        ALPAKA_FN_ACC  inline auto firstFreeBit(
             TAcc const& acc,
             uint32_t const startIndex = 0,
             uint32_t const numValidBits = BitMaskSize) -> uint32_t
@@ -156,7 +156,7 @@ namespace mallocMC::CreationPolicies::ScatterAlloc
 
     private:
         template<typename TAcc>
-        ALPAKA_FN_ACC [[nodiscard]] inline auto firstFreeBitInBetween(
+        ALPAKA_FN_ACC  inline auto firstFreeBitInBetween(
             TAcc const& acc,
             uint32_t const startIndex,
             uint32_t const endIndex) -> uint32_t
@@ -183,12 +183,12 @@ namespace mallocMC::CreationPolicies::ScatterAlloc
         std::span<BitMask> data;
 
         template<typename TAcc>
-        ALPAKA_FN_ACC [[nodiscard]] auto get(TAcc const& acc, uint32_t index) const -> bool
+        ALPAKA_FN_ACC  auto get(TAcc const& acc, uint32_t index) const -> bool
         {
             return data[index / BitMaskSize](acc, index % BitMaskSize);
         }
 
-        ALPAKA_FN_ACC [[nodiscard]] auto operator[](uint32_t index) const -> BitMask&
+        ALPAKA_FN_ACC  auto operator[](uint32_t index) const -> BitMask&
         {
             return data[index];
         }
@@ -205,22 +205,22 @@ namespace mallocMC::CreationPolicies::ScatterAlloc
             data[index / BitMaskSize].unset(acc, index % BitMaskSize);
         }
 
-        ALPAKA_FN_ACC [[nodiscard]] auto begin() const
+        ALPAKA_FN_ACC  auto begin() const
         {
             return std::begin(data);
         }
 
-        ALPAKA_FN_ACC [[nodiscard]] auto end() const
+        ALPAKA_FN_ACC  auto end() const
         {
             return std::end(data);
         }
 
-        ALPAKA_FN_ACC [[nodiscard]] auto numMasks() const
+        ALPAKA_FN_ACC  auto numMasks() const
         {
             return data.size();
         }
 
-        ALPAKA_FN_ACC [[nodiscard]] auto numBits() const
+        ALPAKA_FN_ACC  auto numBits() const
         {
             return numMasks() * BitMaskSize;
         }
@@ -241,18 +241,18 @@ namespace mallocMC::CreationPolicies::ScatterAlloc
                 { return firstFreeBitAt(localAcc, numValidBits, index); });
         }
 
-        ALPAKA_FN_ACC [[nodiscard]] inline auto noFreeBitFound() const -> uint32_t
+        ALPAKA_FN_ACC  inline auto noFreeBitFound() const -> uint32_t
         {
             return numBits();
         }
 
     private:
-        ALPAKA_FN_ACC [[nodiscard]] static auto startIndex()
+        ALPAKA_FN_ACC  static auto startIndex()
         {
             return warpid() * warpSize + laneid();
         }
 
-        ALPAKA_FN_ACC [[nodiscard]] static auto isThisLastMask(uint32_t const numValidBits, uint32_t const index)
+        ALPAKA_FN_ACC  static auto isThisLastMask(uint32_t const numValidBits, uint32_t const index)
         {
             return (index + 1) * BitMaskSize > numValidBits;
         }
