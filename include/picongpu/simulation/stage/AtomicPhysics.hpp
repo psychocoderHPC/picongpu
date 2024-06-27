@@ -477,7 +477,8 @@ namespace picongpu::simulation::stage
                     }
 
                     // timeRemaining -= timeStep
-                    picongpu::particles::atomicPhysics::stage::UpdateTimeRemaining()(mappingDesc);
+                    picongpu::particles::atomicPhysics::stage::UpdateTimeRemaining<numberAtomicPhysicsIonSpecies>()(
+                        mappingDesc);
 
                     auto linearizedTimeRemainingBox = S_LinearizedBox<S_TimeRemainingField>(
                         localTimeRemainingField.getDeviceDataBox(),

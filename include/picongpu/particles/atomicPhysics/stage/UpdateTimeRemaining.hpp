@@ -32,6 +32,7 @@ namespace picongpu::particles::atomicPhysics::stage
     /** atomic physics sub-stage for reducing the local time remaining by the local
      *  atomicPhysics time step
      */
+    template<uint32_t numberAtomicPhysicsIonSpecies>
     struct UpdateTimeRemaining
     {
         //! call of kernel for every superCell
@@ -52,7 +53,8 @@ namespace picongpu::particles::atomicPhysics::stage
                 "LocalTimeStepField");
 
             // macro for kernel call
-            PMACC_LOCKSTEP_KERNEL(picongpu::particles::atomicPhysics::kernel::UpdateTimeRemainingKernel())
+            PMACC_LOCKSTEP_KERNEL(
+                picongpu::particles::atomicPhysics::kernel::UpdateTimeRemainingKernel<numberAtomicPhysicsIonSpecies>())
                 .template config<1u>(mapper.getGridDim())(
                     mapper,
                     localTimeRemainingField.getDeviceDataBox(),

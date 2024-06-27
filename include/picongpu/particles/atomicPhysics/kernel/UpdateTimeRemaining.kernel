@@ -27,6 +27,7 @@
 namespace picongpu::particles::atomicPhysics::kernel
 {
     //! reduce local time remaining by local time step length
+    template<uint32_t numberAtomicPhysicsIonSpecies>
     struct UpdateTimeRemainingKernel
     {
         /** call operator

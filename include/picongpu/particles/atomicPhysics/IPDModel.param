@@ -26,6 +26,13 @@
 namespace picongpu::atomicPhysics
 {
     //! configuration of used ionization potential depression Model
-    using IPDModel = picongpu::particles::atomicPhysics::ionizationPotentialDepression::StewartPyattIPD<
-        picongpu::particles::atomicPhysics::ionizationPotentialDepression::RelativisticTemperatureFunctor>;
+    template<typename T_defer>
+    struct IPDModel
+    {
+        using type = picongpu::particles::atomicPhysics::ionizationPotentialDepression::StewartPyattIPD<
+            picongpu::particles::atomicPhysics::ionizationPotentialDepression::RelativisticTemperatureFunctor>;
+    };
+
+    template<typename T_defer>
+    using IPDModel_t = typename IPDModel<T_defer>::type;
 } // namespace picongpu::atomicPhysics
