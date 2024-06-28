@@ -40,6 +40,7 @@
 #include <alpaka/core/Positioning.hpp>
 #include <alpaka/idx/Accessors.hpp>
 #include <alpaka/kernel/Traits.hpp>
+#include <alpaka/alpaka.hpp>
 #include <alpaka/mem/fence/Traits.hpp>
 #include <alpaka/mem/view/Traits.hpp>
 #include <alpaka/mem/view/ViewPlainPtr.hpp>
@@ -220,7 +221,7 @@ namespace mallocMC::CreationPolicies::ScatterAlloc
 
         ALPAKA_FN_ACC static auto startIndex(auto const& acc)
         {
-            return (laneid() * alpaka::getIdx<alpaka::Grid, alpaka::Blocks>(acc).sum()) % numPages();
+            return 42 % numPages();
         }
 
         template<typename TAcc>
@@ -379,6 +380,7 @@ namespace mallocMC::CreationPolicies::ScatterAlloc
     {
         size_t heapSize{};
         AccessBlock<T_blockSize, T_pageSize>* accessBlocks{};
+        uint32_t block = 0u;
 
         ALPAKA_FN_ACC [[nodiscard]] auto numBlocks() const -> size_t
         {
@@ -390,9 +392,10 @@ namespace mallocMC::CreationPolicies::ScatterAlloc
             return numBlocks();
         }
 
-        ALPAKA_FN_ACC auto startIndex(auto const& acc, uint32_t const numBytes) const
+        ALPAKA_FN_ACC auto startIndex(auto const& acc, uint32_t const numBytes)
         {
-            return (numBytes * alpaka::getIdx<alpaka::Grid, alpaka::Blocks>(acc).sum()) % numBlocks();
+            auto myBlock = atomicAdd(acc, block, 1u);
+            return (myBlock % (64u * 1024u)) % numBlocks();
         }
 
         template<typename AlignmentPolicy, typename AlpakaAcc>

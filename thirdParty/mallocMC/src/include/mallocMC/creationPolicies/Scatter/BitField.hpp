@@ -249,7 +249,7 @@ namespace mallocMC::CreationPolicies::ScatterAlloc
     private:
         ALPAKA_FN_ACC  static auto startIndex()
         {
-            return warpid() * warpSize + laneid();
+            return 42;
         }
 
         ALPAKA_FN_ACC  static auto isThisLastMask(uint32_t const numValidBits, uint32_t const index)

@@ -56,10 +56,14 @@ ALPAKA_FN_ACC  inline auto wrappingLoop(
     TFunctor func,
     TArgs... args)
 {
-    auto result = internalWrappingLoop(acc, startIndex, size, failureValue, func, args...);
-    if(result == failureValue)
+
+    auto result = failureValue;
+    for(uint32_t i = 0; i < size; ++i)
     {
-        result = internalWrappingLoop(acc, 0U, startIndex, failureValue, func, args...);
+        result = func(acc, (i+startIndex)%size, args...);
+        if(result != failureValue)
+            break;
     }
+
     return result;
 }

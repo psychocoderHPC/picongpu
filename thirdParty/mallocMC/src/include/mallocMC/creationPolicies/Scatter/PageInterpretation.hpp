@@ -77,7 +77,7 @@ namespace mallocMC::CreationPolicies::ScatterAlloc
 
         ALPAKA_FN_ACC auto startIndex() const
         {
-            return 199 * _chunkSize + smid();
+            return 42;
         }
 
         template<typename TAcc>
