@@ -35,12 +35,12 @@
 #include "mallocMC/mallocMC_utils.hpp"
 
 #include <algorithm>
+#include <alpaka/alpaka.hpp>
 #include <alpaka/atomic/AtomicAtomicRef.hpp>
 #include <alpaka/core/Common.hpp>
 #include <alpaka/core/Positioning.hpp>
 #include <alpaka/idx/Accessors.hpp>
 #include <alpaka/kernel/Traits.hpp>
-#include <alpaka/alpaka.hpp>
 #include <alpaka/mem/fence/Traits.hpp>
 #include <alpaka/mem/view/Traits.hpp>
 #include <alpaka/mem/view/ViewPlainPtr.hpp>
@@ -107,16 +107,17 @@ namespace mallocMC::CreationPolicies::ScatterAlloc
         }
 
         template<typename TAcc>
-        ALPAKA_FN_ACC auto create(TAcc const& acc, uint32_t const numBytes) -> void*
+        ALPAKA_FN_ACC auto create(TAcc const& acc, uint32_t const numBytes, uint32_t& hashValue) -> void*
         {
             void* pointer{nullptr};
             if(numBytes >= multiPageThreshold())
             {
                 pointer = createOverMultiplePages(numBytes);
+                printf("noooooo\n");
             }
             else
             {
-                pointer = createChunk(acc, numBytes);
+                pointer = createChunk(acc, numBytes, hashValue);
             }
             return pointer;
         }
@@ -219,15 +220,20 @@ namespace mallocMC::CreationPolicies::ScatterAlloc
             return numPages();
         }
 
-        ALPAKA_FN_ACC static auto startIndex(auto const& acc)
+        ALPAKA_FN_ACC static auto startIndex(auto const& acc, uint32_t const hashValue)
         {
-            return 42 % numPages();
+            return (hashValue >> 16u) % numPages();
+        }
+
+        ALPAKA_FN_ACC bool isValidPageIdx(uint32_t const index) const
+        {
+            return index != noFreePageFound();
         }
 
         template<typename TAcc>
-        ALPAKA_FN_ACC auto createChunk(TAcc const& acc, uint32_t const numBytes) -> void*
+        ALPAKA_FN_ACC auto createChunk(TAcc const& acc, uint32_t const numBytes, uint32_t& hashValue) -> void*
         {
-            auto index = startIndex(acc);
+            auto index = startIndex(acc, hashValue);
 
             // Under high pressure, this loop could potentially run for a long time because the information where and
             // when we started our search is not maintained and/or used. This is a feature, not a bug: Given a
@@ -240,18 +246,18 @@ namespace mallocMC::CreationPolicies::ScatterAlloc
             //
             // In the latter case, it is considered desirable to wrap around multiple times until the thread was fast
             // enough to acquire some memory.
-            index = choosePage(acc, numBytes, index);
-            void* pointer = index != noFreePageFound()
-                ? PageInterpretation<T_pageSize>{pages[index], numBytes}.create(acc)
-                : nullptr;
-
-            while(index != noFreePageFound() and pointer == nullptr)
+            void* pointer = nullptr;
+            do
             {
-                leavePage(acc, index);
                 ++index;
                 index = choosePage(acc, numBytes, index);
-                pointer = PageInterpretation<T_pageSize>{pages[index], numBytes}.create(acc);
-            }
+                if(isValidPageIdx(index))
+                {
+                    pointer = PageInterpretation<T_pageSize>{pages[index], numBytes}.create(acc, hashValue);
+                    if(pointer == nullptr)
+                        leavePage(acc, index);
+                }
+            } while(isValidPageIdx(index) and pointer == nullptr);
 
             return pointer;
         }
@@ -392,22 +398,44 @@ namespace mallocMC::CreationPolicies::ScatterAlloc
             return numBlocks();
         }
 
-        ALPAKA_FN_ACC auto startIndex(auto const& acc, uint32_t const numBytes)
+        ALPAKA_FN_ACC auto hash(auto const& acc, uint32_t const numBytes)
         {
-            auto myBlock = atomicAdd(acc, block, 1u);
-            return (myBlock % (64u * 1024u)) % numBlocks();
+            constexpr uint32_t hashingK = 38183u;
+            constexpr uint32_t hashingDistMP = 17497u;
+            constexpr uint32_t hashingDistWP = 1u;
+            constexpr uint32_t hashingDistWPRel = 1u;
+
+            const uint32_t numpages = AccessBlock<T_blockSize, T_pageSize>::numPages();
+            const uint32_t pagesperblock = numpages / numBlocks();
+            const uint32_t reloff = warpSize * numBytes / T_pageSize;
+            const uint32_t startBlock = block
+                + (numBytes * hashingK + hashingDistMP * smid()
+                   + (hashingDistWP + hashingDistWPRel * reloff) * warpid());
+            return startBlock;
+        }
+
+        ALPAKA_FN_ACC auto startIndex(auto const&, uint32_t const hashValue)
+        {
+            return hashValue % numBlocks();
         }
 
         template<typename AlignmentPolicy, typename AlpakaAcc>
         ALPAKA_FN_ACC auto create(const AlpakaAcc& acc, uint32_t bytes) -> void*
         {
+            auto hashValue = hash(acc, bytes);
+            auto startIdx = startIndex(acc, hashValue);
             return wrappingLoop(
                 acc,
-                startIndex(acc, bytes),
+                startIdx,
                 numBlocks(),
                 static_cast<void*>(nullptr),
-                [this, bytes](auto const& localAcc, auto const index)
-                { return accessBlocks[index].create(localAcc, bytes); });
+                [this, bytes, &acc, startIdx, &hashValue](auto const& localAcc, auto const index) mutable
+                {
+                    auto ptr = accessBlocks[index].create(localAcc, bytes, hashValue);
+                    if(!ptr && index == startIdx)
+                        ++block;
+                    return ptr;
+                });
         }
 
         template<typename AlpakaAcc>

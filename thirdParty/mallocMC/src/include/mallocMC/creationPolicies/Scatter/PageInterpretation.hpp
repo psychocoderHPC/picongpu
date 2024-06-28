@@ -75,16 +75,16 @@ namespace mallocMC::CreationPolicies::ScatterAlloc
         }
 
 
-        ALPAKA_FN_ACC auto startIndex() const
+        ALPAKA_FN_ACC auto startIndex(uint32_t const hashValue) const
         {
-            return 42;
+            return (hashValue >> 9);
         }
 
         template<typename TAcc>
-        ALPAKA_FN_ACC auto create(TAcc const& acc) -> void*
+        ALPAKA_FN_ACC auto create(TAcc const& acc, uint32_t& hashValue) -> void*
         {
             auto field = bitField();
-            auto const index = field.firstFreeBit(acc, numChunks(), startIndex());
+            auto const index = field.firstFreeBit(acc, numChunks(), startIndex(hashValue));
             return (index < field.noFreeBitFound()) ? this->operator[](index) : nullptr;
         }
 
