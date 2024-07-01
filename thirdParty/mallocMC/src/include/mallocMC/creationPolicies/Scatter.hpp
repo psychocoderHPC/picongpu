@@ -227,7 +227,7 @@ namespace mallocMC::CreationPolicies::ScatterAlloc
 
         ALPAKA_FN_ACC bool isValidPageIdx(uint32_t const index) const
         {
-            return index != noFreePageFound();
+            return index != noFreePageFound() && index < numPages();
         }
 
         template<typename TAcc>
@@ -246,10 +246,11 @@ namespace mallocMC::CreationPolicies::ScatterAlloc
             //
             // In the latter case, it is considered desirable to wrap around multiple times until the thread was fast
             // enough to acquire some memory.
+#if 1
             void* pointer = nullptr;
             do
             {
-                ++index;
+                index = (index + 1) % numPages();
                 index = choosePage(acc, numBytes, index);
                 if(isValidPageIdx(index))
                 {
@@ -258,6 +259,21 @@ namespace mallocMC::CreationPolicies::ScatterAlloc
                         leavePage(acc, index);
                 }
             } while(isValidPageIdx(index) and pointer == nullptr);
+#else
+            index = choosePage(acc, numBytes, index);
+            void* pointer = isValidPageIdx(index)
+                ? PageInterpretation<T_pageSize>{pages[index], numBytes}.create(acc, hashValue)
+                : nullptr;
+            while(index != noFreePageFound() and pointer == nullptr)
+            {
+                // leavePage(acc, index);
+                index = (index + 1u) % numPages();
+                index = choosePage(acc, numBytes, index);
+                if(isValidPageIdx(index))
+                    pointer = PageInterpretation<T_pageSize>{pages[index], numBytes}.create(acc, hashValue);
+            }
+#endif
+
 
             return pointer;
         }
@@ -281,7 +297,9 @@ namespace mallocMC::CreationPolicies::ScatterAlloc
             if(enterPage(acc, index, numBytes))
             {
                 auto oldChunkSize = atomicCAS(acc, pageTable._chunkSizes[index], 0U, numBytes);
-                appropriate = (oldChunkSize == 0U || oldChunkSize == numBytes);
+                appropriate
+                    = (oldChunkSize == 0U || oldChunkSize == numBytes
+                       || (oldChunkSize >= numBytes && oldChunkSize <= numBytes * 2u));
             }
             if(not appropriate)
             {
@@ -386,7 +404,7 @@ namespace mallocMC::CreationPolicies::ScatterAlloc
     {
         size_t heapSize{};
         AccessBlock<T_blockSize, T_pageSize>* accessBlocks{};
-        uint32_t block = 0u;
+        volatile uint32_t block = 0u;
 
         ALPAKA_FN_ACC [[nodiscard]] auto numBlocks() const -> size_t
         {
@@ -398,7 +416,7 @@ namespace mallocMC::CreationPolicies::ScatterAlloc
             return numBlocks();
         }
 
-        ALPAKA_FN_ACC auto hash(auto const& acc, uint32_t const numBytes)
+        ALPAKA_FN_ACC auto hash(auto const& acc, uint32_t const numBytes) const
         {
             constexpr uint32_t hashingK = 38183u;
             constexpr uint32_t hashingDistMP = 17497u;
@@ -408,32 +426,40 @@ namespace mallocMC::CreationPolicies::ScatterAlloc
             const uint32_t numpages = AccessBlock<T_blockSize, T_pageSize>::numPages();
             const uint32_t pagesperblock = numpages / numBlocks();
             const uint32_t reloff = warpSize * numBytes / T_pageSize;
-            const uint32_t startBlock = block
-                + (numBytes * hashingK + hashingDistMP * smid()
+            const uint32_t hash
+                = (numBytes * hashingK + hashingDistMP * smid()
                    + (hashingDistWP + hashingDistWPRel * reloff) * warpid());
-            return startBlock;
+            return hash;
         }
 
-        ALPAKA_FN_ACC auto startIndex(auto const&, uint32_t const hashValue)
+        ALPAKA_FN_ACC auto startIndex(auto const&, uint32_t const blockValue, uint32_t const hashValue)
         {
-            return hashValue % numBlocks();
+#if 1
+            constexpr uint32_t blockStride = 4;
+            return ((hashValue % blockStride) + (blockValue * blockStride)) % numBlocks();
+#else
+            return (block + hashValue) % numBlocks();
+#endif
         }
 
         template<typename AlignmentPolicy, typename AlpakaAcc>
         ALPAKA_FN_ACC auto create(const AlpakaAcc& acc, uint32_t bytes) -> void*
         {
+            auto blockValue = block;
             auto hashValue = hash(acc, bytes);
-            auto startIdx = startIndex(acc, hashValue);
+            auto startIdx = startIndex(acc, blockValue, hashValue);
             return wrappingLoop(
                 acc,
                 startIdx,
                 numBlocks(),
                 static_cast<void*>(nullptr),
-                [this, bytes, &acc, startIdx, &hashValue](auto const& localAcc, auto const index) mutable
+                [this, bytes, &acc, startIdx, &hashValue, blockValue](auto const& localAcc, auto const index) mutable
                 {
                     auto ptr = accessBlocks[index].create(localAcc, bytes, hashValue);
                     if(!ptr && index == startIdx)
-                        ++block;
+                        if(blockValue==block)
+                            block=blockValue+1;
+                        //atomicCAS(acc, block, blockValue, blockValue + 1);
                     return ptr;
                 });
         }

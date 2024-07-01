@@ -254,21 +254,21 @@ namespace mallocMC::CreationPolicies::ScatterAlloc
 
         ALPAKA_FN_ACC  static auto isThisLastMask(uint32_t const numValidBits, uint32_t const index)
         {
-            return (index + 1) * BitMaskSize > numValidBits;
+            return (index + 1) * BitMaskSize >= numValidBits;
         }
 
         template<typename TAcc>
-        ALPAKA_FN_ACC inline auto firstFreeBitAt(TAcc const& acc, uint32_t const numValidBits, uint32_t const index)
+        ALPAKA_FN_ACC inline auto firstFreeBitAt(TAcc const& acc, uint32_t const numValidBits, uint32_t const maskIdx)
             -> uint32_t
         {
             auto numValidBitsInLastMask = (numValidBits ? ((numValidBits - 1u) % BitMaskSize + 1u) : 0u);
-            auto indexInMask = this->operator[](index).firstFreeBit(
+            auto indexInMask = this->operator[](maskIdx).firstFreeBit(
                 acc,
                 startIndex(),
-                isThisLastMask(numValidBits, index) ? numValidBitsInLastMask : BitMaskSize);
+                isThisLastMask(numValidBits, maskIdx) ? numValidBitsInLastMask : BitMaskSize);
             if(indexInMask < BitMask::noFreeBitFound())
             {
-                uint32_t freeBitIndex = indexInMask + BitMaskSize * index;
+                uint32_t freeBitIndex = indexInMask + BitMaskSize * maskIdx;
                 if(freeBitIndex < numValidBits)
                 {
                     return freeBitIndex;
