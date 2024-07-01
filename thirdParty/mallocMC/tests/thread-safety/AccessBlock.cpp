@@ -91,15 +91,16 @@ struct FillWith
         void** result,
         uint32_t const size) const -> void
     {
+        uint32_t hash = 0u;
         std::generate(
             result,
             result + size,
-            [&acc, accessBlock, chunkSize]()
+            [&acc, accessBlock, chunkSize,&hash]()
             {
                 void* pointer{nullptr};
                 while(pointer == nullptr)
                 {
-                    pointer = accessBlock->create(acc, chunkSize);
+                    pointer = accessBlock->create(acc, chunkSize, hash);
                 }
                 return pointer;
             });
@@ -147,13 +148,15 @@ struct Create
     template<typename TAcc>
     ALPAKA_FN_ACC auto operator()(TAcc const& acc, auto* accessBlock, span<void*> pointers, auto chunkSize) const
     {
-        forAll(acc, pointers.size, [&](auto idx) { pointers[idx] = accessBlock->create(acc, chunkSize); });
+        uint32_t hash = 0u;
+        forAll(acc, pointers.size, [&](auto idx) { pointers[idx] = accessBlock->create(acc, chunkSize, hash); });
     };
 
     template<typename TAcc>
     ALPAKA_FN_ACC auto operator()(TAcc const& acc, auto* accessBlock, span<void*> pointers, auto* chunkSizes) const
     {
-        forAll(acc, pointers.size, [&](auto idx) { pointers[idx] = accessBlock->create(acc, chunkSizes[idx]); });
+        uint32_t hash = 0u;
+        forAll(acc, pointers.size, [&](auto idx) { pointers[idx] = accessBlock->create(acc, chunkSizes[idx], hash); });
     };
 };
 
@@ -162,6 +165,7 @@ struct CreateUntilSuccess
     template<typename TAcc>
     ALPAKA_FN_ACC auto operator()(TAcc const& acc, auto* accessBlock, span<void*> pointers, auto chunkSize) const
     {
+        uint32_t hash = 0u;
         forAll(
             acc,
             pointers.size,
@@ -169,7 +173,7 @@ struct CreateUntilSuccess
             {
                 while(pointers[idx] == nullptr)
                 {
-                    pointers[idx] = accessBlock->create(acc, chunkSize);
+                    pointers[idx] = accessBlock->create(acc, chunkSize, hash);
                 }
             });
     };
@@ -435,12 +439,13 @@ struct FillAllUpAndWriteToThem
     {
         auto const idx0 = alpaka::getIdx<alpaka::Grid, alpaka::Threads>(acc)[0];
         auto const numElements = alpaka::getWorkDiv<alpaka::Thread, alpaka::Elems>(acc)[0];
+        uint32_t hash = 0u;
         for(auto i = 0; i < numElements; ++i)
         {
             auto idx = idx0 + i;
             if(idx < pointers.size)
             {
-                pointers[idx] = accessBlock->create(acc, chunkSize);
+                pointers[idx] = accessBlock->create(acc, chunkSize, hash);
                 auto* begin = reinterpret_cast<uint32_t*>(pointers[idx]);
                 auto* end = begin + chunkSize / sizeof(uint32_t);
                 std::fill(begin, end, content[idx]);
@@ -452,6 +457,7 @@ struct CreateAndDestroMultipleTimes
 {
     ALPAKA_FN_ACC auto operator()(auto const& acc, auto* accessBlock, span<void*> pointers, auto chunkSize) const
     {
+        uint32_t hash = 0u;
         forAll(
             acc,
             pointers.size,
@@ -463,14 +469,14 @@ struct CreateAndDestroMultipleTimes
                     // `.isValid()` is not thread-safe, so we use this direct assessment:
                     while(pointers[idx] == nullptr)
                     {
-                        pointers[idx] = accessBlock->create(acc, chunkSize);
+                        pointers[idx] = accessBlock->create(acc, chunkSize, hash);
                     }
                     accessBlock->destroy(acc, pointers[idx]);
                     pointers[idx] = nullptr;
                 }
                 while(pointers[idx] == nullptr)
                 {
-                    pointers[idx] = accessBlock->create(acc, chunkSize);
+                    pointers[idx] = accessBlock->create(acc, chunkSize, hash);
                 }
             });
     }
@@ -480,6 +486,7 @@ struct CreateAndDestroyWithDifferentSizes
     size_t num2{};
     ALPAKA_FN_ACC auto operator()(auto const& acc, auto* accessBlock, span<void*> pointers, auto* chunkSizes) const
     {
+        uint32_t hash = 0u;
         forAll(
             acc,
             pointers.size,
@@ -491,14 +498,14 @@ struct CreateAndDestroyWithDifferentSizes
                     // `.isValid()` is not thread-safe, so we use this direct assessment:
                     while(pointers[idx] == nullptr)
                     {
-                        pointers[idx] = accessBlock->create(acc, myChunkSize);
+                        pointers[idx] = accessBlock->create(acc, myChunkSize, hash);
                     }
                     accessBlock->destroy(acc, pointers[idx]);
                     pointers[idx] = nullptr;
                 }
                 while(pointers[idx] == nullptr)
                 {
-                    pointers[idx] = accessBlock->create(acc, myChunkSize);
+                    pointers[idx] = accessBlock->create(acc, myChunkSize, hash);
                 }
             });
     }
@@ -510,6 +517,7 @@ struct OversubscribedCreation
 
     ALPAKA_FN_ACC auto operator()(auto const& acc, auto* accessBlock, span<void*> pointers, auto chunkSize) const
     {
+        uint32_t hash = 0u;
         forAll(
             acc,
             pointers.size,
@@ -520,7 +528,7 @@ struct OversubscribedCreation
                     // `.isValid()` is not thread-safe, so we use this direct assessment:
                     while(pointers[idx] == nullptr)
                     {
-                        pointers[idx] = accessBlock->create(acc, chunkSize);
+                        pointers[idx] = accessBlock->create(acc, chunkSize, hash);
                     }
                     accessBlock->destroy(acc, pointers[idx]);
                     pointers[idx] = nullptr;
@@ -530,7 +538,7 @@ struct OversubscribedCreation
                 // such that threads looking for memory after we've finished can still find some.
                 while(pointers[idx] == nullptr and idx > (oversubscriptionFactor - 1) * availableSlots + 1)
                 {
-                    pointers[idx] = accessBlock->create(acc, chunkSize);
+                    pointers[idx] = accessBlock->create(acc, chunkSize, hash);
                 }
             });
     }
@@ -540,12 +548,13 @@ struct CreateAllChunkSizes
 {
     ALPAKA_FN_ACC auto operator()(auto const& acc, auto* accessBlock, span<void*> pointers, auto* chunkSizes) const
     {
+        uint32_t hash = 0u;
         forAll(
             acc,
             pointers.size,
             [&](auto i)
             {
-                pointers[i] = accessBlock->create(acc, 1U);
+                pointers[i] = accessBlock->create(acc, 1U, hash);
 
                 std::span<uint32_t> tmpChunkSizes(chunkSizes, pageSize - BitMaskSize);
                 for(auto chunkSize : tmpChunkSizes)
@@ -556,7 +565,7 @@ struct CreateAllChunkSizes
                     // `.isValid()` is not thread-safe, so we use this direct assessment:
                     while(pointers[i] == nullptr)
                     {
-                        pointers[i] = accessBlock->create(acc, chunkSize);
+                        pointers[i] = accessBlock->create(acc, chunkSize, hash);
                     }
                 }
             });

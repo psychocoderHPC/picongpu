@@ -141,7 +141,8 @@ TEST_CASE("PageInterpretation.create")
 
         SECTION("returns a pointer to within the data.")
         {
-            auto* pointer = page.create(acc);
+            uint32_t hash=0u;
+            auto* pointer = page.create(acc,hash);
             CHECK(
                 std::distance(reinterpret_cast<char*>(page[0]), reinterpret_cast<char*>(pointer))
                 < std::distance(reinterpret_cast<char*>(page[0]), reinterpret_cast<char*>(page.bitFieldStart())));
@@ -149,7 +150,8 @@ TEST_CASE("PageInterpretation.create")
 
         SECTION("returns a pointer to the start of a chunk.")
         {
-            auto* pointer = page.create(acc);
+            uint32_t hash=0u;
+            auto* pointer = page.create(acc,hash);
             CHECK(std::distance(reinterpret_cast<char*>(page[0]), reinterpret_cast<char*>(pointer)) % chunkSize == 0U);
         }
 
@@ -159,18 +161,20 @@ TEST_CASE("PageInterpretation.create")
             {
                 mask.set(acc);
             }
-            auto* pointer = page.create(acc);
+            uint32_t hash=0u;
+            auto* pointer = page.create(acc,hash);
             CHECK(pointer == nullptr);
         }
 
         SECTION("can provide numChunks pieces of memory and returns nullptr afterwards.")
         {
+            uint32_t hash=0u;
             for(uint32_t i = 0; i < page.numChunks(); ++i)
             {
-                auto* pointer = page.create(acc);
+                auto* pointer = page.create(acc,hash);
                 CHECK(pointer != nullptr);
             }
-            auto* pointer = page.create(acc);
+            auto* pointer = page.create(acc,hash);
             CHECK(pointer == nullptr);
         }
     }
@@ -185,7 +189,8 @@ TEST_CASE("PageInterpretation.create")
         {
             BitMask& mask{page.bitField()[0]};
             REQUIRE(mask.none());
-            auto* pointer = page.create(acc);
+            uint32_t hash=0u;
+            auto* pointer = page.create(acc,hash);
             auto const index = page.chunkNumberOf(pointer);
             CHECK(mask(acc, index));
         }
@@ -206,7 +211,8 @@ TEST_CASE("PageInterpretation.destroy")
         uint32_t numChunks = GENERATE(BitMaskSize * BitMaskSize, BitMaskSize);
         uint32_t chunkSize = pageSize / numChunks;
         PageInterpretation<pageSize> page{data, chunkSize};
-        auto* pointer = page.create(acc);
+        uint32_t hash=0u;
+        auto* pointer = page.create(acc,hash);
 
 #ifdef DEBUG
         SECTION("throws if given an invalid pointer.")

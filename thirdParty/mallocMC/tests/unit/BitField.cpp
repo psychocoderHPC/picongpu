@@ -31,9 +31,11 @@
 #include <alpaka/acc/AccCpuSerial.hpp>
 #include <alpaka/dim/DimIntegralConst.hpp>
 #include <alpaka/example/ExampleDefaultAcc.hpp>
+#include <bitset>
 #include <catch2/catch_test_macros.hpp>
 #include <catch2/generators/catch_generators.hpp>
 #include <cstdint>
+#include <iostream>
 #include <mallocMC/creationPolicies/Scatter/BitField.hpp>
 
 using mallocMC::CreationPolicies::ScatterAlloc::BitFieldFlat;
@@ -113,6 +115,20 @@ TEST_CASE("BitMask")
         mask.unset(acc, index2);
         CHECK(
             mask.firstFreeBit(acc, startIndex) == ((startIndex > index1 and startIndex <= index2) ? index2 : index1));
+    }
+
+    SECTION("knows the first free bit with startIndex. ...")
+    {
+        // The search is supposed to wrap around. So, the "first free bit" is always the smaller one unless startIndex
+        // lies in between the two indices.
+        mask.set(acc);
+        size_t const startIndex = GENERATE(6,9);
+        mask.unset(acc, 5);
+        mask.unset(acc, 11);
+        mask.unset(acc, 17);
+        CHECK(mask.firstFreeBit(acc, startIndex) == 11);
+        CHECK(mask.firstFreeBit(acc, startIndex) == 17);
+        CHECK(mask.firstFreeBit(acc, startIndex) == 5);
     }
 }
 

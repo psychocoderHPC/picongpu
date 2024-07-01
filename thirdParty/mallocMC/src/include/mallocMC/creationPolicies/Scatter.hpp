@@ -113,7 +113,6 @@ namespace mallocMC::CreationPolicies::ScatterAlloc
             if(numBytes >= multiPageThreshold())
             {
                 pointer = createOverMultiplePages(numBytes);
-                printf("noooooo\n");
             }
             else
             {
@@ -297,9 +296,14 @@ namespace mallocMC::CreationPolicies::ScatterAlloc
             if(enterPage(acc, index, numBytes))
             {
                 auto oldChunkSize = atomicCAS(acc, pageTable._chunkSizes[index], 0U, numBytes);
+#if 0
+                appropriate
+                    = (oldChunkSize == 0U || oldChunkSize == numBytes);
+#else
                 appropriate
                     = (oldChunkSize == 0U || oldChunkSize == numBytes
                        || (oldChunkSize >= numBytes && oldChunkSize <= numBytes * 2u));
+#endif
             }
             if(not appropriate)
             {
