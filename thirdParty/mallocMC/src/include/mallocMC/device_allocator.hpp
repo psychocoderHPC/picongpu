@@ -84,7 +84,8 @@ namespace mallocMC
         template<typename AlpakaAcc>
         ALPAKA_FN_ACC void free(const AlpakaAcc& acc, void* p)
         {
-            CreationPolicy::destroy(acc, p);
+            if(p != nullptr)
+                CreationPolicy::destroy(acc, p);
         }
 
         /** Provide the number of available free slots.

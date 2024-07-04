@@ -116,6 +116,12 @@ namespace mallocMC::CreationPolicies::ScatterAlloc
             // This method is not thread-safe by itself. But it is supposed to be called after acquiring a "lock" in
             // the form of setting the filling level, so that's fine.
             memset(&_data.data[T_pageSize - maxBitFieldSize()], 0U, maxBitFieldSize());
+
+        }
+
+        ALPAKA_FN_ACC auto resetBitfields() -> void
+        {
+            memset((void*)bitFieldStart(), 0U, bitFieldSize());
         }
 
         template<typename TAcc>
@@ -155,6 +161,9 @@ namespace mallocMC::CreationPolicies::ScatterAlloc
             return bitFieldSize(_chunkSize);
         }
 
+        /**
+         * @return bytes
+         */
         ALPAKA_FN_ACC [[nodiscard]] static auto bitFieldSize(uint32_t const chunkSize) -> uint32_t
         {
             return sizeof(BitMask) * ceilingDivision(numChunks(chunkSize), BitMaskSize);
@@ -162,6 +171,8 @@ namespace mallocMC::CreationPolicies::ScatterAlloc
 
         ALPAKA_FN_ACC [[nodiscard]] static auto maxBitFieldSize() -> uint32_t
         {
+            // 1U is wrong we need to take the mallocMC allignment policy into account to know the smallest allocation
+            // size
             return PageInterpretation<T_pageSize>::bitFieldSize(1U);
         }
 

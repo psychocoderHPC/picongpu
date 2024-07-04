@@ -139,6 +139,7 @@ namespace mallocMC::CreationPolicies::ScatterAlloc
             return atomicAnd(acc, mask, allOnes);
         }
 
+#define ALL_BIT 1
 
         template<typename TAcc>
         ALPAKA_FN_ACC inline auto firstFreeBit(
@@ -151,10 +152,12 @@ namespace mallocMC::CreationPolicies::ScatterAlloc
             // of keeping the interface of `wrappingLoop` a little simpler.
             auto const correctStartIndex = startIndex % BitMaskSize;
             auto result = firstFreeBitInBetween(acc, correctStartIndex, numValidBits);
+#if(!ALL_BIT)
             if(result == noFreeBitFound())
             {
                 result = firstFreeBitInBetween(acc, 0U, std::min(correctStartIndex, numValidBits));
             }
+#endif
             return result;
         }
 
@@ -174,7 +177,8 @@ namespace mallocMC::CreationPolicies::ScatterAlloc
                 {
                     result = i;
                 }
-                //BUG next round will find bit before startINdex too
+
+                // BUG next round will find bit before startIndex too
                 i = oldMask == allOnes
                     ? noFreeBitFound()
                     // For some reason, the interface of ffs takes signed integers, so we have to cast explicitly.
@@ -199,29 +203,20 @@ namespace mallocMC::CreationPolicies::ScatterAlloc
             uint32_t const endIndex) -> uint32_t
         {
             auto result = noFreeBitFound();
-            if(startIndex < endIndex)
-            {
-                auto highPass = startIndex == 0 ? allOnes : allOnes << (startIndex);
-                auto lowPass = allOnes >> (BitMaskSize - endIndex);
-                auto filterMask = lowPass & highPass;
+            auto oldMask = 0u;
 
-                auto oldMask = 0u;
-                for(uint32_t i = startIndex; i < endIndex and result == noFreeBitFound();)
+            auto const startBit = startIndex >= endIndex ? 0u : startIndex;
+            for(uint32_t i = startBit; i < endIndex and result == noFreeBitFound();)
+            {
+                oldMask = atomicOr(acc, mask, singleBit(i));
+                if((oldMask & singleBit(i)) == 0U)
                 {
-                    oldMask = atomicOr(acc, mask, singleBit(i));
-                    if((oldMask & singleBit(i) & filterMask) == 0U)
-                    {
-                        result = i;
-                    }
-                    else
-                    {
-                        i = alpaka::ffs(
-                                acc,
-                                static_cast<std::make_signed_t<BitMaskStorageType<>>>(~oldMask & filterMask))
-                            - 1;
-                    }
+                    result = i;
                 }
+
+                i = alpaka::ffs(acc, static_cast<std::make_signed_t<BitMaskStorageType<>>>(~oldMask)) - 1;
             }
+
             return result;
         }
 #endif
