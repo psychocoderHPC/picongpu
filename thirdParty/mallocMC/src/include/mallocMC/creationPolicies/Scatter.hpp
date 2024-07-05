@@ -224,7 +224,7 @@ namespace mallocMC::CreationPolicies::ScatterAlloc
 
         ALPAKA_FN_ACC static auto startIndex(auto const& acc, uint32_t const hashValue)
         {
-            return (hashValue >> 16u) % numPages();
+            return (hashValue >> 8u) % numPages();
         }
 
         ALPAKA_FN_ACC bool isValidPageIdx(uint32_t const index) const
@@ -426,7 +426,10 @@ namespace mallocMC::CreationPolicies::ScatterAlloc
 
         ALPAKA_FN_ACC [[nodiscard]] auto numBlocks() const -> size_t
         {
-            static_assert(T_blockSize == sizeof(AccessBlock<T_blockSize, T_pageSize>));
+            // Guarantee that each access block start address is aligned.
+            static_assert(
+                T_blockSize == sizeof(AccessBlock<T_blockSize, T_pageSize>),
+                "accessblock should equal to the use given block size to have a guaranteed alignment for pointers.");
             return heapSize / T_blockSize;
         }
 
@@ -486,10 +489,8 @@ namespace mallocMC::CreationPolicies::ScatterAlloc
         ALPAKA_FN_ACC auto destroy(const AlpakaAcc& acc, void* pointer) -> void
         {
             // indexOf requires the access block size instead of T_blockSize in case the reinterpreted AccessBlock
-            // object is smaller than T_blockSize. Never the less this is fixed, an AccessBlock has internal padding
-            // and we guarantee with the padding that each block starts on an align address.
+            // object is smaller than T_blockSize.
             auto blockIndex = indexOf(pointer, accessBlocks, sizeof(AccessBlock<T_blockSize, T_pageSize>));
-            static_assert(T_blockSize == sizeof(AccessBlock<T_blockSize, T_pageSize>));
             accessBlocks[blockIndex].destroy(acc, pointer);
         }
     };

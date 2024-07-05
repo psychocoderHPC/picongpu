@@ -77,7 +77,7 @@ namespace mallocMC::CreationPolicies::ScatterAlloc
 
         ALPAKA_FN_ACC auto startIndex(uint32_t const hashValue) const
         {
-            return (hashValue >> 9);
+            return (hashValue >> 16);
         }
 
         template<typename TAcc>

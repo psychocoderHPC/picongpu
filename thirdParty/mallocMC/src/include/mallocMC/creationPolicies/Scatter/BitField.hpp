@@ -139,7 +139,9 @@ namespace mallocMC::CreationPolicies::ScatterAlloc
             return atomicAnd(acc, mask, allOnes);
         }
 
-#define ALL_BIT 1
+#ifndef OLD_BIT_SEARCH
+#    define OLD_BIT_SEARCH 0
+#endif
 
         template<typename TAcc>
         ALPAKA_FN_ACC inline auto firstFreeBit(
@@ -152,7 +154,7 @@ namespace mallocMC::CreationPolicies::ScatterAlloc
             // of keeping the interface of `wrappingLoop` a little simpler.
             auto const correctStartIndex = startIndex % BitMaskSize;
             auto result = firstFreeBitInBetween(acc, correctStartIndex, numValidBits);
-#if(!ALL_BIT)
+#if(OLD_BIT_SEARCH)
             if(result == noFreeBitFound())
             {
                 result = firstFreeBitInBetween(acc, 0U, std::min(correctStartIndex, numValidBits));
@@ -162,7 +164,7 @@ namespace mallocMC::CreationPolicies::ScatterAlloc
         }
 
     private:
-#if 0
+#if OLD_BIT_SEARCH
         template<typename TAcc>
         ALPAKA_FN_ACC inline auto firstFreeBitInBetween(
             TAcc const& acc,
@@ -205,8 +207,8 @@ namespace mallocMC::CreationPolicies::ScatterAlloc
             auto result = noFreeBitFound();
             auto oldMask = 0u;
 
-            auto const startBit = startIndex >= endIndex ? 0u : startIndex;
-            for(uint32_t i = startBit; i < endIndex and result == noFreeBitFound();)
+            auto const selectedStartBit = startIndex >= endIndex ? 0u : startIndex;
+            for(uint32_t i = selectedStartBit; i < endIndex and result == noFreeBitFound();)
             {
                 oldMask = atomicOr(acc, mask, singleBit(i));
                 if((oldMask & singleBit(i)) == 0U)
