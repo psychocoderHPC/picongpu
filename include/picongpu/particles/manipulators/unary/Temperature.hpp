@@ -20,8 +20,7 @@
 
 #pragma once
 
-#include "picongpu/simulation_defines.hpp"
-
+#include "picongpu/defines.hpp"
 #include "picongpu/particles/functor/User.hpp"
 
 namespace picongpu
@@ -74,7 +73,8 @@ namespace picongpu
                                     = (temperatureKeV * sim.si.conv.ev2Joule(1.0e3)) / sim.unit.energy();
                                 float_X const macroWeighting = particle[weighting_];
                                 float_X const macroEnergy = macroWeighting * energy;
-                                float_X const macroMass = attribute::getMass(macroWeighting, particle);
+                                float_X const macroMass
+                                    = picongpu::traits::attribute::getMass(macroWeighting, particle);
                                 float_X const standardDeviation
                                     = static_cast<float_X>(math::sqrt(precisionCast<sqrt_X>(macroEnergy * macroMass)));
                                 float3_X const mom

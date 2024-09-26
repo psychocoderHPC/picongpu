@@ -1,5 +1,4 @@
-/* Copyright 2013-2023 Axel Huebl, Heiko Burau, Rene Widera, Felix Schmitt,
- *                     Marco Garten, Finn-Ole Carstens
+/* Copyright 2013-2023 Axel Huebl, Rene Widera, Sergei Bastrakov, Klaus Steiniger
  *
  * This file is part of PIConGPU.
  *
@@ -18,26 +17,31 @@
  * If not, see <http://www.gnu.org/licenses/>.
  */
 
-/** @file
- *
- * only PIConGPU programmers should change this file
- *
- * for examples use extensionUnitless.loader
- */
 #pragma once
+
+#include "picongpu/defines.hpp"
 
 // clang-format off
 
+#include "picongpu/param/pusher.param"
+#include "picongpu/param/ionizer.param"
+#include "picongpu/param/ionizationEnergies.param"
+#include "picongpu/param/density.param"
+#include "picongpu/param/particle.param"
+#include "picongpu/param/atomicPhysics_Debug.param"
+#include "picongpu/param/atomicPhysics.param"
+#include "picongpu/param/particleFilters.param"
+#include "picongpu/param/species.param"
+#include "picongpu/param/speciesDefinition.param"
+#include "picongpu/param/collision.param"
+#include "picongpu/param/fieldSolver.param"
+
 #include "picongpu/unitless/density.unitless"
 #include "picongpu/unitless/particle.unitless"
-#include "picongpu/unitless/fieldAbsorber.unitless"
 #include "picongpu/unitless/pusher.unitless"
 #include "picongpu/unitless/ionizer.unitless"
 #include "picongpu/unitless/speciesAttributes.unitless"
 #include "picongpu/unitless/speciesDefinition.unitless"
-#include "picongpu/unitless/fieldBackground.unitless"
 #include "picongpu/unitless/collision.unitless"
-#include "picongpu/unitless/png.unitless"
-
 
 // clang-format on
